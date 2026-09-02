@@ -46,7 +46,7 @@
           "pattern": "^https?://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*$"
         },
         "role": {
-          "description": "What this party does on the network. consumer asks. provider answers. network exposes publish and discover, answering discover from published catalogs.",
+          "description": "What this party does on the network. consumer asks. provider answers. network exposes publish and discover, answering discover from published catalogs. Required on a node. Permitted on an upstream, where nothing reads it.",
           "type": "string",
           "enum": [
             "consumer",
@@ -55,7 +55,7 @@
           ]
         },
         "keys": {
-          "description": "Plural for rotation: an overlap where old and new are both valid. The sender names which it used by osid in the Authorization header.",
+          "description": "Plural for rotation: an overlap where old and new are both valid. The sender names which it used by osid in the Authorization header. Required on a node, since a node's signatures are verified against them. Permitted on an upstream, which does not sign anything this stack verifies.",
           "type": "array",
           "minItems": 1,
           "maxItems": 8,
@@ -91,35 +91,6 @@
               "baseUrl": {
                 "pattern": "^https://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*$"
               }
-            }
-          }
-        },
-        {
-          "description": "An upstream does not speak Beckn: it has no role on the network and no keys we verify.",
-          "if": {
-            "properties": {
-              "type": {
-                "const": "upstream"
-              }
-            },
-            "required": [
-              "type"
-            ]
-          },
-          "then": {
-            "not": {
-              "anyOf": [
-                {
-                  "required": [
-                    "role"
-                  ]
-                },
-                {
-                  "required": [
-                    "keys"
-                  ]
-                }
-              ]
             }
           }
         }

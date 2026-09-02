@@ -134,8 +134,11 @@ published as. Keycloak builds the token's issuer from these headers, and the
 registry validates that issuer against the internal address. Get it wrong and
 the registry rejects the token with a 401 and an empty body.
 
-**Row one — the API itself.** Type `upstream`: it has no role and no keys,
-because it has never heard of Beckn.
+**Row one — the API itself.** Type `upstream`: an ordinary HTTP API this
+deployment calls. It does not sign anything and nothing verifies it, so no
+keys are needed — the signing in this flow is between adapters, on the three
+`node` identities `bin/setup.py` seeded. `role` and `keys` are accepted on an
+upstream if a deployment wants to record them; nothing reads them.
 
 ```sh
 curl -s -X POST http://127.0.0.1:8081/api/v1/Participant \
@@ -163,7 +166,7 @@ curl -s -X POST http://127.0.0.1:8081/api/v1/ProviderSchema \
       "action": "select",
       "method": "GET",
       "path": "/get-daily",
-      "mappings": "https://raw.githubusercontent.com/ameersohel45/oan-mappings/main/mausamgram/weather-observation.select.yaml",
+      "mappings": "https://raw.githubusercontent.com/OpenAgriNet/helmcharts/feat/4-docker-compose/docker-deployment/config/mappings/mausamgram/weather-observation.select.yaml",
       "timeoutMs": 15000,
       "retryMax": 2,
       "status": "active"
@@ -176,10 +179,12 @@ Things worth knowing about these two calls:
 - **No `{"Participant": {...}}` wrapper.** The registry takes the record
   itself. A wrapper comes back as `extraneous key [Participant] is not
   permitted`.
-- **An `upstream` carries no `role`, no `keys` and no credential.** It has
-  never heard of Beckn, and nothing held in the registry is ever sent to it —
-  the adapter presents credentials from its own config, naming environment
-  variables. The schema refuses `role` or `keys` on an upstream.
+- **An `upstream` needs no `role` and no `keys`**, and no credential is held
+  for it here. It has never heard of Beckn, and nothing in the registry is
+  sent to it — the adapter presents credentials from its own config, naming
+  environment variables. `role` and `keys` are permitted if a deployment wants
+  to record them, but nothing reads them: a signature is verified against the
+  `node` identity that signed it.
 - **The three roles are `consumer`, `provider` and `network`**, and they apply
   to `node` rows only — the three `setup.py` creates. A node also needs at
   least one key, published as bare base64 with no encoding label in front of
@@ -346,17 +351,21 @@ config/
 
 ## About the mapping file
 
-`config/mappings/` holds the same file the published mappings repository
-serves. It is there to **read and to fork** — not to be served from here.
+`config/mappings/` holds the mapping this deployment uses, and `MAPPING_URL`
+points at **this repo's own copy** over GitHub's raw CDN. So the file a reader
+reviews and the file the adapter fetches are one file, and cannot drift.
 
-The registry row holds a full URL and the adapter fetches it verbatim, so a
-mapping has to be published somewhere the adapter can reach before it can be
-tested. What this stack exercises is therefore what consumers actually fetch.
-Serving the local copy would prove the file works and prove nothing about the
-file anyone else reads.
+It is a URL rather than a path because the registry publishes the full URL and
+the adapter fetches it verbatim — which means a mapping has to be reachable
+before it can be tested, and what this stack exercises is exactly what any
+consumer fetches.
 
-To change the mapping: fork it, publish the copy anywhere that serves raw text
-over https, and put that URL in the `mappings` field of the ProviderSchema row.
+Note the branch in that URL. Once this merges, point it at the default branch,
+or pin a tag so a deployment is not following a moving file.
+
+To change the mapping: edit the file here and push, or publish a fork anywhere
+that serves raw text over https and put that URL in the `mappings` field of
+the ProviderSchema row.
 
 The adapter caches a mapping for `cacheTTL` (one minute, in the adapter config)
 and GitHub's raw CDN caches for about five, so give an edit a few minutes to
