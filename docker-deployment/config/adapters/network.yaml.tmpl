@@ -26,10 +26,11 @@ modules:
     path: /oan/
     handler:
       type: std
-      # bpp because this adapter RECEIVES from a BAP. The role decides which
-      # context identity validateSign compares the signer against: bap expects
-      # the sender to be the bppId, bpp expects the bapId -- and the sender here
-      # is the caller, oan-caller.
+      # bpp because this adapter RECEIVES rather than originates. The role
+      # decides which declared identity validateSign would compare a signer
+      # against -- but no payload here declares one, so that check is skipped
+      # and what is verified is the signature itself, against the key the
+      # registry publishes for whoever signed.
       role: bpp
       subscriberId: __NETWORK_SUBSCRIBER_ID__
 

@@ -204,7 +204,7 @@ def node(participant_id, name, role, public_key):
 
     One level, no wrapper object: type decides which fields apply. baseUrl must
     be https for a node, and the id must be hostname-shaped -- it is the
-    identity that goes on the wire as context.bapId / bppId. Neither is
+    identity a signature is checked against. Neither is
     resolved here: routing between the adapters is the router plugin's config,
     which uses the compose service names."""
     return {"participantId": participant_id, "name": name, "type": "node",

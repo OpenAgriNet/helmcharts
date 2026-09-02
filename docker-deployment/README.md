@@ -198,8 +198,6 @@ curl -s -X POST http://127.0.0.1:9202/oan/select \
     "context": {
       "version": "2.0.0", "action": "select",
       "networkId": "oan-dev",
-      "bapId": "exp.oan.dev",      "bapUri": "http://exp-adapter:9202/oan",
-      "bppId": "provider.oan.dev", "bppUri": "http://provider-adapter:9200/oan",
       "transactionId": "9f2c1a8e-4b70-4d31-9c55-6f2e0b1d7a44",
       "messageId": "7d41b9e0-52a6-4c18-8b73-1e9f0a4c6d22",
       "timestamp": "2026-09-02T06:12:01.330Z"
@@ -227,14 +225,12 @@ curl -s -X POST http://127.0.0.1:9202/oan/select \
 
 You should get an `on_select` back, with one resource per forecast day.
 
-Two things about identity here:
-
-- The **request** carries `bapId` / `bppId`, because that is the caller saying
-  who it is. The adapter needs it to look the sender's key up in the registry.
-- The **answer** does not echo them back. A mapping transforms a payload; it
-  does not assert who anyone is, and the `*Uri` fields it could copy are
-  container-internal addresses that mean nothing outside this compose network.
-  Identity on the answer is the adapter's signature over it.
+No party is named in the payload, in either direction. Identity travels in
+the `Authorization` header's `keyId`, which names the signer and the key the
+registry published for it; a body that declares no caller simply skips the
+declared-identity comparison. Nothing needs `bapId` or `bppId`, and the
+`*Uri` fields they came with were container-internal addresses that meant
+nothing outside this compose network anyway.
 
 The experience adapter is the only one that takes an unsigned request — the
 experience app is inside the trust boundary, so there is no network signature

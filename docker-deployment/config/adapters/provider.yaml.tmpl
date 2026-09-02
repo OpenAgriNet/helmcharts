@@ -119,8 +119,9 @@ modules:
   # unsigned calls from the app in front of it. This adapter then signs the
   # forwarded request as itself, which is what the network layer verifies.
   #
-  # Nothing here needs bapId or bppId in the body. Identity travels in the
-  # Authorization header's keyId, taken from keyManager below.
+  # No party is named in the body at all. Identity travels in the
+  # Authorization header's keyId, taken from keyManager below, and that is
+  # what the network layer verifies against the registry.
   - name: oanProviderPublish
     path: /
     handler:
