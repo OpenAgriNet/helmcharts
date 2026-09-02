@@ -1,0 +1,27 @@
+{{- if .Values.backup.enabled }}
+# Scheduled base backups. WAL is archived continuously by the plugin, so these
+# plus the archived WAL are what make point-in-time recovery possible.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: {{ include "postgresql-cnpg.fullname" . }}-scheduled
+  namespace: {{ include "postgresql-cnpg.namespace" . }}
+  labels:
+    {{- include "postgresql-cnpg.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  # 6-field cron: sec min hour dom mon dow
+  schedule: {{ .Values.backup.schedule | quote }}
+  backupOwnerReference: {{ .Values.backup.backupOwnerReference }}
+  immediate: {{ .Values.backup.immediate }}
+  method: plugin
+  pluginConfiguration:
+    name: {{ .Values.backup.pluginName }}
+    parameters:
+      barmanObjectName: {{ include "postgresql-cnpg.objectStoreName" . }}
+  cluster:
+    name: {{ include "postgresql-cnpg.fullname" . }}
+{{- end }}

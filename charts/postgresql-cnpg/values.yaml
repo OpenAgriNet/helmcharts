@@ -1,0 +1,271 @@
+# ============================================================================
+# postgresql-cnpg - default values
+#
+# One CloudNativePG `Cluster` (plus optional backups) per database. Install one
+# release per service that needs its own database, giving each its own
+# credentials, storage and backup schedule:
+#
+#   helm install registry-db charts/postgresql-cnpg \
+#     -n oan-registry -f values/registry-db.dev.yaml
+#
+# PREREQUISITES (neither is installed by this chart):
+#   1. The CloudNativePG operator, cluster-wide.
+#   2. For backups only: the Barman Cloud Plugin, also cluster-wide. Leave
+#      backup.enabled false until its CRDs are present.
+#
+# Minimum you must set for a real deployment:
+#   - fullnameOverride  (see below - it decides the DNS other services use)
+#   - bootstrap.database / bootstrap.owner / bootstrap.ownerSecret
+#   - storage.size and storage.storageClass
+# ============================================================================
+
+# Namespace for the CNPG resources. Defaults to the release namespace; set this
+# only if you deliberately want them somewhere other than `helm -n`.
+namespace: ""
+
+nameOverride: ""
+# STRONGLY RECOMMENDED. The cluster name becomes the connection DNS other
+# services use - <name>-rw (primary), <name>-ro (replicas), <name>-r (any).
+# Without this you get <release>-postgresql-cnpg-rw. Set something short and
+# stable, e.g. "registry-db" -> registry-db-rw.<namespace>.svc.cluster.local
+fullnameOverride: ""
+
+# ---------------------------------------------------------------------------
+# Image
+# Leave repository empty to let the CNPG operator choose its own default
+# PostgreSQL image. Pin it per environment for reproducible upgrades - a
+# PostgreSQL major version change is a data migration, not a tag bump.
+# ---------------------------------------------------------------------------
+image:
+  # e.g. "ghcr.io"
+  registry: dhi.io
+  # e.g. "cloudnative-pg/postgresql"
+  repository: pgvector
+  tag: "0.8-pg16"
+  # sha256:... - wins over tag when set
+  digest: ""
+  pullSecrets: []
+
+# Primary + (instances - 1) replicas. 1 is fine for local or dev; use at least
+# 2 anywhere an outage matters.
+instances: 2
+
+# Resource requests and limits for each instance. REQUIRED - the render fails
+# when this is empty (oan-common.resources).
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+# ---------------------------------------------------------------------------
+# Storage
+# storageClass empty means the cluster's default class. Note the OAN clusters
+# default to gp3 with reclaimPolicy: Delete - for anything you cannot lose,
+# point this at a Retain class so the volume survives PVC deletion.
+# ---------------------------------------------------------------------------
+storage:
+  size: 10Gi
+  storageClass: ""
+
+# Separate volume for the write-ahead log. Recommended, and effectively
+# required for healthy point-in-time-recovery throughput.
+walStorage:
+  enabled: true
+  size: 2Gi
+  storageClass: ""
+
+# PostgreSQL server parameters, merged onto the CNPG defaults.
+postgresql:
+  parameters: {}
+    # max_connections: "200"
+    # shared_buffers: "256MB"
+
+# Pod scheduling. NOTE: in CNPG, nodeSelector and tolerations belong *inside*
+# affinity - the Cluster spec has no top-level fields for them, and anything
+# put there is silently dropped by the API server.
+affinity:
+  enablePodAntiAffinity: true
+  topologyKey: kubernetes.io/hostname
+  nodeSelector: {}
+  tolerations: []
+
+# Annotations for the ServiceAccount CNPG creates for the cluster pods. This is
+# where IRSA goes when backups write to S3:
+#   eks.amazonaws.com/role-arn: arn:aws:iam::<account>:role/<role>
+serviceAccount:
+  annotations: {}
+
+# Prometheus PodMonitor. Requires the Prometheus Operator CRDs.
+monitoring:
+  enablePodMonitor: false
+
+# Superuser access is disabled by default (CNPG default too): applications
+# should connect as the database owner, not as postgres.
+enableSuperuserAccess: false
+# Name of a Secret with the superuser credentials. Only used when
+# enableSuperuserAccess is true; CNPG generates one if left empty.
+superuserSecret: ""
+
+# UID/GID the postgres process runs as. Empty uses the operator default (26).
+postgresUID: ""
+postgresGID: ""
+
+# How replicas are updated: "unsupervised" rolls automatically,
+# "supervised" waits for a manual switchover.
+primaryUpdateStrategy: unsupervised
+
+# ---------------------------------------------------------------------------
+# Bootstrap: how the database is first created.
+# ---------------------------------------------------------------------------
+bootstrap:
+  # Application database and its owner. Both empty uses the CNPG defaults
+  # ("app"/"app"), which is rarely what you want - name them explicitly.
+  database: ""
+  owner: ""
+  # Name of a Secret with keys `username` and `password` for the owner. Leave
+  # empty to have CNPG generate the password into Secret/<cluster>-app.
+  ownerSecret: ""
+  # SQL run once, after the database is created.
+  postInitApplicationSQL: []
+    # - CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+  # Logical import from an existing PostgreSQL, for migrating an existing
+  # database into CNPG. CNPG runs pg_dump/pg_restore against `source` when the
+  # cluster is created. One-time: it has no effect on an existing cluster.
+  import:
+    enabled: false
+    # microservice = one database per cluster (databases must list exactly one)
+    type: microservice
+    databases: []
+    source:
+      host: ""
+      port: "5432"
+      dbname: ""
+      user: postgres
+      # Secret holding the source user's password
+      passwordSecret:
+        name: ""
+        key: password
+
+# ---------------------------------------------------------------------------
+# Additional databases
+#
+# bootstrap.initdb creates exactly ONE database. Everything else goes here, as
+# CNPG `Database` objects the operator reconciles.
+#
+# REQUIRES CNPG >= 1.25 (where the Database CRD was introduced). On an older
+# operator these objects are ignored silently - no database, and no error.
+#
+# The owner must be a role that exists. Declare it under managed.roles below, or
+# use the cluster's bootstrap owner.
+#
+#   databases:
+#     - name: keycloak
+#       owner: keycloak
+#       extensions:
+#         - name: uuid-ossp
+#
+# Each entry supports: name, owner, ensure (present|absent),
+# databaseReclaimPolicy (retain|delete), encoding, locale, template,
+# allowConnections, connectionLimit, extensions, schemas.
+#
+# Listing the bootstrap database here fails the render - the operator would be
+# asked to create a database that already exists.
+# ---------------------------------------------------------------------------
+databases: []
+
+# ---------------------------------------------------------------------------
+# Managed roles
+#
+# Roles the operator creates and reconciles. Give every application its own role
+# owning its own database, so no workload needs superuser rights.
+#
+# passwordSecret names a Secret with `username` and `password` keys. The operator
+# reconciles the role's password to match it.
+#
+#   managed:
+#     roles:
+#       - name: keycloak
+#         passwordSecret:
+#           name: keycloak-db
+#
+# A role with neither passwordSecret nor disablePassword fails the render, since
+# it would be a login role nobody can authenticate as.
+# ---------------------------------------------------------------------------
+managed:
+  roles: []
+
+# ---------------------------------------------------------------------------
+# Backups: base backups + continuous WAL archiving via the Barman Cloud Plugin.
+#
+# Disabled by default. Enabling it requires, in this order:
+#   1. The Barman Cloud Plugin installed cluster-wide.
+#   2. A bucket that the cluster can write to.
+#   3. Credentials - on EKS, an IRSA role bound to the cluster ServiceAccount
+#      via serviceAccount.annotations above.
+# ---------------------------------------------------------------------------
+backup:
+  enabled: false
+  pluginName: barman-cloud.cloudnative-pg.io
+
+  # Must be shorter than any expiry the bucket's own lifecycle policy applies,
+  # or the bucket deletes backups Barman still counts on. Form: <n>d|w|m.
+  retentionPolicy: "14d"
+
+  # CNPG uses 6-field cron (sec min hour dom mon dow). Default: daily at 02:00.
+  schedule: "0 0 2 * * *"
+  # Take a backup as soon as the ScheduledBackup is created.
+  immediate: true
+  backupOwnerReference: self
+
+  objectStore:
+    # Defaults to <fullname>-backup
+    name: ""
+    # s3 | gcs | azure
+    provider: s3
+    # Bucket name only - the URI scheme comes from provider.
+    # OAN dev provisions "oan-dev-pg-backup" (see infra-automation).
+    bucket: ""
+    # Optional prefix so several clusters can share a bucket, e.g. "/registry"
+    path: ""
+    # Full destination path, overriding bucket/path. For S3-compatible stores.
+    destinationPath: ""
+    # For S3-compatible object stores (MinIO and similar)
+    endpointURL: ""
+    # Pins the folder inside the bucket. Defaults to the cluster name; set it
+    # explicitly before renaming a cluster that already has backups.
+    serverName: ""
+
+    # Rendered verbatim as <provider>Credentials. The default is IRSA: the
+    # cluster's ServiceAccount carries the role, no keys anywhere.
+    #
+    # S3 with static keys instead (each value is a secret reference):
+    #   credentials:
+    #     accessKeyId:     {name: pg-backup-creds, key: ACCESS_KEY_ID}
+    #     secretAccessKey: {name: pg-backup-creds, key: SECRET_ACCESS_KEY}
+    # GCS on GKE:      credentials: {gkeEnvironment: true}
+    # Azure workload identity: credentials: {inheritFromAzureAD: true}
+    credentials:
+      inheritFromIAMRole: true
+
+    wal:
+      # bzip2 | gzip | lz4 | snappy | xz | zstd
+      compression: gzip
+      # AES256 | aws:kms. Empty uses the bucket's default encryption.
+      encryption: ""
+    data:
+      # bzip2 | gzip | lz4 | snappy
+      compression: gzip
+      encryption: ""
+
+# Escape hatch: extra keys merged into the Cluster spec, for CNPG fields this
+# chart does not expose yet. Keys the chart already sets cannot be overridden
+# here - that would render duplicate YAML keys.
+extraClusterSpec: {}
+
+# Extra labels and annotations on every resource this chart renders
+commonLabels: {}
+commonAnnotations: {}
