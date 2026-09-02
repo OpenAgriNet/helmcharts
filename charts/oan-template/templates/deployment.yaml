@@ -1,0 +1,79 @@
+apiVersion: {{ include "oan-common.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include "oan-template.fullname" . }}
+  labels:
+    {{- include "oan-template.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "oan-template.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "oan-template.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/env-config: {{ include "oan-common.checksumAnnotation" . }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.serviceAccount.enabled }}
+      serviceAccountName: {{ include "oan-template.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- end }}
+      {{- with (include "oan-common.imagePullSecrets" . | trim) }}
+      {{- . | nindent 6 }}
+      {{- end }}
+      {{- with (include "oan-common.podSecurityContext" .) }}
+      securityContext:
+        {{- . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ include "oan-template.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with (include "oan-common.securityContext" .) }}
+          securityContext:
+            {{- . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          {{- with (include "oan-common.env" . | trim) }}
+          env:
+            {{- . | nindent 12 }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "oan-template.envConfigMapName" . }}
+            {{- range .Values.envFromSecrets }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
+          {{- with (include "oan-common.probes" . | trim) }}
+          {{- . | nindent 10 }}
+          {{- end }}
+          resources:
+            {{- include "oan-common.resources" . | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

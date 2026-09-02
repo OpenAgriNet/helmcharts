@@ -1,0 +1,9 @@
+# Minimum values that let `helm template` run in CI.
+#
+# This chart's image.repository is intentionally empty - it is a starter chart,
+# and a chart with no image is not a deployable thing. The render fails without
+# one, so CI supplies a placeholder.
+image:
+  registry: docker.io
+  repository: nginx
+  tag: "1.27"

@@ -1,0 +1,155 @@
+# ============================================================================
+# oan-template - default values
+#
+# This is a REFERENCE / STARTER chart. Copy the whole `oan-template` directory,
+# rename it to your service, then adjust the values below. It renders a standard
+# stateless service: Deployment + Service + ServiceAccount + env ConfigMap +
+# optional Ingress, all wired through oan-common.
+#
+# Minimum you must change for a real deployment:
+#   - image.registry / image.repository / image.tag
+#   - service.port / service.targetPort (your container's listen port)
+#   - livenessProbe / readinessProbe httpGet.path (your health endpoint)
+#   - resources (right-size for the workload)
+#   - envConfig (non-secret configuration only)
+# ============================================================================
+
+replicaCount: 1
+
+# Image configuration. Override registry/repository/tag per environment.
+image:
+  # e.g. "ghcr.io" or "<account>.dkr.ecr.ap-south-1.amazonaws.com"
+  registry: ""
+  # e.g. "openagrinet/my-service"
+  repository: ""
+  # Leave empty to fall back to Chart.appVersion
+  tag: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  # For IRSA on EKS:
+  #   eks.amazonaws.com/role-arn: arn:aws:iam::<account>:role/<role>
+  annotations: {}
+  automountServiceAccountToken: true
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  annotations: {}
+
+# Ingress. Disabled by default; enable per environment.
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: my-service.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Resource requests and limits. REQUIRED - the render fails if this is empty.
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Probes. Point httpGet.path at your service's health endpoint.
+# Any handler (httpGet, tcpSocket, exec, grpc) and any timing field is passed
+# through verbatim; only `enabled` is stripped.
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Enable for slow-starting services so liveness does not kill them mid-boot.
+startupProbe:
+  enabled: false
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+# Pod-level security context. Off by default - enable once the image is
+# verified to run as a non-root user.
+podSecurityContext:
+  enabled: false
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container-level security context. Off by default; turn on
+# readOnlyRootFilesystem once the app writes only to mounted volumes.
+securityContext:
+  enabled: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+# Scheduling
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+
+# ============================================================================
+# ENVIRONMENT CONFIGURATION
+# Rendered into a ConfigMap and exposed to the container via envFrom. Pods
+# restart automatically when these change (checksum annotation).
+#
+# NEVER put secrets here. Reference Secrets via envFromSecrets or secretEnv.
+# ============================================================================
+envConfig:
+  LOG_LEVEL: "info"
+  SERVICE_NAME: "oan-template"
+
+# Names of pre-existing Secrets in this namespace to inject via envFrom, for
+# secrets not managed by ESO.
+envFromSecrets: []
+
+# Individual env vars sourced from specific Secret keys. Use this when the
+# secret's key name differs from the env var the application expects.
+secretEnv: {}
+  # DB_PASSWORD:
+  #   name: my-service-db
+  #   key: password
+
+# Raw env entries, passed through verbatim.
+extraEnv: []

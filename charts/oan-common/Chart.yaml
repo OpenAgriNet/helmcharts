@@ -1,0 +1,17 @@
+apiVersion: v2
+name: oan-common
+description: Common Helm library chart for OpenAgriNet (OAN) services
+type: library
+version: 0.2.0
+appVersion: "0.1.0"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - common
+  - library
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
