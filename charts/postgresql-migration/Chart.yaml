@@ -1,0 +1,27 @@
+apiVersion: v2
+name: postgresql-migration
+description: >-
+  Flyway schema migrations for OAN PostgreSQL databases, run as a Job. Creates
+  the per-service databases and applies versioned SQL to each. Runs as a Helm
+  hook so it completes before the services that depend on it start.
+type: application
+version: 0.2.0
+# Flyway CLI image tag
+appVersion: "11.10.0"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - postgresql
+  - flyway
+  - migration
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
+  - https://documentation.red-gate.com/flyway
+dependencies:
+  - name: oan-common
+    version: "0.2.x"
+    repository: "file://../oan-common"

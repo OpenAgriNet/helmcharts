@@ -1,0 +1,41 @@
+{{ .Chart.Name }} installed as release "{{ .Release.Name }}".
+
+CloudNativePG resources in namespace "{{ include "postgresql-cnpg.namespace" . }}":
+  - Cluster/{{ include "postgresql-cnpg.fullname" . }} ({{ .Values.instances }} instance(s))
+{{- if .Values.backup.enabled }}
+  - ObjectStore/{{ include "postgresql-cnpg.objectStoreName" . }} -> {{ include "postgresql-cnpg.objectStore.destinationPath" . }}
+  - ScheduledBackup/{{ include "postgresql-cnpg.fullname" . }}-scheduled ({{ .Values.backup.schedule }}, retention {{ .Values.backup.retentionPolicy }})
+{{- end }}
+
+Connect from another workload in the cluster:
+  host: {{ include "postgresql-cnpg.fullname" . }}-rw.{{ include "postgresql-cnpg.namespace" . }}.svc.cluster.local   # primary, read-write
+  host: {{ include "postgresql-cnpg.fullname" . }}-ro.{{ include "postgresql-cnpg.namespace" . }}.svc.cluster.local   # replicas, read-only
+  port: 5432
+{{- with .Values.bootstrap.database }}
+  database: {{ . }}
+{{- end }}
+{{- with .Values.bootstrap.owner }}
+  user: {{ . }}
+{{- end }}
+
+{{ if not .Values.fullnameOverride }}
+NOTE: fullnameOverride is not set, so the cluster is named
+"{{ include "postgresql-cnpg.fullname" . }}" and other services must connect to
+"{{ include "postgresql-cnpg.fullname" . }}-rw". Set fullnameOverride (e.g.
+"registry-db") for a shorter, stable name - renaming later means recreating the
+cluster.
+{{- end }}
+{{- if not .Values.bootstrap.ownerSecret }}
+
+NOTE: bootstrap.ownerSecret is not set, so CNPG generated the owner password
+itself. Read it with:
+  kubectl -n {{ include "postgresql-cnpg.namespace" . }} get secret {{ include "postgresql-cnpg.fullname" . }}-app -o jsonpath='{.data.password}' | base64 -d
+{{- end }}
+{{- if not .Values.backup.enabled }}
+
+NOTE: backups are disabled. Enable backup.* once the Barman Cloud Plugin is
+installed cluster-wide and the bucket and IRSA role exist.
+{{- end }}
+
+Watch the cluster come up:
+  kubectl -n {{ include "postgresql-cnpg.namespace" . }} get cluster {{ include "postgresql-cnpg.fullname" . }} -w

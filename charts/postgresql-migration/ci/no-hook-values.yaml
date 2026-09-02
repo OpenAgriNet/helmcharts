@@ -1,0 +1,11 @@
+# Second CI case: the Job as an ordinary release resource rather than a Helm
+# hook, which is how you would run migrations on their own.
+postgresql:
+  host: registry-db-rw
+  passwordSecret:
+    name: registry-db-superuser
+hook:
+  enabled: false
+job:
+  ttlSecondsAfterFinished: 3600
+repairOnFailure: false

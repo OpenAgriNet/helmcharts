@@ -1,0 +1,105 @@
+{{- include "postgresql-migration.validate" . }}
+{{- $targets := include "postgresql-migration.enabledTargets" . | fromJsonArray }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "postgresql-migration.fullname" . }}
+  labels:
+    {{- include "postgresql-migration.labels" . | nindent 4 }}
+  annotations:
+    {{- include "postgresql-migration.hookAnnotations" . | nindent 4 }}
+    {{- with .Values.commonAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  {{- with .Values.job.activeDeadlineSeconds }}
+  activeDeadlineSeconds: {{ . }}
+  {{- end }}
+  {{- with .Values.job.ttlSecondsAfterFinished }}
+  ttlSecondsAfterFinished: {{ . }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "postgresql-migration.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: {{ .Values.job.restartPolicy }}
+      {{- if .Values.serviceAccount.enabled }}
+      serviceAccountName: {{ include "postgresql-migration.serviceAccountName" . }}
+      {{- end }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- with (include "oan-common.imagePullSecrets" . | trim) }}
+      {{- . | nindent 6 }}
+      {{- end }}
+      {{- with (include "oan-common.podSecurityContext" .) }}
+      securityContext:
+        {{- . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: flyway
+          image: {{ include "postgresql-migration.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with (include "oan-common.securityContext" .) }}
+          securityContext:
+            {{- . | nindent 12 }}
+          {{- end }}
+          command:
+            - /bin/sh
+            - /script/migrate.sh
+          env:
+            - name: FLYWAY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgresql.passwordSecret.name }}
+                  key: {{ .Values.postgresql.passwordSecret.key }}
+            {{- with (include "oan-common.env" . | trim) }}
+            {{- . | nindent 12 }}
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "postgresql-migration.envConfigMapName" . }}
+            {{- range .Values.envFromSecrets }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
+          resources:
+            {{- include "oan-common.resources" . | nindent 12 }}
+          volumeMounts:
+            - name: script
+              mountPath: /script
+              readOnly: true
+            {{- range $targets }}
+            - name: {{ printf "migrations-%s" .name | trunc 63 | trimSuffix "-" }}
+              mountPath: {{ include "postgresql-migration.targetMountPath" (dict "name" .name) }}
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: script
+          configMap:
+            name: {{ include "postgresql-migration.fullname" . }}-script
+            defaultMode: 0555
+        {{- range $targets }}
+        - name: {{ printf "migrations-%s" .name | trunc 63 | trimSuffix "-" }}
+          configMap:
+            name: {{ include "postgresql-migration.targetConfigMapName" (dict "ctx" $ "name" .name) }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

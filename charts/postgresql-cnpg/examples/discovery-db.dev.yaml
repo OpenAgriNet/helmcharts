@@ -1,0 +1,139 @@
+# Example: the discovery service's database, dev environment.
+#
+#   helm install discovery-db charts/postgresql-cnpg \
+#     -n oan-discovery -f charts/postgresql-cnpg/examples/discovery-db.dev.yaml
+#
+# The discovery service then connects to:
+#   discovery-db-rw.oan-discovery.svc.cluster.local:5432
+#
+# Separate from registry-db in every way - its own cluster, its own namespace,
+# its own PostgreSQL major. Nothing here affects the registry stack.
+
+fullnameOverride: discovery-db
+
+# ---------------------------------------------------------------------------
+# Image
+#
+# discovery-service needs pgvector, which the stock CloudNativePG operand image
+# does not carry. This is the Docker Hardened Image of pgvector: pgvector 0.8.6
+# and pg_trgm 1.6 on PostgreSQL 16, published for both amd64 and arm64 (the OAN
+# nodes are arm64).
+#
+# pg16 rather than the pg14 tag, because PostgreSQL 16 is what the service is
+# actually verified against: its README and design doc name it, its
+# testcontainers suite pins pgvector/pgvector:0.8.0-pg16, and every measured
+# planner claim in the design doc - the 20 jsonpath shapes GIN captures, the
+# index selection over 300k rows - was measured on 16. tests/dbtest also uses
+# EXPLAIN (GENERIC_PLAN), which is PostgreSQL 16 and later only.
+#
+# The schema itself does apply cleanly to 14, so this is about staying on the
+# major the service was tested on rather than about a hard incompatibility.
+#
+# CAVEAT, and it is the one to smoke-test first: this is a general-purpose
+# PostgreSQL image, not a CNPG operand image. It satisfies CNPG's documented
+# requirements - initdb, postgres, pg_ctl, pg_controldata, pg_basebackup and du
+# are all on PATH, and CNPG overrides the image's own entrypoint - but it is
+# not built from cloudnative-pg/postgres-containers and has not been run under
+# the operator here. Verify the first cluster reaches "Cluster in healthy
+# state" before pointing anything at it.
+#
+# It also ships no barman-cloud. That costs nothing while backups run through
+# the Barman Cloud Plugin, which supplies its own sidecar, and nothing at all
+# while backup.enabled is false - but the in-core backup method is not an
+# option with this image.
+image:
+  registry: dhi.io
+  repository: pgvector
+  tag: "0.8-pg16"
+
+# The image's postgres user is uid/gid 70. CNPG defaults to 26 and applies it
+# as the pod's runAsUser and fsGroup, so leaving these unset gives the data
+# directory to a user that does not exist in this image.
+postgresUID: 70
+postgresGID: 70
+
+# Dev: single instance. Use 2+ where an outage matters.
+instances: 1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+storage:
+  size: 20Gi
+  # Empty uses the cluster default (gp3, reclaimPolicy Delete). Point this at a
+  # Retain class before this database holds anything worth keeping.
+  storageClass: ""
+
+walStorage:
+  enabled: true
+  size: 2Gi
+
+bootstrap:
+  database: discovery
+  owner: discovery
+  # Omit ownerSecret and CNPG generates Secret/discovery-db-app itself, with a
+  # ready-made `uri` key the discovery chart consumes through
+  # database.urlSecret. Simplest correct thing for dev - nothing to create by
+  # hand and no password to escape.
+  ownerSecret: ""
+
+  # ---------------------------------------------------------------------------
+  # This is load-bearing, not a convenience.
+  #
+  # discovery-service's first migration opens with:
+  #   CREATE EXTENSION IF NOT EXISTS vector;
+  #   CREATE EXTENSION IF NOT EXISTS pg_trgm;
+  #
+  # pg_trgm is marked `trusted = true`, so the database owner may create it.
+  # `vector` is NOT trusted, and creating it requires superuser:
+  #
+  #   ERROR:  permission denied to create extension "vector"
+  #   HINT:   Must be superuser to create this extension.
+  #
+  # The service connects as `discovery`, the bootstrap owner, and
+  # enableSuperuserAccess is false below - so with these lines absent, the very
+  # first statement of the migration fails and the pod crashloops on an error
+  # that reads like a bad password rather than a missing grant.
+  #
+  # CNPG runs postInitApplicationSQL as superuser inside the freshly created
+  # application database, which is the one moment superuser is available
+  # without granting it to anything long-lived. Afterwards the service's own
+  # `IF NOT EXISTS` is a no-op and the rest of the migration runs as the owner.
+  #
+  # Verified against dhi.io/pgvector: as the non-superuser owner the migration
+  # fails on statement one without these, and applies in full with them.
+  # ---------------------------------------------------------------------------
+  postInitApplicationSQL:
+    - CREATE EXTENSION IF NOT EXISTS vector
+    - CREATE EXTENSION IF NOT EXISTS pg_trgm
+
+# The service owns its own database, so nothing here needs superuser rights
+# beyond the bootstrap moment above.
+enableSuperuserAccess: false
+
+# One database, one owner - no managed.roles and no extra `databases` entries.
+# Unlike registry-db, nothing else shares this cluster.
+
+# Off until the Barman Cloud Plugin is installed and an IRSA role exists.
+# Note the image ships no barman-cloud of its own, so the plugin - which brings
+# its own sidecar - is the only backup route here.
+backup:
+  enabled: false
+  retentionPolicy: "14d"
+  objectStore:
+    bucket: oan-dev-pg-backup
+    path: /discovery
+    credentials:
+      inheritFromIAMRole: true
+
+serviceAccount:
+  annotations: {}
+    # eks.amazonaws.com/role-arn: arn:aws:iam::<account>:role/oan-dev-pg-backup
+
+commonLabels:
+  oan.in/environment: dev

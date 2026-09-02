@@ -1,0 +1,202 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ include "postgresql-cnpg.fullname" . }}
+  namespace: {{ include "postgresql-cnpg.namespace" . }}
+  labels:
+    {{- include "postgresql-cnpg.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  instances: {{ .Values.instances }}
+  {{- with (include "postgresql-cnpg.image" .) }}
+  imageName: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.image.pullSecrets }}
+  imagePullSecrets:
+    {{- range . }}
+    - name: {{ . }}
+    {{- end }}
+  {{- end }}
+  {{- with .Values.postgresUID }}
+  postgresUID: {{ . }}
+  {{- end }}
+  {{- with .Values.postgresGID }}
+  postgresGID: {{ . }}
+  {{- end }}
+  primaryUpdateStrategy: {{ .Values.primaryUpdateStrategy }}
+  enableSuperuserAccess: {{ .Values.enableSuperuserAccess }}
+  {{- with .Values.superuserSecret }}
+  superuserSecret:
+    name: {{ . }}
+  {{- end }}
+
+  {{- with .Values.serviceAccount.annotations }}
+  serviceAccountTemplate:
+    metadata:
+      annotations:
+        {{- toYaml . | nindent 8 }}
+  {{- end }}
+
+  storage:
+    size: {{ .Values.storage.size }}
+    {{- with .Values.storage.storageClass }}
+    storageClass: {{ . }}
+    {{- end }}
+  {{- if .Values.walStorage.enabled }}
+  walStorage:
+    size: {{ .Values.walStorage.size }}
+    {{- with .Values.walStorage.storageClass }}
+    storageClass: {{ . }}
+    {{- end }}
+  {{- end }}
+
+  resources:
+    {{- include "oan-common.resources" . | nindent 4 }}
+
+  {{- $affinity := omit .Values.affinity "nodeSelector" "tolerations" }}
+  {{- with .Values.affinity.nodeSelector }}
+  {{- $affinity = set $affinity "nodeSelector" . }}
+  {{- end }}
+  {{- with .Values.affinity.tolerations }}
+  {{- $affinity = set $affinity "tolerations" . }}
+  {{- end }}
+  {{- with $affinity }}
+  # CNPG nests nodeSelector and tolerations inside affinity; the Cluster spec
+  # has no top-level fields for them, and anything put there is silently
+  # dropped by the API server.
+  affinity:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- with .Values.managed.roles }}
+  {{/*
+  Roles created and reconciled by the operator. A database owner must exist
+  before the Database object referencing it can be applied, so any role named as
+  an owner under `databases` belongs here.
+  */}}
+  managed:
+    roles:
+      {{- range . }}
+      {{- if not .name }}
+      {{- fail (printf "%s: every entry in managed.roles needs a name" $.Chart.Name) }}
+      {{- end }}
+      - name: {{ .name | quote }}
+        ensure: {{ .ensure | default "present" }}
+        login: {{ .login | default true }}
+        {{- if hasKey . "superuser" }}
+        superuser: {{ .superuser }}
+        {{- end }}
+        {{- if hasKey . "createdb" }}
+        createdb: {{ .createdb }}
+        {{- end }}
+        {{- if hasKey . "createrole" }}
+        createrole: {{ .createrole }}
+        {{- end }}
+        {{- if hasKey . "inherit" }}
+        inherit: {{ .inherit }}
+        {{- end }}
+        {{- with .connectionLimit }}
+        connectionLimit: {{ . }}
+        {{- end }}
+        {{- with .inRoles }}
+        inRoles:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .comment }}
+        comment: {{ . | quote }}
+        {{- end }}
+        {{- if .passwordSecret }}
+        passwordSecret:
+          name: {{ .passwordSecret.name }}
+        {{- else if .disablePassword }}
+        disablePassword: true
+        {{- else }}
+        {{- fail (printf "%s: managed role %q has no passwordSecret. Set one (a Secret with username and password keys), or set disablePassword: true if the role should not log in with a password." $.Chart.Name .name) }}
+        {{- end }}
+      {{- end }}
+  {{- end }}
+
+  {{- with .Values.postgresql.parameters }}
+  postgresql:
+    parameters:
+      {{- toYaml . | nindent 6 }}
+  {{- end }}
+
+  {{- if .Values.monitoring.enablePodMonitor }}
+  monitoring:
+    enablePodMonitor: true
+  {{- end }}
+
+  {{- if .Values.backup.enabled }}
+  {{- include "postgresql-cnpg.validateBackup" . }}
+  # Base backups and WAL archiving via the Barman Cloud Plugin (CNPG-I).
+  plugins:
+    - name: {{ .Values.backup.pluginName }}
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: {{ include "postgresql-cnpg.objectStoreName" . }}
+  {{- end }}
+
+  {{- $boot := .Values.bootstrap }}
+  {{- if or $boot.database $boot.owner $boot.ownerSecret $boot.postInitApplicationSQL $boot.import.enabled }}
+  bootstrap:
+    initdb:
+      {{- with .Values.bootstrap.database }}
+      database: {{ . | quote }}
+      {{- end }}
+      {{- with .Values.bootstrap.owner }}
+      owner: {{ . | quote }}
+      {{- end }}
+      {{- with .Values.bootstrap.ownerSecret }}
+      secret:
+        name: {{ . }}
+      {{- end }}
+      {{- if .Values.bootstrap.import.enabled }}
+      import:
+        type: {{ .Values.bootstrap.import.type }}
+        databases:
+          {{- toYaml .Values.bootstrap.import.databases | nindent 10 }}
+        source:
+          externalCluster: {{ include "postgresql-cnpg.fullname" . }}-source
+        {{- with .Values.bootstrap.postInitApplicationSQL }}
+        postImportApplicationSQL:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- else }}
+      {{- with .Values.bootstrap.postInitApplicationSQL }}
+      postInitApplicationSQL:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+  {{- end }}
+
+  {{- if .Values.bootstrap.import.enabled }}
+  {{- $src := .Values.bootstrap.import.source }}
+  {{- if not $src.host }}
+  {{- fail (printf "%s: bootstrap.import.enabled is true but bootstrap.import.source.host is empty" .Chart.Name) }}
+  {{- end }}
+  {{- if not (eq (len .Values.bootstrap.import.databases) 1) }}
+  {{- fail (printf "%s: bootstrap.import.type microservice needs exactly one entry in bootstrap.import.databases, got %d" .Chart.Name (len .Values.bootstrap.import.databases)) }}
+  {{- end }}
+  {{- if not $src.passwordSecret.name }}
+  {{- fail (printf "%s: bootstrap.import.enabled is true but bootstrap.import.source.passwordSecret.name is empty - CNPG needs credentials to read the source" .Chart.Name) }}
+  {{- end }}
+  # The existing PostgreSQL this cluster is imported from, read logically at
+  # creation time only.
+  externalClusters:
+    - name: {{ include "postgresql-cnpg.fullname" . }}-source
+      connectionParameters:
+        host: {{ $src.host | quote }}
+        port: {{ $src.port | quote }}
+        dbname: {{ $src.dbname | default (first .Values.bootstrap.import.databases) | quote }}
+        user: {{ $src.user | quote }}
+      password:
+        name: {{ $src.passwordSecret.name }}
+        key: {{ $src.passwordSecret.key }}
+  {{- end }}
+  {{- with .Values.extraClusterSpec }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
