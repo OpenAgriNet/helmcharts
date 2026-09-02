@@ -363,8 +363,9 @@ show up.
 
 ## When it does not work
 
-**`{"status":"ACK"}` and no `on_select`.** The commonest one. The provider
-adapter did not recognise the request as its own, so it passed it through.
+**404 `NET_ENTITY_NOT_FOUND`, "this module serves no capability matching the
+request".** The commonest one. The provider adapter did not recognise the
+request as its own, so it passed it through and nothing behind it answered.
 
 It decides that by building a binding key from the incoming payload — the
 provider id at `message.contract.commitments[].offer.provider.id` and the
@@ -372,11 +373,25 @@ capability at `...resources[].resourceAttributes.@type` — and comparing it
 against the keys in its own config, which `setup.py` rendered from
 `PROVIDER_PARTICIPANT_ID|PROVIDER_CAPABILITY`.
 
-A mismatch is not an error, by design: passing through is what lets one adapter
-host several capabilities. But nothing further answers, so the request looks
-accepted and silently does nothing. Compare all three — the payload, the
-`ProviderSchema` row, and `.env` — and re-run `bin/setup.py` after changing
-`.env`.
+Passing through is deliberate: it is what lets one adapter host several
+capabilities. Compare all three — the payload, the `ProviderSchema` row, and
+`.env` — and re-run `bin/setup.py` after changing `.env`.
+
+While the adapter carries one configured key, onboarding a second provider is
+an edit to `.env`, a re-run of `bin/setup.py` and a restart of the provider
+adapter. A registry entry on its own is not enough.
+
+**502 with an empty body.** The adapter *is* configured for the key, but the
+registry has no matching `ProviderSchema` row, so no call plan resolves.
+Nothing in the response says so — the reason is in the log:
+
+```sh
+docker compose logs provider-adapter | grep "no call plan"
+```
+
+Check the row exists and that its `bindingKey` matches character for
+character. The registry is append-only, so a mistyped row cannot be edited —
+only superseded under a new id.
 
 **The adapters restart in a loop on the first `up`.** Expected before
 `bin/setup.py` has run — there is no `config/adapters/*.yaml` yet.

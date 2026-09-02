@@ -329,6 +329,8 @@ Still to do by hand, because the base URL is not this stack's to know:
   3. docker compose up -d
 
 The bindingKey above is what the provider adapter was just configured to
-answer to. If the ProviderSchema row says anything else, the adapter concludes
-the request is not its own and passes it through -- and the reply is a bare
-ACK with no on_select, which looks like nothing happened.""")
+answer to, and the ProviderSchema row has to match it exactly. A payload
+naming anything else is answered 404 "this module serves no capability
+matching the request". A row that is missing, while the adapter is configured
+for the key, is answered 502 with an empty body and explained only in
+`docker compose logs provider-adapter`.""")
