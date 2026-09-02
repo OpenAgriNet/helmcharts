@@ -186,7 +186,8 @@ Things worth knowing about these two calls:
   it.
 - **`bindingKey` is `participantId|capabilityCode`.** It has to match what
   `PROVIDER_PARTICIPANT_ID` and `PROVIDER_CAPABILITY` were set to in `.env`
-  when `setup.py` last ran — see the troubleshooting note on bare ACKs.
+  when `setup.py` last ran — see the troubleshooting section for what a
+  mismatch answers.
 - **`path` must start with one `/` and contain no empty segment.** The schema
   refuses `//get-daily`, and so does the adapter.
 - **This registry is append-only.** There is no update, delete is soft, and a
