@@ -206,6 +206,7 @@ curl -s -X POST http://127.0.0.1:9202/oan/select \
       "status": { "descriptor": { "code": "DRAFT", "name": "Draft" } },
       "resources": [ {
         "id": "res:point-forecast",
+        "quantity": 1,
         "resourceAttributes": {
           "@context": "https://schemas.openagrinet.global/schema/WeatherObservation/v0.1/context.jsonld",
           "@type": "openagrinet:WeatherObservation",
@@ -281,6 +282,33 @@ Three things about that:
   `keyId` from its `keyManager` config. The network adapter verifies that
   signature — and its identity check skips a body that declares no caller
   rather than demanding one.
+
+## Schema validation
+
+Every adapter loads the pinned Beckn v2 LTS spec and validates request bodies
+against it. The **extended** layer is off: it fetches each resource's own
+`@context` and validates against that, which is a network call per payload and
+a second thing that can fail. The `extendedSchema_*` settings in the configs
+only take effect if it is switched on.
+
+Two consequences worth knowing before you write a payload:
+
+- **Each resource under a commitment needs a `quantity`.** The spec's
+  `Commitment.resources` requires `["id", "quantity"]` while `Resource` itself
+  defines no `quantity` property and the spec has no `Quantity` schema at all —
+  a defect upstream, not something this deployment chose. Any value satisfies
+  it. Without one, every `select` is refused with
+  `SCH_REQUIRED_FIELD_MISSING: property "quantity" is missing`.
+- **`publish` is not validated, because the spec does not define it.** The
+  validator refuses an action it cannot find with `unsupported action: publish`,
+  so the two modules that carry publishing — the provider adapter's root mount
+  and the network adapter — declare the validator but do not run it. To
+  validate publishing, give the validator an auxiliary spec that defines the
+  action: `auxiliaryTypes` and `auxiliaryLocations`, which are additive and
+  must not overlap the primary spec.
+
+An action the spec does not know, or a body missing a required field, comes
+back as a signed NACK with a `SCH_*` code and the JSON path that failed.
 
 ## The layout
 

@@ -63,6 +63,23 @@ modules:
         signer:
           id: signer
 
+        # Base Beckn v2 schema validation, against the pinned LTS spec. The
+        # extended layer is off: it fetches a resource's own @context and
+        # validates against that, which is a network call per payload and a
+        # second failure mode, and nothing here needs it yet. The allowed
+        # domains and cache settings below only take effect if it is turned on.
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            cacheTTL: "3600"
+            extendedSchema_enabled: "false"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "beckn.org,example.com,raw.githubusercontent.com"
+
         # Generic: fetches, compiles and caches whatever the registry's mapping
         # URLs point at. Knows nothing about any provider.
         mapper:
@@ -94,6 +111,7 @@ modules:
 
       steps:
         - validateSign   # the sender's key, from the registry
+        - validateSchema # the pinned Beckn v2 spec
         - weather        # resolve, map out, call, map back
         - signAck        # signs whatever the step answered with
 
@@ -150,6 +168,23 @@ modules:
 
         signer:
           id: signer
+
+        # Base Beckn v2 schema validation, against the pinned LTS spec. The
+        # extended layer is off: it fetches a resource's own @context and
+        # validates against that, which is a network call per payload and a
+        # second failure mode, and nothing here needs it yet. The allowed
+        # domains and cache settings below only take effect if it is turned on.
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            cacheTTL: "3600"
+            extendedSchema_enabled: "false"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "beckn.org,example.com,raw.githubusercontent.com"
 
         router:
           id: router
