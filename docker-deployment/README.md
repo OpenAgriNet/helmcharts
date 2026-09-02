@@ -52,7 +52,6 @@ On the VM:
 
 - Docker with Compose v2, logged in to wherever the images live if it is
   private — `docker login ghcr.io`
-- the image tags for the adapter and the discovery service
 - Python 3 and the `cryptography` package — `pip install cryptography`
 
 And a URL the VM can reach for the upstream provider API. If that API runs on
@@ -67,8 +66,10 @@ cp .env.example .env
 
 Read `.env` before going on. Four things in it matter:
 
-- `ADAPTER_IMAGE` and `DISCOVERY_IMAGE` — the tags to pull. No working default;
-  set them to the tags published for this environment.
+- `TAG` — pins the discovery service. Unset means `latest`; set it to deploy a
+  known build instead of whatever `latest` points at today:
+  `TAG=v0.3.1 docker compose up -d`. The images themselves are already named in
+  `.env.example` and are pulled, never built.
 - **the credentials.** All shipped defaults. Change them.
 - `BIND_ADDR` — see above.
 - `PROVIDER_PARTICIPANT_ID` and `PROVIDER_CAPABILITY` have to match the registry
@@ -77,18 +78,24 @@ Read `.env` before going on. Four things in it matter:
 Then:
 
 ```sh
-# 1. pulls the images, then starts registry and discovery. The adapters will
-#    restart in a loop for now -- their configs do not exist yet, which step
-#    2 fixes.
-docker compose up -d
+# 1. everything EXCEPT the adapters. Their configs do not exist yet, and
+#    step 2 is what writes them.
+docker compose up -d registry discovery
 
 # 2. generate the adapter keypairs, register the three adapter identities,
 #    render the three adapter configs
 python3 bin/setup.py
 
-# 3. now the adapters have configs to read
+# 3. now the adapters
 docker compose up -d
 ```
+
+**Do not run a bare `docker compose up -d` for step 1.** An adapter config is
+a bind-mounted *file*, and Docker creates a *directory* at any bind-mount
+source that is missing. Starting an adapter early therefore wedges it on a
+directory it cannot parse — `adapter.yaml: is a directory` — and leaves a
+directory where step 2 needs to write a file. `bin/setup.py` refuses with an
+explanation if it finds one; delete the empty directories and re-run.
 
 Check it:
 

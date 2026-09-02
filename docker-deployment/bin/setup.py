@@ -292,6 +292,18 @@ def render(identities):
         if "__" in template:
             sys.exit(f"setup: {role}.yaml still has unrendered placeholders")
         out = ADAPTERS / f"{role}.yaml"
+        # A bare `docker compose up -d` before this script runs starts the
+        # adapters too, and Docker creates a DIRECTORY at a bind-mount source
+        # that does not exist. Writing would then fail with a bare
+        # IsADirectoryError that says nothing about the cause.
+        if out.is_dir():
+            sys.exit(
+                f"setup: {out} is a directory, not a file.\n"
+                f"  Docker created it, which means the adapters were started before this\n"
+                f"  script ran. Bring them down, remove the empty directories and retry:\n"
+                f"    docker compose down\n"
+                f"    rmdir config/adapters/*.yaml\n"
+                f"    docker compose up -d registry discovery && python3 bin/setup.py")
         out.write_text(template)
         out.chmod(0o600)  # holds a private key
         print(f"  config/adapters/{role}.yaml")

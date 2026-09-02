@@ -1,11 +1,19 @@
 # The whole OAN stack in one file: registry, discovery, and the three adapters.
 # Meant for a shared DEV deployment on a VM.
 #
-#   1. cp .env.example .env          set the image tags, and change every
-#                                    credential -- they are shipped defaults
-#   2. docker compose up -d          pulls and starts registry and discovery
-#   3. python3 bin/setup.py          keys, the three adapter entries, configs
-#   4. docker compose up -d          again, so the adapters read the configs
+#   1. cp .env.example .env               change every credential -- they are
+#                                         shipped defaults
+#   2. docker compose up -d registry discovery
+#                                         everything EXCEPT the adapters
+#   3. python3 bin/setup.py               keys, the three adapter entries, and
+#                                         the adapter configs they mount
+#   4. docker compose up -d               now the adapters
+#
+# Naming registry and discovery in step 2 is not tidiness. An adapter config
+# is a bind-mounted FILE, and Docker creates a DIRECTORY at any bind-mount
+# source that does not exist yet -- so starting an adapter before step 3 both
+# wedges that container on a directory it cannot parse and leaves a directory
+# where step 3 needs to write a file.
 #
 # Nothing is built here. The adapter and discovery images are pulled from the
 # tags named in .env.
