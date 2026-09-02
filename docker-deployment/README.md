@@ -192,14 +192,14 @@ Replace `my-weather-api` if a different id was used, and point the coordinates
 at wherever the API has data.
 
 ```sh
-curl -s -X POST http://127.0.0.1:9202/beckn/select \
+curl -s -X POST http://127.0.0.1:9202/oan/select \
   -H 'Content-Type: application/json' \
   -d '{
     "context": {
       "version": "2.0.0", "action": "select",
       "networkId": "oan-dev",
-      "bapId": "exp.oan.dev",      "bapUri": "http://exp-adapter:9202/beckn",
-      "bppId": "provider.oan.dev", "bppUri": "http://provider-adapter:9200/beckn",
+      "bapId": "exp.oan.dev",      "bapUri": "http://exp-adapter:9202/oan",
+      "bppId": "provider.oan.dev", "bppUri": "http://provider-adapter:9200/oan",
       "transactionId": "9f2c1a8e-4b70-4d31-9c55-6f2e0b1d7a44",
       "messageId": "7d41b9e0-52a6-4c18-8b73-1e9f0a4c6d22",
       "timestamp": "2026-09-02T06:12:01.330Z"
@@ -247,7 +247,7 @@ Three paths, and which adapter answers is the whole design:
 ```
 discover   you -> exp -> network -> discovery service
 select     you -> exp -> provider -> your upstream API
-publish    provider (/catalog/publish) -> network -> discovery service
+publish    you -> exp -> network -> discovery service
 ```
 
 `discover` and `publish` both end at the discovery service, and both go
@@ -255,25 +255,28 @@ through the network adapter — that adapter is what fronts discovery, verifies
 the caller and re-signs. `select` never touches it: it goes straight to the
 provider adapter, which answers from your upstream API.
 
-Publishing enters at the **provider** adapter, on its own mount:
+Every adapter mounts one subtree, `/oan/`, and the payload's `action` says
+which action it is. There is no per-action path and no second mount.
+
+Publishing has two entry points, and which one to use depends on whether the
+publisher can sign:
 
 ```sh
-curl -s -X POST http://127.0.0.1:9200/catalog/publish \
+# through the experience adapter -- takes unsigned calls and signs on the way
+# out, so this works with a plain curl
+curl -s -X POST http://127.0.0.1:9202/oan/publish \
   -H 'Content-Type: application/json' -d @your-catalog.json
+
+# straight at the network adapter -- for a publisher that signs for itself.
+# Unsigned, this answers 401 AUT_SIGNATURE_MISSING.
+curl -s -X POST http://127.0.0.1:9201/oan/publish ...
 ```
 
-Two things about that:
-
-- **It is a separate module, `/catalog/`, not another action on `/beckn/`.**
-  That is forced, not chosen: the routing step fails any request whose action
-  is missing from its routing config, so a router on `/beckn/` would have to
-  list `select` as well — and listing it would proxy `select` away instead of
-  answering it there, which is the one thing that module exists for.
-- **The catalogue body needs no `bapId` or `bppId`.** The provider adapter
-  signs the forwarded request as itself, and the identity travels in the
-  `Authorization` header's `keyId`, taken from its `keyManager` config. The
-  network adapter verifies that signature; its identity check skips a body
-  that declares no caller, so there is nothing to fill in.
+**The catalogue body needs no `bapId` or `bppId`.** Identity travels in the
+`Authorization` header's `keyId`, taken from the signing adapter's
+`keyManager` config. The network adapter verifies that signature, and its
+identity check skips a body that declares no caller rather than demanding
+one, so there is nothing to fill in.
 
 ## The layout
 
@@ -286,9 +289,9 @@ config/
     exp.yaml.tmpl           templates. setup.py renders these to .yaml,
     network.yaml.tmpl       filling in the keys it generated. The rendered
     provider.yaml.tmpl      files hold private keys and are gitignored.
-    routing-exp.yaml        which action goes where. exp splits discover
-    routing-network.yaml    from select; network sends discover and publish
-    routing-provider.yaml   to discovery; provider sends publish onward
+    routing-exp.yaml        which action goes where. exp sends discover and
+    routing-network.yaml    publish to the network layer and select to the
+                            provider; network sends both on to discovery
   registry/
     schemas/                Participant, ProviderSchema, SchemaRegistry.
                             Read at startup -- a change needs the registry

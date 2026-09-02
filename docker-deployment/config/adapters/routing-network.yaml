@@ -3,7 +3,7 @@
 # One job: hand the catalogue actions to the discovery service, which is a
 # service in this same compose and so reachable by name.
 #
-# The service serves /discover and /publish at its root, so no /beckn prefix
+# The service serves /discover and /publish at its root, so no /oan prefix
 # here: targetType "url" appends the action to whatever base is given.
 #
 # Both actions are one rule because they share a target. publish arrives from

@@ -1,6 +1,6 @@
 # OAN provider adapter -- dev deployment.
 #
-# Serves /beckn/ synchronously: verifies the sender against the registry,
+# Serves /oan/ synchronously: verifies the sender against the registry,
 # resolves the capability's call plan, calls the provider, and answers with the
 # mapped result. No callback -- the answer is the HTTP response.
 appName: "oan-provider-adapter"
@@ -24,9 +24,9 @@ pluginManager:
 modules:
   - name: oanProvider
     # A subtree, not one action. Without the trailing slash Go's ServeMux
-    # matches exactly, so /beckn/select would mount that action and 404 the
+    # matches exactly, so /oan/select would mount that action and 404 the
     # rest. Which action it is comes from the payload, never the URL.
-    path: /beckn/
+    path: /oan/
     handler:
       type: std
       role: bpp
@@ -96,59 +96,3 @@ modules:
         - validateSign   # the sender's key, from the registry
         - weather        # resolve, map out, call, map back
         - signAck        # signs whatever the step answered with
-  # The outbound leg: publishing a catalogue to the network layer.
-  #
-  # A SECOND module, not another action on /beckn/, and that is forced rather
-  # than chosen. addRoute fails any request whose action is missing from its
-  # routing config, so a router on /beckn/ would have to list select too --
-  # and listing select would proxy it away instead of answering it here, which
-  # is the one thing that module exists to do.
-  #
-  # POST /catalog/publish. No validateSign: the caller is the provider's own
-  # catalogue system, inside its trust boundary, exactly as the experience
-  # adapter takes unsigned calls from the app in front of it.
-  #
-  # Nothing here needs bapId or bppId in the body. This adapter signs the
-  # forwarded request as itself, and the Authorization header's keyId carries
-  # the identity -- taken from keyManager below, not from the payload. The
-  # network layer's identity check skips a body that declares no caller.
-  - name: oanProviderPublish
-    path: /catalog/
-    handler:
-      type: std
-      # bap because this module SENDS. The role decides which context identity
-      # is compared against a signer, and nothing is verified on the way in
-      # here -- but the same role picks the identity used on the way out.
-      role: bap
-      subscriberId: __PROVIDER_SUBSCRIBER_ID__
-
-      plugins:
-        registry:
-          id: oanregistry
-          config:
-            url: http://registry:8081/api/v1
-            entity: Participant
-            providerEntity: ProviderSchema
-
-        keyManager:
-          id: simplekeymanager
-          config:
-            subscriberId: __PROVIDER_SUBSCRIBER_ID__
-            keyId: __PROVIDER_KEY_ID__
-            signingPrivateKey: "__PROVIDER_SIGNING_PRIVATE__"
-            signingPublicKey: "__PROVIDER_SIGNING_PUBLIC__"
-            encrPrivateKey: "__PROVIDER_ENCR_PRIVATE__"
-            encrPublicKey: "__PROVIDER_ENCR_PUBLIC__"
-
-        signer:
-          id: signer
-
-        router:
-          id: router
-          config:
-            routingConfig: /app/config/routing-provider.yaml
-
-      steps:
-        - addRoute       # publish -> the network layer
-        - sign           # as this provider, so the network layer can verify it
-

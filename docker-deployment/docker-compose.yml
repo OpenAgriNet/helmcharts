@@ -198,7 +198,6 @@ services:
       <<: *adapter-env
     volumes:
       - ./config/adapters/provider.yaml:/app/config/adapter.yaml:ro
-      - ./config/adapters/routing-provider.yaml:/app/config/routing-provider.yaml:ro
     ports:
       - "${BIND_ADDR:-127.0.0.1}:${PROVIDER_ADAPTER_PORT}:9200"
 
