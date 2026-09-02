@@ -240,6 +240,41 @@ The experience adapter is the only one that takes an unsigned request — the
 experience app is inside the trust boundary, so there is no network signature
 to check. That is what makes this testable with a plain curl.
 
+## How a request flows
+
+Three paths, and which adapter answers is the whole design:
+
+```
+discover   you -> exp -> network -> discovery service
+select     you -> exp -> provider -> your upstream API
+publish    provider (/catalog/publish) -> network -> discovery service
+```
+
+`discover` and `publish` both end at the discovery service, and both go
+through the network adapter — that adapter is what fronts discovery, verifies
+the caller and re-signs. `select` never touches it: it goes straight to the
+provider adapter, which answers from your upstream API.
+
+Publishing enters at the **provider** adapter, on its own mount:
+
+```sh
+curl -s -X POST http://127.0.0.1:9200/catalog/publish \
+  -H 'Content-Type: application/json' -d @your-catalog.json
+```
+
+Two things about that:
+
+- **It is a separate module, `/catalog/`, not another action on `/beckn/`.**
+  That is forced, not chosen: the routing step fails any request whose action
+  is missing from its routing config, so a router on `/beckn/` would have to
+  list `select` as well — and listing it would proxy `select` away instead of
+  answering it there, which is the one thing that module exists for.
+- **The catalogue body needs no `bapId` or `bppId`.** The provider adapter
+  signs the forwarded request as itself, and the identity travels in the
+  `Authorization` header's `keyId`, taken from its `keyManager` config. The
+  network adapter verifies that signature; its identity check skips a body
+  that declares no caller, so there is nothing to fill in.
+
 ## The layout
 
 ```
@@ -251,8 +286,9 @@ config/
     exp.yaml.tmpl           templates. setup.py renders these to .yaml,
     network.yaml.tmpl       filling in the keys it generated. The rendered
     provider.yaml.tmpl      files hold private keys and are gitignored.
-    routing-exp.yaml        which action goes to which adapter
-    routing-network.yaml
+    routing-exp.yaml        which action goes where. exp splits discover
+    routing-network.yaml    from select; network sends discover and publish
+    routing-provider.yaml   to discovery; provider sends publish onward
   registry/
     schemas/                Participant, ProviderSchema, SchemaRegistry.
                             Read at startup -- a change needs the registry

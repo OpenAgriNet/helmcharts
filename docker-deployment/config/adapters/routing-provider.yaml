@@ -1,0 +1,20 @@
+# Provider adapter routing -- the OUTBOUND leg, for the /catalog/ module only.
+#
+# Publishing is the one thing this adapter sends rather than answers: the
+# provider's own catalogue system posts here, and the catalogue has to reach
+# the network layer, which is what fronts the discovery service.
+#
+# It is a separate module from /beckn/ because addRoute fails a request whose
+# action is not in this file. Sharing one module would mean either listing
+# select here -- which would proxy it instead of answering it locally -- or
+# breaking select the moment a router was added.
+#
+# targetType "url" appends the action to the base, so this becomes
+# http://network-adapter:9201/beckn/publish.
+routingRules:
+  - version: "2.0.0"
+    targetType: "url"
+    target:
+      url: "http://network-adapter:9201/beckn"
+    endpoints:
+      - publish
