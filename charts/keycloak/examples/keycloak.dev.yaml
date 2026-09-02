@@ -1,0 +1,77 @@
+# Example: Keycloak for the registry, dev environment.
+#
+#   helm install keycloak charts/keycloak \
+#     -n oan-registry -f charts/keycloak/examples/keycloak.dev.yaml
+#
+# Install order: postgresql-cnpg -> THIS -> regenerate admin-api secret ->
+# registry. See charts/registry/README.md.
+
+# No fullnameOverride needed: the chart is named "keycloak", so a release named
+# "keycloak" already produces Service/keycloak. Set it only if you install under
+# a different release name and still want the service to be reachable as
+# "keycloak" - the registry validates the token issuer against this host.
+
+# Keycloak gets its OWN database and its OWN role, both created by the
+# postgresql-cnpg chart (`databases` and `managed.roles`). This is where the
+# cluster deployment deliberately improves on compose, which shares one
+# `registry` database between both services as the postgres superuser: Keycloak's
+# realm tables have no reason to sit beside registry records, and nothing here
+# needs superuser rights.
+#
+# To reproduce compose exactly instead, set name: registry, user: postgres, and
+# point passwordSecret at registry-db-superuser.
+database:
+  host: registry-db-rw
+  port: 5432
+  name: keycloak
+  user: keycloak
+  # The same Secret the managed role is reconciled against, so the password the
+  # role has and the password Keycloak sends cannot drift.
+  passwordSecret:
+    name: keycloak-db
+    key: password
+
+admin:
+  username: admin
+  # Create by hand until ESO is available:
+  #   kubectl -n oan-registry create secret generic keycloak-admin \
+  #     --from-literal=keycloakAdminPassword='<password>'
+  passwordSecret:
+    name: keycloak-admin
+    key: keycloakAdminPassword
+
+# Ships the realm the registry expects. Its admin-api client secret is masked
+# and must be regenerated in the console after first start.
+# Uses the realm shipped with the chart (files/realm-export.json), so nothing
+# needs preparing before install.
+realmImport:
+  enabled: true
+
+# Dev: reach it with `kubectl port-forward` rather than an ingress. Enabling
+# ingress means the controller must set X-Forwarded-Host / X-Forwarded-Proto,
+# and the registry's keycloak.url must then be the external URL.
+ingress:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 1Gi
+  limits:
+    cpu: "1"
+    memory: 2Gi
+
+commonLabels:
+  oan.in/environment: dev
+
+# Blocks startup until the database accepts connections, standing in for
+# compose's `depends_on: condition: service_healthy`. Host and port are taken
+# from `database` above.
+waitFor:
+  enabled: true
+  database: true
+
+# `helm test keycloak -n oan-registry` checks /auth and the imported realm.
+tests:
+  enabled: true
+  realm: sunbird-rc

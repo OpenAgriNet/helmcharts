@@ -1,0 +1,39 @@
+{{- if .Values.tests.enabled }}
+{{/*
+`helm test` check: Keycloak is serving its realm endpoint.
+
+This is the check that matters for the stack - the registry validates tokens
+against this exact URL, so if it does not answer, the registry cannot
+authenticate no matter how healthy the pod looks.
+*/}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "keycloak.fullname" . }}-test-connection
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: test
+      image: {{ printf "%s/%s:%s" .Values.tests.image.registry .Values.tests.image.repository .Values.tests.image.tag | quote }}
+      command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          base="http://{{ include "keycloak.fullname" . }}:{{ .Values.service.port }}/auth"
+          echo "GET $base/"
+          wget -q -O /dev/null --timeout=10 "$base/"
+          echo "OK: /auth is serving"
+          {{- if .Values.realmImport.enabled }}
+          echo "GET $base/realms/{{ .Values.tests.realm }}"
+          wget -q -O /dev/null --timeout=10 "$base/realms/{{ .Values.tests.realm }}"
+          echo "OK: realm {{ .Values.tests.realm }} is imported and serving"
+          {{- end }}
+      resources:
+        {{- toYaml .Values.tests.resources | nindent 8 }}
+{{- end }}

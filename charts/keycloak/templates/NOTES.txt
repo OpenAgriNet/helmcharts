@@ -1,0 +1,36 @@
+{{ .Chart.Name }} installed as release "{{ .Release.Name }}".
+
+Resources in namespace "{{ .Release.Namespace }}":
+  - Deployment/{{ include "keycloak.fullname" . }} ({{ .Values.replicaCount }} replica(s))
+  - Service/{{ include "keycloak.fullname" . }} ({{ .Values.service.type }} on port {{ .Values.service.port }})
+  - ConfigMap/{{ include "keycloak.envConfigMapName" . }}
+{{- if include "keycloak.renderRealmConfigMap" . }}
+  - ConfigMap/{{ include "keycloak.realmConfigMapName" . }} (realm import)
+{{- end }}
+{{- if .Values.serviceAccount.enabled }}
+  - ServiceAccount/{{ include "keycloak.serviceAccountName" . }}
+{{- end }}
+{{- if .Values.ingress.enabled }}
+  - Ingress/{{ include "keycloak.fullname" . }}
+{{- end }}
+
+Database: {{ .Values.database.user }}@{{ .Values.database.host }}:{{ .Values.database.port }}/{{ .Values.database.name }}
+
+Give the registry chart this URL:
+  keycloak.url: {{ include "keycloak.url" . }}
+
+{{ if .Values.realmImport.enabled }}
+NEXT STEP - the registry cannot authenticate until you do this:
+
+  The realm export ships with a masked admin-api client secret, so it is not a
+  working credential. Once Keycloak is up:
+
+  1. kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "keycloak.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+  2. Open http://localhost:{{ .Values.service.port }}/auth/admin and sign in as "{{ .Values.admin.username }}".
+  3. Realm "sunbird-rc" -> Clients -> admin-api -> Credentials -> Regenerate Secret.
+  4. Store that value, and set it as the registry's admin client secret.
+{{- end }}
+
+Watch the rollout (first start imports the realm and migrates the schema, so
+give it a few minutes):
+  kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "keycloak.fullname" . }}
