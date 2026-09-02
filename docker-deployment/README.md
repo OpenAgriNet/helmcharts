@@ -247,7 +247,7 @@ Three paths, and which adapter answers is the whole design:
 ```
 discover   you -> exp -> network -> discovery service
 select     you -> exp -> provider -> your upstream API
-publish    you -> exp -> network -> discovery service
+publish    your catalogue system -> provider -> network -> discovery service
 ```
 
 `discover` and `publish` both end at the discovery service, and both go
@@ -255,28 +255,36 @@ through the network adapter — that adapter is what fronts discovery, verifies
 the caller and re-signs. `select` never touches it: it goes straight to the
 provider adapter, which answers from your upstream API.
 
-Every adapter mounts one subtree, `/oan/`, and the payload's `action` says
-which action it is. There is no per-action path and no second mount.
+Each adapter's Beckn surface is one subtree, `/oan/`, and the payload's
+`action` says which action it is. That is the path the registry publishes as
+a participant's `baseUrl`, so a peer calling `<baseUrl>/select` lands on the
+module that answers select.
 
-Publishing has two entry points, and which one to use depends on whether the
-publisher can sign:
+Publishing enters at the **provider** adapter, which signs and forwards:
 
 ```sh
-# through the experience adapter -- takes unsigned calls and signs on the way
-# out, so this works with a plain curl
-curl -s -X POST http://127.0.0.1:9202/oan/publish \
+curl -s -X POST http://127.0.0.1:9200/publish \
   -H 'Content-Type: application/json' -d @your-catalog.json
-
-# straight at the network adapter -- for a publisher that signs for itself.
-# Unsigned, this answers 401 AUT_SIGNATURE_MISSING.
-curl -s -X POST http://127.0.0.1:9201/oan/publish ...
 ```
 
-**The catalogue body needs no `bapId` or `bppId`.** Identity travels in the
-`Authorization` header's `keyId`, taken from the signing adapter's
-`keyManager` config. The network adapter verifies that signature, and its
-identity check skips a body that declares no caller rather than demanding
-one, so there is nothing to fill in.
+Three things about that:
+
+- **`/publish` sits outside `/oan/`, at the root.** It is not part of this
+  adapter's Beckn surface — it arrives from inside the provider's own
+  deployment — so it must not shadow it. Go's mux takes the longest matching
+  pattern, so `/oan/select` still reaches the capability module and only
+  `/publish` falls to the root one.
+- **It is a second module, and has to be.** The routing step fails any action
+  missing from its config, so routing publish from the module that answers
+  select would mean listing select too — and listing select would proxy it to
+  the network layer instead of answering it there.
+- **The catalogue body needs no `bapId` or `bppId`, and the caller need not
+  sign.** The provider's own catalogue system is inside its trust boundary,
+  so this module verifies nothing on the way in; it signs the forwarded
+  request as itself, and identity travels in the `Authorization` header's
+  `keyId` from its `keyManager` config. The network adapter verifies that
+  signature — and its identity check skips a body that declares no caller
+  rather than demanding one.
 
 ## The layout
 
@@ -289,9 +297,10 @@ config/
     exp.yaml.tmpl           templates. setup.py renders these to .yaml,
     network.yaml.tmpl       filling in the keys it generated. The rendered
     provider.yaml.tmpl      files hold private keys and are gitignored.
-    routing-exp.yaml        which action goes where. exp sends discover and
-    routing-network.yaml    publish to the network layer and select to the
-                            provider; network sends both on to discovery
+    routing-exp.yaml        which action goes where. exp sends discover to
+    routing-network.yaml    the network layer and select to the provider;
+    routing-provider.yaml   provider sends publish to the network layer;
+                            network sends discover and publish to discovery
   registry/
     schemas/                Participant, ProviderSchema, SchemaRegistry.
                             Read at startup -- a change needs the registry

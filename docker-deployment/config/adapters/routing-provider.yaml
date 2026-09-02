@@ -1,0 +1,15 @@
+# Provider adapter routing -- for the root module only.
+#
+# Publishing is the one thing this adapter sends rather than answers. The
+# provider's own catalogue system posts POST /publish here, and the catalogue
+# has to reach the network layer, which is what fronts the discovery service.
+#
+# targetType "url" appends the action to the base, so this becomes
+# http://network-adapter:9201/oan/publish.
+routingRules:
+  - version: "2.0.0"
+    targetType: "url"
+    target:
+      url: "http://network-adapter:9201/oan"
+    endpoints:
+      - publish

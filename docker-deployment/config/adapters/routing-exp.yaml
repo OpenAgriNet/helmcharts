@@ -13,12 +13,6 @@ routingRules:
       url: "http://network-adapter:9201/oan"
     endpoints:
       - discover
-      # Publishing a catalogue also goes to the network layer, which is what
-      # fronts the discovery service. It enters here so a publisher does not
-      # have to sign for itself: this adapter takes unsigned calls from inside
-      # the trust boundary and signs on the way out. A publisher that can sign
-      # may post to the network adapter's /oan/publish directly instead.
-      - publish
 
   - version: "2.0.0"
     targetType: "url"

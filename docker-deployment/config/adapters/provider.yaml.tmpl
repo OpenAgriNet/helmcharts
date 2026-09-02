@@ -96,3 +96,67 @@ modules:
         - validateSign   # the sender's key, from the registry
         - weather        # resolve, map out, call, map back
         - signAck        # signs whatever the step answered with
+
+  # The outbound leg: the provider's own catalogue system publishing to the
+  # network layer. POST /publish.
+  #
+  # Mounted at the root, and /oan/ above wins for anything under it because
+  # Go's mux takes the longest matching pattern. That split is deliberate:
+  # /oan/ is this adapter's Beckn surface, the path the registry publishes as
+  # its baseUrl, so a network peer calling <baseUrl>/select has to land on the
+  # module that answers select. Publishing is not part of that surface -- it
+  # arrives from inside this provider's own deployment -- so it sits outside
+  # it rather than shadowing it.
+  #
+  # It has to be a second module, not another action on /oan/: the routing
+  # step fails any action missing from its config, so routing publish from
+  # the module that answers select would mean listing select too -- and
+  # listing select would proxy it to the network layer instead of answering
+  # it here, which is the one thing that module does.
+  #
+  # No validateSign: the caller is this provider's own catalogue system,
+  # inside its trust boundary, exactly as the experience adapter takes
+  # unsigned calls from the app in front of it. This adapter then signs the
+  # forwarded request as itself, which is what the network layer verifies.
+  #
+  # Nothing here needs bapId or bppId in the body. Identity travels in the
+  # Authorization header's keyId, taken from keyManager below.
+  - name: oanProviderPublish
+    path: /
+    handler:
+      type: std
+      # bap because this module SENDS.
+      role: bap
+      subscriberId: __PROVIDER_SUBSCRIBER_ID__
+
+      plugins:
+        registry:
+          id: oanregistry
+          config:
+            url: http://registry:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: __PROVIDER_SUBSCRIBER_ID__
+            keyId: __PROVIDER_KEY_ID__
+            signingPrivateKey: "__PROVIDER_SIGNING_PRIVATE__"
+            signingPublicKey: "__PROVIDER_SIGNING_PUBLIC__"
+            encrPrivateKey: "__PROVIDER_ENCR_PRIVATE__"
+            encrPublicKey: "__PROVIDER_ENCR_PUBLIC__"
+
+        signer:
+          id: signer
+
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/routing-provider.yaml
+
+      steps:
+        - addRoute       # publish -> the network layer
+        - sign           # as this provider, so the network layer can verify
+
+
