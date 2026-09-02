@@ -1,14 +1,23 @@
 # The whole OAN stack in one file: registry, discovery, and the three adapters.
+# Meant for a shared DEV deployment on a VM.
 #
-#   1. cp .env.example .env          and read it -- ADAPTER_REF matters
-#   2. docker compose up -d          registry and discovery first come up
+#   1. cp .env.example .env          and read it -- every credential in it
+#                                    is a default that must be changed
+#   2. docker compose up -d          registry and discovery come up
 #   3. python3 bin/setup.py          keys, the three adapter entries, configs
-#   4. docker compose up -d          again, so the adapters read the rendered configs
+#   4. docker compose up -d          again, so the adapters read the configs
 #
-# There is deliberately NO provider here. You run your own upstream API
-# locally, expose it with ngrok, and register it yourself -- see README.md.
-# Nothing in this file knows the provider exists; the adapter learns its base
-# URL from the registry at request time.
+# Ports bind to 127.0.0.1 by default. That is deliberate: this stack has an
+# admin-console Keycloak and a registry whose write token any reader of
+# .env.example can mint, so publishing it on a VM's public interface would
+# hand over the whole network's identity records. Reach it over an SSH tunnel,
+# or put a reverse proxy that terminates TLS and authenticates in front, and
+# set BIND_ADDR only once something else is doing that job.
+#
+# There is deliberately NO provider here. The upstream API is run and exposed
+# by whoever is testing -- see README.md. Nothing in this file knows the
+# provider exists; the adapter learns its base URL from the registry at
+# request time, so repointing it is a registry write and nothing more.
 
 x-adapter: &adapter
   image: ${ADAPTER_IMAGE:-oan/network-adapter:local}
@@ -57,8 +66,8 @@ services:
       - KEYCLOAK_IMPORT=/opt/jboss/keycloak/imports/realm-export.json
       - PROXY_ADDRESS_FORWARDING=true
     ports:
-      - "${KEYCLOAK_PORT}:8080"
-      - "${KEYCLOAK_ADMIN_PORT}:9990"
+      - "${BIND_ADDR:-127.0.0.1}:${KEYCLOAK_PORT}:8080"
+      - "${BIND_ADDR:-127.0.0.1}:${KEYCLOAK_ADMIN_PORT}:9990"
     depends_on:
       registry-db:
         condition: service_healthy
@@ -113,7 +122,7 @@ services:
       - swagger_title=OAN Registry
       - logging.level.root=INFO
     ports:
-      - "${REGISTRY_PORT}:8081"
+      - "${BIND_ADDR:-127.0.0.1}:${REGISTRY_PORT}:8081"
     depends_on:
       registry-db:
         condition: service_healthy
@@ -169,16 +178,16 @@ services:
     # volumes:
     #   - ./config/discovery/instance.yaml:/app/config/instance.yaml:ro
     ports:
-      - "${DISCOVERY_PORT}:8080"
+      - "${BIND_ADDR:-127.0.0.1}:${DISCOVERY_PORT}:8080"
     depends_on:
       discovery-db:
         condition: service_healthy
 
   # ---------------------------------------------------------------- adapters
-  # Verifies the caller, calls your upstream provider, answers synchronously.
-  # It has no provider address of its own: it reads the ProviderSchema row you
-  # register, so pointing this at a new ngrok URL is a registry edit, not a
-  # config change here.
+  # Verifies the caller, calls the upstream provider, answers synchronously.
+  # It has no provider address of its own: it reads the ProviderSchema row,
+  # so repointing it at a different upstream is a registry write, not a
+  # change here or a restart.
   provider-adapter:
     <<: *adapter
     container_name: oan-provider-adapter
@@ -190,7 +199,7 @@ services:
     volumes:
       - ./config/adapters/provider.yaml:/app/config/adapter.yaml:ro
     ports:
-      - "${PROVIDER_ADAPTER_PORT}:9200"
+      - "${BIND_ADDR:-127.0.0.1}:${PROVIDER_ADAPTER_PORT}:9200"
 
   # Verifies the caller, hands discovery on, re-signs as itself.
   network-adapter:
@@ -207,7 +216,7 @@ services:
       - ./config/adapters/network.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/routing-network.yaml:/app/config/routing-network.yaml:ro
     ports:
-      - "${NETWORK_ADAPTER_PORT}:9201"
+      - "${BIND_ADDR:-127.0.0.1}:${NETWORK_ADAPTER_PORT}:9201"
 
   # The caller, and the only one that takes unsigned requests: the experience
   # app is inside the trust boundary, so there is no network signature to
@@ -226,7 +235,7 @@ services:
       - ./config/adapters/exp.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/routing-exp.yaml:/app/config/routing-exp.yaml:ro
     ports:
-      - "${EXP_ADAPTER_PORT}:9202"
+      - "${BIND_ADDR:-127.0.0.1}:${EXP_ADAPTER_PORT}:9202"
 
 volumes:
   registry-data:

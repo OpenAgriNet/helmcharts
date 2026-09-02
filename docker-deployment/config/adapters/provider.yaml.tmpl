@@ -1,4 +1,4 @@
-# OAN provider adapter -- local end-to-end run.
+# OAN provider adapter -- dev deployment.
 #
 # Serves /beckn/ synchronously: verifies the sender against the registry,
 # resolves the capability's call plan, calls the provider, and answers with the
@@ -43,8 +43,9 @@ modules:
             providerEntity: ProviderSchema
 
         # The adapter's OWN keys, used by signAck to sign what it answers with.
-        # Local test keys -- a real deployment uses a key manager backed by a
-        # secret store, not values in a config file.
+        # Dev keys, rendered here by bin/setup.py. Production uses a key
+        # manager backed by a secret store, not values in a config file --
+        # which is why this file is gitignored and written 0600.
         keyManager:
           id: simplekeymanager
           config:

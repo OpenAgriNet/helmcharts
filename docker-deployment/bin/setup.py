@@ -9,11 +9,11 @@ identities already in the registry stay valid; participants that exist are left
 alone rather than recreated, because this registry's delete is soft and holds
 the unique index -- a deleted participantId cannot be reused.
 
-WHAT THIS DOES NOT DO: it does not register your provider. The three rows here
+WHAT THIS DOES NOT DO: it does not register the provider. The three rows here
 are the adapters' own identities, which they need before they can sign anything
-or verify each other. Your upstream API is a Participant of type "upstream"
-plus a ProviderSchema row, and its base URL is your ngrok tunnel -- so you
-create those two by hand. README.md has the curl.
+or verify each other. The upstream API is a Participant of type "upstream" plus
+a ProviderSchema row, and its base URL belongs to whoever runs it -- so those
+two are created by hand. README.md has the curl.
 
 Needs python3 and the cryptography package:
 
@@ -299,15 +299,16 @@ if __name__ == "__main__":
     print(f"""
 ready -- the adapters can now sign and verify each other.
 
-Still to do, by hand, because the base URL is yours:
+Still to do by hand, because the base URL is not this stack's to know:
 
-  1. start your upstream API locally and expose it
-       ngrok http 9100
+  1. give the upstream API a URL this VM can reach. Tunnelled from a laptop,
+     that is: ngrok http 9100
   2. register it -- two rows, see README.md:
-       Participant     type "upstream", baseUrl = your https ngrok URL
+       Participant     type "upstream", baseUrl = that https URL
        ProviderSchema  bindingKey {env('PROVIDER_PARTICIPANT_ID')}|{env('PROVIDER_CAPABILITY')}
   3. docker compose up -d
 
-The bindingKey above is what the provider adapter was just configured to answer
-to. If the row you create says anything else, the adapter passes the request
-through and you get a bare ACK with no on_select.""")
+The bindingKey above is what the provider adapter was just configured to
+answer to. If the ProviderSchema row says anything else, the adapter concludes
+the request is not its own and passes it through -- and the reply is a bare
+ACK with no on_select, which looks like nothing happened.""")
