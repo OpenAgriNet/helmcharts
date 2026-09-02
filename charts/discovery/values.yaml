@@ -1,0 +1,416 @@
+# ============================================================================
+# discovery - default values
+#
+# The OAN Beckn v2.0.0 discover-and-publish service. Defaults mirror the
+# verified compose stack (discovery-service/docker-compose.yml), with the two
+# settings that file marks as local-only put back to their deployment values:
+# DATABASE_AUTO_MIGRATE and the rate limiter.
+#
+# Depends on one thing already running:
+#   - PostgreSQL, WITH the `vector` and `pg_trgm` extensions -> database.*
+#
+# Minimum you must set:
+#   - image.repository
+#   - app.networkId
+#   - database.host, and either database.urlSecret.name or
+#     database.passwordSecret.name
+#   - becknSpec.url or becknSpec.existingConfigMap
+#
+# The render fails, with the reason, if any of those is missing. That is
+# deliberate: every one of them is something the service refuses to boot
+# without, and a pod that CrashLoopBackOffs reports the problem far later and
+# far less clearly than `helm template` does.
+# ============================================================================
+
+replicaCount: 1
+
+# ---------------------------------------------------------------------------
+# Image
+#
+# repository is EMPTY on purpose. discovery-service's CI builds an image and
+# scans it but pushes it nowhere, so there is no tag to default to; the compose
+# stack builds from the working tree. The render fails while this is empty
+# rather than producing "ghcr.io/:0.1.0", which Helm and the API server both
+# accept and which only surfaces later as an ImagePullBackOff.
+#
+# The runtime is gcr.io/distroless/static-debian12:nonroot - no shell, no
+# package manager, uid 65532. That is what makes the security context defaults
+# below safe to leave on.
+# ---------------------------------------------------------------------------
+image:
+  registry: ghcr.io
+  repository: ""
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: discovery.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# ---------------------------------------------------------------------------
+# Application
+# ---------------------------------------------------------------------------
+app:
+  # APP_NETWORK_ID. REQUIRED - the boot refuses without it, so the render does
+  # too. It fills an empty publishDirectives.visibleTo (C8), which means every
+  # catalog published without one is visible to this network and no other.
+  # There is no sensible default: "mahavistar", "bharatvistar" and the rest are
+  # different networks, and guessing wrong publishes to the wrong audience.
+  networkId: ""
+  # APP_DEFAULT_TIMEZONE. Validated with time.LoadLocation at startup - a typo
+  # fails the boot rather than silently shifting every daily validity window.
+  defaultTimezone: Asia/Kolkata
+
+# LOG_LEVEL
+logLevel: info
+
+# ---------------------------------------------------------------------------
+# Database
+#
+# The service needs PostgreSQL with two extensions its first migration creates:
+#
+#   CREATE EXTENSION IF NOT EXISTS vector;    -- pgvector, for the embedding column and its HNSW index
+#   CREATE EXTENSION IF NOT EXISTS pg_trgm;   -- contrib, ships with every ordinary PostgreSQL build
+#
+# pg_trgm is contrib and is present in the CloudNativePG operand images.
+# pgvector is NOT: the stock CNPG image cannot create the `vector` extension,
+# and the migration - and therefore the boot - fails on it. Point
+# postgresql-cnpg's `image.*` at an operand image that bundles pgvector before
+# installing this chart. See README.md, "The database".
+#
+# Two ways to supply the DSN, and exactly one of them must be set:
+#
+#   urlSecret       one Secret key holding the whole DATABASE_URL. PREFERRED:
+#                   CNPG already writes a ready-made `uri` key into the app
+#                   Secret it generates, so there is nothing to assemble and no
+#                   escaping to get wrong.
+#
+#   host/port/name/user + passwordSecret
+#                   the DSN is assembled from these, with the password injected
+#                   through Kubernetes' own $(VAR) expansion so it stays in the
+#                   Secret and never lands in a ConfigMap. Note the caveat: the
+#                   password is substituted verbatim into a URL, so a password
+#                   containing @ : / ? # or % must already be percent-encoded
+#                   in the Secret.
+#
+# urlSecret makes host/port/name/user/sslMode unread - the DSN carries all of
+# it - so leave them empty rather than setting a second copy that nothing
+# consumes and nothing keeps true.
+# ---------------------------------------------------------------------------
+database:
+  # PostgreSQL primary service, e.g. "discovery-db-rw"
+  host: ""
+  port: 5432
+  name: discovery
+  user: discovery
+  # disable | allow | prefer | require | verify-ca | verify-full. Only used
+  # when the DSN is assembled.
+  sslMode: prefer
+  # Whole-DSN Secret. Wins over the assembled form when set.
+  urlSecret:
+    name: ""
+    # CNPG writes `uri` into Secret/<cluster>-app
+    key: uri
+  # Password Secret, for the assembled form.
+  passwordSecret:
+    name: ""
+    key: password
+
+  # DATABASE_AUTO_MIGRATE. The migrations are compiled into the binary, so this
+  # needs no sidecar and no mounted directory - the service applies them on
+  # boot and treats "already at the latest version" as success.
+  #
+  # False here, and true in compose, is not a discrepancy: migrating is a step
+  # someone decides to take. Turn it on for the install that is meant to
+  # migrate, and note that with replicaCount > 1 several pods race to do it -
+  # scale to 1, migrate, scale back.
+  autoMigrate: false
+
+  # Sized by the concurrency model, not guessed: discover runs its retrieval
+  # modes concurrently (A2), so one in-flight discover holds as many
+  # connections as it has enabled modes.
+  #
+  #   maxConns >= (enabled modes) x (expected in-flight discovers)
+  #
+  # Two modes today, three once semantic lands. Multiply by replicaCount and
+  # keep the total under the server's max_connections. minConns is a warm-start
+  # knob only - idle backends cost the server memory to save a handshake.
+  maxConns: 32
+  minConns: 4
+
+# ---------------------------------------------------------------------------
+# Beckn specification
+#
+# The service loads the Beckn v2.0.0 document BEFORE it serves and refuses to
+# start without it. The check is unconditional: turning L1 validation off does
+# not remove the requirement.
+#
+# It tries `url` first and falls back to the on-disk cache, so at least one of
+# `url` and `existingConfigMap` must be set or the boot cannot succeed - the
+# render fails when both are empty.
+#
+# The document is deliberately NOT shipped in this chart, for the same reason
+# the Dockerfile does not bake it into the image: a copy here is a second
+# source of truth that ages independently of the protocol.
+# ---------------------------------------------------------------------------
+becknSpec:
+  # VALIDATION_SPEC_URL. Upstream is
+  #   https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/main/api/v2.0.0/beckn.yaml
+  # which tracks `main` and therefore pins nothing. Prefer a pinned URL, or the
+  # ConfigMap below, for a reproducible boot.
+  url: ""
+  # A ConfigMap holding the document, mounted as the cache. Set this for an
+  # air-gapped deploy, or alongside `url` as the fallback when the fetch fails.
+  #   kubectl -n <ns> create configmap discovery-beckn-spec \
+  #     --from-file=beckn.yaml=tests/testdata/beckn-v2.0.0.yaml
+  existingConfigMap: ""
+  # Key inside that ConfigMap, and the filename it is mounted under.
+  key: beckn.yaml
+  # Directory the cache lives in. VALIDATION_SPEC_CACHE_PATH is this plus key.
+  # An emptyDir is mounted here when no ConfigMap is supplied, so the fetched
+  # document can be cached - /app is not writable by uid 65532.
+  cacheDir: /app/.cache/beckn
+
+# ---------------------------------------------------------------------------
+# Embeddings
+#
+# Semantic search is deferred (A5): the column, the HNSW index and the Embedder
+# seam all ship, the provider does not. `noop` is the reviewed default and the
+# one Phase 1 runs on - a discover request simply degrades and says so in
+# X-Beckn-Degraded (C11).
+#
+# Set provider: ollama and an endpoint once an Ollama deployment exists.
+# dimensions must match the column the migration created; changing it on a
+# populated database is a reindex, not a config change.
+# ---------------------------------------------------------------------------
+embeddings:
+  provider: noop
+  model: nomic-embed-text
+  endpoint: ""
+  dimensions: 768
+
+# ---------------------------------------------------------------------------
+# OpenTelemetry
+#
+# `none` boots without a collector (T2). Set exporter: otlp and an endpoint to
+# export.
+# ---------------------------------------------------------------------------
+otel:
+  exporter: none
+  endpoint: ""
+
+# REPLICATION_TARGETS - peer discovery endpoints a publish is fanned out to.
+# Rendered as the comma-separated list the service parses.
+replicationTargets: []
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+
+# ---------------------------------------------------------------------------
+# Probes
+#
+# /healthz and /readyz answer different questions, and the split is load-bearing
+# (src/app/router.go): /healthz depends on nothing and stays 200 with the
+# database down, /readyz pings the database and returns 503 when it cannot.
+# Pointing liveness at /readyz would restart every pod during a database blip -
+# turning a recoverable outage into a crashloop across the whole Deployment.
+#
+# There is no `exec` option and no compose-style healthcheck: the runtime stage
+# is distroless/static, which has no shell for one to run.
+# ---------------------------------------------------------------------------
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /healthz
+    port: http
+  # Generous: the boot fetches and compiles the Beckn document, and may apply
+  # migrations, before it listens.
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 60
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /readyz
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# ---------------------------------------------------------------------------
+# Security contexts
+#
+# On by default here, unlike the other OAN service charts. The image is
+# distroless/static running as uid 65532 with a fully static binary: there is
+# no shell to escalate into, and the only path the process writes is the spec
+# cache, which is a mounted volume. readOnlyRootFilesystem therefore costs
+# nothing - and if you add anything that needs scratch space, add an emptyDir
+# through extraVolumes rather than turning this off.
+# ---------------------------------------------------------------------------
+podSecurityContext:
+  enabled: true
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  enabled: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+
+# Extra init containers. Rendered verbatim.
+extraInitContainers: []
+
+# Extra volumes and mounts, rendered verbatim.
+extraVolumes: []
+extraVolumeMounts: []
+
+# ---------------------------------------------------------------------------
+# PodDisruptionBudget
+#
+# Caps voluntary disruptions - node drains, cluster upgrades, autoscaler
+# scale-down. Disabled by default because with a single replica a PDB of
+# minAvailable: 1 blocks drains entirely; the render fails if you enable it
+# anyway without acknowledging that.
+# ---------------------------------------------------------------------------
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # Set one or the other, not both.
+  maxUnavailable: ""
+  # Enable a PDB with a single replica anyway, accepting that node drains block.
+  allowSingleReplica: false
+
+# ---------------------------------------------------------------------------
+# Autoscaling
+#
+# The service is stateless - everything is in PostgreSQL - so it scales
+# horizontally. Every replica opens its own pool of up to database.maxConns
+# connections, so raise maxReplicas and maxConns together against the server's
+# max_connections, not separately. When enabled, replicaCount is ignored.
+# ---------------------------------------------------------------------------
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  # Set to a number to also scale on memory.
+  targetMemoryUtilizationPercentage: ""
+  # Scale-up/scale-down tuning, rendered verbatim into spec.behavior.
+  behavior: {}
+
+# ---------------------------------------------------------------------------
+# `helm test` checks
+#
+#   helm test <release> -n <namespace>
+#
+# Runs after install to confirm the service actually answers - which is the
+# difference between "the pod is running" and "the deployment works". It checks
+# /readyz rather than /healthz, because /healthz is 200 with the database down
+# and would pass on a deployment that cannot serve a single request.
+# ---------------------------------------------------------------------------
+tests:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: busybox
+    tag: "1.37"
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 50m
+      memory: 32Mi
+
+# ---------------------------------------------------------------------------
+# ENVIRONMENT CONFIGURATION
+#
+# Rendered into a ConfigMap and injected with envFrom. EMPTY on purpose.
+#
+# The image already carries config/common.yaml - the project's reviewed
+# defaults for search sizing, validation, auth and the rest - and the
+# environment layer sits above it. Copying those values here would create a
+# second copy of decisions this chart did not make, and it is the second copy
+# that rots. Everything the chart genuinely owns is derived from the structured
+# values above instead, so nothing here can drift from them.
+#
+# Use this to override a common.yaml default for one deployment. The full list
+# is in README.md; the ones most likely to be wanted:
+#
+#   SEARCH_DEFAULT_PAGE_SIZE, SEARCH_MAX_PAGE_SIZE, SEARCH_MAX_RADIUS_METERS
+#   SEARCH_MAX_CANDIDATES_PER_MODE, SEARCH_READ_DEADLINE
+#   SEARCH_FAIL_ON_UNAVAILABLE_MODE
+#   RATE_LIMIT_RPS, RATE_LIMIT_BURST     (defaults 20 / 40; burst >= rps > 0)
+#   SERVER_SHUTDOWN_TIMEOUT, SERVER_MAX_REQUEST_BODY_BYTES
+#   VALIDATION_ENABLE_L1_SCHEMA, GEO_RESOLUTION_CELLS
+#
+# A key that matches no Config field fails the boot, so a typo here cannot
+# silently do nothing.
+#
+# NEVER put secrets here. This is a ConfigMap.
+# ---------------------------------------------------------------------------
+envConfig: {}
+
+# Extra env vars from specific Secret keys, beyond DATABASE_URL.
+secretEnv: {}
+extraEnv: []
+envFromSecrets: []
+
+commonLabels: {}
+commonAnnotations: {}

@@ -1,0 +1,144 @@
+# Example: the OAN participant registry, production.
+#
+#   helm install registry charts/registry \
+#     -n oan-registry -f charts/registry/examples/registry.prod.yaml
+#
+# The differences from dev are all here, per issue #30's requirement that
+# environment differences live only in values files.
+
+# ---------------------------------------------------------------------------
+# TODO: set the production image. Left empty on purpose - the image OAN will
+# actually deploy is not decided yet (upstream ghcr, a mirror in our own
+# registry, or an OAN-built image), and guessing here would be a guess that
+# looks like a decision.
+#
+# The chart FAILS TO RENDER while repository is empty, which is deliberate: an
+# empty repository would otherwise produce "ghcr.io/:v2.0.0" and only fail later
+# as an ImagePullBackOff. So this example is not installable until it is filled
+# in.
+#
+# When filling it in, prefer a digest over a tag. A tag can be repointed at
+# different bits; a digest cannot, which is what makes a rollback land on the
+# same image it did before.
+#
+#   image:
+#     registry: <registry>
+#     repository: <repository>
+#     tag: "v2.0.0"
+#     digest: "sha256:..."
+# ---------------------------------------------------------------------------
+image:
+  registry: ""
+  repository: ""
+  tag: ""
+  digest: ""
+
+# Two replicas minimum: one can be drained without an outage, and the PDB below
+# needs somewhere to move traffic.
+replicaCount: 2
+
+database:
+  host: registry-db-rw
+  port: 5432
+  name: registry
+  # Production connects as the database OWNER, not the superuser. This is the
+  # main security difference from dev: the registry has no rights beyond its own
+  # database. Requires the cluster's bootstrap owner to be `registry`.
+  user: registry
+  passwordSecret:
+    name: registry-db-app
+    key: password
+
+keycloak:
+  url: http://keycloak.oan-registry.svc.cluster.local:8080/auth
+  realm: sunbird-rc
+  adminClientId: admin-api
+  clientId: registry-frontend
+  adminClientSecret:
+    name: registry-keycloak
+    key: keycloakAdminClientSecret
+
+authenticationEnabled: true
+
+keycloakUserSetPassword: true
+defaultUserPasswordSecret:
+  name: registry-keycloak
+  key: registryDefaultUserPassword
+
+# Secrets are created out of band; this chart renders none of them. The Secret
+# named above must carry both keys:
+#   kubectl -n oan-registry create secret generic registry-keycloak \
+#     --from-literal=keycloakAdminClientSecret='<regenerated admin-api secret>' \
+#     --from-literal=registryDefaultUserPassword='<password>'
+
+resources:
+  requests:
+    cpu: "1"
+    memory: 2Gi
+  limits:
+    cpu: "2"
+    memory: 4Gi
+
+# Survives a single node drain.
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Off until there is load data to size it from. Note every replica opens its own
+# connection pool, so check the cluster's max_connections before enabling.
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 70
+
+# Spread replicas across nodes, so one node failing does not take both.
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: registry
+              app.kubernetes.io/instance: registry
+
+# Hardened. Verify the image runs as non-root before enabling in a new
+# environment - a mismatch shows up as a permission error at startup.
+podSecurityContext:
+  enabled: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+securityContext:
+  enabled: true
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  # Left false: the JVM writes to /tmp. Enabling it needs an emptyDir mounted
+  # there via extraVolumes, and verification that nothing else writes to disk.
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+ingress:
+  enabled: false
+  # When the AWS Load Balancer Controller is installed:
+  # className: alb
+  # annotations:
+  #   alb.ingress.kubernetes.io/scheme: internal
+  #   alb.ingress.kubernetes.io/target-type: ip
+  # hosts:
+  #   - host: registry.oan.example
+  #     paths:
+  #       - path: /
+  #         pathType: Prefix
+
+envConfig:
+  logging.level.root: WARN
+
+commonLabels:
+  oan.in/environment: prod

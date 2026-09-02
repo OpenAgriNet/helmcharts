@@ -1,0 +1,20 @@
+# Minimum values that let `helm template` run in CI. Dummy references only -
+# see examples/ for real per-environment configuration.
+#
+# Covers the assembled-DSN path (database.passwordSecret). The whole-DSN path
+# is covered by ci/url-secret-values.yaml.
+image:
+  registry: ghcr.io
+  repository: openagrinet/discovery-service
+  tag: "0.1.0"
+
+app:
+  networkId: local-network
+
+database:
+  host: discovery-db-rw
+  passwordSecret:
+    name: discovery-db-app
+
+becknSpec:
+  url: https://example.invalid/beckn.yaml
