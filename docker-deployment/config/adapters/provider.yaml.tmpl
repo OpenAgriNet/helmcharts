@@ -1,0 +1,97 @@
+# OAN provider adapter -- local end-to-end run.
+#
+# Serves /beckn/ synchronously: verifies the sender against the registry,
+# resolves the capability's call plan, calls the provider, and answers with the
+# mapped result. No callback -- the answer is the HTTP response.
+appName: "oan-provider-adapter"
+
+log:
+  level: debug
+  destinations:
+    - type: stdout
+  contextKeys: [transaction_id, message_id, subscriber_id, module_id]
+
+http:
+  port: 9200
+  timeout:
+    read: 30
+    write: 30
+    idle: 30
+
+pluginManager:
+  root: ./plugins
+
+modules:
+  - name: oanProvider
+    # A subtree, not one action. Without the trailing slash Go's ServeMux
+    # matches exactly, so /beckn/select would mount that action and 404 the
+    # rest. Which action it is comes from the payload, never the URL.
+    path: /beckn/
+    handler:
+      type: std
+      role: bpp
+      subscriberId: __PROVIDER_SUBSCRIBER_ID__
+
+      plugins:
+        # Serves both halves: the sender's signing key for validateSign, and the
+        # capability call plans the provider steps resolve against.
+        registry:
+          id: oanregistry
+          config:
+            url: http://registry:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+
+        # The adapter's OWN keys, used by signAck to sign what it answers with.
+        # Local test keys -- a real deployment uses a key manager backed by a
+        # secret store, not values in a config file.
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: __PROVIDER_SUBSCRIBER_ID__
+            # The KEY's osid, not a friendly name: that is what the registry
+            # indexes keys by, and what a verifier looks up.
+            keyId: __PROVIDER_KEY_ID__
+            signingPrivateKey: "__PROVIDER_SIGNING_PRIVATE__"
+            signingPublicKey: "__PROVIDER_SIGNING_PUBLIC__"
+            encrPrivateKey: "__PROVIDER_ENCR_PRIVATE__"
+            encrPublicKey: "__PROVIDER_ENCR_PUBLIC__"
+
+        signValidator:
+          id: signvalidator
+        signer:
+          id: signer
+
+        # Generic: fetches, compiles and caches whatever the registry's mapping
+        # URLs point at. Knows nothing about any provider.
+        mapper:
+          id: jsonmapper
+          config:
+            fetchTimeout: 10s
+            cacheTTL: 1m
+
+        # One entry per provider capability. Each recognises its own binding key
+        # and passes through anything else.
+        #
+        # authScheme none matches what the registry publishes for this upstream,
+        # which is what lets its baseUrl be plaintext http. Against a real
+        # provider this is basic or header, and the credential is named here as
+        # an environment variable -- never held in this file or in the registry:
+        #
+        #   authScheme: basic
+        #   usernameEnv: MAUSAMGRAM_USER
+        #   passwordEnv: MAUSAMGRAM_X_API_KEY
+        # A list: one provider can serve several capabilities, and the registry
+        # contract expects exactly that -- one Participant, one ProviderSchema
+        # row per capability. Comma-separated, because a plugin config value is
+        # a string; a binding key uses a pipe, so a comma is unambiguous.
+        providerSteps:
+          - id: weather
+            config:
+              bindingKeys: "__PROVIDER_BINDING_KEY__"
+              authScheme: none
+
+      steps:
+        - validateSign   # the sender's key, from the registry
+        - weather        # resolve, map out, call, map back
+        - signAck        # signs whatever the step answered with

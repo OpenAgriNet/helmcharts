@@ -1,0 +1,233 @@
+# The whole OAN stack in one file: registry, discovery, and the three adapters.
+#
+#   1. cp .env.example .env          and read it -- ADAPTER_REF matters
+#   2. docker compose up -d          registry and discovery first come up
+#   3. python3 bin/setup.py          keys, the three adapter entries, configs
+#   4. docker compose up -d          again, so the adapters read the rendered configs
+#
+# There is deliberately NO provider here. You run your own upstream API
+# locally, expose it with ngrok, and register it yourself -- see README.md.
+# Nothing in this file knows the provider exists; the adapter learns its base
+# URL from the registry at request time.
+
+x-adapter: &adapter
+  image: ${ADAPTER_IMAGE:-oan/network-adapter:local}
+  build:
+    # A remote git context, so this stack needs no sibling checkout. Point
+    # ADAPTER_SRC at a local path instead when you are working on the adapter.
+    context: ${ADAPTER_SRC}
+    dockerfile: Dockerfile.adapter-with-plugins
+  restart: unless-stopped
+  environment: &adapter-env
+    CONFIG_FILE: /app/config/adapter.yaml
+
+services:
+  # ---------------------------------------------------------------- registry
+  registry-db:
+    image: postgres:14
+    container_name: oan-registry-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - registry-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  keycloak:
+    image: ghcr.io/sunbird-rc/sunbird-rc-keycloak:latest
+    container_name: oan-keycloak
+    restart: unless-stopped
+    volumes:
+      - ./config/registry/imports:/opt/jboss/keycloak/imports
+    environment:
+      - DB_VENDOR=postgres
+      - DB_ADDR=registry-db
+      - DB_PORT=5432
+      - DB_DATABASE=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - KEYCLOAK_USER=${KEYCLOAK_ADMIN_USER}
+      - KEYCLOAK_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+      - KEYCLOAK_IMPORT=/opt/jboss/keycloak/imports/realm-export.json
+      - PROXY_ADDRESS_FORWARDING=true
+    ports:
+      - "${KEYCLOAK_PORT}:8080"
+      - "${KEYCLOAK_ADMIN_PORT}:9990"
+    depends_on:
+      registry-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9990/ || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
+  registry:
+    image: ghcr.io/sunbird-rc/sunbird-rc-core:${REGISTRY_VERSION}
+    container_name: oan-registry
+    restart: unless-stopped
+    volumes:
+      # Schemas are read at startup, so a change here needs this service
+      # restarted before the registry will honour it.
+      - ./config/registry/schemas:/home/sunbirdrc/config/public/_schemas
+    environment:
+      - connectionInfo_uri=jdbc:postgresql://registry-db:5432/${POSTGRES_DB}
+      - connectionInfo_username=${POSTGRES_USER}
+      - connectionInfo_password=${POSTGRES_PASSWORD}
+      - search_providerName=dev.sunbirdrc.registry.service.NativeSearchService
+      - authentication_enabled=true
+      - sunbird_sso_realm=${KEYCLOAK_REALM}
+      - sunbird_sso_url=http://keycloak:8080/auth
+      # Without this the service resolves its issuer to localhost -- which
+      # inside the container is itself -- and the security filter chain fails
+      # to build, so the whole registry never starts.
+      - OAUTH2_RESOURCES_0_URI=http://keycloak:8080/auth/realms/${KEYCLOAK_REALM}
+      - OAUTH2_RESOURCES_0_PROPERTIES_ROLES_PATH=realm_access.roles
+      - identity_provider=dev.sunbirdrc.auth.keycloak.KeycloakProviderImpl
+      - sunbird_sso_admin_client_id=${KEYCLOAK_ADMIN_CLIENT_ID}
+      - sunbird_sso_client_id=${KEYCLOAK_CLIENT_ID}
+      - sunbird_sso_admin_client_secret=${KEYCLOAK_SECRET}
+      - sunbird_keycloak_user_set_password=true
+      - sunbird_keycloak_user_password=${REGISTRY_DEFAULT_USER_PASSWORD}
+      - encryption_enabled=false
+      - event_enabled=false
+      - idgen_enabled=false
+      - claims_enabled=false
+      - did_enabled=false
+      - signature_enabled=false
+      - certificate_enabled=false
+      - filestorage_enabled=false
+      - notification_enabled=false
+      - notification_async_enabled=false
+      - async_enabled=false
+      - webhook_enabled=false
+      - registry_base_apis_enable=false
+      - manager_type=DefinitionsManager
+      - expand_reference=false
+      - swagger_title=OAN Registry
+      - logging.level.root=INFO
+    ports:
+      - "${REGISTRY_PORT}:8081"
+    depends_on:
+      registry-db:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      # This image ships no curl, wget, nc or bash, so the check reads the
+      # kernel's own table instead: 1F91 is 8081 in hex, and the service binds
+      # v6, hence tcp6. It proves the port is accepting connections, which is
+      # what everything downstream waits for.
+      test: ["CMD-SHELL", "grep -q ':1F91' /proc/net/tcp6"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 40s
+
+  # --------------------------------------------------------------- discovery
+  discovery-db:
+    # pgvector rather than plain postgres: the discovery service's HNSW index
+    # options arrived in 0.8.
+    image: pgvector/pgvector:0.8.0-pg16
+    container_name: oan-discovery-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: discovery
+      POSTGRES_PASSWORD: discovery
+      POSTGRES_DB: discovery
+    volumes:
+      - discovery-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U discovery -d discovery"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  discovery:
+    image: ${DISCOVERY_IMAGE:-oan/discovery-service:local}
+    build:
+      context: ${DISCOVERY_SRC}
+    container_name: oan-discovery
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://discovery:discovery@discovery-db:5432/discovery?sslmode=disable
+      DATABASE_AUTO_MIGRATE: "true"
+      APP_NETWORK_ID: ${APP_NETWORK_ID}
+      SERVER_PORT: 8080
+      VALIDATION_SPEC_URL: ${BECKN_SPEC_URL}
+    # config/common.yaml is baked into the image and is the reviewed default.
+    # To override a setting, copy config/discovery/instance.yaml.example to
+    # config/discovery/instance.yaml and uncomment the mount below -- compose
+    # creates a DIRECTORY if you mount a file that does not exist, which the
+    # service then fails to parse, so the file has to be there first.
+    # volumes:
+    #   - ./config/discovery/instance.yaml:/app/config/instance.yaml:ro
+    ports:
+      - "${DISCOVERY_PORT}:8080"
+    depends_on:
+      discovery-db:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------- adapters
+  # Verifies the caller, calls your upstream provider, answers synchronously.
+  # It has no provider address of its own: it reads the ProviderSchema row you
+  # register, so pointing this at a new ngrok URL is a registry edit, not a
+  # config change here.
+  provider-adapter:
+    <<: *adapter
+    container_name: oan-provider-adapter
+    depends_on:
+      registry:
+        condition: service_healthy
+    environment:
+      <<: *adapter-env
+    volumes:
+      - ./config/adapters/provider.yaml:/app/config/adapter.yaml:ro
+    ports:
+      - "${PROVIDER_ADAPTER_PORT}:9200"
+
+  # Verifies the caller, hands discovery on, re-signs as itself.
+  network-adapter:
+    <<: *adapter
+    container_name: oan-network-adapter
+    depends_on:
+      registry:
+        condition: service_healthy
+      discovery:
+        condition: service_started
+    environment:
+      <<: *adapter-env
+    volumes:
+      - ./config/adapters/network.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/routing-network.yaml:/app/config/routing-network.yaml:ro
+    ports:
+      - "${NETWORK_ADAPTER_PORT}:9201"
+
+  # The caller, and the only one that takes unsigned requests: the experience
+  # app is inside the trust boundary, so there is no network signature to
+  # check. This is what makes the stack testable with a plain curl.
+  exp-adapter:
+    <<: *adapter
+    container_name: oan-exp-adapter
+    depends_on:
+      network-adapter:
+        condition: service_started
+      provider-adapter:
+        condition: service_started
+    environment:
+      <<: *adapter-env
+    volumes:
+      - ./config/adapters/exp.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/routing-exp.yaml:/app/config/routing-exp.yaml:ro
+    ports:
+      - "${EXP_ADAPTER_PORT}:9202"
+
+volumes:
+  registry-data:
+  discovery-data:

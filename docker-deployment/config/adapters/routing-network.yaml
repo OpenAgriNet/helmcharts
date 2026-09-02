@@ -1,0 +1,14 @@
+# Network layer adapter routing.
+#
+# One job: hand discovery to the discovery service, which is a service in this
+# same compose and so reachable by name.
+#
+# The service serves /discover at its root, so no /beckn prefix here: targetType
+# "url" appends the action to whatever base is given.
+routingRules:
+  - version: "2.0.0"
+    targetType: "url"
+    target:
+      url: "http://discovery:8080"
+    endpoints:
+      - discover

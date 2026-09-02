@@ -1,0 +1,69 @@
+# network-adapter
+#
+# The network layer. Verifies the caller's signature, then hands discovery to
+# the discovery service and re-signs as itself on the way out.
+appName: "network-adapter"
+
+log:
+  level: debug
+  destinations:
+    - type: stdout
+  contextKeys: [transaction_id, message_id, subscriber_id, module_id]
+
+http:
+  port: 9201
+  timeout:
+    read: 30
+    write: 30
+    idle: 30
+
+pluginManager:
+  root: ./plugins
+
+modules:
+  - name: network-adapter
+    # A subtree: every action lands here and the payload says which one it is.
+    path: /beckn/
+    handler:
+      type: std
+      # bpp because this adapter RECEIVES from a BAP. The role decides which
+      # context identity validateSign compares the signer against: bap expects
+      # the sender to be the bppId, bpp expects the bapId -- and the sender here
+      # is the caller, oan-caller.
+      role: bpp
+      subscriberId: __NETWORK_SUBSCRIBER_ID__
+
+      plugins:
+        registry:
+          id: oanregistry
+          config:
+            url: http://registry:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: __NETWORK_SUBSCRIBER_ID__
+            # The KEY's osid, not a friendly name: that is what the registry
+            # indexes keys by, and what a verifier looks up.
+            keyId: __NETWORK_KEY_ID__
+            signingPrivateKey: "__NETWORK_SIGNING_PRIVATE__"
+            signingPublicKey: "__NETWORK_SIGNING_PUBLIC__"
+            encrPrivateKey: "__NETWORK_ENCR_PRIVATE__"
+            encrPublicKey: "__NETWORK_ENCR_PUBLIC__"
+
+        signer:
+          id: signer
+        signValidator:
+          id: signvalidator
+
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/routing-network.yaml
+
+      steps:
+        - validateSign
+        - addRoute
+        - sign

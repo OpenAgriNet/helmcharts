@@ -1,0 +1,25 @@
+# Experience layer adapter routing.
+#
+# Branches by action: discovery goes to the network layer, everything
+# transactional goes straight to the provider adapter. For v2.x the router
+# ignores domain and matches on version and endpoint alone.
+#
+# targetType "url" appends the action to the path, so the base here is the
+# module mount point and /discover or /select is added to it.
+routingRules:
+  - version: "2.0.0"
+    targetType: "url"
+    target:
+      url: "http://network-adapter:9201/beckn"
+    endpoints:
+      - discover
+
+  - version: "2.0.0"
+    targetType: "url"
+    target:
+      url: "http://provider-adapter:9200/beckn"
+    endpoints:
+      - select
+      - init
+      - confirm
+      - status

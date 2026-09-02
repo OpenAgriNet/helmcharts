@@ -1,0 +1,66 @@
+# exp-adapter
+#
+# The caller. Signs outbound requests as oan-caller and routes them by action:
+# discovery to the network layer, transactions straight to the provider adapter.
+# No validateSign -- the experience app calling it is inside the trust boundary,
+# so there is no network signature to check on the way in.
+appName: "exp-adapter"
+
+log:
+  level: debug
+  destinations:
+    - type: stdout
+  contextKeys: [transaction_id, message_id, subscriber_id, module_id]
+
+http:
+  port: 9202
+  timeout:
+    read: 30
+    write: 30
+    idle: 30
+
+pluginManager:
+  root: ./plugins
+
+modules:
+  - name: exp-adapter
+    # A subtree: every action lands here and the payload says which one it is.
+    path: /beckn/
+    handler:
+      type: std
+      role: bap
+      subscriberId: __EXP_SUBSCRIBER_ID__
+
+      plugins:
+        registry:
+          id: oanregistry
+          config:
+            url: http://registry:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: __EXP_SUBSCRIBER_ID__
+            # The KEY's osid, not a friendly name: that is what the registry
+            # indexes keys by, and what a verifier looks up.
+            keyId: __EXP_KEY_ID__
+            signingPrivateKey: "__EXP_SIGNING_PRIVATE__"
+            signingPublicKey: "__EXP_SIGNING_PUBLIC__"
+            encrPrivateKey: "__EXP_ENCR_PRIVATE__"
+            encrPublicKey: "__EXP_ENCR_PUBLIC__"
+
+        signer:
+          id: signer
+        signValidator:
+          id: signvalidator
+
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/routing-exp.yaml
+
+      steps:
+        - addRoute
+        - sign
