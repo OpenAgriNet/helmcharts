@@ -1,11 +1,14 @@
 # The whole OAN stack in one file: registry, discovery, and the three adapters.
 # Meant for a shared DEV deployment on a VM.
 #
-#   1. cp .env.example .env          and read it -- every credential in it
-#                                    is a default that must be changed
-#   2. docker compose up -d          registry and discovery come up
+#   1. cp .env.example .env          set the image tags, and change every
+#                                    credential -- they are shipped defaults
+#   2. docker compose up -d          pulls and starts registry and discovery
 #   3. python3 bin/setup.py          keys, the three adapter entries, configs
 #   4. docker compose up -d          again, so the adapters read the configs
+#
+# Nothing is built here. The adapter and discovery images are pulled from the
+# tags named in .env.
 #
 # Ports bind to 127.0.0.1 by default. That is deliberate: this stack has an
 # admin-console Keycloak and a registry whose write token any reader of
@@ -20,12 +23,10 @@
 # request time, so repointing it is a registry write and nothing more.
 
 x-adapter: &adapter
-  image: ${ADAPTER_IMAGE:-oan/network-adapter:local}
-  build:
-    # A remote git context, so this stack needs no sibling checkout. Point
-    # ADAPTER_SRC at a local path instead when you are working on the adapter.
-    context: ${ADAPTER_SRC}
-    dockerfile: Dockerfile.adapter-with-plugins
+  # Pulled, never built. Set ADAPTER_IMAGE in .env to the tag published for
+  # this environment -- `docker compose up -d` is the whole deployment step.
+  image: ${ADAPTER_IMAGE}
+  pull_policy: missing
   restart: unless-stopped
   environment: &adapter-env
     CONFIG_FILE: /app/config/adapter.yaml
@@ -159,9 +160,8 @@ services:
       retries: 20
 
   discovery:
-    image: ${DISCOVERY_IMAGE:-oan/discovery-service:local}
-    build:
-      context: ${DISCOVERY_SRC}
+    image: ${DISCOVERY_IMAGE}
+    pull_policy: missing
     container_name: oan-discovery
     restart: unless-stopped
     environment:

@@ -50,7 +50,9 @@ changed.
 
 On the VM:
 
-- Docker with Compose v2
+- Docker with Compose v2, logged in to wherever the images live if it is
+  private — `docker login ghcr.io`
+- the image tags for the adapter and the discovery service
 - Python 3 and the `cryptography` package — `pip install cryptography`
 
 And a URL the VM can reach for the upstream provider API. If that API runs on
@@ -65,18 +67,19 @@ cp .env.example .env
 
 Read `.env` before going on. Four things in it matter:
 
+- `ADAPTER_IMAGE` and `DISCOVERY_IMAGE` — the tags to pull. No working default;
+  set them to the tags published for this environment.
 - **the credentials.** All shipped defaults. Change them.
 - `BIND_ADDR` — see above.
-- `ADAPTER_SRC` points at a **feature branch**, because the three OAN plugins
-  are not on the adapter's default branch yet.
 - `PROVIDER_PARTICIPANT_ID` and `PROVIDER_CAPABILITY` have to match the registry
   rows created further down.
 
 Then:
 
 ```sh
-# 1. registry and discovery. The adapters will restart in a loop for now --
-#    their configs do not exist yet, which step 2 fixes.
+# 1. pulls the images, then starts registry and discovery. The adapters will
+#    restart in a loop for now -- their configs do not exist yet, which step
+#    2 fixes.
 docker compose up -d
 
 # 2. generate the adapter keypairs, register the three adapter identities,
@@ -86,9 +89,6 @@ python3 bin/setup.py
 # 3. now the adapters have configs to read
 docker compose up -d
 ```
-
-The first run builds the adapter and discovery images from source, so give it
-a few minutes.
 
 Check it:
 
@@ -138,8 +138,7 @@ curl -s -X POST http://127.0.0.1:8081/api/v1/Participant \
     "name": "My weather API",
     "type": "upstream",
     "status": "active",
-    "baseUrl": "https://YOUR-TUNNEL-SUBDOMAIN.ngrok-free.app",
-    "auth": { "scheme": "none" }
+    "baseUrl": "https://YOUR-TUNNEL-SUBDOMAIN.ngrok-free.app"
   }'
 ```
 
@@ -170,6 +169,14 @@ Things worth knowing about these two calls:
 - **No `{"Participant": {...}}` wrapper.** The registry takes the record
   itself. A wrapper comes back as `extraneous key [Participant] is not
   permitted`.
+- **An `upstream` carries no `role`, no `keys` and no credential.** It has
+  never heard of Beckn, and nothing held in the registry is ever sent to it —
+  the adapter presents credentials from its own config, naming environment
+  variables. The schema refuses `role` or `keys` on an upstream.
+- **The three roles are `consumer`, `provider` and `network`**, and they apply
+  to `node` rows only — the three `setup.py` creates. A node also needs at
+  least one key, published as bare base64 with no encoding label in front of
+  it.
 - **`bindingKey` is `participantId|capabilityCode`.** It has to match what
   `PROVIDER_PARTICIPANT_ID` and `PROVIDER_CAPABILITY` were set to in `.env`
   when `setup.py` last ran — see the troubleshooting note on bare ACKs.

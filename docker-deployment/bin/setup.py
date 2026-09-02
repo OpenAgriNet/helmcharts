@@ -186,10 +186,16 @@ def wait_for_registry():
 
 
 def signing_key_block(public_key):
-    # The base64: label is the registry's own encoding marker; the adapter
-    # strips it before the value reaches signature validation.
-    return [{"keyId": "k1", "use": "sign", "alg": "ed25519",
-             "key": f"base64:{public_key}", "status": "active",
+    """The published half of the signing keypair.
+
+    Bare base64, with no encoding label in front of it: what a verifier hands
+    to a base64 decoder is the value as published, and a label left on fails
+    every verification with a decode error pointing nowhere near the registry.
+
+    No friendly key id, because nothing could look one up: the registry assigns
+    an osid on write and that is what a sender names in the Authorization
+    header. No use either -- alg carries the purpose, ed25519 signs."""
+    return [{"alg": "ed25519", "key": public_key, "status": "active",
              "validFrom": "2026-01-01T00:00:00Z", "validUntil": "2030-01-01T00:00:00Z"}]
 
 
@@ -222,13 +228,13 @@ def seed(identities):
     bearer = token()
     print("registry: the three adapter identities")
 
-    for role, name, beckn_role in (
-            ("exp", "OAN experience layer adapter", "BAP"),
-            ("network", "OAN network layer adapter", "NETWORK"),
-            ("provider", "OAN provider layer adapter", "BPP")):
+    for role, name, network_role in (
+            ("exp", "OAN experience layer adapter", "consumer"),
+            ("network", "OAN network layer adapter", "network"),
+            ("provider", "OAN provider layer adapter", "provider")):
         identity = identities[role]
         ensure_participant(bearer, identity["participantId"],
-                           node(identity["participantId"], name, beckn_role,
+                           node(identity["participantId"], name, network_role,
                                 identity["signingPublic"]))
 
 
@@ -251,6 +257,8 @@ def key_osids(identities):
         if not keys:
             sys.exit(f"setup: {identity['participantId']} has no published key")
 
+        # Bare base64 now, but an older row may still carry the label, and a
+        # confusing mismatch error is worse than one tolerant line.
         published = keys[0]["key"].removeprefix("base64:")
         if published != identity["signingPublic"]:
             sys.exit(
