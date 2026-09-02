@@ -1,0 +1,151 @@
+# ============================================================================
+# Default values for the oan-common library chart.
+#
+# A library chart renders no resources of its own. These keys define the value
+# schema that consuming charts inherit, and are what the helpers in
+# templates/_helpers.tpl read. Consuming charts may extend this schema with
+# their own keys (service, ingress, replicaCount, ...).
+# ============================================================================
+
+# Override the chart name used in names and labels
+nameOverride: ""
+# Override the generated fullname (default: <release>-<chart>)
+fullnameOverride: ""
+
+# Image configuration. Consumed by `oan-common.image`.
+image:
+  # Container registry, e.g. "ghcr.io" or "<account>.dkr.ecr.ap-south-1.amazonaws.com"
+  registry: ""
+  # Image repository, e.g. "openagrinet/registry-service"
+  repository: ""
+  # Image tag. Falls back to Chart.appVersion, then "latest".
+  tag: ""
+  # Image digest (sha256:...). Takes precedence over tag when set, so an
+  # environment can pin an exact image without blanking the tag.
+  digest: ""
+  pullPolicy: IfNotPresent
+  # Names of image pull secrets in the release namespace
+  pullSecrets: []
+
+# Service account configuration. Consumed by `oan-common.serviceAccount.*`.
+serviceAccount:
+  # Create a dedicated ServiceAccount for this release
+  enabled: true
+  # Explicit name. Defaults to the chart fullname when empty.
+  name: ""
+  # Annotations, e.g. eks.amazonaws.com/role-arn for IRSA
+  annotations: {}
+  automountServiceAccountToken: true
+
+# Non-secret environment configuration. Rendered into a ConfigMap and exposed
+# to the container with envFrom. NEVER put secrets here.
+envConfig: {}
+
+# Resource requests and limits.
+# REQUIRED on every OAN component: `oan-common.resources` fails the render when
+# this is empty, so a chart cannot ship without a resource contract.
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Probes. REQUIRED on every OAN component that serves traffic.
+# Every field other than `enabled` is passed through to the probe verbatim, so
+# any handler (httpGet, tcpSocket, exec, grpc) and any timing field is allowed.
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  enabled: false
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+# Pod-level security context. Every field other than `enabled` is passed
+# through verbatim.
+podSecurityContext:
+  enabled: false
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container-level security context. Every field other than `enabled` is passed
+# through verbatim.
+securityContext:
+  enabled: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+# Init containers that block startup until dependencies are reachable, standing
+# in for compose's `depends_on: condition: service_healthy`, which Kubernetes has
+# no equivalent of. Consumed by `oan-common.waitFor`.
+waitFor:
+  enabled: false
+  image:
+    registry: docker.io
+    # Needs `nc`, `wget` and `date` - busybox has all three.
+    repository: busybox
+    tag: "1.37"
+    pullPolicy: IfNotPresent
+  # Give up after this long, so a genuinely missing dependency surfaces as a
+  # failed init container rather than an endless wait.
+  timeoutSeconds: 300
+  intervalSeconds: 3
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 50m
+      memory: 32Mi
+  # Which dependencies to wait for is decided by the consuming chart, which
+  # derives host and URL from its own settings. See that chart's values.
+
+# Individual environment variables sourced from Secret keys, for when the
+# secret's key name differs from the variable the application expects
+# (CNPG writes `password`; Sunbird RC wants `connectionInfo_password`).
+# Consumed by `oan-common.env`.
+secretEnv: {}
+  # connectionInfo_password:
+  #   name: registry-db-app
+  #   key: password
+
+# Raw env entries, passed through verbatim (fieldRef, plain values, ...).
+extraEnv: []
+
+# Extra labels added to every resource
+commonLabels: {}
+# Extra annotations added to every resource
+commonAnnotations: {}
