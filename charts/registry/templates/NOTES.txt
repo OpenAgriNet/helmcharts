@@ -1,0 +1,35 @@
+{{ .Chart.Name }} installed as release "{{ .Release.Name }}".
+
+Resources in namespace "{{ .Release.Namespace }}":
+  - Deployment/{{ include "registry.fullname" . }} ({{ .Values.replicaCount }} replica(s))
+  - Service/{{ include "registry.fullname" . }} ({{ .Values.service.type }} on port {{ .Values.service.port }})
+  - ConfigMap/{{ include "registry.envConfigMapName" . }}
+{{- if include "registry.renderSchemasConfigMap" . }}
+  - ConfigMap/{{ include "registry.schemasConfigMapName" . }} (entity schemas)
+{{- end }}
+{{- if .Values.serviceAccount.enabled }}
+  - ServiceAccount/{{ include "registry.serviceAccountName" . }}
+{{- end }}
+{{- if .Values.ingress.enabled }}
+  - Ingress/{{ include "registry.fullname" . }}
+{{- end }}
+
+Wired to:
+  database: {{ include "registry.jdbcUrl" . }} (as {{ .Values.database.user }})
+  keycloak: {{ .Values.keycloak.url }} (realm {{ .Values.keycloak.realm }})
+  auth:     {{ if .Values.authenticationEnabled }}enabled - role checks apply{{ else }}DISABLED - no role checks{{ end }}
+
+In-cluster endpoint:
+  http://{{ include "registry.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+Check it:
+  kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "registry.fullname" . }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "registry.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+  curl http://localhost:{{ .Values.service.port }}/health
+
+If authenticated calls come back 401 or 403, check these three in order - they
+are the usual causes, and none of them look like an auth problem in the logs:
+  1. keycloak.url must match the issuer Keycloak puts in its tokens, exactly.
+  2. keycloak.adminClientSecret must be the REGENERATED admin-api secret; the
+     one in the realm export is masked and never works.
+  3. The realm ({{ .Values.keycloak.realm }}) must actually be imported.

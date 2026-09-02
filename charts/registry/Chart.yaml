@@ -1,0 +1,26 @@
+apiVersion: v2
+name: registry
+description: >-
+  The OAN participant registry, on Sunbird RC core. Holds participant records
+  and the key material inbound signed requests are verified against. Requires
+  PostgreSQL and Keycloak.
+type: application
+version: 0.2.0
+appVersion: "v2.0.0"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - registry
+  - sunbird-rc
+  - participant
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
+  - https://github.com/Sunbird-RC/sunbird-rc-core
+dependencies:
+  - name: oan-common
+    version: "0.2.x"
+    repository: "file://../oan-common"

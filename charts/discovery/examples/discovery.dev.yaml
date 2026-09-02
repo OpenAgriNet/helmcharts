@@ -1,0 +1,85 @@
+# Example: the OAN discover-and-publish service, dev environment.
+#
+#   helm install discovery charts/discovery \
+#     -n oan-discovery -f charts/discovery/examples/discovery.dev.yaml
+#
+# Install the database FIRST, and with an image that has pgvector - see
+# README.md, "The database". Starting before the database is up is not fatal -
+# the pod crashloops until it can connect, and Kubernetes' own backoff is the
+# retry - but a database without pgvector never becomes reachable in the sense
+# that matters, because the migration fails on the missing extension.
+
+# No fullnameOverride needed: the chart is named "discovery", so a release
+# named "discovery" already produces Service/discovery.
+
+# TODO: no image is published for discovery-service yet - CI builds and scans
+# one but pushes nothing. Fill this in with whatever the first published tag is;
+# the render fails until then, on purpose.
+image:
+  registry: ghcr.io
+  repository: openagrinet/discovery-service
+  tag: "0.1.0"
+
+app:
+  # The network this deployment serves. It fills an empty
+  # publishDirectives.visibleTo, so a catalog published without one is visible
+  # to this network and no other - which makes this the single most consequential
+  # value in the file.
+  networkId: mahavistar
+
+logLevel: debug
+
+database:
+  # CNPG generates Secret/<cluster>-app with a ready-made `uri` key, so there is
+  # nothing to assemble and no password escaping to get wrong. The DSN carries
+  # host, port, database and user, so none of those are set here - a second copy
+  # would be one more thing to keep true.
+  urlSecret:
+    name: discovery-db-app
+    key: uri
+
+  # Dev migrates on boot. Keep replicaCount at 1 while this is true: the
+  # migration runs in-process, so several pods starting at once race to apply
+  # the same one.
+  autoMigrate: true
+
+  # Two retrieval modes today, one in-flight discover per mode. 32 is generous
+  # for dev and leaves room for the third mode when semantic search lands.
+  maxConns: 32
+  minConns: 4
+
+# Fetched at boot and cached in an emptyDir. For a cluster with no egress, or
+# for a reproducible boot, create the ConfigMap instead:
+#   kubectl -n oan-discovery create configmap discovery-beckn-spec \
+#     --from-file=beckn.yaml=<discovery-service>/tests/testdata/beckn-v2.0.0.yaml
+# and set existingConfigMap below. Note this URL tracks `main` and so pins
+# nothing.
+becknSpec:
+  url: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/main/api/v2.0.0/beckn.yaml
+  existingConfigMap: ""
+
+# Semantic search stays off until an Ollama deployment exists (A5). Discover
+# still answers; it degrades the semantic mode and names it in X-Beckn-Degraded.
+embeddings:
+  provider: noop
+
+otel:
+  exporter: none
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+ingress:
+  enabled: false
+
+# `helm test discovery -n oan-discovery` checks /readyz.
+tests:
+  enabled: true
+
+commonLabels:
+  oan.in/environment: dev

@@ -1,0 +1,29 @@
+apiVersion: v2
+name: discovery
+description: >-
+  The OAN Beckn v2.0.0 discover-and-publish service. Holds published catalogs
+  and answers discover queries over them. PostgreSQL is its only datastore, and
+  it needs the `vector` and `pg_trgm` extensions.
+type: application
+version: 0.1.0
+# No image is published for this service yet - CI builds and scans one but
+# pushes nothing - so this is the version the chart deploys by default once one
+# exists, and `image.repository` is empty until then. See values.yaml.
+appVersion: "0.1.0"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - discovery
+  - publish
+  - beckn
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
+  - https://github.com/OpenAgriNet/discovery-service
+dependencies:
+  - name: oan-common
+    version: "0.2.x"
+    repository: "file://../oan-common"

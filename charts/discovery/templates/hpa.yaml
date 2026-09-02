@@ -1,0 +1,54 @@
+{{- if .Values.autoscaling.enabled }}
+{{/*
+The service is stateless - it holds no session state and writes everything to
+PostgreSQL - so it scales horizontally. Two things to keep in mind:
+
+  - Every replica opens its own pool of up to database.maxConns connections, so
+    the ceiling this chart puts on the server is maxReplicas x maxConns. Raise
+    the two together, against the server's `max_connections`, not separately.
+  - Autoscaling takes over `replicas`, so replicaCount is ignored once this is
+    enabled. The Deployment deliberately omits `replicas` in that case, or the
+    two would fight on every reconcile.
+
+Do NOT enable this for the install that migrates: DATABASE_AUTO_MIGRATE with
+several pods starting at once has them race to apply the same migration.
+*/}}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "discovery.fullname" . }}
+  labels:
+    {{- include "discovery.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "discovery.fullname" . }}
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  metrics:
+    {{- with .Values.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ . }}
+    {{- end }}
+    {{- with .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ . }}
+    {{- end }}
+  {{- with .Values.autoscaling.behavior }}
+  behavior:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

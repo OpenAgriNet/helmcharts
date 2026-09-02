@@ -1,0 +1,122 @@
+# Example: the OAN discover-and-publish service, production.
+#
+#   helm install discovery charts/discovery \
+#     -n oan-discovery -f charts/discovery/examples/discovery.prod.yaml
+#
+# NOT INSTALLABLE AS-IS. image.repository is empty and the render fails until
+# it is filled in - see below.
+
+# ---------------------------------------------------------------------------
+# TODO: the image OAN deploys in production is not decided. Prefer a DIGEST
+# over a tag: a tag can be repointed at different bits, a digest cannot, which
+# is what makes a rollback land on the same image it did before.
+#
+# image:
+#   registry: ghcr.io
+#   repository: openagrinet/discovery-service
+#   digest: sha256:...
+# ---------------------------------------------------------------------------
+image:
+  registry: ghcr.io
+  repository: ""
+  digest: ""
+
+replicaCount: 3
+
+app:
+  networkId: mahavistar
+
+logLevel: info
+
+database:
+  urlSecret:
+    name: discovery-db-app
+    key: uri
+
+  # OFF in production. Migrating is a step someone decides to take, on a
+  # release that was chosen for it - not something that happens because a pod
+  # was rescheduled at 3am. To migrate:
+  #
+  #   helm upgrade discovery <chart> -n oan-discovery --reuse-values \
+  #     --set database.autoMigrate=true --set replicaCount=1
+  #   # verify, then upgrade back
+  autoMigrate: false
+
+  # 3 replicas x 48 = 144 connections at full stretch. Check the cluster's
+  # max_connections before raising either number, and remember the autoscaler
+  # multiplies this by maxReplicas rather than by replicaCount.
+  maxConns: 48
+  minConns: 8
+
+# A ConfigMap rather than a fetch: production should not have its boot depend
+# on GitHub being reachable, and the upstream URL tracks `main`, so a fetch
+# pins nothing. Create it from a reviewed copy of the document:
+#   kubectl -n oan-discovery create configmap discovery-beckn-spec \
+#     --from-file=beckn.yaml=beckn-v2.0.0.yaml
+becknSpec:
+  url: ""
+  existingConfigMap: discovery-beckn-spec
+  key: beckn.yaml
+
+embeddings:
+  provider: noop
+
+# TODO: point at the cluster's collector once one is deployed.
+otel:
+  exporter: none
+  endpoint: ""
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: "2"
+    memory: 1Gi
+
+ingress:
+  enabled: true
+  className: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /readyz
+  hosts:
+    - host: discovery.oan.in
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Safe with 3 replicas: at most one pod is disrupted at a time, so a node drain
+# proceeds without taking the service below two.
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+  minAvailable: ""
+
+# Spread across nodes, so one node's loss is not the whole service. `preferred`
+# rather than `required`: a hard rule leaves pods Pending when the cluster has
+# fewer nodes than replicas, which turns a scale-up into an outage.
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: discovery
+              app.kubernetes.io/instance: discovery
+
+# Left OFF deliberately. Enabling it means capacity is decided by CPU, and the
+# ceiling it puts on the database is maxReplicas x database.maxConns - raise
+# them together, or not at all.
+autoscaling:
+  enabled: false
+
+tests:
+  enabled: true
+
+commonLabels:
+  oan.in/environment: prod
