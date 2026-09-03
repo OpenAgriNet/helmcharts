@@ -160,27 +160,28 @@ services:
     image: ghcr.io/sunbird-rc/sunbird-rc-core:${REGISTRY_VERSION}
     container_name: oan-registry
     restart: unless-stopped
-    # On oan-edge so NPM can resolve it, which is what makes a public proxy
-    # host for the registry possible at all. Read this before relying on it:
+    # oan-internal ONLY, and that is the decision, not an omission. NPM sits
+    # on oan-edge alone, so it cannot resolve the name `registry` -- a proxy
+    # host pointed here fails to start rather than quietly working. Attaching
+    # oan-edge is the one edit that would make the registry publishable, so it
+    # is the one edit to refuse.
     #
-    # POST /api/v1/Participant/search takes NO token -- that is the call a
-    # peer actually needs, and publishing it is defensible. Everything else
-    # under /api/v1/ is a write, and a write needs a Keycloak token. Those are
-    # unobtainable from outside today for one reason only: Keycloak publishes
-    # on 127.0.0.1. So the safety of this route rests on a decision made
-    # forty lines up, not on anything the route itself does -- publish
-    # Keycloak later and the write surface opens with it, silently.
+    # Why not route it. POST /api/v1/Participant/search takes NO token, which
+    # makes it tempting: it is the one call a network peer needs. But
+    # SunbirdRC uses POST for both reads and writes -- /Participant/search
+    # reads, /Participant creates -- so no method rule separates them, and a
+    # route publishes the write surface the moment anything can mint a token.
+    # Today nothing can, for one reason only: Keycloak publishes on
+    # 127.0.0.1. That is a decision forty lines up, and a route here would
+    # silently depend on it.
     #
-    # Which is why this host is not meant to be served bare. Two things go
-    # with it, both in README under "Adding a route":
-    #   - an NPM Access List with Satisfy Any OFF, and
-    #   - config/gateway/npm-advanced/registry.conf, which reduces the host to
-    #     the two search endpoints and 403s the rest.
+    # What this costs: nothing outside the VM can write a registry row, which
+    # is why bin/setup.py seeds all five participants and both bindings from
+    # inside. It is also why the Postman collection has no registry request --
+    # there is no way for one to work.
     #
-    # If neither is in place, take oan-edge back off rather than leaving it
-    # attached "for later" -- an attached service is one form field away from
-    # being public.
-    networks: [oan-internal, oan-edge]
+    # Reaching it for debugging is an SSH tunnel to ${REGISTRY_PORT}.
+    networks: [oan-internal]
     volumes:
       # Schemas are read at startup, so a change here needs this service
       # restarted before the registry will honour it.
