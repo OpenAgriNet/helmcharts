@@ -213,6 +213,43 @@ def node(participant_id, name, role, public_key):
             "role": role, "keys": signing_key_block(public_key)}
 
 
+def upstream(participant_id, name, base_url):
+    """An ordinary API the provider adapter calls.
+
+    No role and no keys: it has never heard of Beckn, so it signs nothing and
+    nothing verifies it. Both are permitted by the schema but neither is read --
+    a signature is checked against the node identity that signed it.
+
+    No credential either. The adapter presents one from its own config, naming
+    the environment variable it comes from, so nothing secret is held here."""
+    return {"participantId": participant_id, "name": name, "type": "upstream",
+            "status": "active", "baseUrl": base_url}
+
+
+def ensure_binding(bearer, participant_id, capability, path, mapping_url):
+    """Create a capability binding only when absent.
+
+    actions is a list, not a map: the registry treats every nested object as an
+    entity and injects an osid into it, which a map cannot carry. It is also
+    what lets one action be retired without touching the others.
+
+    mappings is one reference carrying both directions, because the response
+    mapping reads what the request mapping resolved."""
+    binding = f"{participant_id}|{capability}"
+    if search("ProviderSchema", {"bindingKey": {"eq": binding}}):
+        print(f"  {binding}: already present")
+        return
+    result = post("ProviderSchema", {
+        "bindingKey": binding, "participantId": participant_id,
+        "capabilityCode": capability, "status": "active",
+        "actions": [{"action": "select", "method": "GET", "path": path,
+                     "mappings": mapping_url,
+                     "timeoutMs": 15000, "retryMax": 2,
+                     "status": "active"}]}, bearer)
+    print(f"  {binding}: {result['params']['status']} "
+          f"{result['params'].get('errmsg', '')[:160]}")
+
+
 def ensure_participant(bearer, participant_id, payload):
     """Create only when absent. Delete here is soft and keeps the unique index,
     so a recreate would fail on a duplicate key rather than replacing."""
@@ -227,8 +264,14 @@ def ensure_participant(bearer, participant_id, payload):
 def seed(identities):
     wait_for_registry()
     bearer = token()
-    print("registry: the three adapter identities")
 
+    # Five participants and two capability bindings, all of it from here.
+    #
+    # The registry is not reachable from outside this stack -- no published
+    # port beyond loopback and no proxy host in front of it -- so there is no
+    # second way to create these. Everything the network needs to answer a
+    # request has to exist by the time this returns.
+    print("registry: three adapter identities")
     for role, name, network_role in (
             ("exp", "OAN experience layer adapter", "consumer"),
             ("network", "OAN network layer adapter", "network"),
@@ -237,6 +280,29 @@ def seed(identities):
         ensure_participant(bearer, identity["participantId"],
                            node(identity["participantId"], name, network_role,
                                 identity["signingPublic"]))
+
+    # The two upstreams, addressed by compose service name: they are called from
+    # inside this network and nowhere else.
+    print("registry: two upstream providers")
+    weather = env("PROVIDER_PARTICIPANT_ID")
+    ensure_participant(bearer, weather,
+                       upstream(weather, "IMD Mausamgram NWP (mock)",
+                                env("MAUSAMGRAM_BASE_URL", "http://mockimd:9100")))
+    mandi = env("MANDI_PARTICIPANT_ID")
+    ensure_participant(bearer, mandi,
+                       upstream(mandi, "Agmarknet Vistaar (mock)",
+                                env("MANDI_BASE_URL", "http://mockagmarknet:9101")))
+
+    # And what each of them answers. The binding key is participantId piped to
+    # capabilityCode, and it has to match what the provider adapter was
+    # rendered with -- both come from the same .env, which is what keeps them
+    # from disagreeing.
+    print("registry: two capability bindings")
+    ensure_binding(bearer, weather, env("PROVIDER_CAPABILITY"),
+                   env("MAUSAMGRAM_PATH", "/get-daily"), env("MAPPING_URL"))
+    ensure_binding(bearer, mandi, env("MANDI_CAPABILITY"),
+                   env("MANDI_PATH", "/v1/fetch-agmarknet-vistaar"),
+                   env("MANDI_MAPPING_URL"))
 
 
 def key_osids(identities):
@@ -277,6 +343,7 @@ def key_osids(identities):
 def render(identities):
     print("configs:")
     binding = f"{env('PROVIDER_PARTICIPANT_ID')}|{env('PROVIDER_CAPABILITY')}"
+    mandi_binding = f"{env('MANDI_PARTICIPANT_ID')}|{env('MANDI_CAPABILITY')}"
     for role in ("exp", "network", "provider"):
         identity = identities[role]
         template = (ADAPTERS / f"{role}.yaml.tmpl").read_text()
@@ -288,7 +355,8 @@ def render(identities):
                 (f"__{prefix}_SIGNING_PUBLIC__", identity["signingPublic"]),
                 (f"__{prefix}_ENCR_PRIVATE__", identity["encrPrivate"]),
                 (f"__{prefix}_ENCR_PUBLIC__", identity["encrPublic"]),
-                ("__PROVIDER_BINDING_KEY__", binding)):
+                ("__PROVIDER_BINDING_KEY__", binding),
+                ("__MANDI_BINDING_KEY__", mandi_binding)):
             template = template.replace(placeholder, value)
         if "__" in template:
             sys.exit(f"setup: {role}.yaml still has unrendered placeholders")
@@ -318,20 +386,23 @@ if __name__ == "__main__":
     KEYS.write_text(json.dumps(identities, indent=2))
     render(identities)
     print(f"""
-ready -- the adapters can now sign and verify each other.
+ready. The registry holds five participants and two capability bindings, and
+the adapter configs are rendered, so nothing further has to be created by hand.
 
-Still to do by hand, because the base URL is not this stack's to know:
+  {env('PROVIDER_PARTICIPANT_ID')}|{env('PROVIDER_CAPABILITY')}
+  {env('MANDI_PARTICIPANT_ID')}|{env('MANDI_CAPABILITY')}
 
-  1. give the upstream API a URL this VM can reach. Tunnelled from a laptop,
-     that is: ngrok http 9100
-  2. register it -- two rows, see README.md:
-       Participant     type "upstream", baseUrl = that https URL
-       ProviderSchema  bindingKey {env('PROVIDER_PARTICIPANT_ID')}|{env('PROVIDER_CAPABILITY')}
-  3. docker compose up -d
+Those are the binding keys the provider adapter answers to. They were rendered
+into its config from the same .env this seeded the registry from, which is what
+keeps the two from disagreeing -- and a disagreement is quiet: a payload naming
+anything else is answered 404 "this module serves no capability matching the
+request".
 
-The bindingKey above is what the provider adapter was just configured to
-answer to, and the ProviderSchema row has to match it exactly. A payload
-naming anything else is answered 404 "this module serves no capability
-matching the request". A row that is missing, while the adapter is configured
-for the key, is answered 502 with an empty body and explained only in
-`docker compose logs provider-adapter`.""")
+Both providers are mocks reached by compose service name. Pointing a capability
+at a real upstream is a registry write, not a change here: a new Participant
+with its base URL, a ProviderSchema row naming it, and the adapter's
+{env('PROVIDER_CAPABILITY')} or {env('MANDI_CAPABILITY')} entry in .env
+updated to match. The registry is not reachable from outside this stack, so
+that write happens from here.
+
+Next: make up, then import postman-collection/ and run it.""")

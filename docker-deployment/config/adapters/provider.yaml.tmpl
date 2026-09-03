@@ -108,11 +108,30 @@ modules:
             config:
               bindingKeys: "__PROVIDER_BINDING_KEY__"
               authScheme: none
+          # A second capability in the same pipeline, from a different domain
+          # package. Each step recognises its own binding key and passes
+          # through anything else, so adding one is an entry here rather than a
+          # change to a routing table.
+          #
+          # Agmarknet takes its token as a QUERY parameter. The adapter holds
+          # the parameter's name and the name of the variable carrying the
+          # value, never the value -- and it redacts it from the URL it logs.
+          - id: mandi
+            config:
+              bindingKeys: "__MANDI_BINDING_KEY__"
+              authScheme: query
+              queryName: token
+              queryValueEnv: MANDI_TOKEN
 
+      # Declaring a provider step above is not enough: this list is what runs.
+      # Both provider steps sit in the pipeline in order, and each recognises
+      # its own binding key and passes through anything else -- so which one
+      # answers is decided by the payload, not by this order.
       steps:
         - validateSign   # the sender's key, from the registry
         - validateSchema # the pinned Beckn v2 spec
-        - weather        # resolve, map out, call, map back
+        - weather        # openagrinet:WeatherObservation, or pass through
+        - mandi          # openagrinet:MandiPrice, or pass through
         - signAck        # signs whatever the step answered with
 
   # The outbound leg: the provider's own catalogue system publishing to the

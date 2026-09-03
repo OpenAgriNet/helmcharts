@@ -129,13 +129,17 @@ up_registry_tier() {
 # beside them. Safe to re-run: keys come from keys/keys.json once it exists,
 # and participants already registered are left alone.
 up_setup() {
-    step 2 "$1" "bin/setup.py -- keys, adapter identities, adapter configs"
+    step 2 "$1" "bin/setup.py -- keys, five registry participants, adapter configs"
     python3 bin/setup.py
 }
 
 # Only now do the bind-mounted config files exist.
 up_adapters() {
-    step 3 "$1" "adapters (provider, network, exp)"
+    # The mocks are named here rather than left to provider-adapter's
+    # depends_on, so a failure to pull one is reported as its own step instead
+    # of as an adapter that will not start.
+    step 3 "$1" "mock upstreams and adapters (provider, network, exp)"
+    docker compose up -d mockimd mockagmarknet
     docker compose up -d provider-adapter network-adapter exp-adapter
 }
 
