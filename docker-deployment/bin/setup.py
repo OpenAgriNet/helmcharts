@@ -33,8 +33,9 @@ ADAPTERS = ROOT / "config" / "adapters"
 def load_dotenv():
     """Read .env into the environment.
 
-    There is no Makefile here to source it first, and a real environment
-    variable wins so a one-off override still works:
+    Nothing sources .env before this runs -- `make up` shells straight out to
+    python3 -- and a real environment variable wins so a one-off override still
+    works:
 
         REGISTRY_PORT=9081 python3 bin/setup.py
     """
