@@ -1,322 +1,44 @@
 {
   "info": {
-    "name": "OAN dev \u2014 registry to select",
-    "description": "The whole flow against a docker-deployment stack: register a provider, look at what the registry holds, publish a catalogue, discover it, and select from it.\n\nSET ONE VARIABLE AND RUN. Everything is prefilled in the collection's own variables, including providerId and capability as DEPLOYED -- so the binding key this creates already matches the adapter that will serve it. Only upstreamBaseUrl needs filling in: a URL the VM can reach for your API, which the deployment cannot know.\n\nWhy that matters. The provider adapter answers exactly one binding key, participantId|capabilityCode, rendered into its config from the stack's .env. A ProviderSchema row naming anything else is refused 404 'this module serves no capability matching the request'. providerId and capability here are prefilled to the values that deployment uses, so they agree by default -- change them only if the deployment changed.\n\nPREREQUISITE. bin/setup.py must have run on the stack. It seeds the three ADAPTER identities and renders their configs; this collection adds the provider, because the provider's base URL is not the stack's to know.\n\nRun in order the first time -- request 1 issues the token requests 2 and 3 need. Re-running is safe: the registry is append-only, so a repeat create reports the existing row rather than changing anything.\n\nPorts bind to loopback on the VM, so from a workstation tunnel first:\n  ssh -L 9202:127.0.0.1:9202 -L 9200:127.0.0.1:9200 \\\n      -L 8081:127.0.0.1:8081 -L 8080:127.0.0.1:8080 you@the-vm",
+    "name": "OAN dev \u2014 publish, discover, select for two capabilities",
+    "description": "The whole flow against a docker-deployment stack: a publish, a discover and a select for each of the two capabilities.\n\nTHERE ARE NO REGISTRY REQUESTS HERE, and that is deliberate. The registry is not reachable from outside the stack -- no port beyond loopback, no proxy host in front of it -- so nothing in this collection could create or read a registry row. `bin/setup.py` seeds all of it: five participants and two capability bindings, from the same .env the adapter configs are rendered from, which is what keeps the two from disagreeing.\n\nSo the prerequisite is `make setup` followed by `make up`. After that everything here works with no value to fill in -- providerId and mandiProviderId are already the ids that deployment uses.\n\nRequests 5 and 6 are the point. They hit the same endpoint on the same adapter and different domain packages answer them, because each provider step recognises its own binding key from the payload and passes through anything else. Nothing routes by URL or by domain.\n\nRun in order the first time: 1 and 2 publish what 3 and 4 look for.\n\nThe ports are loopback, so from a workstation tunnel first:\n  ssh -L 9202:127.0.0.1:9202 -L 9200:127.0.0.1:9200 you@the-vm",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
-      "key": "keycloakUrl",
-      "value": "http://127.0.0.1:8080"
-    },
-    {
-      "key": "registryUrl",
-      "value": "http://127.0.0.1:8081/api/v1"
-    },
-    {
       "key": "expAdapterUrl",
-      "value": "http://127.0.0.1:9202"
+      "value": "http://127.0.0.1:9202",
+      "description": "The experience adapter -- the only one that takes an unsigned request."
     },
     {
       "key": "providerAdapterUrl",
-      "value": "http://127.0.0.1:9200"
-    },
-    {
-      "key": "keycloakRealm",
-      "value": "sunbird-rc"
-    },
-    {
-      "key": "keycloakClientId",
-      "value": "registry-frontend"
-    },
-    {
-      "key": "registryUser",
-      "value": "no-user"
-    },
-    {
-      "key": "registryPassword",
-      "value": "no-user-password"
+      "value": "http://127.0.0.1:9200",
+      "description": "Where publish enters: the provider adapter signs it and forwards to the network layer."
     },
     {
       "key": "providerId",
-      "value": "my-weather-api",
-      "description": "AS DEPLOYED: PROVIDER_PARTICIPANT_ID in the stack's .env. With this and capability below it forms the binding key the provider adapter answers to. Change only if that deployment was changed."
+      "value": "mausamgram-mock",
+      "description": "AS DEPLOYED: PROVIDER_PARTICIPANT_ID in .env. Half of the weather binding key."
     },
     {
-      "key": "capability",
-      "value": "openagrinet:WeatherObservation",
-      "description": "AS DEPLOYED: PROVIDER_CAPABILITY in the stack's .env."
-    },
-    {
-      "key": "upstreamBaseUrl",
-      "value": "https://YOUR-TUNNEL-SUBDOMAIN.ngrok-free.app",
-      "description": "THE ONE VALUE TO SET. Your upstream API, reachable from the VM. The deployment cannot know it."
-    },
-    {
-      "key": "upstreamPath",
-      "value": "/get-daily",
-      "description": "The path on your API for the select action. One leading slash, no empty segment."
-    },
-    {
-      "key": "mappingUrl",
-      "value": "https://raw.githubusercontent.com/OpenAgriNet/helmcharts/feat/4-docker-compose/docker-deployment/config/mappings/mausamgram/weather-observation.select.yaml",
-      "description": "Full URL of the request/response mapping, fetched verbatim by the adapter. This is the deployment's own copy in the helmcharts repo, so what the adapter fetches is the reviewed file. Note the branch in the path -- repoint it once that merges."
+      "key": "mandiProviderId",
+      "value": "agmarknet-mock",
+      "description": "AS DEPLOYED: MANDI_PARTICIPANT_ID in .env. Half of the mandi binding key."
     },
     {
       "key": "networkId",
-      "value": "oan-dev"
+      "value": "oan-dev",
+      "description": "APP_NETWORK_ID in .env. Discovery scopes by this: a catalogue published under a different one is invisible to the query."
     },
     {
       "key": "domain",
-      "value": "oan-dev"
-    },
-    {
-      "key": "catalogId",
-      "value": "cat-weather-point-forecast"
-    },
-    {
-      "key": "token",
-      "value": "",
-      "description": "Filled in by request 1."
+      "value": "oan-dev",
+      "description": "Also required for a discover to match."
     }
   ],
   "item": [
     {
-      "name": "1. Registry \u2014 get a write token",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "X-Forwarded-Host",
-            "value": "keycloak:8080"
-          },
-          {
-            "key": "X-Forwarded-Proto",
-            "value": "http"
-          }
-        ],
-        "url": "{{keycloakUrl}}/auth/realms/{{keycloakRealm}}/protocol/openid-connect/token",
-        "description": "Keycloak issues the bearer token the two registry writes below need.\n\nThe two X-Forwarded-* headers are not optional. Keycloak runs behind PROXY_ADDRESS_FORWARDING and builds the token's issuer from them, and the registry validates that issuer against keycloak:8080 -- the CONTAINER-INTERNAL address, not whatever KEYCLOAK_PORT is published as. Get it wrong and every write is refused 401 with an empty body.\n\nThe token is saved to the {{token}} collection variable.",
-        "body": {
-          "mode": "urlencoded",
-          "urlencoded": [
-            {
-              "key": "client_id",
-              "value": "{{keycloakClientId}}"
-            },
-            {
-              "key": "grant_type",
-              "value": "password"
-            },
-            {
-              "key": "username",
-              "value": "{{registryUser}}"
-            },
-            {
-              "key": "password",
-              "value": "{{registryPassword}}"
-            }
-          ]
-        }
-      },
-      "response": [],
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const j = pm.response.json();",
-              "pm.test(\"200\", () => pm.response.to.have.status(200));",
-              "pm.test(\"a token was issued\", () => pm.expect(j.access_token).to.be.a(\"string\"));",
-              "pm.collectionVariables.set(\"token\", j.access_token);"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "2. Registry \u2014 create the provider",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
-        ],
-        "url": "{{registryUrl}}/Participant",
-        "description": "The upstream API itself, and it deliberately carries NO KEYS.\n\nWHERE ARE THE SIGNING KEYS, THEN. The registry holds two kinds of participant, and only one of them signs:\n\n  type \"node\"      a Beckn participant. REQUIRES role and keys. These are the three adapters -- exp, network and provider -- and bin/setup.py created them, generating a keypair for each, publishing the public half here and rendering the private half into that adapter's own config. They are what signAck signs with and what validateSign verifies against.\n\n  type \"upstream\"  an ordinary HTTP API our provider adapter calls. It has never heard of Beckn: it does not sign its responses and nothing verifies them. role and keys are permitted on it but not expected, and nothing in the adapter reads them: a signature is verified against the node identity that signed it, never against an upstream.\n\nSo the signing in this flow is entirely between adapters, on the identities setup.py seeded. Run request 4 to see all four rows side by side: three nodes with keys, this one without.\n\nCredentials for calling this API, if it needs any, are not held here either -- the provider adapter's own config names the environment variables they come from, so nothing secret is in the registry.\n\nSet upstreamBaseUrl to a URL the VM can reach; an ngrok https URL if the API runs on a laptop.\n\nNo {\"Participant\": {...}} wrapper: the registry takes the record itself, and a wrapper is refused as 'extraneous key [Participant] is not permitted'.\n\nThe registry is append-only. There is no update, delete is soft and keeps the unique index, so a participantId can never be reused -- get this wrong and pick a new id.",
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"participantId\": \"{{providerId}}\",\n  \"name\": \"Weather API\",\n  \"type\": \"upstream\",\n  \"status\": \"active\",\n  \"baseUrl\": \"{{upstreamBaseUrl}}\"\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        }
-      },
-      "response": [],
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const p = pm.response.json().params;",
-              "pm.test(\"the registry answered (created, or already present)\", () => pm.expect([\"SUCCESSFUL\",\"UNSUCCESSFUL\"]).to.include(p.status));",
-              "if (p.status !== \"SUCCESSFUL\") {\n  // Expected on a re-run: the registry is append-only, so a second create of\n  // the same id is a duplicate-key failure, not a problem. Anything else is.\n  console.log(\"not created -- already present, or refused:\", p.errmsg);\n}"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "3. Registry \u2014 create the capability binding",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
-        ],
-        "url": "{{registryUrl}}/ProviderSchema",
-        "description": "Which capability this provider answers, and how to call it.\n\nbindingKey is {{providerId}}|{{capability}}, and both are prefilled to what the adapter was deployed with -- so this row matches by default. It is one key: while the adapter carries a single configured key this is a one-provider deployment, and onboarding another means editing .env, re-running bin/setup.py and restarting the provider adapter. A registry entry on its own is not enough.\n\nHow a mismatch shows up:\n  payload names a provider the adapter is not configured for\n    404 NET_ENTITY_NOT_FOUND, 'this module serves no capability matching the request'\n  adapter configured for the key but this row missing\n    502 with an empty body; the reason is only in\n    docker compose logs provider-adapter | grep 'no call plan'\n\npath must start with one / and carry no empty segment; //get-daily is refused by the schema and by the adapter. mappings is the FULL url of the mapping file, fetched verbatim.\n\nNo {\"ProviderSchema\": {...}} wrapper -- the registry takes the record itself.",
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"bindingKey\": \"{{providerId}}|{{capability}}\",\n  \"participantId\": \"{{providerId}}\",\n  \"capabilityCode\": \"{{capability}}\",\n  \"status\": \"active\",\n  \"actions\": [\n    {\n      \"action\": \"select\",\n      \"method\": \"GET\",\n      \"path\": \"{{upstreamPath}}\",\n      \"mappings\": \"{{mappingUrl}}\",\n      \"timeoutMs\": 15000,\n      \"retryMax\": 2,\n      \"status\": \"active\"\n    }\n  ]\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        }
-      },
-      "response": [],
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const p = pm.response.json().params;",
-              "pm.test(\"the registry answered (created, or already present)\", () => pm.expect([\"SUCCESSFUL\",\"UNSUCCESSFUL\"]).to.include(p.status));",
-              "if (p.status !== \"SUCCESSFUL\") {",
-              "  // Expected on a re-run: the registry is append-only, so a second create of",
-              "  // the same id is a duplicate-key failure, not a problem. Anything else is.",
-              "  console.log(\"not created -- already present, or refused:\", p.errmsg);",
-              "}",
-              "console.log(\"binding key created:\", pm.variables.get(\"providerId\") + \"|\" + pm.variables.get(\"capability\"),",
-              "            \"-- this must be what the provider adapter was deployed with\");"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "4. Registry \u2014 search participants",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "url": "{{registryUrl}}/Participant/search",
-        "description": "What the registry now holds, and the answer to 'where are the keys'.\n\nExpect four rows: the three ADAPTER identities that bin/setup.py seeded, each type \"node\" with a role and a published signing key, and the provider created above, type \"upstream\" with neither. That split is the whole trust model -- adapters sign and are verified against these published keys; the upstream API is just an HTTP endpoint behind one of them.\n\nNote the key shape on a node: bare base64, no encoding label, identified by the osid the registry assigned on write, and no keyId or use field.",
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"filters\": {}\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        }
-      },
-      "response": [],
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const rows = pm.response.json().data;",
-              "pm.test(\"200\", () => pm.response.to.have.status(200));",
-              "const mine = rows.filter(r => r.participantId === pm.variables.get(\"providerId\"));",
-              "pm.test(\"the provider is there\", () => pm.expect(mine.length).to.eql(1));",
-              "pm.test(\"it is an upstream, with no role and no keys\", () => {",
-              "  pm.expect(mine[0].type).to.eql(\"upstream\");",
-              "  pm.expect(mine[0].role).to.be.undefined;",
-              "  pm.expect(mine[0].keys).to.be.undefined;",
-              "});",
-              "",
-              "// The other side of the trust model: the adapters DO publish keys, and those",
-              "// are what every signature in this flow is verified against. If these are",
-              "// missing, bin/setup.py has not run and nothing will authenticate.",
-              "const nodes = rows.filter(r => r.type === \"node\");",
-              "pm.test(\"the adapter identities are seeded, each with a signing key\", () => {",
-              "  pm.expect(nodes.length).to.be.at.least(3);",
-              "  nodes.forEach(n => {",
-              "    pm.expect(n.role, n.participantId + \" has no role\").to.be.a(\"string\");",
-              "    pm.expect((n.keys || []).length, n.participantId + \" publishes no key\").to.be.above(0);",
-              "  });",
-              "});"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "5. Registry \u2014 search provider bindings",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "url": "{{registryUrl}}/ProviderSchema/search",
-        "description": "The capability bindings. One row per provider per capability, each carrying the call plan the provider adapter resolves against at request time -- which is why repointing a provider at a new URL is a registry write and not a config change.",
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"filters\": {}\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        }
-      },
-      "response": [],
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const rows = pm.response.json().data;",
-              "const want = pm.variables.get(\"providerId\") + \"|\" + pm.variables.get(\"capability\");",
-              "pm.test(\"the binding is there\", () => pm.expect(rows.map(r => r.bindingKey)).to.include(want));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "6. Publish \u2014 one catalogue, one resource",
+      "name": "1. Publish \u2014 weather catalogue",
       "request": {
         "method": "POST",
         "header": [
@@ -326,10 +48,47 @@
           }
         ],
         "url": "{{providerAdapterUrl}}/publish",
-        "description": "context.action is catalog/publish, which is the name the Beckn v2 spec gives this action at /catalog/publish -- a bare \"publish\" is not a spec action and would be refused by schema validation. The callback comes back as catalog/on_publish.\n\nEnters at the PROVIDER adapter, which signs it as itself and forwards to the network layer; the network layer verifies that signature and hands it to the discovery service.\n\nThe caller signs nothing, and the body names no party: identity travels in the Authorization header's keyId, taken from the adapter's own keyManager config.\n\n/publish sits at the root, outside /oan/ -- it is not part of this adapter's Beckn surface, so it must not shadow it.\n\nThe catalogue carries no offers. Nothing requires them: a catalogue of resources alone is legal, and the discovery service stores the offers member only when one is sent. select does not read them either -- it carries its own offer in the request, and the answer echoes that one back with its resource references rewritten.",
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"context\": {\n    \"domain\": \"{{domain}}\",\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"transactionId\": \"b1f0c2d3-4e5a-4b6c-8d9e-0f1a2b3c4d5e\",\n    \"messageId\": \"c2e1d3f4-5a6b-4c7d-9e0f-1a2b3c4d5e6f\",\n    \"timestamp\": \"2026-09-02T06:00:00Z\",\n    \"schemaContext\": [\n      \"https://schemas.openagrinet.global/schema/WeatherObservation/v0.1/context.jsonld#openagrinet:WeatherObservation\"\n    ]\n  },\n  \"message\": {\n    \"catalogs\": [\n      {\n        \"id\": \"{{catalogId}}\",\n        \"isActive\": true,\n        \"descriptor\": {\n          \"code\": \"WX-01\",\n          \"name\": \"Point weather forecast catalogue\",\n          \"shortDesc\": \"Daily point weather forecast\",\n          \"longDesc\": \"Rainfall, temperature, humidity and wind forecast for a single point, several days ahead.\"\n        },\n        \"provider\": {\n          \"id\": \"{{providerId}}\",\n          \"descriptor\": {\n            \"code\": \"WX-01\",\n            \"name\": \"Weather API\"\n          },\n          \"availableAt\": [\n            {\n              \"geo\": {\n                \"type\": \"Polygon\",\n                \"coordinates\": [\n                  [\n                    [\n                      68.0,\n                      6.0\n                    ],\n                    [\n                      98.0,\n                      6.0\n                    ],\n                    [\n                      98.0,\n                      38.0\n                    ],\n                    [\n                      68.0,\n                      38.0\n                    ],\n                    [\n                      68.0,\n                      6.0\n                    ]\n                  ]\n                ]\n              }\n            }\n          ]\n        },\n        \"validity\": {\n          \"startDate\": \"2026-01-01T00:00:00Z\",\n          \"endDate\": \"2027-12-31T23:59:59Z\"\n        },\n        \"resources\": [\n          {\n            \"id\": \"res:point-forecast\",\n            \"descriptor\": {\n              \"code\": \"WX-POINT-FORECAST\",\n              \"name\": \"Point weather forecast\",\n              \"shortDesc\": \"Weather forecast for a single point\"\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"https://schemas.openagrinet.global/schema/WeatherObservation/v0.1/context.jsonld\",\n              \"@type\": \"openagrinet:WeatherObservation\",\n              \"informationMode\": \"OnDemand\",\n              \"subjectCategories\": [\n                \"Weather\"\n              ],\n              \"supportedObservationTypes\": [\n                \"Forecast\"\n              ],\n              \"supportedParameters\": [\n                \"Rainfall\",\n                \"Temperature\",\n                \"Humidity\",\n                \"WindSpeed\",\n                \"Alert\"\n              ],\n              \"geographicGranularities\": [\n                \"Point\"\n              ],\n              \"forecastHorizon\": \"P5D\",\n              \"updateFrequency\": \"PT24H\",\n              \"languages\": [\n                \"en\"\n              ],\n              \"coverageAreas\": [\n                {\n                  \"codeScheme\": \"ISO-3166-1\",\n                  \"areaCode\": \"IN\",\n                  \"areaLevel\": \"Country\",\n                  \"areaName\": \"India\"\n                }\n              ]\n            }\n          }\n        ]\n      }\n    ]\n  }\n}",
+          "raw": "{\n  \"context\": {\n    \"domain\": \"{{domain}}\",\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"b1f0c2d3-4e5a-4b6c-8d9e-0f1a2b3c4d5e\",\n    \"messageId\": \"c2e1d3f4-5a6b-4c7d-9e0f-1a2b3c4d5e6f\",\n    \"timestamp\": \"2026-09-01T06:00:00Z\",\n    \"schemaContext\": [\n      \"https://schemas.openagrinet.global/schema/WeatherObservation/v0.1/context.jsonld#openagrinet:WeatherObservation\"\n    ],\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"catalogs\": [\n      {\n        \"id\": \"cat-mausamgram-point-forecast-v2\",\n        \"isActive\": true,\n        \"descriptor\": {\n          \"code\": \"IMD-NWP-01\",\n          \"name\": \"IMD Mausamgram point weather forecast\",\n          \"shortDesc\": \"Five-day point weather forecast from IMD Mausamgram NWP\",\n          \"longDesc\": \"Rainfall, temperature, humidity and wind forecast for a single point, five days ahead, from the India Meteorological Department's Mausamgram numerical weather prediction service.\"\n        },\n        \"provider\": {\n          \"id\": \"{{providerId}}\",\n          \"descriptor\": {\n            \"code\": \"IMD-NWP-01\",\n            \"name\": \"IMD Mausamgram NWP\"\n          },\n          \"availableAt\": [\n            {\n              \"geo\": {\n                \"type\": \"Polygon\",\n                \"coordinates\": [\n                  [\n                    [\n                      68.0,\n                      6.0\n                    ],\n                    [\n                      98.0,\n                      6.0\n                    ],\n                    [\n                      98.0,\n                      38.0\n                    ],\n                    [\n                      68.0,\n                      38.0\n                    ],\n                    [\n                      68.0,\n                      6.0\n                    ]\n                  ]\n                ]\n              }\n            }\n          ]\n        },\n        \"validity\": {\n          \"startDate\": \"2026-01-01T00:00:00Z\",\n          \"endDate\": \"2027-12-31T23:59:59Z\"\n        },\n        \"resources\": [\n          {\n            \"id\": \"res:mausamgram:point-forecast\",\n            \"descriptor\": {\n              \"code\": \"WX-POINT-FORECAST\",\n              \"name\": \"Point weather forecast\",\n              \"shortDesc\": \"Five-day weather forecast for a single point\",\n              \"longDesc\": \"Daily rainfall, minimum and maximum temperature, minimum and maximum humidity and wind speed for a requested latitude and longitude.\"\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"https://schemas.openagrinet.global/schema/WeatherObservation/v0.1/context.jsonld\",\n              \"@type\": \"openagrinet:WeatherObservation\",\n              \"informationMode\": \"OnDemand\",\n              \"subjectCategories\": [\n                \"Weather\"\n              ],\n              \"supportedObservationTypes\": [\n                \"Forecast\"\n              ],\n              \"supportedParameters\": [\n                \"Rainfall\",\n                \"Temperature\",\n                \"Humidity\",\n                \"WindSpeed\",\n                \"WindDirection\",\n                \"Alert\"\n              ],\n              \"forecastHorizon\": \"P5D\",\n              \"updateFrequency\": \"PT24H\",\n              \"geographicGranularities\": [\n                \"Point\"\n              ],\n              \"languages\": [\n                \"en\"\n              ],\n              \"coverageAreas\": [\n                {\n                  \"codeScheme\": \"ISO-3166-1\",\n                  \"areaCode\": \"IN\",\n                  \"areaLevel\": \"Country\",\n                  \"areaName\": \"India\"\n                }\n              ]\n            }\n          }\n        ]\n      }\n    ]\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Enters at the PROVIDER adapter, which signs it as itself and forwards to the network layer; the network layer verifies that signature and hands it to the discovery service. Posting straight at the discovery service would skip both adapters, and so skip the part worth testing.\n\ncontext.action is catalog/publish, the name the Beckn v2 spec gives this action at /catalog/publish. A bare \"publish\" is not a spec action. The callback is catalog/on_publish.\n\nThe caller signs nothing and the body names no party: identity travels in the Authorization header's keyId, from the adapter's own keyManager config.\n\nThe catalogue carries no offers -- nothing requires them, and select does not read them: it carries its own offer in the request."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200\", () => pm.response.to.have.status(200));",
+              "const b = pm.response.json();",
+              "pm.test(\"catalog/on_publish\", () => pm.expect(b.context.action).to.eql(\"catalog/on_publish\"));",
+              "pm.test(\"ACCEPTED\", () => pm.expect(b.message.results[0].status).to.eql(\"ACCEPTED\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Publish \u2014 mandi catalogue",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{providerAdapterUrl}}/publish",
+        "description": "The second catalogue, entering the same way as the first: the provider adapter signs it and the network layer forwards it to discovery. Publishing is capability-agnostic -- no provider step runs, and nothing on this path knows what a MandiPrice is.\n\nThe resource is OnDemand, which is what a catalogue entry should be: it advertises the commodities and price fields this provider CAN answer for. The pack forbids `prices` in that mode, so a catalogue cannot carry stale numbers -- those appear only in the Direct answer to a select, request 8.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"context\": {\n    \"domain\": \"{{domain}}\",\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"d3a1b2c4-5e6f-4a7b-8c9d-0e1f2a3b4c5d\",\n    \"messageId\": \"e4b2c3d5-6f7a-4b8c-9d0e-1f2a3b4c5d6e\",\n    \"timestamp\": \"2026-09-01T06:05:00Z\",\n    \"schemaContext\": [\n      \"https://schemas.openagrinet.global/schema/MandiPrice/v0.1/context.jsonld#openagrinet:MandiPrice\"\n    ],\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"catalogs\": [\n      {\n        \"id\": \"cat-agmarknet-mandi-prices\",\n        \"isActive\": true,\n        \"descriptor\": {\n          \"code\": \"AGMARKNET-01\",\n          \"name\": \"Agmarknet mandi prices\",\n          \"shortDesc\": \"Daily commodity prices by market from Agmarknet\",\n          \"longDesc\": \"Minimum, maximum and modal prices per commodity per market, reported daily by the Agmarknet Vistaar service.\"\n        },\n        \"provider\": {\n          \"id\": \"{{mandiProviderId}}\",\n          \"descriptor\": {\n            \"code\": \"AGMARKNET-01\",\n            \"name\": \"Agmarknet Vistaar\"\n          },\n          \"availableAt\": [\n            {\n              \"geo\": {\n                \"type\": \"Polygon\",\n                \"coordinates\": [\n                  [\n                    [\n                      68.0,\n                      6.0\n                    ],\n                    [\n                      98.0,\n                      6.0\n                    ],\n                    [\n                      98.0,\n                      38.0\n                    ],\n                    [\n                      68.0,\n                      38.0\n                    ],\n                    [\n                      68.0,\n                      6.0\n                    ]\n                  ]\n                ]\n              }\n            }\n          ]\n        },\n        \"validity\": {\n          \"startDate\": \"2026-01-01T00:00:00Z\",\n          \"endDate\": \"2027-12-31T23:59:59Z\"\n        },\n        \"resources\": [\n          {\n            \"id\": \"res:agmarknet:mandi-price\",\n            \"descriptor\": {\n              \"code\": \"MANDI-PRICE\",\n              \"name\": \"Mandi commodity price\",\n              \"shortDesc\": \"Prices for a commodity at a named market\"\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"https://schemas.openagrinet.global/schema/MandiPrice/v0.1/context.jsonld\",\n              \"@type\": \"openagrinet:MandiPrice\",\n              \"informationMode\": \"OnDemand\",\n              \"subjectCategories\": [\n                \"Market\"\n              ],\n              \"supportedCommodities\": [\n                {\n                  \"code\": \"2\",\n                  \"name\": \"Paddy(Common)\"\n                },\n                {\n                  \"code\": \"78\",\n                  \"name\": \"Tomato\"\n                }\n              ],\n              \"supportedPriceFields\": [\n                \"Minimum\",\n                \"Maximum\",\n                \"Modal\"\n              ],\n              \"historicalDataAvailable\": true,\n              \"historyPeriod\": \"P1Y\",\n              \"updateFrequency\": \"P1D\",\n              \"languages\": [\n                \"en\"\n              ],\n              \"coverageAreas\": [\n                {\n                  \"codeScheme\": \"ISO-3166-1\",\n                  \"areaCode\": \"IN\",\n                  \"areaLevel\": \"Country\",\n                  \"areaName\": \"India\"\n                }\n              ]\n            }\n          }\n        ]\n      }\n    ]\n  }\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -345,16 +104,60 @@
             "type": "text/javascript",
             "exec": [
               "pm.test(\"200\", () => pm.response.to.have.status(200));",
-              "const r = pm.response.json().message.results[0];",
+              "const b = pm.response.json();",
+              "pm.test(\"catalog/on_publish\", () => pm.expect(b.context.action).to.eql(\"catalog/on_publish\"));",
+              "const r = b.message.results[0];",
               "pm.test(\"ACCEPTED\", () => pm.expect(r.status).to.eql(\"ACCEPTED\"));",
-              "pm.test(\"the catalogue id comes back\", () => pm.expect(r.catalogId).to.eql(pm.variables.get(\"catalogId\")));"
+              "pm.test(\"the catalogue id comes back\", () => pm.expect(r.catalogId).to.eql(\"cat-agmarknet-mandi-prices\"));"
             ]
           }
         }
       ]
     },
     {
-      "name": "7. Discover \u2014 find it",
+      "name": "3. Discover \u2014 weather",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{expAdapterUrl}}/oan/discover",
+          "host": [
+            "{{expAdapterUrl}}/oan/discover"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"context\": {\n    \"version\": \"2.0.0\",\n    \"action\": \"discover\",\n    \"networkId\": \"{{networkId}}\",\n    \"transactionId\": \"9f2c1a8e-4b70-4d31-9c55-6f2e0b1d7a44\",\n    \"messageId\": \"7d41b9e0-52a6-4c18-8b73-1e9f0a4c6d22\",\n    \"timestamp\": \"2026-08-30T06:12:01.330Z\",\n    \"domain\": \"{{domain}}\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"textSearch\": \"weather forecast\"\n    }\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Text search across published catalogs.\n\nRoute: **exp adapter \u2192 network adapter \u2192 discovery service.** No provider plugin is involved, and no upstream API is called. The answer comes from the discovery service's own index.\n\nReturns the catalog published in step 3. An empty list almost always means `networkId` or `domain` did not match what was published."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200\", () => pm.response.to.have.status(200));",
+              "const b = pm.response.json();",
+              "pm.test(\"on_discover\", () => pm.expect(b.context.action).to.eql(\"on_discover\"));",
+              "pm.test(\"at least one catalogue\", () => pm.expect((b.message.catalogs || []).length).to.be.above(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Discover \u2014 mandi",
       "request": {
         "method": "POST",
         "header": [
@@ -364,10 +167,10 @@
           }
         ],
         "url": "{{expAdapterUrl}}/oan/discover",
-        "description": "Experience adapter -> network layer -> discovery service. The experience adapter is the only one that takes an unsigned request, because the app in front of it is inside the trust boundary -- which is what makes this callable with no signature.",
+        "description": "The same route as request 5 -- exp adapter, network adapter, discovery service -- looking for the other catalogue. No provider plugin and no upstream call: discovery answers from its own index.\n\nAn empty list here almost always means networkId or domain did not match what was published, rather than the text search failing.",
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"context\": {\n    \"version\": \"2.0.0\",\n    \"action\": \"discover\",\n    \"networkId\": \"{{networkId}}\",\n    \"domain\": \"{{domain}}\",\n    \"transactionId\": \"3a7d9c11-2b4e-4f60-8a1c-5d6e7f809a1b\",\n    \"messageId\": \"4b8e0d22-3c5f-4071-9b2d-6e7f8091a2b3\",\n    \"timestamp\": \"2026-09-02T06:20:00.000Z\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"textSearch\": \"weather forecast\"\n    }\n  }\n}",
+          "raw": "{\n  \"context\": {\n    \"version\": \"2.0.0\",\n    \"action\": \"discover\",\n    \"networkId\": \"{{networkId}}\",\n    \"transactionId\": \"a1b2c3d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d\",\n    \"messageId\": \"b2c3d4e5-6f7a-4b8c-9d0e-1f2a3b4c5d6e\",\n    \"timestamp\": \"2026-09-01T06:10:00Z\",\n    \"domain\": \"{{domain}}\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"textSearch\": \"mandi commodity price\"\n    }\n  }\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -383,16 +186,94 @@
             "type": "text/javascript",
             "exec": [
               "pm.test(\"200\", () => pm.response.to.have.status(200));",
-              "const m = pm.response.json().message;",
-              "pm.test(\"on_discover\", () => pm.expect(pm.response.json().context.action).to.eql(\"on_discover\"));",
-              "pm.test(\"at least one catalogue\", () => pm.expect((m.catalogs || []).length).to.be.above(0));"
+              "const b = pm.response.json();",
+              "pm.test(\"on_discover\", () => pm.expect(b.context.action).to.eql(\"on_discover\"));",
+              "const cats = b.message.catalogs || [];",
+              "pm.test(\"at least one catalogue\", () => pm.expect(cats.length).to.be.above(0));",
+              "// The mandi catalogue specifically, so this cannot pass on the weather one.",
+              "pm.test(\"the mandi catalogue is discoverable\", () => {",
+              "  pm.expect(cats.map(c => c.id)).to.include(\"cat-agmarknet-mandi-prices\");",
+              "});",
+              "// A catalogue entry advertises a capability rather than carrying data.",
+              "pm.test(\"it advertises OnDemand and carries no prices\", () => {",
+              "  const mandi = cats.find(c => c.id === \"cat-agmarknet-mandi-prices\");",
+              "  const ra = mandi.resources[0].resourceAttributes;",
+              "  pm.expect(ra.informationMode).to.eql(\"OnDemand\");",
+              "  pm.expect(ra).to.not.have.property(\"prices\");",
+              "  pm.expect(ra.supportedCommodities.length).to.be.above(0);",
+              "});"
             ]
           }
         }
       ]
     },
     {
-      "name": "8. Select \u2014 quote it",
+      "name": "5. Select \u2014 weather, per-day forecast",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{expAdapterUrl}}/oan/select",
+          "host": [
+            "{{expAdapterUrl}}/oan/select"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"context\": {\n    \"version\": \"2.0.0\",\n    \"action\": \"select\",\n    \"networkId\": \"{{networkId}}\",\n    \"transactionId\": \"9f2c1a8e-4b70-4d31-9c55-6f2e0b1d7a44\",\n    \"messageId\": \"7d41b9e0-52a6-4c18-8b73-1e9f0a4c6d22\",\n    \"timestamp\": \"2026-08-30T06:12:01.330Z\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\",\n              \"name\": \"Draft\"\n            }\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:mausamgram:point-forecast\",\n              \"resourceAttributes\": {\n                \"@context\": \"https://schemas.openagrinet.global/schema/WeatherObservation/v0.1/context.jsonld\",\n                \"@type\": \"openagrinet:WeatherObservation\",\n                \"subjectCategories\": [\n                  \"Weather\"\n                ],\n                \"location\": {\n                  \"type\": \"Point\",\n                  \"coordinates\": [\n                    73.7898,\n                    19.9975\n                  ]\n                },\n                \"informationMode\": \"OnDemand\",\n                \"supportedObservationTypes\": [\n                  \"Forecast\"\n                ],\n                \"supportedParameters\": [\n                  \"Rainfall\",\n                  \"Temperature\",\n                  \"Humidity\",\n                  \"WindSpeed\"\n                ],\n                \"geographicGranularities\": [\n                  \"Point\"\n                ]\n              },\n              \"quantity\": 1\n            }\n          ],\n          \"offer\": {\n            \"id\": \"offer:mausamgram:open-data\",\n            \"resourceIds\": [\n              \"res:mausamgram:point-forecast\"\n            ],\n            \"provider\": {\n              \"id\": \"{{providerId}}\",\n              \"descriptor\": {\n                \"code\": \"IMD-NWP-01\",\n                \"name\": \"IMD Mausamgram NWP\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Asks for a priced quote on the resource discover returned.\n\nRoute: **exp adapter \u2192 provider adapter \u2192 mock IMD.** This is where the plugins do their work:\n\n1. `validateSign` verifies the caller's key, fetched from the registry \u2014 the row you saw in step 1\n2. the provider plugin builds the binding key from the payload, asks the registry for the call plan \u2014 the row from step 2 \u2014 resolves the coordinates, calls the upstream, and maps the answer back\n3. `signAck` signs the answer\n\n**The answer is the HTTP response \u2014 there is no callback.** A bare `ACK` here would mean nothing served the request; the adapter now returns `404 NET_ENTITY_NOT_FOUND` in that case rather than pretending to accept it.\n\nThe response quotes **one** resource, carrying the id this request selected, and follows the same schema pack in `informationMode: Direct` \u2014 which requires `observationType`, `source`, `location`, `generatedAt` and `parameters`.\n\n**Two fields here are not in the pack, both deliberately.** The pack carries one validity and one flat `parameters` array per resource, so it cannot express a five-day forecast in the one resource the request selected \u2014 hence `observations`. And its parameter entry is `parameter`/`value`/`unit` only, so `aggregation` is ours, because this provider reports a minimum *and* a maximum for temperature and humidity. Both validate: the pack sets no `additionalProperties`."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 404) {",
+              "  console.log(\"404: the provider adapter serves no capability matching this payload.\",",
+              "              \"offer.provider.id and resourceAttributes.@type must equal the deployed\",",
+              "              \"binding key -- check request 2 against PROVIDER_PARTICIPANT_ID in .env\");",
+              "}",
+              "",
+              "pm.test(\"200\", () => pm.response.to.have.status(200));",
+              "const b = pm.response.json();",
+              "pm.test(\"on_select\", () => pm.expect(b.context.action).to.eql(\"on_select\"));",
+              "const c = b.message.contract.commitments[0];",
+              "pm.test(\"a resource per forecast day\", () => pm.expect(c.resources.length).to.be.above(0));",
+              "",
+              "// Spec conformance of the answer, which is the mapping's job and so the",
+              "// thing that silently regresses when the published mapping changes.",
+              "pm.test(\"status is in the spec enum\", () => {",
+              "  pm.expect([\"DRAFT\",\"ACTIVE\",\"CLOSED\"]).to.include(c.status.descriptor.code);",
+              "});",
+              "pm.test(\"every resource carries a quantity\", () => {",
+              "  c.resources.forEach(r => pm.expect(r, r.id).to.have.property(\"quantity\"));",
+              "});",
+              "pm.test(\"the offer references only resources returned\", () => {",
+              "  const ids = c.resources.map(r => r.id);",
+              "  (c.offer.resourceIds || []).forEach(i => pm.expect(ids).to.include(i));",
+              "});",
+              "pm.test(\"no party named in the answer\", () => {",
+              "  [\"bapId\",\"bapUri\",\"bppId\",\"bppUri\"].forEach(f => pm.expect(b.context[f]).to.be.undefined);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Select \u2014 mandi, prices per market day",
       "request": {
         "method": "POST",
         "header": [
@@ -402,10 +283,10 @@
           }
         ],
         "url": "{{expAdapterUrl}}/oan/select",
-        "description": "Experience adapter -> provider adapter -> the upstream API. Never touches the network layer.\n\nThe resource is a full openagrinet:WeatherObservation v0.1, in OnDemand mode -- which is what a select IS: asking a provider to obtain the information rather than carrying it. The pack requires informationMode and subjectCategories in either mode, and in OnDemand it requires supportedObservationTypes, supportedParameters and geographicGranularities while FORBIDDING parameters. So a request states what it wants observed, never the readings themselves.\n\nquantity is required on each resource by the pinned Beckn v2 spec, which defines no quantity property and has no Quantity schema -- a defect upstream. Any value satisfies it; without one, schema validation refuses the request.\n\nThe answer comes back in Direct mode with ONE RESOURCE PER FORECAST DAY, ids derived from each date, and the offer's resourceIds rewritten to match. Its context carries only correlation ids -- no party is named in either direction.",
+        "description": "The same endpoint as request 5, the same adapter, a different capability. Nothing routes this: the payload's provider id and resourceAttributes @type form a binding key, the mandi step recognises it and the weather step passes it through.\n\nThe answer is a Direct openagrinet:MandiPrice per price record. Its prices arrive from the upstream as STRINGS with Title Case keys containing spaces, so the mapping converts them; and a record that reported no minimum or maximum must come back with those absent rather than zeroed, which is what the last assertion checks.\n\nThe upstream's credential is a query parameter, which the adapter adds from an environment variable and redacts from the URL it logs.",
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"context\": {\n    \"version\": \"2.0.0\",\n    \"action\": \"select\",\n    \"networkId\": \"{{networkId}}\",\n    \"transactionId\": \"9f2c1a8e-4b70-4d31-9c55-6f2e0b1d7a44\",\n    \"messageId\": \"7d41b9e0-52a6-4c18-8b73-1e9f0a4c6d22\",\n    \"timestamp\": \"2026-09-02T06:12:01.330Z\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\",\n              \"name\": \"Draft\"\n            }\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:point-forecast\",\n              \"quantity\": 1,\n              \"resourceAttributes\": {\n                \"@context\": \"https://schemas.openagrinet.global/schema/WeatherObservation/v0.1/context.jsonld\",\n                \"@type\": \"openagrinet:WeatherObservation\",\n                \"informationMode\": \"OnDemand\",\n                \"subjectCategories\": [\n                  \"Weather\"\n                ],\n                \"supportedObservationTypes\": [\n                  \"Forecast\"\n                ],\n                \"supportedParameters\": [\n                  \"Rainfall\",\n                  \"Temperature\",\n                  \"Humidity\",\n                  \"WindSpeed\"\n                ],\n                \"geographicGranularities\": [\n                  \"Point\"\n                ],\n                \"location\": {\n                  \"type\": \"Point\",\n                  \"coordinates\": [\n                    73.7898,\n                    19.9975\n                  ]\n                }\n              }\n            }\n          ],\n          \"offer\": {\n            \"id\": \"offer:open-data\",\n            \"resourceIds\": [\n              \"res:point-forecast\"\n            ],\n            \"provider\": {\n              \"id\": \"{{providerId}}\",\n              \"descriptor\": {\n                \"code\": \"WX-01\",\n                \"name\": \"Weather API\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+          "raw": "{\n  \"context\": {\n    \"version\": \"2.0.0\",\n    \"action\": \"select\",\n    \"networkId\": \"{{networkId}}\",\n    \"transactionId\": \"9f2c1a8e-4b70-4d31-9c55-6f2e0b1d7a44\",\n    \"messageId\": \"7d41b9e0-52a6-4c18-8b73-1e9f0a4c6d22\",\n    \"timestamp\": \"2026-08-30T06:12:01.330Z\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\",\n              \"name\": \"Draft\"\n            }\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:agmarknet:price-enquiry\",\n              \"quantity\": 1,\n              \"resourceAttributes\": {\n                \"@context\": \"https://schemas.openagrinet.global/schema/MandiPrice/v0.1/context.jsonld\",\n                \"@type\": \"openagrinet:MandiPrice\",\n                \"informationMode\": \"OnDemand\",\n                \"subjectCategories\": [\n                  \"Market\"\n                ],\n                \"supportedCommodities\": [\n                  {\n                    \"code\": \"2\",\n                    \"name\": \"Paddy(Common)\"\n                  }\n                ],\n                \"supportedPriceFields\": [\n                  \"Minimum\",\n                  \"Maximum\",\n                  \"Modal\"\n                ],\n                \"market\": {\n                  \"marketName\": \"Kasdol APMC\",\n                  \"marketCode\": \"2056\",\n                  \"district\": \"96\",\n                  \"state\": \"CG\"\n                },\n                \"validity\": {\n                  \"startsAt\": \"2025-08-20\",\n                  \"endsAt\": \"2025-08-21\"\n                }\n              }\n            }\n          ],\n          \"offer\": {\n            \"id\": \"offer:agmarknet:open-data\",\n            \"resourceIds\": [\n              \"res:agmarknet:price-enquiry\"\n            ],\n            \"provider\": {\n              \"id\": \"{{mandiProviderId}}\",\n              \"descriptor\": {\n                \"code\": \"AGMARKNET-01\",\n                \"name\": \"Agmarknet Vistaar\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -420,31 +301,52 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "// A 404 here is the binding-key mismatch, not a wiring problem: the response",
-              "// names the module, not the cause.",
               "if (pm.response.code === 404) {",
-              "  console.log(\"404: the provider adapter serves no capability matching this payload.\",",
-              "              \"offer.provider.id and resourceAttributes.@type must equal the deployed key:\",",
-              "              pm.variables.get(\"providerId\") + \"|\" + pm.variables.get(\"capability\"));",
-              "}",
-              "// A 502 with no body is the other half: the adapter is configured for the key",
-              "// but no ProviderSchema row resolves. Only the adapter log says so.",
-              "if (pm.response.code === 502) {",
-              "  console.log(\"502: no call plan resolved. Run request 5 to confirm the row exists, then\",",
-              "              \"docker compose logs provider-adapter | grep 'no call plan'\");",
+              "  console.log(\"404: no step matched. offer.provider.id and resourceAttributes.@type must\",",
+              "              \"equal a configured binding key -- check MANDI_PARTICIPANT_ID in .env and\",",
+              "              \"that mandi is in the provider adapter's steps: list, not just providerSteps\");",
               "}",
               "",
               "pm.test(\"200\", () => pm.response.to.have.status(200));",
               "const b = pm.response.json();",
               "pm.test(\"on_select\", () => pm.expect(b.context.action).to.eql(\"on_select\"));",
               "const c = b.message.contract.commitments[0];",
-              "pm.test(\"a resource per forecast day\", () => pm.expect(c.resources.length).to.be.above(0));",
-              "const ids = c.resources.map(r => r.id);",
-              "pm.test(\"the offer references only resources returned\", () => {",
-              "  (c.offer.resourceIds || []).forEach(i => pm.expect(ids).to.include(i));",
+              "pm.test(\"a resource per price record\", () => pm.expect(c.resources.length).to.be.above(0));",
+              "",
+              "const first = c.resources[0].resourceAttributes;",
+              "pm.test(\"MandiPrice in Direct mode\", () => {",
+              "  pm.expect(first[\"@type\"]).to.eql(\"openagrinet:MandiPrice\");",
+              "  pm.expect(first.informationMode).to.eql(\"Direct\");",
               "});",
-              "pm.test(\"no party named in the answer\", () => {",
-              "  [\"bapId\",\"bapUri\",\"bppId\",\"bppUri\"].forEach(f => pm.expect(b.context[f]).to.be.undefined);",
+              "// Direct requires all six of these in the pack.",
+              "pm.test(\"the pack's Direct fields are all present\", () => {",
+              "  [\"source\",\"commodity\",\"market\",\"arrivalDate\",\"prices\",\"generatedAt\"].forEach(",
+              "    f => pm.expect(first, f).to.have.property(f));",
+              "});",
+              "// The upstream sends prices as strings; the pack requires numbers.",
+              "pm.test(\"prices are numbers, not strings\", () => {",
+              "  pm.expect(first.prices.modal).to.be.a(\"number\");",
+              "  pm.expect(first.prices.currency).to.eql(\"INR\");",
+              "});",
+              "// dd-MM-yyyy upstream, ISO in the answer.",
+              "pm.test(\"arrivalDate is ISO\", () => {",
+              "  pm.expect(first.arrivalDate).to.match(/^\\d{4}-\\d{2}-\\d{2}$/);",
+              "});",
+              "pm.test(\"status is in the spec enum\", () => {",
+              "  pm.expect([\"DRAFT\",\"ACTIVE\",\"CLOSED\"]).to.include(c.status.descriptor.code);",
+              "});",
+              "pm.test(\"every resource carries a quantity\", () => {",
+              "  c.resources.forEach(r => pm.expect(r, r.id).to.have.property(\"quantity\"));",
+              "});",
+              "// A record the market reported partially must come back partial, not zeroed:",
+              "// \"no minimum reported\" and \"a minimum of zero\" are different facts.",
+              "pm.test(\"an unreported price is absent, not zero\", () => {",
+              "  const last = c.resources[c.resources.length - 1].resourceAttributes.prices;",
+              "  if (c.resources.length > 1) {",
+              "    pm.expect(last).to.not.have.property(\"minimum\");",
+              "    pm.expect(last).to.not.have.property(\"maximum\");",
+              "  }",
+              "  pm.expect(last.modal).to.be.a(\"number\");",
               "});"
             ]
           }

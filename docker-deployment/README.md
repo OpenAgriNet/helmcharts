@@ -1,7 +1,9 @@
 # OAN stack, on Docker Compose
 
 The whole OpenAgriNet stack for a **dev deployment on a VM**: the registry, the
-discovery service, and the three adapters. One compose file, one config folder.
+discovery service, the three adapters, and a mock upstream per capability so a
+request has something to answer it. One compose file, one config folder,
+`make up`.
 
 This is a dev environment. It is not production: the adapter signing keys sit
 in a config file on disk, nothing terminates TLS, and every credential shipped
@@ -13,9 +15,17 @@ Running here:
 
 - **registry** — SunbirdRC, plus its Postgres and Keycloak. Holds who is on the
   network, their public keys, and which upstream API answers which capability.
+  Published on the VM's loopback only, and deliberately given no route through
+  the gateway — see below.
 - **discovery** — catalogue search, plus its own Postgres.
 - **three adapters** — experience, network and provider. Same image, three
   configs.
+- **two mock upstreams** — one standing in for Mausamgram's forecast API, one
+  for Agmarknet's Vistaar prices. Sources in `mocks/`; they are pulled as
+  published images like everything else. They exist so the stack answers a
+  select end to end out of the box, with no external API and no ngrok tunnel.
+  Loopback only, and the adapter reaches them by compose service name rather
+  than through the published port.
 - **gateway** — Nginx Proxy Manager, the only container that publishes on a
   routable interface. Routes to the three adapters, and issues and renews the
   Let's Encrypt certificates from its own UI. Profile `gateway`.
@@ -27,13 +37,17 @@ stack, and HyperDX is the heaviest thing here.
 
 Deliberately **not** here:
 
-- **the provider API.** Whoever is testing runs it themselves and gives it a
-  URL the VM can reach. The provider adapter never has that address in a config
-  file — it reads it from the registry per request, so repointing it is a
-  registry write and nothing more.
-- **the provider's registry rows.** Those two are created by hand, because the
-  base URL belongs to whoever runs the API. `bin/setup.py` registers only the
-  three adapters.
+- **a route to the registry.** It is reachable from inside the compose network
+  and over an SSH tunnel to the VM, and from nowhere else. Nothing in front of
+  it authenticates, and SunbirdRC uses POST for both reads and writes, so a
+  route would expose creates as readily as searches. This is why `bin/setup.py`
+  seeds everything: with no public registry there is no second way to write a
+  row, and a Postman request could not do it.
+- **a real provider API.** The mocks answer the same shapes. Pointing a
+  capability at something real is a registry write — a new Participant and
+  ProviderSchema row, made from inside the stack — and a base URL in `.env`.
+  The provider adapter never holds that address in a config file; it reads it
+  from the registry per request.
 
 ## Reaching it
 
@@ -134,7 +148,6 @@ Worth being exact about, because the two look alike in the repo:
 | `config/gateway/npm-custom/http_top.conf` | **Automatic.** NPM includes it at the top of its `http` block. Declares the `exp` rate-limit zone and `limit_req_status 429`. |
 | `config/gateway/npm-custom/server_proxy.conf` | **Automatic.** Included in every proxy host's server block. Holds the `/publish` deny. |
 | `config/gateway/npm-advanced/exp.conf` | **Manual.** Paste into the experience host's Advanced tab. Applies `limit_req` to that host only, since a 10 r/s ceiling on signed peer traffic would throttle for no security gain. |
-| `config/gateway/npm-advanced/registry.conf` | **Manual.** Paste into the registry host's Advanced tab, if you create one. Reduces the host to the two search endpoints and 403s the rest. |
 
 The manual one is in a file anyway because NPM's Advanced field is a textarea
 in a database row: nothing diffs it and nothing reviews it. Keeping the source
@@ -181,86 +194,93 @@ the host → Custom Locations → add e.g. `/v2` forwarding to another service.
 That keeps one certificate and one DNS record, at the cost of NPM's generated
 config growing a location block you cannot see in the UI's main view.
 
-#### Worked example: the registry
+#### Worked example: discovery
 
-`registry` is already on `oan-edge` in `docker-compose.yml`, so step 1 is
-done — but read the comment there before you use it, because the mechanics are
-the easy part.
+`discovery` is on `oan-internal` only, so this is the two-step case — the one
+where the network split does the work.
 
-**What is actually reachable once you route it.** `POST /api/v1/Participant/search`
-takes no token; that is the call a peer needs, and publishing it is defensible.
-Everything else under `/api/v1/` is a write, and writes need a Keycloak token.
-Those are unobtainable from outside **today for one reason only**: Keycloak
-publishes on `127.0.0.1`. The safety of this route therefore rests on a
-decision made elsewhere in the compose file. Publish Keycloak later and the
-registry's write surface opens along with it, with nothing on this host
-changing to say so.
+**Step 1, attach it to `oan-edge`** in `docker-compose.yml`:
 
-There is a second wrinkle even for someone who has a token. The registry
-validates a token's issuer against `http://keycloak:8080/auth/realms/…`, the
-**container-internal** address, which is why the token request further down
-this README carries `X-Forwarded-Host: keycloak:8080`. A token minted through
-any other hostname is rejected with a 401 and an empty body. So "it 401s
-through the proxy but works over the tunnel" is expected, not a proxy bug.
+```yaml
+  discovery:
+    networks: [oan-internal, oan-edge]
+```
 
-**Create the host.** Hosts → Proxy Hosts → Add:
+then `docker compose up -d discovery`. Until this, NPM cannot resolve the name
+`discovery` at all and a host pointed at it fails DNS rather than working.
+
+**Step 2, create the host.** Hosts → Proxy Hosts → Add:
 
 | Field | Value |
 |---|---|
-| Domain | `registry.oan.example.com` |
+| Domain | `discovery.oan.example.com` |
 | Scheme | `http` |
-| Forward Hostname | `registry` — the compose service name, not `oan-registry` |
-| Forward Port | `8081` — the **container** port. Not `REGISTRY_PORT`, which is only what loopback publishes it as |
+| Forward Hostname | `discovery` — the compose service name, not `oan-discovery` |
+| Forward Port | `8080` — the **container** port. Not `DISCOVERY_PORT`, which is only what loopback publishes it as |
 | Block Common Exploits | on |
 
-**Then both guards, before you point anything at it.**
+**Step 3, put an Access List on it,** because discovery answers
+unauthenticated and `AUTH_ENABLE_SIGNATURE_VERIFICATION` is `false` in this
+build. Nothing behind the edge will refuse a caller, so the edge is the only
+authentication there is.
 
-1. Advanced tab → paste `config/gateway/npm-advanced/registry.conf`. That
-   reduces the host to `Participant/search` and `ProviderSchema/search` and
-   403s everything else. It is an allowlist rather than a list of things to
-   block, because SunbirdRC uses POST for both search and create — no method
-   rule separates a read from a write, so a denylist is a list someone has to
-   keep complete forever.
-
-2. Access Lists → Add, then assign it on the host's Details tab. **Satisfy Any
-   off**, so an address *and* a password are needed. The path filter is not
-   authentication: search returns the full participant list — public keys,
-   baseUrls, who is on this network — to anyone who reaches it.
-
-**Check it does what you think:**
+**Check it:**
 
 ```sh
-curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-  https://registry.oan.example.com/api/v1/Participant/search \
-  -u user:pass -H 'Content-Type: application/json' -d '{"filters":{}}'   # 200
-
-curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-  https://registry.oan.example.com/api/v1/Participant \
-  -u user:pass -H 'Content-Type: application/json' -d '{}'               # 403
+curl -s -o /dev/null -w '%{http_code}\n' \
+  https://discovery.oan.example.com/health -u user:pass    # 200
 
 curl -s -o /dev/null -w '%{http_code}\n' \
-  https://registry.oan.example.com/api/v1/Participant/search             # 401
+  https://discovery.oan.example.com/health                 # 401
 ```
 
-403 on the second is the Advanced paste; 401 on the third is the Access List.
-If either returns 200, one of the two guards is not attached — and the failure
-is silent, so this is worth re-running after any NPM change.
+If the second returns 200 the Access List is not attached, and that failure is
+silent — worth re-running after any NPM change.
 
-If you decide against the route, take `oan-edge` back off `registry` in
-`docker-compose.yml` rather than only deleting the proxy host. An attached
-service is one form field away from being public.
+#### The registry is the one you do not route
+
+It will look like the obvious candidate: `POST /api/v1/Participant/search`
+takes no token, and it is exactly the call a network peer needs. Route it
+anyway and you have published more than that.
+
+SunbirdRC uses POST for **both** reads and writes — `/Participant/search`
+reads, `/Participant` creates — so no method rule tells one from the other. A
+proxy host forwards the whole API. What keeps writes out today is not the
+route: it is that nothing outside the VM can mint a Keycloak token, because
+Keycloak publishes on `127.0.0.1`. That is a decision made elsewhere in the
+compose file, and a registry route would depend on it silently. Publish
+Keycloak later for an unrelated reason and the registry's write surface opens
+with it, with nothing in the route changing to say so.
+
+So `registry` is on `oan-internal` only and stays there. NPM cannot resolve
+the name, which means the refusal is structural rather than a proxy host
+somebody remembered not to create.
+
+Two consequences worth knowing, because both look like bugs otherwise:
+
+- **`bin/setup.py` has to seed everything** — all five participants and both
+  capability bindings — since there is no other way to write a row. It runs on
+  the VM against `127.0.0.1`.
+- **the Postman collection has no registry request.** Not an omission; one
+  could not work.
+
+Reaching it to look at a row is an SSH tunnel, covered further down.
+
+If a peer genuinely needs to read participants from outside, the answer is a
+route to something that serves only that read — not a route to the registry.
 
 #### Before you route the ones already here
 
-Three of the internal services will look like obvious candidates. They are
-not equivalent:
+Several internal services will look like obvious candidates. They are not
+equivalent:
 
 | | What routing it publishes |
 |---|---|
-| **discovery** | Read-mostly catalogue search. The most defensible of the three, and still: it answers unauthenticated, and `AUTH_ENABLE_SIGNATURE_VERIFICATION` is `false` with nothing behind it in this build. Put an Access List on it. |
-| **registry** | The network's identity records. Reads are unauthenticated, writes need a Keycloak token. Publishable, but only cut down to the search endpoints and behind an Access List — see below. |
+| **discovery** | Read-mostly catalogue search. The most defensible of these, and still: it answers unauthenticated, and `AUTH_ENABLE_SIGNATURE_VERIFICATION` is `false` with nothing behind it in this build. Put an Access List on it. |
+| **registry** | No — see above. A proxy host forwards reads and writes alike, and it is off `oan-edge` so one cannot be created. |
 | **keycloak** | An admin console with a realm imported from a file that ships `no-user` / `no-user-password` and an admin-api client secret. Do not publish it. |
 | **hyperdx** | `clickstack-local` runs single-user with **no login at all**. Publishing it hands over every trace and log the stack has collected. If it must be shared, switch to `clickstack-all-in-one` and set up a team first. |
+| **the two mocks** | Pointless and confusing: they exist to be called from inside by the provider adapter, and they invent their data. Nothing outside has a reason to reach them. |
 | **registry-db, discovery-db** | No. Use `docker compose exec`, or a tunnel. |
 
 The pattern: publishing a service that has no authentication of its own means
@@ -340,61 +360,70 @@ On the VM:
 - 16 GB of RAM if you run the `observability` profile — ClickHouse alone wants
   2-4 GB on top of the two JVM services. 8 GB is workable without it.
 
-And a URL the VM can reach for the upstream provider API. If that API runs on
-someone's laptop, [ngrok](https://ngrok.com/) or any equivalent tunnel gives it
-one.
+Nothing else. No external API and no tunnel: the two mock upstreams are part
+of the stack, so a select has something to answer it the moment it comes up.
+
+`bin/bootstrap-ubuntu.sh` installs the first two on a fresh Ubuntu VM.
 
 ## Bring it up
 
 ```sh
 cp .env.example .env
+make up
 ```
 
-Read `.env` before going on. Four things in it matter:
+Read `.env` first. Two things in it matter before a first run:
 
-- `TAG` — pins the discovery service. Unset means `latest`; set it to deploy a
-  known build instead of whatever `latest` points at today:
-  `TAG=v0.3.1 docker compose up -d`. The images themselves are already named in
-  `.env.example` and are pulled, never built.
-- **the credentials.** All shipped defaults. Change them.
-- `BIND_ADDR` — see above.
-- `PROVIDER_PARTICIPANT_ID` and `PROVIDER_CAPABILITY` have to match the registry
-  rows created further down.
+- **the credentials.** All shipped defaults, and this file is public. Change
+  them.
+- `ADAPTER_IMAGE`, `DISCOVERY_IMAGE`, `MOCKIMD_IMAGE`, `MOCKAGMARKNET_IMAGE` —
+  the tags published for this environment. `TAG` pins discovery on its own:
+  `TAG=v0.3.1 make up` deploys a known build instead of whatever `latest`
+  points at today. Nothing is built here; everything is pulled.
 
-Then:
+The rest has working defaults and is commented where the reasoning is not
+obvious.
 
-```sh
-# 1. everything EXCEPT the adapters. Their configs do not exist yet, and
-#    step 2 is what writes them.
-docker compose up -d registry discovery
+`make up` runs five steps in the order they have to happen. `make up-core`
+stops after step 3, which is enough to exercise the stack:
 
-# 2. generate the adapter keypairs, register the three adapter identities,
-#    render the three adapter configs
-python3 bin/setup.py
-
-# 3. now the adapters
-docker compose up -d
-
-# 4. the edge and the telemetry stack, both opt-in
-docker compose --profile gateway --profile observability up -d
+```
+1. registry and discovery        (also registry-db, keycloak, discovery-db)
+2. bin/setup.py                  keys, five registry participants, adapter configs
+3. mocks, then the three adapters
+4. nginx-proxy-manager           the public edge -- 80 and 443, all interfaces
+5. hyperdx                       ClickStack
 ```
 
-**Do not run a bare `docker compose up -d` for step 1.** An adapter config is
-a bind-mounted *file*, and Docker creates a *directory* at any bind-mount
-source that is missing. Starting an adapter early therefore wedges it on a
-directory it cannot parse — `adapter.yaml: is a directory` — and leaves a
-directory where step 2 needs to write a file. `bin/setup.py` refuses with an
-explanation if it finds one; delete the empty directories and re-run.
+Step 2 is the one to understand. It generates a keypair per adapter into
+`keys/keys.json`, writes five participants and two capability bindings into
+the registry, and renders the three adapter configs from the templates in
+`config/adapters/`. **Nothing has to be created by hand afterwards** — and
+nothing can be, from outside the VM, because the registry has no route.
+
+Step order is not cosmetic. An adapter config is a bind-mounted *file*, and
+Docker creates a *directory* at any bind-mount source that is missing — so an
+adapter started before step 2 wedges on `adapter.yaml: is a directory` and
+leaves a directory where step 2 needs a file. This is the entire reason the
+Makefile exists rather than a line in the README saying "run these in order".
+`make up` gets it right; a bare `docker compose up -d` on a fresh checkout
+does not. `bin/setup.py` refuses with an explanation if it finds one of those
+directories — delete them and re-run.
+
+Re-running `make up` is safe. `setup.py` reuses the keys in `keys/keys.json`
+and skips registry rows that already exist, so it converges rather than
+failing on the second run.
 
 Check it:
 
 ```sh
-docker compose ps
+make ps
 curl -s -X POST http://127.0.0.1:8081/api/v1/Participant/search \
   -H 'Content-Type: application/json' -d '{"filters":{}}' | python3 -m json.tool
 ```
 
-Three participants, one per adapter. That is what `setup.py` seeded.
+Five participants: three adapters and two upstreams. That is what `setup.py`
+seeded, and that curl only works on the VM itself or through a tunnel.
 
 And through the gateway, once the proxy hosts exist:
 
@@ -414,24 +443,60 @@ That 403 is the check worth repeating after any NPM change: it is the only
 evidence that `npm-custom/server_proxy.conf` is still mounted, and losing the
 mount silently opens an unauthenticated catalogue write.
 
-## Register the provider
+## What is in the registry, and why you did not create it
 
-**Quickest path: import `postman-collection/`.** It does everything in this
-section and the end-to-end test after it — a token, the provider's two rows,
-both registry searches, publish, discover and select — with every value
-prefilled to match this deployment. Set one variable, `upstreamBaseUrl`, to a
-URL the VM can reach for your API, and run the requests in order.
+`bin/setup.py` wrote all of it. Nothing in this section is a step to perform —
+it is what to look at when something does not match.
 
-The rest of this section is the same thing as curl, if you would rather see it
-step by step. Two rows, both by hand, and both need a token.
+**Three `node` rows, one per adapter.** These are network identities: an id, a
+role, and the public halves of a keypair. The private halves stay in
+`keys/keys.json` on the VM and are never in the registry. A signature between
+adapters is verified against these rows.
 
-Get the upstream API's URL first. If it is tunnelled from a laptop:
+Roles are `consumer`, `provider` and `network`, and they apply to `node` rows
+only. A node needs at least one key, published as bare base64 with no encoding
+label in front of it.
 
-```sh
-ngrok http 9100
+**Two `upstream` rows, one per mock API.** An upstream is an ordinary HTTP API
+this deployment calls. It signs nothing and nothing verifies it, so it needs no
+role and no keys. It holds a `baseUrl` — here a compose service name, because
+these are reached from inside the network and nowhere else.
+
+No credential for an upstream lives in the registry either. The adapter
+presents credentials from its own config, which names *environment variables*
+rather than values: the mandi binding uses `queryValueEnv`, and `MANDI_TOKEN`
+reaches the container as an env var.
+
+**Two `ProviderSchema` rows, one per capability.** This is the row that says
+which upstream answers which capability and how to call it — method, path,
+timeout, retries, and the URL of the mapping file. Its `bindingKey` is
+`participantId|capabilityCode`:
+
+```
+mausamgram-mock|openagrinet:WeatherObservation
+agmarknet-mock|openagrinet:MandiPrice
 ```
 
-Take the `https://` URL. Then get a token:
+Those two strings are the hinge of the whole thing. The provider adapter builds
+the same key out of each incoming payload — the provider id and the capability
+`@type` it carries — and a step answers only when the key it was configured
+with matches. `setup.py` renders those keys into `config/adapters/provider.yaml`
+from the same `.env` values it seeds the registry from, which is what stops the
+two from drifting.
+
+### Looking at it
+
+Only from the VM, or through a tunnel:
+
+```sh
+curl -s -X POST http://127.0.0.1:8081/api/v1/Participant/search \
+  -H 'Content-Type: application/json' -d '{"filters":{}}' | python3 -m json.tool
+
+curl -s -X POST http://127.0.0.1:8081/api/v1/ProviderSchema/search \
+  -H 'Content-Type: application/json' -d '{"filters":{}}' | python3 -m json.tool
+```
+
+Search takes no token. Writes do, and the token request has a trap in it:
 
 ```sh
 TOKEN=$(curl -s -X POST \
@@ -443,80 +508,52 @@ TOKEN=$(curl -s -X POST \
 ```
 
 Those two `X-Forwarded-*` headers are not optional, and `keycloak:8080` is the
-**container-internal** address on purpose — not whatever `KEYCLOAK_PORT` is
-published as. Keycloak builds the token's issuer from these headers, and the
+**container-internal** address on purpose — not whatever `KEYCLOAK_PORT`
+publishes it as. Keycloak builds the token's issuer from these headers and the
 registry validates that issuer against the internal address. Get it wrong and
 the registry rejects the token with a 401 and an empty body.
 
-**Row one — the API itself.** Type `upstream`: an ordinary HTTP API this
-deployment calls. It does not sign anything and nothing verifies it, so no
-keys are needed — the signing in this flow is between adapters, on the three
-`node` identities `bin/setup.py` seeded. `role` and `keys` are accepted on an
-upstream if a deployment wants to record them; nothing reads them.
+### Pointing a capability at a real API
+
+Two `.env` values and a re-run. To swap the weather mock for something real:
 
 ```sh
-curl -s -X POST http://127.0.0.1:8081/api/v1/Participant \
-  -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
-  -d '{
-    "participantId": "my-weather-api",
-    "name": "My weather API",
-    "type": "upstream",
-    "status": "active",
-    "baseUrl": "https://YOUR-TUNNEL-SUBDOMAIN.ngrok-free.app"
-  }'
+PROVIDER_PARTICIPANT_ID=imd-mausamgram      # a new id, not the mock's
+MAUSAMGRAM_BASE_URL=https://the-real-api.example.gov.in
+MAUSAMGRAM_PATH=/the/real/path
 ```
 
-**Row two — which capability it answers, and how to call it.**
+then `python3 bin/setup.py && docker compose up -d --force-recreate provider-adapter`.
+That creates a new participant and a new binding, and re-renders the provider
+config so its binding key matches. The old rows stay — see append-only below —
+and become dead weight rather than a problem, since nothing sends their key.
 
-```sh
-curl -s -X POST http://127.0.0.1:8081/api/v1/ProviderSchema \
-  -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
-  -d '{
-    "bindingKey": "my-weather-api|openagrinet:WeatherObservation",
-    "participantId": "my-weather-api",
-    "capabilityCode": "openagrinet:WeatherObservation",
-    "status": "active",
-    "actions": [{
-      "action": "select",
-      "method": "GET",
-      "path": "/get-daily",
-      "mappings": "https://raw.githubusercontent.com/OpenAgriNet/helmcharts/feat/4-docker-compose/docker-deployment/config/mappings/mausamgram/weather-observation.select.yaml",
-      "timeoutMs": 15000,
-      "retryMax": 2,
-      "status": "active"
-    }]
-  }'
-```
+Things worth knowing before editing any of this:
 
-Things worth knowing about these two calls:
-
-- **No `{"Participant": {...}}` wrapper.** The registry takes the record
-  itself. A wrapper comes back as `extraneous key [Participant] is not
-  permitted`.
-- **An `upstream` needs no `role` and no `keys`**, and no credential is held
-  for it here. It has never heard of Beckn, and nothing in the registry is
-  sent to it — the adapter presents credentials from its own config, naming
-  environment variables. `role` and `keys` are permitted if a deployment wants
-  to record them, but nothing reads them: a signature is verified against the
-  `node` identity that signed it.
-- **The three roles are `consumer`, `provider` and `network`**, and they apply
-  to `node` rows only — the three `setup.py` creates. A node also needs at
-  least one key, published as bare base64 with no encoding label in front of
-  it.
-- **`bindingKey` is `participantId|capabilityCode`.** It has to match what
-  `PROVIDER_PARTICIPANT_ID` and `PROVIDER_CAPABILITY` were set to in `.env`
-  when `setup.py` last ran — see the troubleshooting section for what a
-  mismatch answers.
-- **`path` must start with one `/` and contain no empty segment.** The schema
-  refuses `//get-daily`, and so does the adapter.
 - **This registry is append-only.** There is no update, delete is soft, and a
   soft-deleted id keeps the unique index — so an id can never be reused. Got a
-  row wrong? Pick a new id.
+  row wrong? Pick a new id. This is why `PROVIDER_SUBSCRIBER_ID` and friends
+  are worth naming deliberately the first time.
+- **Change one side of a binding key only and it fails**, in one of two ways
+  depending on which side. The troubleshooting section has both.
+- **`path` must start with one `/` and contain no empty segment.** The schema
+  refuses `//get-daily`, and so does the adapter.
+- **No `{"Participant": {...}}` wrapper** on a write. The registry takes the
+  record itself; a wrapper comes back as `extraneous key [Participant] is not
+  permitted`.
+- **Registry schemas are read at startup.** Editing anything in
+  `config/registry/schemas/` needs `docker compose restart registry` before it
+  takes effect.
 
 ## Test it end to end
 
-Replace `my-weather-api` if a different id was used, and point the coordinates
-at wherever the API has data.
+**Quickest path: import `postman-collection/`.** Six requests, 32 assertions,
+nothing to fill in — publish, discover and select for both capabilities, with
+every value already matching this deployment. A green run means the stack is
+healthy rather than merely answering.
+
+The rest of this section is one of those requests as curl, if you would rather
+see it than run it.
 
 ```sh
 curl -s -X POST http://127.0.0.1:9202/oan/select \
@@ -527,42 +564,58 @@ curl -s -X POST http://127.0.0.1:9202/oan/select \
       "networkId": "oan-dev",
       "transactionId": "9f2c1a8e-4b70-4d31-9c55-6f2e0b1d7a44",
       "messageId": "7d41b9e0-52a6-4c18-8b73-1e9f0a4c6d22",
-      "timestamp": "2026-09-02T06:12:01.330Z"
+      "timestamp": "2026-09-04T06:12:01.330Z"
     },
     "message": { "contract": { "commitments": [ {
       "status": { "descriptor": { "code": "DRAFT", "name": "Draft" } },
       "resources": [ {
-        "id": "res:point-forecast",
+        "id": "res:mausamgram:point-forecast",
         "quantity": 1,
         "resourceAttributes": {
           "@context": "https://schemas.openagrinet.global/schema/WeatherObservation/v0.1/context.jsonld",
           "@type": "openagrinet:WeatherObservation",
           "subjectCategories": ["Weather"],
+          "informationMode": "OnDemand",
+          "supportedObservationTypes": ["Forecast"],
+          "supportedParameters": ["Rainfall", "Temperature"],
+          "geographicGranularities": ["Point"],
           "location": { "type": "Point", "coordinates": [73.7898, 19.9975] }
         }
       } ],
       "offer": {
-        "id": "offer:open-data",
-        "resourceIds": ["res:point-forecast"],
-        "provider": { "id": "my-weather-api",
-                      "descriptor": { "code": "MY-API-01", "name": "My weather API" } }
+        "id": "offer:mausamgram:open-data",
+        "resourceIds": ["res:mausamgram:point-forecast"],
+        "provider": { "id": "mausamgram-mock",
+                      "descriptor": { "code": "IMD-NWP-01", "name": "IMD Mausamgram NWP" } }
       }
     } ] } }
   }' | python3 -m json.tool
 ```
 
-You should get an `on_select` back, with one resource per forecast day.
+An `on_select` comes back with one resource per forecast day — three by
+default, which is `MOCKIMD_DAYS`.
 
-No party is named in the payload, in either direction. Identity travels in
-the `Authorization` header's `keyId`, which names the signer and the key the
+The mandi equivalent is the same call to the same endpoint with a `MandiPrice`
+resource and `agmarknet-mock` as the provider, and that is the point worth
+taking from this section: **one endpoint, two capabilities, and no routing
+config in between.** Each provider step builds a binding key out of the
+payload it is handed, answers if the key is its own, and passes the payload
+through untouched if it is not. Adding a third capability is a plugin and two
+registry rows, not a new route.
+
+Two things about the payload:
+
+**No party is named, in either direction.** Identity travels in the
+`Authorization` header's `keyId`, which names the signer and the key the
 registry published for it; a body that declares no caller simply skips the
-declared-identity comparison. Nothing needs `bapId` or `bppId`, and the
-`*Uri` fields they came with were container-internal addresses that meant
-nothing outside this compose network anyway.
+declared-identity comparison. Nothing needs `bapId` or `bppId`, and the `*Uri`
+fields they came with were container-internal addresses that meant nothing
+outside this compose network anyway.
 
-The experience adapter is the only one that takes an unsigned request — the
+**The experience adapter is the only one that takes an unsigned request.** The
 experience app is inside the trust boundary, so there is no network signature
-to check. That is what makes this testable with a plain curl.
+to check — which is what makes this testable with a plain curl. The same call
+to the provider adapter on 9200 is rejected unsigned.
 
 ## Telemetry
 
@@ -601,14 +654,22 @@ Three paths, and which adapter answers is the whole design:
 
 ```
 discover   you -> exp -> network -> discovery service
-select     you -> exp -> provider -> your upstream API
-publish    your catalogue system -> provider -> network -> discovery service
+select     you -> exp -> provider -> the upstream that owns that capability
+publish    a catalogue system -> provider -> network -> discovery service
 ```
 
 `discover` and `publish` both end at the discovery service, and both go
 through the network adapter — that adapter is what fronts discovery, verifies
 the caller and re-signs. `select` never touches it: it goes straight to the
-provider adapter, which answers from your upstream API.
+provider adapter, which calls the upstream.
+
+Which upstream is not in any routing table. The provider adapter runs a chain
+of capability steps — weather, then mandi — and each one builds a binding key
+from the payload it is handed, serves the request if the key is its own, and
+passes it along untouched if not. The step that claims it looks the upstream up
+in the registry by that key. So one adapter fronts both capabilities, and a
+third is a plugin plus two registry rows rather than a new route or a new
+port.
 
 Each adapter's Beckn surface is one subtree, `/oan/`, and the payload's
 `action` says which action it is. That is the path the registry publishes as
@@ -657,13 +718,15 @@ Two consequences worth knowing before you write a payload:
   a defect upstream, not something this deployment chose. Any value satisfies
   it. Without one, every `select` is refused with
   `SCH_REQUIRED_FIELD_MISSING: property "quantity" is missing`.
-- **`publish` is not validated, because the spec does not define it.** The
-  validator refuses an action it cannot find with `unsupported action: publish`,
-  so the two modules that carry publishing — the provider adapter's root mount
-  and the network adapter — declare the validator but do not run it. To
-  validate publishing, give the validator an auxiliary spec that defines the
-  action: `auxiliaryTypes` and `auxiliaryLocations`, which are additive and
-  must not overlap the primary spec.
+- **`publish` is not validated here, though it could be.** The two modules
+  that carry publishing — the provider adapter's root mount and the network
+  adapter — declare the validator but leave `validateSchema` out of their
+  `steps:`, and a plugin that is not in `steps:` never runs. That is a choice
+  in this config, not a limitation: the spec does define `/catalog/publish`,
+  the validator indexes it under the action `catalog/publish` that these
+  payloads send, and the collection's two publish bodies validate against it
+  with no errors. Turning it on is one line per module. It is off pending a
+  test rather than because it cannot work.
 
 An action the spec does not know, or a body missing a required field, comes
 back as a signed NACK with a `SCH_*` code and the JSON path that failed.
@@ -675,7 +738,12 @@ docker-compose.yml          the whole stack. Read it in tiers -- the banner
                             comments are the structure: registry, discovery,
                             adapters, observability (profile), edge (profile)
 .env.example                copy to .env
-bin/setup.py                keys, the three adapter rows, the adapter configs
+Makefile                    the front door: make up / up-core / down / help.
+bin/
+  bootstrap-ubuntu.sh       docker and python on a fresh Ubuntu VM
+  stack.sh                  the startup order, and why it is that order.
+                            Every make target is one line of delegation here.
+  setup.py                  keys, five registry rows, the adapter configs
 config/
   gateway/
     npm-custom/             mounted to /data/nginx/custom, which NPM includes
@@ -703,71 +771,112 @@ config/
   discovery/
     instance.yaml.example   optional override; see the compose file
   mappings/
-    mausamgram/             the request and response transformation
+    mausamgram/             one file per binding-action: the request and the
+    agmarknet/              response transformation, in JSONata. These are the
+                            files the adapters fetch over the raw CDN -- the
+                            served copy and the reviewable copy are one file
+mocks/
+  mockimd/                  the two mock upstreams. Sources only: they are
+  mockagmarknet/            pulled as published images like everything else.
+                            See mocks/README.md for the build commands and
+                            for what each deliberately gets wrong.
 postman-collection/         the whole flow as a Postman collection, with the
-                            deployment's own values prefilled
+                            deployment's own values prefilled and no registry
+                            request in it
+keys/keys.json              generated, gitignored. The private halves of the
+                            three adapter keypairs -- the one file here that
+                            is worth backing up, and the reason setup.py can
+                            be re-run without invalidating what it registered
 ```
 
-## About the mapping file
+## About the mapping files
 
-`config/mappings/` holds the mapping this deployment uses, and `MAPPING_URL`
-points at **this repo's own copy** over GitHub's raw CDN. So the file a reader
-reviews and the file the adapter fetches are one file, and cannot drift.
+`config/mappings/` holds the two this deployment uses — one per binding-action
+— and `MAPPING_URL` and `MANDI_MAPPING_URL` point at **this repo's own copies**
+over GitHub's raw CDN. So the file a reader reviews and the file the adapter
+fetches are one file, and cannot drift.
+
+Each file has two halves. The request half turns the incoming Beckn payload
+into the query string or body the upstream expects; the response half turns
+what comes back into the resources that go in the answer. The mandi one is the
+better example of why this is not a field-renaming exercise: it converts ISO
+dates to the `dd-MM-yyyy` Agmarknet wants, sends `marketcode` only when the
+request carried one, turns price strings into numbers, and omits a price that
+was not reported rather than sending a zero.
 
 It is a URL rather than a path because the registry publishes the full URL and
 the adapter fetches it verbatim — which means a mapping has to be reachable
 before it can be tested, and what this stack exercises is exactly what any
 consumer fetches.
 
-Note the branch in that URL. Once this merges, point it at the default branch,
-or pin a tag so a deployment is not following a moving file.
+Note the branch in those URLs. Once this merges, point them at the default
+branch, or pin a tag so a deployment is not following a moving file.
 
-To change the mapping: edit the file here and push, or publish a fork anywhere
-that serves raw text over https and put that URL in the `mappings` field of
-the ProviderSchema row.
+**What can be fixed here without touching code.** Quite a lot, and this is the
+design intent: when a real upstream turns out to answer with different field
+names, a different date format, or a nested envelope, that is a mapping edit
+and a cache expiry. What is *not* fixable here is anything that depends on the
+response never arriving — a non-2xx never reaches the mapping, because the
+step fails first.
 
-The adapter caches a mapping for `cacheTTL` (one minute, in the adapter config)
-and GitHub's raw CDN caches for about five, so give an edit a few minutes to
-show up.
+To change one: edit the file here and push, or publish a fork anywhere that
+serves raw text over https and put that URL in the `mappings` field of the
+ProviderSchema row. The adapter caches a mapping for `cacheTTL` (one minute,
+in the adapter config) and GitHub's raw CDN caches for about five, so give an
+edit a few minutes to show up.
 
 ## When it does not work
 
-**404 `NET_ENTITY_NOT_FOUND`, "this module serves no capability matching the
-request".** The commonest one. The provider adapter did not recognise the
-request as its own, so it passed it through and nothing behind it answered.
+Both of the common failures are a binding key disagreeing with itself, and
+which 404 you get says which side is wrong.
 
-It decides that by building a binding key from the incoming payload — the
+**404 `NET_ENTITY_NOT_FOUND`, "this module serves no capability matching the
+request".** No provider step recognised the request as its own, so each passed
+it through and nothing behind them answered.
+
+A step decides that by building a binding key from the incoming payload — the
 provider id at `message.contract.commitments[].offer.provider.id` and the
 capability at `...resources[].resourceAttributes.@type` — and comparing it
-against the keys in its own config, which `setup.py` rendered from
-`PROVIDER_PARTICIPANT_ID|PROVIDER_CAPABILITY`.
+against the key in its own config, which `setup.py` rendered from `.env`.
 
-Passing through is deliberate: it is what lets one adapter host several
-capabilities. Compare all three — the payload, the `ProviderSchema` row, and
-`.env` — and re-run `bin/setup.py` after changing `.env`.
+Passing through is deliberate: it is what lets this one adapter serve both
+weather and mandi. Compare the payload against `.env`, and re-run
+`bin/setup.py` plus `docker compose up -d --force-recreate provider-adapter`
+after changing `.env`.
 
-While the adapter carries one configured key, onboarding a second provider is
-an edit to `.env`, a re-run of `bin/setup.py` and a restart of the provider
-adapter. A registry entry on its own is not enough.
-
-**502 with an empty body.** The adapter *is* configured for the key, but the
-registry has no matching `ProviderSchema` row, so no call plan resolves.
-Nothing in the response says so — the reason is in the log:
+**404 naming a binding with no active record.** The other side. A step *is*
+configured for the key, and it got as far as asking the registry which upstream
+answers it — but there is no active `ProviderSchema` row with that
+`bindingKey`, so no call plan resolves.
 
 ```sh
-docker compose logs provider-adapter | grep "no call plan"
+curl -s -X POST http://127.0.0.1:8081/api/v1/ProviderSchema/search \
+  -H 'Content-Type: application/json' -d '{"filters":{}}' \
+  | python3 -c 'import json,sys; [print(r["bindingKey"], r.get("status")) for r in json.load(sys.stdin)]'
 ```
 
-Check the row exists and that its `bindingKey` matches character for
-character. The registry is append-only, so a mistyped row cannot be edited —
-only superseded under a new id.
+Compare character for character. The registry is append-only, so a mistyped
+row cannot be edited — only superseded under a new id. (This used to be a 500
+with the reason only in the log; it is a 404 that names the binding now.)
+
+**A 502 from a select, with an upstream status in it.** Not a binding problem:
+the upstream itself answered non-2xx. The step reports 4xx immediately and
+retries 5xx up to `retryMax` from the `ProviderSchema` row. Credentials are a
+likely cause — the mandi mock answers 401 without a token, which is what
+`MANDI_TOKEN` is for. The log line carries the redacted URL.
+
+**Adding a third capability**, for reference, is a plugin in the adapter image,
+one more entry under `providerSteps` *and* in `steps:` in the template, and two
+registry rows. Declaring a step without adding its id to `steps:` is the quiet
+failure mode: it never runs, and the request passes through to the 404 above.
 
 **The adapters restart in a loop on the first `up`.** Expected before
-`bin/setup.py` has run — there is no `config/adapters/*.yaml` yet.
+`bin/setup.py` has run — there is no `config/adapters/*.yaml` yet. `make up`
+sequences this correctly; a bare `docker compose up -d` does not.
 
-**`setup.py` says the registry did not come up.** Check `docker compose ps`.
-The registry waits on Keycloak, which waits on Postgres, so a cold start takes
-a minute or two.
+**`setup.py` says the registry did not come up.** Check `make ps`. The registry
+waits on Keycloak, which waits on Postgres, so a cold start takes a minute or
+two — the healthcheck allows five.
 
 **`setup.py` says a participant is registered with a different key.** There is a
 `keys/keys.json` that no longer matches the registry. Restore the old one, or
@@ -777,16 +886,14 @@ pick new `*_SUBSCRIBER_ID` values in `.env` — the old ids cannot be reused.
 minted for a different issuer than the registry validates against. Check the
 `X-Forwarded-Host` header is `keycloak:8080` and not the published port.
 
-**A build fails on `go mod download`, or the adapter cannot fetch the mapping,
-with "network is unreachable".** The host advertises IPv6 but cannot route it.
-Add this to the adapter service in the compose file:
+**A `docker compose pull` or a mapping fetch fails with "network is
+unreachable".** The host advertises IPv6 but cannot route it. Add this to the
+service in question:
 
 ```yaml
     sysctls:
       - net.ipv6.conf.all.disable_ipv6=1
 ```
-
-and, if the build itself is what fails, `network: host` under its `build:`.
 
 ### The gateway will not start
 
