@@ -376,7 +376,14 @@ def render(identities):
                 (f"__{prefix}_ENCR_PRIVATE__", identity["encrPrivate"]),
                 (f"__{prefix}_ENCR_PUBLIC__", identity["encrPublic"]),
                 ("__PROVIDER_BINDING_KEY__", binding),
-                ("__MANDI_BINDING_KEY__", mandi_binding)):
+                ("__MANDI_BINDING_KEY__", mandi_binding),
+                # Telemetry. One switch drives all three signals: with every
+                # one false the plugin builds no exporter and never dials, so
+                # a stack running without the observability profile stays
+                # quiet instead of logging a refused connection on a loop.
+                ("__OTEL_ENABLED__", env("OTEL_ENABLED", "true")),
+                ("__OTLP_ENDPOINT__", env("OTLP_ENDPOINT", "hyperdx:4317")),
+                ("__OTEL_ENVIRONMENT__", env("OTEL_ENVIRONMENT", "dev"))):
             template = template.replace(placeholder, value)
         if "__" in template:
             sys.exit(f"setup: {role}.yaml still has unrendered placeholders")

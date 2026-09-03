@@ -22,6 +22,42 @@ http:
 pluginManager:
   root: ./plugins
 
+# ---------------------------------------------------------------------------
+# OpenTelemetry. An application-level plugin rather than a module one: it runs
+# its own background lifecycle -- an exporter and a periodic flush -- instead
+# of being loaded per request by a step.
+#
+# It ships metrics, traces and logs over OTLP/gRPC to the collector named
+# below. In this stack that is ClickStack, on the observability profile, which
+# `make up` starts as step 5 and `make up-core` deliberately does not.
+#
+# WHICH IS WHY THE ENABLE FLAGS ARE A SWITCH. With all three false the plugin
+# builds no exporter at all and returns a no-op provider -- it does not dial,
+# so it cannot log a connection failure every few seconds. Point a stack with
+# no collector at one and that is exactly what you get, so OTEL_ENABLED=false
+# is the right setting for `make up-core`.
+#
+# serviceVersion is deliberately absent: left empty the plugin fills in the
+# adapter's own build version, which is truer than anything written here and
+# does not go stale.
+#
+# Not set, and worth knowing they exist:
+#   auditFieldsConfig  a YAML file of masking rules and field selection for
+#                      audit logs -- payloads are emitted whole without it.
+#   networkMetricsGranularity / networkMetricsFrequency
+#                      network-level metric windows.
+#   timeInterval       metric export period in seconds; defaults to 5.
+plugins:
+  otelsetup:
+    id: otelsetup
+    config:
+      serviceName: "oan-exp-adapter"
+      environment: "__OTEL_ENVIRONMENT__"
+      otlpEndpoint: "__OTLP_ENDPOINT__"
+      enableMetrics: "__OTEL_ENABLED__"
+      enableTracing: "__OTEL_ENABLED__"
+      enableLogs: "__OTEL_ENABLED__"
+
 modules:
   - name: exp-adapter
     # A subtree: every action lands here and the payload says which one it is.
