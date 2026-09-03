@@ -424,11 +424,22 @@ services:
       - hyperdx-data:/var/lib/clickhouse
     healthcheck:
       # wget, not curl: this image has busybox.
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      #
+      # 127.0.0.1 and not localhost, which is not a style preference. busybox
+      # resolves localhost to ::1 first, and this image binds v4 only -- so the
+      # check fails with "Connection refused" against [::1]:8080 while the UI
+      # on 8085 serves perfectly well. An unhealthy container that is in fact
+      # working is worse than either state on its own, because it sends you
+      # looking at ClickHouse.
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/health"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      # ClickHouse creates its system tables on a cold volume, which takes
+      # minutes rather than the 80s the previous 5/30s pair allowed. Docker
+      # does not re-evaluate once a container has failed past `retries`, so a
+      # window that is merely tight leaves a permanent wrong label.
+      retries: 10
+      start_period: 180s
 
   # ==========================================================================
   # edge -- Nginx Proxy Manager.
