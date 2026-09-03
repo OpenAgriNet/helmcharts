@@ -314,6 +314,50 @@ services:
   # above is about.
   # ==========================================================================
 
+  # ==========================================================================
+  # mock upstreams -- stand-ins for the real provider APIs, so the stack can be
+  # exercised without their credentials.
+  #
+  # Pulled like everything else. The sources are in mocks/ to be built and
+  # published once, not built here -- see mocks/README.md.
+  #
+  # oan-internal only: an upstream is called BY the provider adapter and is
+  # never reached from outside, so NPM has no business seeing it. The published
+  # ports are for looking at the mock directly while debugging.
+  #
+  # Both reproduce the awkward parts of the services they stand in for on
+  # purpose. A tidy mock would let a mapping pass here and fail in the real
+  # deployment.
+  # ==========================================================================
+  mockimd:
+    image: ${MOCKIMD_IMAGE}
+    pull_policy: missing
+    container_name: oan-mockimd
+    restart: unless-stopped
+    networks: [oan-internal]
+    command:
+      - "-addr=:9100"
+      # How many forecast days it answers with. The mapping reads however many
+      # arrive, so this is the knob for checking that it does.
+      - "-days=${MOCKIMD_DAYS:-3}"
+    ports:
+      - "127.0.0.1:${MOCKIMD_PORT}:9100"
+
+  mockagmarknet:
+    image: ${MOCKAGMARKNET_IMAGE}
+    pull_policy: missing
+    container_name: oan-mockagmarknet
+    restart: unless-stopped
+    networks: [oan-internal]
+    command:
+      - "-addr=:9101"
+      # It answers 401 without this token, which is what proves the adapter
+      # sent one rather than the call happening to work anyway.
+      - "-token=${MANDI_TOKEN}"
+      - "-days=${MOCKAGMARKNET_DAYS:-2}"
+    ports:
+      - "127.0.0.1:${MOCKAGMARKNET_PORT}:9101"
+
   # Verifies the caller, calls the upstream provider, answers synchronously.
   # It has no provider address of its own: it reads the ProviderSchema row,
   # so repointing it at a different upstream is a registry write, not a
@@ -324,9 +368,16 @@ services:
     depends_on:
       registry:
         condition: service_healthy
+      mockimd:
+        condition: service_started
+      mockagmarknet:
+        condition: service_started
     environment:
       <<: *adapter-env
       OTEL_SERVICE_NAME: oan-provider-adapter
+      # The mandi upstream's credential. Named here and read at call time, so
+      # it is never in a config file or in the registry.
+      MANDI_TOKEN: ${MANDI_TOKEN}
     volumes:
       - ./config/adapters/provider.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/routing-provider.yaml:/app/config/routing-provider.yaml:ro
