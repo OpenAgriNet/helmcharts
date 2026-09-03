@@ -109,7 +109,14 @@ Three participants, one per adapter. That is what `setup.py` seeded.
 
 ## Register the provider
 
-Two rows. Both by hand, and both need a token.
+**Quickest path: import `postman-collection/`.** It does everything in this
+section and the end-to-end test after it — a token, the provider's two rows,
+both registry searches, publish, discover and select — with every value
+prefilled to match this deployment. Set one variable, `upstreamBaseUrl`, to a
+URL the VM can reach for your API, and run the requests in order.
+
+The rest of this section is the same thing as curl, if you would rather see it
+step by step. Two rows, both by hand, and both need a token.
 
 Get the upstream API's URL first. If it is tunnelled from a laptop:
 
@@ -347,6 +354,8 @@ config/
     instance.yaml.example   optional override; see the compose file
   mappings/
     mausamgram/             the request and response transformation
+postman-collection/         the whole flow as a Postman collection, with the
+                            deployment's own values prefilled
 ```
 
 ## About the mapping file
