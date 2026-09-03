@@ -1,6 +1,7 @@
 # OAN provider adapter -- dev deployment.
 #
-# Serves /oan/ synchronously: verifies the sender against the registry,
+# Serves the Beckn actions at the root synchronously: verifies the sender
+# against the registry,
 # resolves the capability's call plan, calls the provider, and answers with the
 # mapped result. No callback -- the answer is the HTTP response.
 appName: "oan-provider-adapter"
@@ -59,10 +60,22 @@ plugins:
 
 modules:
   - name: oanProvider
-    # A subtree, not one action. Without the trailing slash Go's ServeMux
-    # matches exactly, so /oan/select would mount that action and 404 the
-    # rest. Which action it is comes from the payload, never the URL.
-    path: /oan/
+    # A subtree, not one action. "/" with the trailing slash is a prefix
+    # match, so every action lands here; an exact pattern like "/select"
+    # would mount that one action and 404 the rest.
+    #
+    # Which action it is comes from the URL, not the payload: the mount path
+    # is stripped off the request path and what remains -- "select",
+    # "discover" -- is what the routing config matches on.
+    #
+    # The schema validator is handed that same stripped path and ignores it,
+    # reading context.action out of the payload instead. Nothing reconciles
+    # the two. A mismatch is caught anyway in practice -- POST /select
+    # carrying action "discover" is validated against the discover schema and
+    # rejected with SCH_FIELD_NOT_ALLOWED -- but it is the two body shapes
+    # differing that catches it, not a check that the URL and the action
+    # agree.
+    path: /
     handler:
       type: std
       role: bpp
@@ -173,17 +186,22 @@ modules:
   # The outbound leg: the provider's own catalogue system publishing to the
   # network layer. POST /publish.
   #
-  # Mounted at the root, and /oan/ above wins for anything under it because
-  # Go's mux takes the longest matching pattern. That split is deliberate:
-  # /oan/ is this adapter's Beckn surface, the path the registry publishes as
-  # its baseUrl, so a network peer calling <baseUrl>/select has to land on the
-  # module that answers select. Publishing is not part of that surface -- it
-  # arrives from inside this provider's own deployment -- so it sits outside
-  # it rather than shadowing it.
+  # Mounted on the EXACT path /publish while the module above takes the whole
+  # subtree at /. Go's mux prefers the exact pattern for /publish and falls
+  # back to / for everything else, so /select still reaches the module that
+  # answers it. The two can coexist only because the patterns differ -- give
+  # both the same path and registration panics at startup.
   #
-  # It has to be a second module, not another action on /oan/: the routing
-  # step fails any action missing from its config, so routing publish from
-  # the module that answers select would mean listing select too -- and
+  # THIS IS WHY routing-provider.yaml LOOKS ODD. The adapter takes the action
+  # from the URL, not from the payload: it strips the module's mount path off
+  # the request path and matches whatever is left. Under / that leaves
+  # "select"; under the exact /publish it leaves the empty string. So the
+  # routing rule keys on "" and spells its target out in full with
+  # excludeAction, because there is no action left to append.
+  #
+  # It has to be a second module, not another action on the one above: the
+  # routing step fails any action missing from its config, so routing publish
+  # from the module that answers select would mean listing select too -- and
   # listing select would proxy it to the network layer instead of answering
   # it here, which is the one thing that module does.
   #
@@ -196,7 +214,7 @@ modules:
   # Authorization header's keyId, taken from keyManager below, and that is
   # what the network layer verifies against the registry.
   - name: oanProviderPublish
-    path: /
+    path: /publish
     handler:
       type: std
       # bap because this module SENDS.

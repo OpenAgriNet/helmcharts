@@ -114,10 +114,10 @@ in sixty days.
 hardening — it is the one thing standing between the public internet and an
 unauthenticated write into the catalogue.
 
-The provider adapter mounts two modules: `/oan/` verifies the sender's
-signature against the registry, but `oanProviderPublish` is mounted at `/` with
-**no signature check at all**, because its intended caller is the provider's
-own catalogue system inside the trust boundary. A proxy host pointed at
+The provider adapter mounts two modules. The one at `/` verifies the sender's
+signature against the registry; `oanProviderPublish`, on the exact path
+`/publish`, has **no signature check at all**, because its intended caller is
+the provider's own catalogue system inside the trust boundary. A proxy host pointed at
 `provider-adapter:9200` therefore exposes `<host>/publish` to anyone. NPM's UI
 offers no way to route a host while withholding one path, so the block lives in
 `config/gateway/npm-custom/server_proxy.conf`, which NPM includes in **every**
@@ -430,7 +430,7 @@ And through the gateway, once the proxy hosts exist:
 ```sh
 # the routed surface
 curl -s -o /dev/null -w '%{http_code}\n' \
-  https://exp.oan.example.com/oan/search        # reaches the adapter
+  https://exp.oan.example.com/search            # reaches the adapter
 
 # the two that matter more
 curl -s -o /dev/null -w '%{http_code}\n' \
@@ -556,7 +556,7 @@ The rest of this section is one of those requests as curl, if you would rather
 see it than run it.
 
 ```sh
-curl -s -X POST http://127.0.0.1:9202/oan/select \
+curl -s -X POST http://127.0.0.1:9202/select \
   -H 'Content-Type: application/json' \
   -d '{
     "context": {
@@ -671,10 +671,18 @@ in the registry by that key. So one adapter fronts both capabilities, and a
 third is a plugin plus two registry rows rather than a new route or a new
 port.
 
-Each adapter's Beckn surface is one subtree, `/oan/`, and the payload's
-`action` says which action it is. That is the path the registry publishes as
-a participant's `baseUrl`, so a peer calling `<baseUrl>/select` lands on the
-module that answers select.
+Each adapter's Beckn surface is mounted at the root, so a peer calling
+`<baseUrl>/select` lands on the module that answers select and the `baseUrl`
+the registry publishes needs no path on it. There is no prefix to strip in a
+gateway rule either: a proxy host forwards to a container name and port, and
+the path arrives unchanged.
+
+**The action comes from the URL, not the payload.** The adapter strips the
+module's mount path off the request path and matches what is left — `select`,
+`discover` — against the routing config. The schema validator is the exception:
+it reads `context.action` out of the body and ignores the path. Nothing
+reconciles the two, though a mismatch usually fails validation anyway, since
+two actions rarely accept the same body.
 
 Publishing enters at the **provider** adapter, which signs and forwards:
 
@@ -685,11 +693,18 @@ curl -s -X POST http://127.0.0.1:9200/publish \
 
 Three things about that:
 
-- **`/publish` sits outside `/oan/`, at the root.** It is not part of this
-  adapter's Beckn surface — it arrives from inside the provider's own
-  deployment — so it must not shadow it. Go's mux takes the longest matching
-  pattern, so `/oan/select` still reaches the capability module and only
-  `/publish` falls to the root one.
+- **It is mounted on the exact path `/publish`,** while the Beckn surface
+  takes the whole subtree at `/`. Go's mux prefers the exact pattern for
+  `/publish` and falls back to `/` for everything else, so `/select` still
+  reaches the capability module. The two can coexist only because the patterns
+  differ — give both the same path and registration panics at startup.
+- **Which is why `routing-provider.yaml` keys on an empty endpoint.** Stripping
+  the mount path `/publish` off the request path `/publish` leaves nothing, so
+  the empty string *is* the endpoint, and there is no action left for the
+  router to append to a target. Hence `excludeAction: true` and a target URL
+  written out in full. It looks odd; the alternative was posting to something
+  like `/internal/publish` instead, and keeping the URL the provider's
+  catalogue system already uses was worth more.
 - **It is a second module, and has to be.** The routing step fails any action
   missing from its config, so routing publish from the module that answers
   select would mean listing select too — and listing select would proxy it to

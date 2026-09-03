@@ -10,14 +10,14 @@ routingRules:
   - version: "2.0.0"
     targetType: "url"
     target:
-      url: "http://network-adapter:9201/oan"
+      url: "http://network-adapter:9201"
     endpoints:
       - discover
 
   - version: "2.0.0"
     targetType: "url"
     target:
-      url: "http://provider-adapter:9200/oan"
+      url: "http://provider-adapter:9200"
     endpoints:
       - select
       - init

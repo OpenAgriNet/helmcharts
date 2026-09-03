@@ -1,15 +1,31 @@
-# Provider adapter routing -- for the root module only.
+# Provider adapter routing -- for the publish module only.
 #
 # Publishing is the one thing this adapter sends rather than answers. The
 # provider's own catalogue system posts POST /publish here, and the catalogue
 # has to reach the network layer, which is what fronts the discovery service.
 #
-# targetType "url" appends the action to the base, so this becomes
-# http://network-adapter:9201/oan/publish.
+# WHY THE ENDPOINT IS EMPTY, AND WHY THE TARGET IS SPELT OUT IN FULL.
+#
+# The adapter derives the action from the URL, not from the payload: it strips
+# the module's mount path off the front of the request path and whatever is
+# left is the endpoint it matches here. Every other module is mounted on a
+# subtree -- "/" -- so /select leaves "select" and /discover leaves
+# "discover".
+#
+# This module is mounted on the exact path /publish, because "/" already
+# belongs to the module that answers select and two modules cannot share a
+# pattern. Stripping /publish off /publish leaves the empty string, so the
+# empty string is the endpoint, and there is no action left to append to a
+# target. Hence excludeAction and the full URL.
+#
+# The alternative was mounting this on a subtree of its own and posting to
+# something like /internal/publish. This keeps the URL the provider's
+# catalogue system already posts to.
 routingRules:
   - version: "2.0.0"
     targetType: "url"
     target:
-      url: "http://network-adapter:9201/oan"
+      url: "http://network-adapter:9201/publish"
+      excludeAction: true
     endpoints:
-      - publish
+      - ""

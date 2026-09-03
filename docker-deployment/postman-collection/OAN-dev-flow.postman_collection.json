@@ -125,9 +125,9 @@
           }
         ],
         "url": {
-          "raw": "{{expAdapterUrl}}/oan/discover",
+          "raw": "{{expAdapterUrl}}/discover",
           "host": [
-            "{{expAdapterUrl}}/oan/discover"
+            "{{expAdapterUrl}}/discover"
           ]
         },
         "body": {
@@ -166,7 +166,7 @@
             "value": "application/json"
           }
         ],
-        "url": "{{expAdapterUrl}}/oan/discover",
+        "url": "{{expAdapterUrl}}/discover",
         "description": "The same route as request 5 -- exp adapter, network adapter, discovery service -- looking for the other catalogue. No provider plugin and no upstream call: discovery answers from its own index.\n\nAn empty list here almost always means networkId or domain did not match what was published, rather than the text search failing.",
         "body": {
           "mode": "raw",
@@ -218,9 +218,9 @@
           }
         ],
         "url": {
-          "raw": "{{expAdapterUrl}}/oan/select",
+          "raw": "{{expAdapterUrl}}/select",
           "host": [
-            "{{expAdapterUrl}}/oan/select"
+            "{{expAdapterUrl}}/select"
           ]
         },
         "body": {
@@ -282,7 +282,7 @@
             "value": "application/json"
           }
         ],
-        "url": "{{expAdapterUrl}}/oan/select",
+        "url": "{{expAdapterUrl}}/select",
         "description": "The same endpoint as request 5, the same adapter, a different capability. Nothing routes this: the payload's provider id and resourceAttributes @type form a binding key, the mandi step recognises it and the weather step passes it through.\n\nThe answer is a Direct openagrinet:MandiPrice per price record. Its prices arrive from the upstream as STRINGS with Title Case keys containing spaces, so the mapping converts them; and a record that reported no minimum or maximum must come back with those absent rather than zeroed, which is what the last assertion checks.\n\nThe upstream's credential is a query parameter, which the adapter adds from an environment variable and redacts from the URL it logs.",
         "body": {
           "mode": "raw",
