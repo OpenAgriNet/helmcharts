@@ -12,3 +12,17 @@ config/adapters/provider.yaml
 
 # A local override for the discovery service, if you make one.
 config/discovery/instance.yaml
+
+# HyperDX's optional extra environment, if you bring one.
+.env.docker
+
+# Any copy of .env. The pattern above is an exact match, so a `cp .env
+# .env.bak` before an edit -- which is the natural thing to do -- produces a
+# file holding every live credential that git will happily offer to commit.
+.env.*
+!.env.example
+
+# Nginx Proxy Manager keeps its routing table, its account and its
+# certificates in the npm-data and npm-letsencrypt volumes, so there is
+# nothing here to ignore -- and nothing here to review either. Back those
+# volumes up; they are the only copy.
