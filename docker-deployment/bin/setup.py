@@ -1,19 +1,39 @@
 #!/usr/bin/env python3
-"""Prepare the stack: generate the adapter keypairs, register the three adapter
-identities, render the adapter configs.
+"""Prepare the stack: generate the adapter keypairs, seed the registry, render
+the adapter configs.
 
     python3 bin/setup.py
 
-Safe to re-run. Keys are generated once and reused from keys/keys.json, so the
-identities already in the registry stay valid; participants that exist are left
-alone rather than recreated, because this registry's delete is soft and holds
-the unique index -- a deleted participantId cannot be reused.
+`make up` runs this as step 2, which is where it belongs -- the adapter configs
+it renders are bind-mounted files, and an adapter started before they exist
+leaves a directory in their place.
 
-WHAT THIS DOES NOT DO: it does not register the provider. The three rows here
-are the adapters' own identities, which they need before they can sign anything
-or verify each other. The upstream API is a Participant of type "upstream" plus
-a ProviderSchema row, and its base URL belongs to whoever runs it -- so those
-two are created by hand. README.md has the curl.
+WHAT IT WRITES. Five participants and two capability bindings:
+
+    3 x node      one per adapter -- exp, network, provider -- each with the
+                  public halves of a keypair. The private halves stay in
+                  keys/keys.json and never reach the registry.
+    2 x upstream  the two APIs this deployment calls, addressed by compose
+                  service name. An upstream signs nothing, so it needs no role
+                  and no keys.
+    2 x binding   a ProviderSchema row per capability: which upstream answers
+                  it, the method and path, timeouts, and the mapping URL.
+
+This is all of it. Nothing has to be created by hand afterwards, and nothing
+can be from outside the VM -- the registry has no route through the gateway and
+publishes on loopback only, which is why seeding lives here rather than in a
+Postman request.
+
+The binding keys are the load-bearing part. A provider step answers only when
+the key it was configured with matches the one built from the incoming payload,
+and both sides come from the same .env values in this one run -- which is what
+keeps them from disagreeing. To point a capability somewhere else: edit .env,
+re-run this, recreate the provider adapter.
+
+Safe to re-run. Keys are generated once and reused from keys/keys.json, so the
+identities already in the registry stay valid; participants and bindings that
+exist are left alone rather than recreated, because this registry's delete is
+soft and holds the unique index -- a deleted participantId cannot be reused.
 
 Needs python3 and the cryptography package:
 
@@ -372,7 +392,7 @@ def render(identities):
                 f"  script ran. Bring them down, remove the empty directories and retry:\n"
                 f"    docker compose down\n"
                 f"    rmdir config/adapters/*.yaml\n"
-                f"    docker compose up -d registry discovery && python3 bin/setup.py")
+                f"    make up")
         out.write_text(template)
         out.chmod(0o600)  # holds a private key
         print(f"  config/adapters/{role}.yaml")
@@ -394,15 +414,21 @@ the adapter configs are rendered, so nothing further has to be created by hand.
 
 Those are the binding keys the provider adapter answers to. They were rendered
 into its config from the same .env this seeded the registry from, which is what
-keeps the two from disagreeing -- and a disagreement is quiet: a payload naming
-anything else is answered 404 "this module serves no capability matching the
-request".
+keeps the two from disagreeing. A payload naming anything else is answered 404
+"this module serves no capability matching the request" -- explicit, but it
+names the request rather than the mismatch, so compare it against these two.
 
 Both providers are mocks reached by compose service name. Pointing a capability
-at a real upstream is a registry write, not a change here: a new Participant
-with its base URL, a ProviderSchema row naming it, and the adapter's
-{env('PROVIDER_CAPABILITY')} or {env('MANDI_CAPABILITY')} entry in .env
-updated to match. The registry is not reachable from outside this stack, so
-that write happens from here.
+at a real upstream is an .env edit and a re-run of this: a new participant id
+and base URL under PROVIDER_* or MANDI_*, which seeds a new Participant and
+ProviderSchema row and re-renders the provider config so its binding key
+matches. The registry is not reachable from outside this stack, so that write
+happens from here.
 
-Next: make up, then import postman-collection/ and run it.""")
+Next: `make up` continues to step 3 and starts the adapters. If you ran this
+on its own, the adapters need recreating to pick up the rendered configs:
+
+  docker compose up -d --force-recreate provider-adapter network-adapter exp-adapter
+
+Then import postman-collection/ and run it -- six requests, nothing to fill
+in.""")
