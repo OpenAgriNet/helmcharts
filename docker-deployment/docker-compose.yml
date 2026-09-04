@@ -475,20 +475,19 @@ services:
     volumes:
       - hyperdx-data:/var/lib/clickhouse
     healthcheck:
-      # wget, not curl: this image has busybox.
+      # wget, not curl: this image has busybox. And a GET, not `--spider`,
+      # which sends HEAD -- Next.js answers HEAD / with a 404 while serving
+      # GET / perfectly, so the probe failed against a UI that was working.
       #
-      # 127.0.0.1 and not localhost, which is not a style preference. busybox
-      # resolves localhost to ::1 first, and this image binds v4 only -- so the
-      # check fails with "Connection refused" against [::1]:8080 while the UI
-      # on 8085 serves perfectly well. An unhealthy container that is in fact
-      # working is worse than either state on its own, because it sends you
-      # looking at ClickHouse.
+      # 127.0.0.1 rather than localhost, because busybox resolves localhost to
+      # ::1 first and these listeners are v4.
       #
-      # And "/" rather than "/health", which this image does not serve: 8080 is
-      # a Next.js app -- the HyperDX UI -- and has no such route, so the probe
-      # 404ed even once it could connect. Two faults, and fixing the first only
-      # revealed the second.
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/"]
+      # Two checks, because this container is two things. 8080 is the Next.js
+      # UI -- what 8085 publishes and what you actually open. 13133 is the
+      # collector's health_check extension, and the collector is what receives
+      # telemetry on 4317/4318: it can die while the UI keeps serving, which
+      # loses data silently and is the failure worth catching.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ && wget -q -O /dev/null http://127.0.0.1:13133/"]
       interval: 10s
       timeout: 5s
       # ClickHouse creates its system tables on a cold volume, which takes
