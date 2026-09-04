@@ -230,6 +230,37 @@ observability() {
     info "UI on 127.0.0.1:8085. There is no login in front of it -- keep it on loopback."
 }
 
+# --------------------------------------------------------------- restart
+
+# The services that hold OAN's own code and config, and nothing else.
+#
+# Deliberately excludes the two Postgres instances and keycloak: those are
+# state, they are slow to come back, and nothing you change in this repo
+# alters their behaviour -- keycloak reads its realm from a database that was
+# seeded on first boot, not from a file you can edit. Restarting them to pick
+# up a config change is a minute of downtime that cannot have helped.
+#
+# It also excludes nginx-proxy-manager, whose routing table lives in a SQLite
+# database rather than in anything a restart would re-read. `restart-edge` is
+# the separate target for the one case that does need it.
+APP_SERVICES=(registry discovery provider-adapter network-adapter exp-adapter)
+
+# `restart`, not `up -d --force-recreate`. A restart keeps the container and
+# therefore its address, so NPM's cached proxy_pass targets stay valid -- a
+# recreate changes the address and leaves every proxy host 502ing until
+# `restart-edge` runs. Same reason the compose file spells this out.
+#
+# What this picks up: the registry re-reads config/registry/schemas, and each
+# adapter re-reads the config setup.py rendered for it. What it does not pick
+# up is a changed image or a changed environment, both of which need the
+# container recreated -- use `make up` for those.
+restart_app() {
+    step 1 1 "restarting registry, discovery and the three adapters"
+    info "keycloak, both databases and the edge are left alone"
+    docker compose restart "${APP_SERVICES[@]}"
+    docker compose ps --format 'table {{.Service}}\t{{.Status}}'
+}
+
 # ----------------------------------------------------------------- misc
 
 # NPM writes a literal proxy_pass hostname per proxy host, which nginx resolves
@@ -262,6 +293,7 @@ bin/stack.sh <command>
   setup          re-run bin/setup.py only
   gateway        start nginx-proxy-manager on its own (public, 80/443)
   observability  start hyperdx on its own
+  restart        restart registry, discovery and the adapters only
   restart-edge   restart NPM after recreating an adapter (fixes a 502)
   ps             docker compose ps
   logs [service] docker compose logs -f
@@ -277,6 +309,7 @@ case "${1:-}" in
     setup)          setup ;;
     gateway)        gateway ;;
     observability)  observability ;;
+    restart)        restart_app ;;
     restart-edge)   restart_edge ;;
     ps)             docker compose "${PROFILES[@]}" ps ;;
     logs)           shift; docker compose "${PROFILES[@]}" logs -f "$@" ;;
