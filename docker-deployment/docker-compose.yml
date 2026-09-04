@@ -483,7 +483,12 @@ services:
       # on 8085 serves perfectly well. An unhealthy container that is in fact
       # working is worse than either state on its own, because it sends you
       # looking at ClickHouse.
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/health"]
+      #
+      # And "/" rather than "/health", which this image does not serve: 8080 is
+      # a Next.js app -- the HyperDX UI -- and has no such route, so the probe
+      # 404ed even once it could connect. Two faults, and fixing the first only
+      # revealed the second.
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/"]
       interval: 10s
       timeout: 5s
       # ClickHouse creates its system tables on a cold volume, which takes
