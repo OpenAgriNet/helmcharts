@@ -8,9 +8,9 @@
   "definitions": {
 
     "ProviderSchema": {
-      "description": "One row is one provider and one capability. What varies per Beckn action — the URL, the method, the mapping, the timeout — varies inside actions[].",
+      "description": "One row is one provider and one capability. What varies per Beckn action — the URL, the method, the mapping, the timeout — varies inside actions[]. Permits additional properties because the registry re-validates the MERGED document on a PUT, and that document carries the osid, osUpdatedAt and osOwner the registry injected itself -- which a strict schema rejects as extraneous. Do not set this back to false without removing the update requests from the Postman collection.",
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": ["bindingKey", "participantId", "capabilityCode", "status", "actions"],
       "properties": {
         "bindingKey": {
@@ -33,9 +33,9 @@
     },
 
     "ActionBinding": {
-      "description": "How to call this provider for one Beckn action: where, how, and with which mapping. Anything the upstream needs that the Beckn body cannot express is the adapter plugin's work, not a field here. status is per action, so one can be retired without touching the others.",
+      "description": "How to call this provider for one Beckn action: where, how, and with which mapping. Anything the upstream needs that the Beckn body cannot express is the adapter plugin's work, not a field here. status is per action, so one can be retired without touching the others. Permits additional properties because the registry re-validates the MERGED document on a PUT, and that document carries the osid, osUpdatedAt and osOwner the registry injected itself -- which a strict schema rejects as extraneous. Do not set this back to false without removing the update requests from the Postman collection.",
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": ["action", "method", "path", "mappings", "status"],
       "properties": {
         "action":   { "$ref": "#/definitions/Action" },

@@ -12,9 +12,9 @@
   },
   "definitions": {
     "Participant": {
-      "description": "Someone the network deals with. `type` says which kind, and decides which of the remaining fields apply: a node speaks Beckn and is addressed by its participantId; an upstream is an ordinary API our adapter calls.",
+      "description": "Someone the network deals with. `type` says which kind, and decides which of the remaining fields apply: a node speaks Beckn and is addressed by its participantId; an upstream is an ordinary API our adapter calls. Permits additional properties because the registry re-validates the MERGED document on a PUT, and that document carries the osid, osUpdatedAt and osOwner the registry injected itself -- which a strict schema rejects as extraneous. Do not set this back to false without removing the update requests from the Postman collection.",
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": [
         "participantId",
         "name",
