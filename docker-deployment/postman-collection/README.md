@@ -21,18 +21,21 @@ stay intact for the next person.
 No VM hostname or address is committed in either file. Deployment addresses are
 shared separately, and the environment file is the place to put them.
 
-## The 19 requests
+## Four folders
 
-    1      get a write token                          saves {{token}}
-    2-4    create the exp / network / provider nodes
-    5-8    create both upstreams and both bindings
-    9-10   update an upstream's URL              (PUT)
-    11     update a binding's call plan          (PUT)
-    12-13  search participants / provider bindings
-    14-19  publish, discover, select -- both capabilities
+    1. Registry    13 requests -- token, creates, updates, searches
+    2. Publish      2 -- one catalogue per capability
+    3. Discover     2
+    4. Select       2
 
-Run in order the first time: request 1 issues the token that 2-11 need, and the
-publish requests seed the catalogues discover looks for.
+**Their order matters on a first run.** The token in Registry is what the
+writes after it use, and Publish seeds the catalogues Discover searches for. So
+run it top to bottom once; after that any folder runs on its own:
+
+    newman run OAN-dev-flow.postman_collection.json --folder "4. Select"
+
+Each folder carries a description explaining what that leg of the flow does and
+what its failures mean.
 
 ## A default run changes nothing
 
