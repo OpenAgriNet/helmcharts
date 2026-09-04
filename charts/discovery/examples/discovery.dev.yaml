@@ -12,13 +12,15 @@
 # No fullnameOverride needed: the chart is named "discovery", so a release
 # named "discovery" already produces Service/discovery.
 
-# TODO: no image is published for discovery-service yet - CI builds and scans
-# one but pushes nothing. Fill this in with whatever the first published tag is;
-# the render fails until then, on purpose.
+# The package is private, so a cluster needs a docker-registry secret named in
+# pullSecrets as well as this. Pinned rather than left to Chart.AppVersion,
+# because a dev environment is where you want to run a build the chart was not
+# written against.
 image:
   registry: ghcr.io
   repository: openagrinet/discovery-service
   tag: "0.1.0"
+  pullSecrets: []
 
 app:
   # The network this deployment serves. It fills an empty

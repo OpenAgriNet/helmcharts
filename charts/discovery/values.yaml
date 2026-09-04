@@ -27,11 +27,22 @@ replicaCount: 1
 # ---------------------------------------------------------------------------
 # Image
 #
-# repository is EMPTY on purpose. discovery-service's CI builds an image and
-# scans it but pushes it nowhere, so there is no tag to default to; the compose
-# stack builds from the working tree. The render fails while this is empty
-# rather than producing "ghcr.io/:0.1.0", which Helm and the API server both
-# accept and which only surfaces later as an ImagePullBackOff.
+# ghcr.io/openagrinet/discovery-service, which CI now publishes -- it used to
+# build and scan an image and push nothing, which is why this was empty.
+#
+# tag stays empty, and that is not an oversight: empty falls through to
+# Chart.AppVersion, so the chart ships pointing at the app version it was
+# written against, and an environment that wants a different build says so in
+# its own values file. Pin it here only when the chart and the app stop
+# versioning together.
+#
+# The package is PRIVATE. A cluster pulling it needs a docker-registry secret
+# and that secret named in pullSecrets below -- otherwise the deploy looks
+# clean and the pod sits in ImagePullBackOff:
+#
+#   kubectl create secret docker-registry ghcr \
+#     --docker-server=ghcr.io --docker-username=<user> \
+#     --docker-password=<a PAT with read:packages>
 #
 # The runtime is gcr.io/distroless/static-debian12:nonroot - no shell, no
 # package manager, uid 65532. That is what makes the security context defaults
@@ -39,7 +50,7 @@ replicaCount: 1
 # ---------------------------------------------------------------------------
 image:
   registry: ghcr.io
-  repository: ""
+  repository: openagrinet/discovery-service
   tag: ""
   digest: ""
   pullPolicy: IfNotPresent
