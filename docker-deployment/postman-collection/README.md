@@ -1,65 +1,87 @@
 # Postman collection
 
-`OAN-dev-flow.postman_collection.json` — publish, discover and select, for
-each of the two capabilities, against a stack brought up from the compose file
-beside it. Six requests, 32 assertions.
+Two files. Import both.
 
-Import it and run it. **There is nothing to fill in.** Every variable is
-prefilled with what this deployment actually uses, including the two provider
-ids, so the binding keys in the payloads already match the adapter that will
-serve them.
+    OAN-dev-flow.postman_collection.json    the requests
+    OAN-dev.postman_environment.json        where your deployment's URLs go
 
-## There are no registry requests here
+**The collection alone works against a tunnel.** Every URL variable defaults to
+loopback, because the stack publishes its ports on the VM's loopback only:
 
-Deliberately. The registry has no route through the gateway and publishes on
-loopback only, so a Postman request could not create or read a row from
-outside the VM. `bin/setup.py` seeds all of it — five participants and both
-capability bindings — which is what makes this collection short.
+    ssh -L 9202:127.0.0.1:9202 -L 9200:127.0.0.1:9200 \
+        -L 8081:127.0.0.1:8081 -L 8080:127.0.0.1:8080 -N you@the-vm
 
-So the prerequisite is the stack being up the normal way:
+**The environment is how you point it somewhere else.** Import it, select it in
+the environment dropdown, and edit the six URLs at the top — the experience,
+network and provider adapters, the registry, Keycloak and discovery. Postman
+resolves an environment variable ahead of a collection variable of the same
+name, so nothing in the collection needs touching and the loopback defaults
+stay intact for the next person.
 
-    make up
+No VM hostname or address is committed in either file. Deployment addresses are
+shared separately, and the environment file is the place to put them.
 
-## Run them in order the first time
+## The 19 requests
 
-Requests 1 and 2 publish the catalogues that 3 and 4 search for. After that
-any request works on its own. Re-running is safe: publish is idempotent from
-the caller's point of view, and nothing here writes to the registry.
+    1      get a write token                          saves {{token}}
+    2-4    create the exp / network / provider nodes
+    5-8    create both upstreams and both bindings
+    9-10   update an upstream's URL              (PUT)
+    11     update a binding's call plan          (PUT)
+    12-13  search participants / provider bindings
+    14-19  publish, discover, select -- both capabilities
 
-## What the assertions actually check
+Run in order the first time: request 1 issues the token that 2-11 need, and the
+publish requests seed the catalogues discover looks for.
 
-Enough that a green run means the stack is healthy, not just answering:
+## A default run changes nothing
 
-- publish comes back `ACCEPTED`
-- discover returns at least one catalogue, and for mandi that the specific
-  catalogue just published is the one found
-- a discovered catalogue advertises `OnDemand` and carries no prices — the
-  pack forbids them in that mode
-- select answers with one resource per forecast day, and one per price record
-- the mandi answer is in `Direct` mode with every field the pack requires of
-  it, its prices are numbers rather than the strings the upstream sends, and
-  `arrivalDate` is ISO rather than the `dd-MM-yyyy` that arrived
-- a record with no minimum or maximum omits those fields instead of sending
-  nulls — the last mock record is built that way on purpose
-- status codes come from the spec's `DRAFT|ACTIVE|CLOSED` enum
-- every resource carries a `quantity`
-- the weather answer names no party in either direction, and its offer
-  references only resources actually returned
+That is deliberate, so the collection is safe to re-run against a live stack.
 
-## Requests 5 and 6 are the interesting pair
+- **The creates** report "already present". The registry is append-only -- no
+  update on create, and a soft delete keeps the unique index -- so a second run
+  cannot succeed. The test accepts a duplicate and fails anything else, so a
+  validation error or a bad token is still caught.
+- **The updates** write back the same value the variable already holds. Change
+  a variable to actually change a row.
 
-They hit **the same endpoint on the same adapter**, and different domain
-packages answer them. Each provider step builds a binding key from the payload
-it is given — provider id plus capability `@type` — serves it if the key is
-its own, and passes it through untouched if not. Nothing routes by URL, by
-path or by domain, which is what lets one adapter host both capabilities and
-what makes adding a third a config change.
+## What the updates need
 
-## Tunnelling
+`PUT /api/v1/{Entity}/{osid}` works, and a **partial body merges** -- send only
+`baseUrl` and the name, type and status keep their stored values.
 
-The ports are on the VM's loopback. From a workstation:
+Two things follow from how the registry implements it:
 
-    ssh -L 9202:127.0.0.1:9202 -L 9200:127.0.0.1:9200 -N you@the-vm
+- **The URL takes an osid, not a participantId.** The registry addresses a
+  record by the id it assigned on write. Each PUT resolves that itself in a
+  pre-request script, so the request still runs on its own.
+- **The entity schema has to permit additional properties.** The registry
+  re-validates the *merged* document, and that document carries the `osid`,
+  `osUpdatedAt` and `osOwner` it injected itself -- which `additionalProperties:
+  false` rejects as extraneous, naming its own fields. `Participant`,
+  `ProviderSchema` and `ActionBinding` in `config/registry/schemas/` allow them
+  for this reason. `PublicKey` deliberately does not: nothing here updates key
+  material, and a partial PUT that omits `keys` never re-validates it.
 
-Those two are all the collection needs: 9202 is the experience adapter, 9200
-the provider adapter, which is where a publish enters.
+Schemas are read at startup, so a change there needs the registry restarted.
+
+## Filling in the node keys
+
+`expNodeKey`, `networkNodeKey` and `providerNodeKey` ship blank, because the
+keypairs are generated per deployment into `keys/keys.json` on the host.
+`bin/setup.py` already created those three rows, so requests 2-4 are normally
+not needed at all -- they are here to show what a node record looks like. With
+the keys blank they report "awaiting a key" rather than failing the run.
+
+If you do fill them in, use the public half exactly as `keys/keys.json` holds
+it: bare base64, no encoding label. A node created with a key the adapter does
+not hold produces signatures nobody can verify, and the id cannot be reclaimed.
+
+## networkAdapterUrl
+
+Present as a variable, used by no request. Discover reaches the network adapter
+through the experience adapter and publish through the provider adapter, so
+nothing here calls it directly. It is there because it is the other adapter a
+deployment exposes publicly: its `/publish` and `/discover` both verify
+signatures, so a network peer calls it directly. Signing is not something
+Postman does, so those calls are not scripted.

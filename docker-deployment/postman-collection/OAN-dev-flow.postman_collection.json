@@ -1,44 +1,965 @@
 {
   "info": {
-    "name": "OAN dev \u2014 publish, discover, select for two capabilities",
-    "description": "The whole flow against a docker-deployment stack: a publish, a discover and a select for each of the two capabilities.\n\nTHERE ARE NO REGISTRY REQUESTS HERE, and that is deliberate. The registry is not reachable from outside the stack -- no port beyond loopback, no proxy host in front of it -- so nothing in this collection could create or read a registry row. `bin/setup.py` seeds all of it: five participants and two capability bindings, from the same .env the adapter configs are rendered from, which is what keeps the two from disagreeing.\n\nSo the prerequisite is `make setup` followed by `make up`. After that everything here works with no value to fill in -- providerId and mandiProviderId are already the ids that deployment uses.\n\nRequests 5 and 6 are the point. They hit the same endpoint on the same adapter and different domain packages answer them, because each provider step recognises its own binding key from the payload and passes through anything else. Nothing routes by URL or by domain.\n\nRun in order the first time: 1 and 2 publish what 3 and 4 look for.\n\nThe ports are loopback, so from a workstation tunnel first:\n  ssh -L 9202:127.0.0.1:9202 -L 9200:127.0.0.1:9200 you@the-vm",
+    "name": "OAN dev \u2014 registry, publish, discover, select",
+    "description": "The whole stack from Postman: the registry writes that set it up, updates for the fields that change, the reads that show what is there, and the three flows that use it.\n\nRUN IN ORDER THE FIRST TIME. Request 1 issues the token that 2-11 need. The publish requests seed the catalogues that discover searches for.\n\nNOTHING HERE CHANGES THE STACK ON A DEFAULT RUN. The creates report \"already present\" once setup.py has run, because the registry is append-only. The updates write back the same values the variables already hold -- edit a variable to actually change a row.\n\nTHE UPDATES NEED A SCHEMA THAT PERMITS THEM. The registry re-validates the merged document on update, and that document carries its own osid and osUpdatedAt, so additionalProperties: false rejects the registry's own fields. Participant and ProviderSchema in config/registry/schemas/ must allow additional properties, and the registry reads schemas only at startup.\n\nEvery URL here is loopback, because the deployment publishes these ports on the VM's loopback only and nothing else is routable. Open a tunnel first and the defaults work unchanged:\n\n    ssh -L 9202:127.0.0.1:9202 -L 9200:127.0.0.1:9200 \\\n        -L 8081:127.0.0.1:8081 -L 8080:127.0.0.1:8080 -N you@the-vm\n\nNo VM hostname or address appears in this file.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
+      "key": "registryUrl",
+      "value": "http://localhost:8081/api/v1",
+      "description": "Loopback. Tunnel to the VM if it is not this machine."
+    },
+    {
+      "key": "keycloakUrl",
+      "value": "http://localhost:8080",
+      "description": "Issues the write token."
+    },
+    {
+      "key": "keycloakRealm",
+      "value": "sunbird-rc"
+    },
+    {
+      "key": "keycloakClientId",
+      "value": "registry-frontend"
+    },
+    {
+      "key": "registryUser",
+      "value": "no-user"
+    },
+    {
+      "key": "registryPassword",
+      "value": "no-user-password"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "description": "Set by request 1. Do not fill in by hand."
+    },
+    {
+      "key": "targetOsid",
+      "value": "",
+      "description": "Set by the PUT requests' pre-request scripts. Do not fill in by hand."
+    },
+    {
       "key": "expAdapterUrl",
-      "value": "http://127.0.0.1:9202",
-      "description": "The experience adapter -- the only one that takes an unsigned request."
+      "value": "http://localhost:9202",
+      "description": "Takes unsigned requests -- the app is inside the trust boundary."
     },
     {
       "key": "providerAdapterUrl",
-      "value": "http://127.0.0.1:9200",
-      "description": "Where publish enters: the provider adapter signs it and forwards to the network layer."
+      "value": "http://localhost:9200",
+      "description": "Where publish enters."
+    },
+    {
+      "key": "networkAdapterUrl",
+      "value": "http://localhost:9201",
+      "description": "The network layer adapter -- the peer-facing surface. No request in this collection uses it: discover reaches it via the experience adapter, and publish via the provider adapter. It is here because it is the one adapter besides exp that a deployment exposes publicly, and because its /publish and /discover both verify signatures, so a network peer calls it directly. Signing is not something Postman does, so those calls are not scripted here."
+    },
+    {
+      "key": "discoveryUrl",
+      "value": "http://localhost:8090"
+    },
+    {
+      "key": "expNodeId",
+      "value": "exp.oan.dev"
+    },
+    {
+      "key": "expNodeKey",
+      "value": "",
+      "description": "EMPTY ON PURPOSE. Paste the public half from keys/keys.json on the VM if you want to run this request. bin/setup.py already created this node, so it is normally not needed."
+    },
+    {
+      "key": "networkNodeId",
+      "value": "network.oan.dev"
+    },
+    {
+      "key": "networkNodeKey",
+      "value": "",
+      "description": "EMPTY ON PURPOSE. Paste the public half from keys/keys.json on the VM if you want to run this request. bin/setup.py already created this node, so it is normally not needed."
+    },
+    {
+      "key": "providerNodeId",
+      "value": "provider.oan.dev"
+    },
+    {
+      "key": "providerNodeKey",
+      "value": "",
+      "description": "EMPTY ON PURPOSE. Paste the public half from keys/keys.json on the VM if you want to run this request. bin/setup.py already created this node, so it is normally not needed."
     },
     {
       "key": "providerId",
       "value": "mausamgram-mock",
-      "description": "AS DEPLOYED: PROVIDER_PARTICIPANT_ID in .env. Half of the weather binding key."
+      "description": "The weather upstream. Half of its binding key."
+    },
+    {
+      "key": "weatherCapability",
+      "value": "openagrinet:WeatherObservation"
+    },
+    {
+      "key": "weatherBindingKey",
+      "value": "mausamgram-mock|openagrinet:WeatherObservation",
+      "description": "Used to look up the binding's osid for the update."
+    },
+    {
+      "key": "weatherBaseUrl",
+      "value": "http://mockimd:9100",
+      "description": "A compose service name: reached from inside the network."
+    },
+    {
+      "key": "weatherPath",
+      "value": "/get-daily"
+    },
+    {
+      "key": "weatherMappingUrl",
+      "value": "https://raw.githubusercontent.com/OpenAgriNet/helmcharts/feat/4-docker-compose/docker-deployment/config/mappings/mausamgram/weather-observation.select.yaml"
     },
     {
       "key": "mandiProviderId",
       "value": "agmarknet-mock",
-      "description": "AS DEPLOYED: MANDI_PARTICIPANT_ID in .env. Half of the mandi binding key."
+      "description": "The mandi upstream. Half of its binding key."
+    },
+    {
+      "key": "mandiCapability",
+      "value": "openagrinet:MandiPrice"
+    },
+    {
+      "key": "mandiBindingKey",
+      "value": "agmarknet-mock|openagrinet:MandiPrice"
+    },
+    {
+      "key": "mandiBaseUrl",
+      "value": "http://mockagmarknet:9101"
+    },
+    {
+      "key": "mandiPath",
+      "value": "/v1/fetch-agmarknet-vistaar"
+    },
+    {
+      "key": "mandiMappingUrl",
+      "value": "https://raw.githubusercontent.com/OpenAgriNet/helmcharts/feat/4-docker-compose/docker-deployment/config/mappings/agmarknet/mandi-price.select.yaml"
     },
     {
       "key": "networkId",
-      "value": "oan-dev",
-      "description": "APP_NETWORK_ID in .env. Discovery scopes by this: a catalogue published under a different one is invisible to the query."
+      "value": "oan-dev"
     },
     {
       "key": "domain",
-      "value": "oan-dev",
-      "description": "Also required for a discover to match."
+      "value": "oan-dev"
     }
   ],
   "item": [
     {
-      "name": "1. Publish \u2014 weather catalogue",
+      "name": "1. Registry \u2014 get a write token",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-Forwarded-Host",
+            "value": "keycloak:8080"
+          },
+          {
+            "key": "X-Forwarded-Proto",
+            "value": "http"
+          }
+        ],
+        "url": "{{keycloakUrl}}/auth/realms/{{keycloakRealm}}/protocol/openid-connect/token",
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "client_id",
+              "value": "{{keycloakClientId}}"
+            },
+            {
+              "key": "grant_type",
+              "value": "password"
+            },
+            {
+              "key": "username",
+              "value": "{{registryUser}}"
+            },
+            {
+              "key": "password",
+              "value": "{{registryPassword}}"
+            }
+          ]
+        },
+        "description": "Every registry WRITE needs this. Searches take no token at all.\n\nTHE TWO X-Forwarded-* HEADERS ARE NOT OPTIONAL, and keycloak:8080 is the container-internal address on purpose -- not whatever port Keycloak is published on. Keycloak builds the token's issuer from these headers and the registry validates that issuer against the internal address. Get it wrong and every write below returns 401 with an empty body.\n\nSaved to {{token}}, so run this first.\n\nA 500 here usually means Keycloak's realm is missing -- it shares a database with the registry, so wiping the registry volume takes the realm with it. Restarting Keycloak re-imports it."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j = pm.response.json();",
+              "pm.test(\"200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"a token was issued\", () => pm.expect(j.access_token).to.be.a(\"string\"));",
+              "pm.collectionVariables.set(\"token\", j.access_token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Registry \u2014 create the exp node",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{registryUrl}}/Participant",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"participantId\": \"{{expNodeId}}\",\n  \"name\": \"OAN experience layer adapter\",\n  \"type\": \"node\",\n  \"status\": \"active\",\n  \"baseUrl\": \"https://{{expNodeId}}\",\n  \"role\": \"consumer\",\n  \"keys\": [\n    {\n      \"alg\": \"ed25519\",\n      \"key\": \"{{expNodeKey}}\",\n      \"status\": \"active\",\n      \"validFrom\": \"2026-01-01T00:00:00Z\",\n      \"validUntil\": \"2030-01-01T00:00:00Z\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "A participant that speaks Beckn: an id, a role, and the public half of a signing keypair. This is the identity a signature is verified against.\n\nTHE KEY MUST MATCH keys/keys.json. bin/setup.py generates the keypair and seeds this row in one step, and that is the normal path -- this request exists to show what it writes. A node created here with a key the adapter does not hold produces signatures nobody can verify, and the id cannot be reclaimed afterwards.\n\nThe key is bare base64, no encoding label: the schema requires ^[A-Za-z0-9+/]{43}=$."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Same as the other creates, with one extra allowance: this collection ships",
+              "// the node key blank on deployments where it is not knowable, and an empty key",
+              "// fails schema validation before the duplicate check is ever reached. That is",
+              "// reported rather than failed.",
+              "const key = pm.variables.get(\"expNodeKey\") || \"\";",
+              "let body = {};",
+              "try { body = pm.response.json(); } catch (e) {}",
+              "const p = body.params || {};",
+              "const msg = p.errmsg || \"\";",
+              "",
+              "pm.test(\"created, already present, or awaiting a key\", () => {",
+              "  if (pm.response.code >= 200 && pm.response.code < 300) {",
+              "    pm.expect(p.status, msg).to.eql(\"SUCCESSFUL\");",
+              "    return;",
+              "  }",
+              "  if (msg.includes(\"duplicate key\")) return;                  // seeded already",
+              "  if (!key && msg.includes(\"does not match pattern\")) {",
+              "    console.log(\"not attempted: expNodeKey is empty -- paste it from keys/keys.json\");",
+              "    return;",
+              "  }",
+              "  pm.expect.fail(\"HTTP \" + pm.response.code + \": \" + msg);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Registry \u2014 create the network node",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{registryUrl}}/Participant",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"participantId\": \"{{networkNodeId}}\",\n  \"name\": \"OAN network layer adapter\",\n  \"type\": \"node\",\n  \"status\": \"active\",\n  \"baseUrl\": \"https://{{networkNodeId}}\",\n  \"role\": \"network\",\n  \"keys\": [\n    {\n      \"alg\": \"ed25519\",\n      \"key\": \"{{networkNodeKey}}\",\n      \"status\": \"active\",\n      \"validFrom\": \"2026-01-01T00:00:00Z\",\n      \"validUntil\": \"2030-01-01T00:00:00Z\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "A participant that speaks Beckn: an id, a role, and the public half of a signing keypair. This is the identity a signature is verified against.\n\nTHE KEY MUST MATCH keys/keys.json. bin/setup.py generates the keypair and seeds this row in one step, and that is the normal path -- this request exists to show what it writes. A node created here with a key the adapter does not hold produces signatures nobody can verify, and the id cannot be reclaimed afterwards.\n\nThe key is bare base64, no encoding label: the schema requires ^[A-Za-z0-9+/]{43}=$."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Same as the other creates, with one extra allowance: this collection ships",
+              "// the node key blank on deployments where it is not knowable, and an empty key",
+              "// fails schema validation before the duplicate check is ever reached. That is",
+              "// reported rather than failed.",
+              "const key = pm.variables.get(\"networkNodeKey\") || \"\";",
+              "let body = {};",
+              "try { body = pm.response.json(); } catch (e) {}",
+              "const p = body.params || {};",
+              "const msg = p.errmsg || \"\";",
+              "",
+              "pm.test(\"created, already present, or awaiting a key\", () => {",
+              "  if (pm.response.code >= 200 && pm.response.code < 300) {",
+              "    pm.expect(p.status, msg).to.eql(\"SUCCESSFUL\");",
+              "    return;",
+              "  }",
+              "  if (msg.includes(\"duplicate key\")) return;                  // seeded already",
+              "  if (!key && msg.includes(\"does not match pattern\")) {",
+              "    console.log(\"not attempted: networkNodeKey is empty -- paste it from keys/keys.json\");",
+              "    return;",
+              "  }",
+              "  pm.expect.fail(\"HTTP \" + pm.response.code + \": \" + msg);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Registry \u2014 create the provider node",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{registryUrl}}/Participant",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"participantId\": \"{{providerNodeId}}\",\n  \"name\": \"OAN provider layer adapter\",\n  \"type\": \"node\",\n  \"status\": \"active\",\n  \"baseUrl\": \"https://{{providerNodeId}}\",\n  \"role\": \"provider\",\n  \"keys\": [\n    {\n      \"alg\": \"ed25519\",\n      \"key\": \"{{providerNodeKey}}\",\n      \"status\": \"active\",\n      \"validFrom\": \"2026-01-01T00:00:00Z\",\n      \"validUntil\": \"2030-01-01T00:00:00Z\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "A participant that speaks Beckn: an id, a role, and the public half of a signing keypair. This is the identity a signature is verified against.\n\nTHE KEY MUST MATCH keys/keys.json. bin/setup.py generates the keypair and seeds this row in one step, and that is the normal path -- this request exists to show what it writes. A node created here with a key the adapter does not hold produces signatures nobody can verify, and the id cannot be reclaimed afterwards.\n\nThe key is bare base64, no encoding label: the schema requires ^[A-Za-z0-9+/]{43}=$."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Same as the other creates, with one extra allowance: this collection ships",
+              "// the node key blank on deployments where it is not knowable, and an empty key",
+              "// fails schema validation before the duplicate check is ever reached. That is",
+              "// reported rather than failed.",
+              "const key = pm.variables.get(\"providerNodeKey\") || \"\";",
+              "let body = {};",
+              "try { body = pm.response.json(); } catch (e) {}",
+              "const p = body.params || {};",
+              "const msg = p.errmsg || \"\";",
+              "",
+              "pm.test(\"created, already present, or awaiting a key\", () => {",
+              "  if (pm.response.code >= 200 && pm.response.code < 300) {",
+              "    pm.expect(p.status, msg).to.eql(\"SUCCESSFUL\");",
+              "    return;",
+              "  }",
+              "  if (msg.includes(\"duplicate key\")) return;                  // seeded already",
+              "  if (!key && msg.includes(\"does not match pattern\")) {",
+              "    console.log(\"not attempted: providerNodeKey is empty -- paste it from keys/keys.json\");",
+              "    return;",
+              "  }",
+              "  pm.expect.fail(\"HTTP \" + pm.response.code + \": \" + msg);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Registry \u2014 create the weather upstream",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{registryUrl}}/Participant",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"participantId\": \"{{providerId}}\",\n  \"name\": \"IMD Mausamgram NWP (mock)\",\n  \"type\": \"upstream\",\n  \"status\": \"active\",\n  \"baseUrl\": \"{{weatherBaseUrl}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "An ordinary HTTP API the provider adapter calls. No role and no keys: it has never heard of Beckn, so it signs nothing and nothing verifies it.\n\nNo credential either -- the adapter presents one from its own config, which names the environment variable the value comes from. Nothing secret is ever held in the registry.\n\nbaseUrl is a compose service name because these are reached from inside the network."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Append-only: no update on create, and a soft delete keeps the unique index,",
+              "// so a second run of this cannot succeed -- and must not fail the run either.",
+              "//",
+              "// The discriminator is the message, not the status code:",
+              "//   500 + \"duplicate key ...\"     already there. Normal once setup.py has run.",
+              "//   400 + \"Validation Exception\"  the body is wrong.",
+              "//   401 + empty body              no usable token. See request 1.",
+              "let body = {};",
+              "try { body = pm.response.json(); } catch (e) { /* 401 answers with no body */ }",
+              "const p = body.params || {};",
+              "const msg = p.errmsg || \"\";",
+              "",
+              "pm.test(\"created, or already present\", () => {",
+              "  if (pm.response.code >= 200 && pm.response.code < 300) {",
+              "    pm.expect(p.status, msg).to.eql(\"SUCCESSFUL\");",
+              "    return;",
+              "  }",
+              "  pm.expect(msg, \"HTTP \" + pm.response.code + \" and not a duplicate -- a real failure\")",
+              "    .to.include(\"duplicate key\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Registry \u2014 create the weather capability binding",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{registryUrl}}/ProviderSchema",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"bindingKey\": \"{{providerId}}|{{weatherCapability}}\",\n  \"participantId\": \"{{providerId}}\",\n  \"capabilityCode\": \"{{weatherCapability}}\",\n  \"status\": \"active\",\n  \"actions\": [\n    {\n      \"action\": \"select\",\n      \"method\": \"GET\",\n      \"path\": \"{{weatherPath}}\",\n      \"mappings\": \"{{weatherMappingUrl}}\",\n      \"timeoutMs\": 15000,\n      \"retryMax\": 2,\n      \"status\": \"active\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Which upstream answers which capability, and how to call it: method, path, timeouts, and the mapping file URL.\n\nbindingKey is participantId|capabilityCode and it is the hinge of the whole thing. The provider adapter builds the same key from each incoming payload and a step answers only when its configured key matches. Change this without changing the adapter config and every select returns 404 NET_ENTITY_NOT_FOUND.\n\nactions is a list, not a map: the registry treats every nested object as an entity and injects an osid into it, which a map cannot carry."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Append-only: no update on create, and a soft delete keeps the unique index,",
+              "// so a second run of this cannot succeed -- and must not fail the run either.",
+              "//",
+              "// The discriminator is the message, not the status code:",
+              "//   500 + \"duplicate key ...\"     already there. Normal once setup.py has run.",
+              "//   400 + \"Validation Exception\"  the body is wrong.",
+              "//   401 + empty body              no usable token. See request 1.",
+              "let body = {};",
+              "try { body = pm.response.json(); } catch (e) { /* 401 answers with no body */ }",
+              "const p = body.params || {};",
+              "const msg = p.errmsg || \"\";",
+              "",
+              "pm.test(\"created, or already present\", () => {",
+              "  if (pm.response.code >= 200 && pm.response.code < 300) {",
+              "    pm.expect(p.status, msg).to.eql(\"SUCCESSFUL\");",
+              "    return;",
+              "  }",
+              "  pm.expect(msg, \"HTTP \" + pm.response.code + \" and not a duplicate -- a real failure\")",
+              "    .to.include(\"duplicate key\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Registry \u2014 create the mandi upstream",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{registryUrl}}/Participant",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"participantId\": \"{{mandiProviderId}}\",\n  \"name\": \"Agmarknet Vistaar (mock)\",\n  \"type\": \"upstream\",\n  \"status\": \"active\",\n  \"baseUrl\": \"{{mandiBaseUrl}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "An ordinary HTTP API the provider adapter calls. No role and no keys: it has never heard of Beckn, so it signs nothing and nothing verifies it.\n\nNo credential either -- the adapter presents one from its own config, which names the environment variable the value comes from. Nothing secret is ever held in the registry.\n\nbaseUrl is a compose service name because these are reached from inside the network."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Append-only: no update on create, and a soft delete keeps the unique index,",
+              "// so a second run of this cannot succeed -- and must not fail the run either.",
+              "//",
+              "// The discriminator is the message, not the status code:",
+              "//   500 + \"duplicate key ...\"     already there. Normal once setup.py has run.",
+              "//   400 + \"Validation Exception\"  the body is wrong.",
+              "//   401 + empty body              no usable token. See request 1.",
+              "let body = {};",
+              "try { body = pm.response.json(); } catch (e) { /* 401 answers with no body */ }",
+              "const p = body.params || {};",
+              "const msg = p.errmsg || \"\";",
+              "",
+              "pm.test(\"created, or already present\", () => {",
+              "  if (pm.response.code >= 200 && pm.response.code < 300) {",
+              "    pm.expect(p.status, msg).to.eql(\"SUCCESSFUL\");",
+              "    return;",
+              "  }",
+              "  pm.expect(msg, \"HTTP \" + pm.response.code + \" and not a duplicate -- a real failure\")",
+              "    .to.include(\"duplicate key\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Registry \u2014 create the mandi capability binding",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{registryUrl}}/ProviderSchema",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"bindingKey\": \"{{mandiProviderId}}|{{mandiCapability}}\",\n  \"participantId\": \"{{mandiProviderId}}\",\n  \"capabilityCode\": \"{{mandiCapability}}\",\n  \"status\": \"active\",\n  \"actions\": [\n    {\n      \"action\": \"select\",\n      \"method\": \"GET\",\n      \"path\": \"{{mandiPath}}\",\n      \"mappings\": \"{{mandiMappingUrl}}\",\n      \"timeoutMs\": 15000,\n      \"retryMax\": 2,\n      \"status\": \"active\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Which upstream answers which capability, and how to call it: method, path, timeouts, and the mapping file URL.\n\nbindingKey is participantId|capabilityCode and it is the hinge of the whole thing. The provider adapter builds the same key from each incoming payload and a step answers only when its configured key matches. Change this without changing the adapter config and every select returns 404 NET_ENTITY_NOT_FOUND.\n\nactions is a list, not a map: the registry treats every nested object as an entity and injects an osid into it, which a map cannot carry."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Append-only: no update on create, and a soft delete keeps the unique index,",
+              "// so a second run of this cannot succeed -- and must not fail the run either.",
+              "//",
+              "// The discriminator is the message, not the status code:",
+              "//   500 + \"duplicate key ...\"     already there. Normal once setup.py has run.",
+              "//   400 + \"Validation Exception\"  the body is wrong.",
+              "//   401 + empty body              no usable token. See request 1.",
+              "let body = {};",
+              "try { body = pm.response.json(); } catch (e) { /* 401 answers with no body */ }",
+              "const p = body.params || {};",
+              "const msg = p.errmsg || \"\";",
+              "",
+              "pm.test(\"created, or already present\", () => {",
+              "  if (pm.response.code >= 200 && pm.response.code < 300) {",
+              "    pm.expect(p.status, msg).to.eql(\"SUCCESSFUL\");",
+              "    return;",
+              "  }",
+              "  pm.expect(msg, \"HTTP \" + pm.response.code + \" and not a duplicate -- a real failure\")",
+              "    .to.include(\"duplicate key\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Registry \u2014 update the weather upstream URL (PUT)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{registryUrl}}/Participant/{{targetOsid}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseUrl\": \"{{weatherBaseUrl}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Repoint an upstream at a different address -- the request you want when a mock moves, or when a capability graduates to a real API on a new host.\n\nTHE BODY CARRIES ONLY baseUrl. A partial PUT merges: participantId, name, type and status keep their stored values. That is why this is safe to re-run -- it writes back the same value the variable already holds, so a default run changes nothing.\n\nThe osid in the URL is resolved by this request's pre-request script, because the registry addresses records by the id it assigned on write, not by participantId.\n\nNeeds additionalProperties: true on Participant in config/registry/schemas/ -- see the test script for why."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// The registry addresses a record by the osid it assigned on write, not by",
+              "// participantId. So an update has to look the osid up first. Doing it here rather",
+              "// than in a preceding request keeps this one runnable on its own.",
+              "const base = pm.variables.replaceIn(\"{{registryUrl}}\");",
+              "const want = pm.variables.replaceIn(\"{{providerId}}\");",
+              "const filters = {}; filters[\"participantId\"] = { eq: want };",
+              "",
+              "pm.sendRequest({",
+              "  url: base + \"/Participant/search\",",
+              "  method: \"POST\",",
+              "  header: { \"Content-Type\": \"application/json\" },",
+              "  body: { mode: \"raw\", raw: JSON.stringify({ filters: filters }) }",
+              "}, function (err, res) {",
+              "  if (err) { console.log(\"osid lookup failed: \" + err); return; }",
+              "  const rows = ((res.json() || {}).data) || [];",
+              "  if (!rows.length) { console.log(\"no Participant matching \" + want); return; }",
+              "  pm.collectionVariables.set(\"targetOsid\", rows[0].osid);",
+              "});"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// A partial body MERGES: fields you leave out keep their stored values. That is",
+              "// what makes this safe to re-run -- it writes the same value the variable already",
+              "// holds, so a default run changes nothing. Change the variable to change the row.",
+              "//",
+              "// Requires additionalProperties: true on the entity in config/registry/schemas/.",
+              "// The registry re-validates the MERGED document on update, and that document",
+              "// carries its own osid/osUpdatedAt/osOwner -- which a strict schema rejects as",
+              "// extraneous, with the field names it injected itself.",
+              "let body = {};",
+              "try { body = pm.response.json(); } catch (e) {}",
+              "const p = body.params || {};",
+              "const msg = p.errmsg || \"\";",
+              "",
+              "pm.test(\"update accepted\", () => {",
+              "  if (msg.includes(\"extraneous key\")) {",
+              "    pm.expect.fail(\"the schema still forbids extra properties -- relax \"",
+              "      + \"additionalProperties on this entity and restart the registry: \" + msg);",
+              "  }",
+              "  pm.expect(pm.response.code, msg).to.eql(200);",
+              "  pm.expect(p.status, msg).to.eql(\"SUCCESSFUL\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Registry \u2014 update the mandi upstream URL (PUT)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{registryUrl}}/Participant/{{targetOsid}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseUrl\": \"{{mandiBaseUrl}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Repoint an upstream at a different address -- the request you want when a mock moves, or when a capability graduates to a real API on a new host.\n\nTHE BODY CARRIES ONLY baseUrl. A partial PUT merges: participantId, name, type and status keep their stored values. That is why this is safe to re-run -- it writes back the same value the variable already holds, so a default run changes nothing.\n\nThe osid in the URL is resolved by this request's pre-request script, because the registry addresses records by the id it assigned on write, not by participantId.\n\nNeeds additionalProperties: true on Participant in config/registry/schemas/ -- see the test script for why."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// The registry addresses a record by the osid it assigned on write, not by",
+              "// participantId. So an update has to look the osid up first. Doing it here rather",
+              "// than in a preceding request keeps this one runnable on its own.",
+              "const base = pm.variables.replaceIn(\"{{registryUrl}}\");",
+              "const want = pm.variables.replaceIn(\"{{mandiProviderId}}\");",
+              "const filters = {}; filters[\"participantId\"] = { eq: want };",
+              "",
+              "pm.sendRequest({",
+              "  url: base + \"/Participant/search\",",
+              "  method: \"POST\",",
+              "  header: { \"Content-Type\": \"application/json\" },",
+              "  body: { mode: \"raw\", raw: JSON.stringify({ filters: filters }) }",
+              "}, function (err, res) {",
+              "  if (err) { console.log(\"osid lookup failed: \" + err); return; }",
+              "  const rows = ((res.json() || {}).data) || [];",
+              "  if (!rows.length) { console.log(\"no Participant matching \" + want); return; }",
+              "  pm.collectionVariables.set(\"targetOsid\", rows[0].osid);",
+              "});"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// A partial body MERGES: fields you leave out keep their stored values. That is",
+              "// what makes this safe to re-run -- it writes the same value the variable already",
+              "// holds, so a default run changes nothing. Change the variable to change the row.",
+              "//",
+              "// Requires additionalProperties: true on the entity in config/registry/schemas/.",
+              "// The registry re-validates the MERGED document on update, and that document",
+              "// carries its own osid/osUpdatedAt/osOwner -- which a strict schema rejects as",
+              "// extraneous, with the field names it injected itself.",
+              "let body = {};",
+              "try { body = pm.response.json(); } catch (e) {}",
+              "const p = body.params || {};",
+              "const msg = p.errmsg || \"\";",
+              "",
+              "pm.test(\"update accepted\", () => {",
+              "  if (msg.includes(\"extraneous key\")) {",
+              "    pm.expect.fail(\"the schema still forbids extra properties -- relax \"",
+              "      + \"additionalProperties on this entity and restart the registry: \" + msg);",
+              "  }",
+              "  pm.expect(pm.response.code, msg).to.eql(200);",
+              "  pm.expect(p.status, msg).to.eql(\"SUCCESSFUL\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Registry \u2014 update the weather binding's call plan (PUT)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{registryUrl}}/ProviderSchema/{{targetOsid}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actions\": [\n    {\n      \"action\": \"select\",\n      \"method\": \"GET\",\n      \"path\": \"{{weatherPath}}\",\n      \"mappings\": \"{{weatherMappingUrl}}\",\n      \"timeoutMs\": 15000,\n      \"retryMax\": 2,\n      \"status\": \"active\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Change a call plan without recreating the binding: a new mapping URL, a different path, a longer timeout, more retries.\n\nUnlike the upstream update this DOES send the whole actions list, because actions is a list and replacing one entry means sending the list. So it also needs additionalProperties: true on ActionBinding, not just on ProviderSchema.\n\nRe-runnable for the same reason: it writes back what the variables already hold."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// The registry addresses a record by the osid it assigned on write, not by",
+              "// bindingKey. So an update has to look the osid up first. Doing it here rather",
+              "// than in a preceding request keeps this one runnable on its own.",
+              "const base = pm.variables.replaceIn(\"{{registryUrl}}\");",
+              "const want = pm.variables.replaceIn(\"{{weatherBindingKey}}\");",
+              "const filters = {}; filters[\"bindingKey\"] = { eq: want };",
+              "",
+              "pm.sendRequest({",
+              "  url: base + \"/ProviderSchema/search\",",
+              "  method: \"POST\",",
+              "  header: { \"Content-Type\": \"application/json\" },",
+              "  body: { mode: \"raw\", raw: JSON.stringify({ filters: filters }) }",
+              "}, function (err, res) {",
+              "  if (err) { console.log(\"osid lookup failed: \" + err); return; }",
+              "  const rows = ((res.json() || {}).data) || [];",
+              "  if (!rows.length) { console.log(\"no ProviderSchema matching \" + want); return; }",
+              "  pm.collectionVariables.set(\"targetOsid\", rows[0].osid);",
+              "});"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// A partial body MERGES: fields you leave out keep their stored values. That is",
+              "// what makes this safe to re-run -- it writes the same value the variable already",
+              "// holds, so a default run changes nothing. Change the variable to change the row.",
+              "//",
+              "// Requires additionalProperties: true on the entity in config/registry/schemas/.",
+              "// The registry re-validates the MERGED document on update, and that document",
+              "// carries its own osid/osUpdatedAt/osOwner -- which a strict schema rejects as",
+              "// extraneous, with the field names it injected itself.",
+              "let body = {};",
+              "try { body = pm.response.json(); } catch (e) {}",
+              "const p = body.params || {};",
+              "const msg = p.errmsg || \"\";",
+              "",
+              "pm.test(\"update accepted\", () => {",
+              "  if (msg.includes(\"extraneous key\")) {",
+              "    pm.expect.fail(\"the schema still forbids extra properties -- relax \"",
+              "      + \"additionalProperties on this entity and restart the registry: \" + msg);",
+              "  }",
+              "  pm.expect(pm.response.code, msg).to.eql(200);",
+              "  pm.expect(p.status, msg).to.eql(\"SUCCESSFUL\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. Registry \u2014 search participants",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{registryUrl}}/Participant/search",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"filters\": {}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Search takes NO token -- it is the one registry call a network peer actually needs. That is also why the dev deployment keeps the whole service off the public edge: SunbirdRC uses POST for both reads and writes, so no method rule separates this from a create.\n\nAn empty filters object returns everything. Narrow it with e.g. {\"filters\":{\"participantId\":{\"eq\":\"exp.oan.dev\"}}}."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rows = pm.response.json().data;",
+              "pm.test(\"200\", () => pm.response.to.have.status(200));",
+              "",
+              "// The three adapter identities must exist WITH keys, or nothing can sign.",
+              "const nodes = rows.filter(r => r.type === \"node\");",
+              "pm.test(\"three adapter identities, each with a signing key\", () => {",
+              "  pm.expect(nodes.length).to.be.at.least(3);",
+              "  nodes.forEach(n => pm.expect((n.keys || []).length, n.participantId).to.be.above(0));",
+              "});",
+              "",
+              "pm.test(\"both upstreams are registered as type upstream\", () => {",
+              "  [pm.variables.get(\"providerId\"), pm.variables.get(\"mandiProviderId\")].forEach(id => {",
+              "    const up = rows.filter(r => r.participantId === id);",
+              "    pm.expect(up.length, \"no row for \" + id).to.eql(1);",
+              "    pm.expect(up[0].type, id).to.eql(\"upstream\");",
+              "  });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13. Registry \u2014 search provider bindings",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{registryUrl}}/ProviderSchema/search",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"filters\": {}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "The call plans, one row per capability. The two differ in path and mapping URL and point at different upstreams -- which is what lets one provider adapter serve both without knowing anything about either."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rows = pm.response.json().data;",
+              "pm.test(\"200\", () => pm.response.to.have.status(200));",
+              "const keys = rows.map(r => r.bindingKey);",
+              "",
+              "pm.test(\"both capability bindings exist\", () => {",
+              "  pm.expect(keys).to.include(pm.variables.get(\"weatherBindingKey\"));",
+              "  pm.expect(keys).to.include(pm.variables.get(\"mandiBindingKey\"));",
+              "});",
+              "",
+              "// The call plans differ, which is the point.",
+              "pm.test(\"each binding carries its own path\", () => {",
+              "  const paths = {};",
+              "  rows.forEach(r => { paths[r.bindingKey] = (r.actions || [])[0] && r.actions[0].path; });",
+              "  pm.expect(paths[pm.variables.get(\"weatherBindingKey\")]).to.eql(pm.variables.get(\"weatherPath\"));",
+              "  pm.expect(paths[pm.variables.get(\"mandiBindingKey\")]).to.eql(pm.variables.get(\"mandiPath\"));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14. Publish \u2014 weather catalogue",
       "request": {
         "method": "POST",
         "header": [
@@ -75,7 +996,7 @@
       ]
     },
     {
-      "name": "2. Publish \u2014 mandi catalogue",
+      "name": "15. Publish \u2014 mandi catalogue",
       "request": {
         "method": "POST",
         "header": [
@@ -115,7 +1036,7 @@
       ]
     },
     {
-      "name": "3. Discover \u2014 weather",
+      "name": "16. Discover \u2014 weather",
       "request": {
         "method": "POST",
         "header": [
@@ -157,7 +1078,7 @@
       ]
     },
     {
-      "name": "4. Discover \u2014 mandi",
+      "name": "17. Discover \u2014 mandi",
       "request": {
         "method": "POST",
         "header": [
@@ -208,7 +1129,7 @@
       ]
     },
     {
-      "name": "5. Select \u2014 weather, per-day forecast",
+      "name": "18. Select \u2014 weather, per-day forecast",
       "request": {
         "method": "POST",
         "header": [
@@ -273,7 +1194,7 @@
       ]
     },
     {
-      "name": "6. Select \u2014 mandi, prices per market day",
+      "name": "19. Select \u2014 mandi, prices per market day",
       "request": {
         "method": "POST",
         "header": [
