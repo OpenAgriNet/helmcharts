@@ -13,7 +13,7 @@
 
 STACK := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))bin/stack.sh
 
-.PHONY: help up up-core down destroy setup gateway observability restart restart-edge ps logs
+.PHONY: help up up-core down destroy setup gateway observability pull restart restart-edge ps logs
 
 # Default target: running a bare `make` in a directory that can delete a
 # Postgres volume should print the menu, not pick something from it.
@@ -38,6 +38,9 @@ observability: ; @$(STACK) observability
 # ------------------------------------------------------------------ the rest
 
 setup:         ; @$(STACK) setup
+
+# NPM chowns the files it is given, so a plain `git pull` fails on them.
+pull:          ; @$(STACK) pull
 
 # The app tier only -- registry, discovery, the three adapters. Not keycloak,
 # not the databases, not the edge.

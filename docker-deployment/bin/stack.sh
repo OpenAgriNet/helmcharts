@@ -230,6 +230,42 @@ observability() {
     info "UI on 127.0.0.1:8085. There is no login in front of it -- keep it on loopback."
 }
 
+# ------------------------------------------------------------------ pull
+
+# `git pull`, with the one thing that otherwise stops it.
+#
+# config/gateway/npm-custom is bind-mounted into NPM, and NPM's s6 init chowns
+# everything under /data/nginx on every start -- so those two files end up
+# owned by a UID that is not you, and git cannot unlink them to update:
+#
+#   error: unable to unlink old '.../server_proxy.conf': Permission denied
+#
+# The mount cannot be :ro (that stops nginx from starting at all -- see the
+# comment on the mount), and git does not track ownership, so there is nothing
+# to fix once and for all. Taking the files back before pulling is the whole
+# workaround, and it belongs in a target rather than in someone's memory.
+pull() {
+    step 1 2 "taking back ownership of config/gateway/npm-custom"
+    if [ -n "$(find config/gateway/npm-custom ! -user "$(id -un)" -print -quit 2>/dev/null)" ]; then
+        sudo chown -R "$(id -un):$(id -gn)" config/gateway/npm-custom
+        info "done -- NPM had chowned them on its last start"
+    else
+        info "already yours, nothing to do"
+    fi
+
+    step 2 2 "git pull"
+    git -C "$(git rev-parse --show-toplevel)" pull
+    cat <<'NEXT'
+
+  Then apply what came in:
+
+      make up            new services, changed images or .env
+      make restart       changed adapter or registry config
+      make restart-edge  changed config/gateway/npm-custom
+
+NEXT
+}
+
 # --------------------------------------------------------------- restart
 
 # The services that hold OAN's own code and config, and nothing else.
@@ -293,6 +329,7 @@ bin/stack.sh <command>
   setup          re-run bin/setup.py only
   gateway        start nginx-proxy-manager on its own (public, 80/443)
   observability  start hyperdx on its own
+  pull           git pull, fixing the npm-custom ownership first
   restart        restart registry, discovery and the adapters only
   restart-edge   restart NPM after recreating an adapter (fixes a 502)
   ps             docker compose ps
@@ -309,6 +346,7 @@ case "${1:-}" in
     setup)          setup ;;
     gateway)        gateway ;;
     observability)  observability ;;
+    pull)           pull ;;
     restart)        restart_app ;;
     restart-edge)   restart_edge ;;
     ps)             docker compose "${PROFILES[@]}" ps ;;
