@@ -102,6 +102,11 @@
       "description": "Used to look up the binding's osid for the update."
     },
     {
+      "key": "weatherProviderKey",
+      "value": "",
+      "description": "BLANK BY DEFAULT, and the request drops the keys block when it is. Set it to the weather provider's PUBLIC signing key -- bare base64, ^[A-Za-z0-9+/]{43}=$ -- if that provider signs its own catalogues and publishes straight to the network adapter."
+    },
+    {
       "key": "weatherBaseUrl",
       "value": "http://mockimd:9100",
       "description": "A compose service name: reached from inside the network."
@@ -126,6 +131,11 @@
     {
       "key": "mandiBindingKey",
       "value": "agmarknet-mock|openagrinet:MandiPrice"
+    },
+    {
+      "key": "mandiProviderKey",
+      "value": "",
+      "description": "BLANK BY DEFAULT, and the request drops the keys block when it is. Set it to the mandi provider's PUBLIC signing key -- bare base64, ^[A-Za-z0-9+/]{43}=$ -- if that provider signs its own catalogues and publishes straight to the network adapter."
     },
     {
       "key": "mandiBaseUrl",
@@ -396,7 +406,7 @@
         "url": "{{registryUrl}}/Participant",
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"participantId\": \"{{providerId}}\",\n  \"name\": \"IMD Mausamgram NWP (mock)\",\n  \"type\": \"upstream\",\n  \"status\": \"active\",\n  \"baseUrl\": \"{{weatherBaseUrl}}\"\n}",
+          "raw": "{\n  \"participantId\": \"{{providerId}}\",\n  \"name\": \"IMD Mausamgram NWP (mock)\",\n  \"type\": \"upstream\",\n  \"status\": \"active\",\n  \"baseUrl\": \"{{weatherBaseUrl}}\",\n  \"keys\": [\n    {\n      \"alg\": \"ed25519\",\n      \"key\": \"{{weatherProviderKey}}\",\n      \"status\": \"active\",\n      \"validFrom\": \"2026-01-01T00:00:00Z\",\n      \"validUntil\": \"2030-01-01T00:00:00Z\"\n    }\n  ]\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -406,6 +416,41 @@
         "description": "An ordinary HTTP API the provider adapter calls. No role and no keys: it has never heard of Beckn, so it signs nothing and nothing verifies it.\n\nNo credential either -- the adapter presents one from its own config, which names the environment variable the value comes from. Nothing secret is ever held in the registry.\n\nbaseUrl is a compose service name because these are reached from inside the network."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// The keys block below is OPTIONAL on an upstream, and blank by default.",
+              "//",
+              "// WHY IT IS ALLOWED. The Participant schema declares `keys` for every type; the",
+              "// only conditional is `if type == \"node\" then require role and keys`, and it has",
+              "// no else -- so it adds requirements for a node and never forbids them on an",
+              "// upstream. The adapter accepts such a key as a signer too: the signature lookup",
+              "// filters on participantId alone and never compares type, and isSigning() treats",
+              "// an absent `use` as signing (our schema drops `use`; `alg` carries the purpose).",
+              "//",
+              "// WHY YOU WOULD WANT IT. With a key on this record the weather provider can sign its",
+              "// own catalogue and POST /publish directly to the NETWORK adapter, which verifies",
+              "// against this row. That takes the provider adapter out of the publish path",
+              "// entirely -- and with it the unauthenticated /publish it has to expose.",
+              "//",
+              "// WHY IT IS STRIPPED WHEN BLANK. The mocks have no keypair. An empty string fails",
+              "// the schema's ^[A-Za-z0-9+/]{43}=$ pattern, so sending the block empty would be",
+              "// refused for a reason that has nothing to do with what you were trying to do.",
+              "//",
+              "// Set weatherProviderKey to the PUBLIC half, bare base64, no encoding label. Do it when",
+              "// you create the record: the registry is append-only, so a partial PUT can add a",
+              "// keys array later but cannot remove or replace one.",
+              "const key = (pm.variables.get(\"weatherProviderKey\") || \"\").trim();",
+              "if (!key) {",
+              "  const body = JSON.parse(pm.request.body.raw);",
+              "  delete body.keys;",
+              "  pm.request.body.update(JSON.stringify(body, null, 2));",
+              "}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -510,7 +555,7 @@
         "url": "{{registryUrl}}/Participant",
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"participantId\": \"{{mandiProviderId}}\",\n  \"name\": \"Agmarknet Vistaar (mock)\",\n  \"type\": \"upstream\",\n  \"status\": \"active\",\n  \"baseUrl\": \"{{mandiBaseUrl}}\"\n}",
+          "raw": "{\n  \"participantId\": \"{{mandiProviderId}}\",\n  \"name\": \"Agmarknet Vistaar (mock)\",\n  \"type\": \"upstream\",\n  \"status\": \"active\",\n  \"baseUrl\": \"{{mandiBaseUrl}}\",\n  \"keys\": [\n    {\n      \"alg\": \"ed25519\",\n      \"key\": \"{{mandiProviderKey}}\",\n      \"status\": \"active\",\n      \"validFrom\": \"2026-01-01T00:00:00Z\",\n      \"validUntil\": \"2030-01-01T00:00:00Z\"\n    }\n  ]\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -520,6 +565,41 @@
         "description": "An ordinary HTTP API the provider adapter calls. No role and no keys: it has never heard of Beckn, so it signs nothing and nothing verifies it.\n\nNo credential either -- the adapter presents one from its own config, which names the environment variable the value comes from. Nothing secret is ever held in the registry.\n\nbaseUrl is a compose service name because these are reached from inside the network."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// The keys block below is OPTIONAL on an upstream, and blank by default.",
+              "//",
+              "// WHY IT IS ALLOWED. The Participant schema declares `keys` for every type; the",
+              "// only conditional is `if type == \"node\" then require role and keys`, and it has",
+              "// no else -- so it adds requirements for a node and never forbids them on an",
+              "// upstream. The adapter accepts such a key as a signer too: the signature lookup",
+              "// filters on participantId alone and never compares type, and isSigning() treats",
+              "// an absent `use` as signing (our schema drops `use`; `alg` carries the purpose).",
+              "//",
+              "// WHY YOU WOULD WANT IT. With a key on this record the mandi provider can sign its",
+              "// own catalogue and POST /publish directly to the NETWORK adapter, which verifies",
+              "// against this row. That takes the provider adapter out of the publish path",
+              "// entirely -- and with it the unauthenticated /publish it has to expose.",
+              "//",
+              "// WHY IT IS STRIPPED WHEN BLANK. The mocks have no keypair. An empty string fails",
+              "// the schema's ^[A-Za-z0-9+/]{43}=$ pattern, so sending the block empty would be",
+              "// refused for a reason that has nothing to do with what you were trying to do.",
+              "//",
+              "// Set mandiProviderKey to the PUBLIC half, bare base64, no encoding label. Do it when",
+              "// you create the record: the registry is append-only, so a partial PUT can add a",
+              "// keys array later but cannot remove or replace one.",
+              "const key = (pm.variables.get(\"mandiProviderKey\") || \"\").trim();",
+              "if (!key) {",
+              "  const body = JSON.parse(pm.request.body.raw);",
+              "  delete body.keys;",
+              "  pm.request.body.update(JSON.stringify(body, null, 2));",
+              "}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {

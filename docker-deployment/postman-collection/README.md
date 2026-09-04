@@ -77,6 +77,53 @@ If you do fill them in, use the public half exactly as `keys/keys.json` holds
 it: bare base64, no encoding label. A node created with a key the adapter does
 not hold produces signatures nobody can verify, and the id cannot be reclaimed.
 
+## Giving an upstream its own signing key
+
+The two upstream creates carry a `keys` block, blank by default, and drop it
+when the variable is empty. Set `weatherProviderKey` or `mandiProviderKey` to a
+provider's **public** signing key and the block is sent.
+
+**Why an upstream may have keys.** The `Participant` schema declares `keys` for
+every type. Its only conditional is `if type == "node" then require role and
+keys`, and it has no `else` -- so that branch adds requirements for a node and
+never forbids keys on an upstream. The adapter accepts such a key as a signer
+too: the signature lookup filters on `participantId` alone and never compares
+`type`, and `isSigning()` treats an absent `use` as signing, which matters
+because this schema drops `use` and lets `alg` carry the purpose.
+
+**Why you would want it.** With a key on that row the provider can sign its own
+catalogue and `POST /publish` straight at the **network** adapter, which
+verifies the signature against the row. The provider adapter drops out of the
+publish path -- and with it the unauthenticated `/publish` it otherwise has to
+expose, which is the whole reason the gateway carries a deny rule for that path.
+
+Verified end to end: an upstream record created with an `ed25519` key signed a
+catalogue and the network adapter answered `catalog/on_publish` `ACCEPTED`,
+while a wrong key, a body tampered with after signing, and a missing
+`Authorization` header each came back `401`.
+
+The header a provider has to produce:
+
+    Signature keyId="<participantId>|<key osid>|ed25519",
+              algorithm="ed25519",created="<unix>",expires="<unix>",
+              headers="(created) (expires) digest",signature="<base64>"
+
+signed over exactly this string -- real newlines, and `BLAKE-512` meaning
+BLAKE2b-512, not SHA:
+
+    (created): <unix>
+    (expires): <unix>
+    digest: BLAKE-512=<base64 of blake2b-512 over the raw body>
+
+The `osid` is the one the registry assigns the key on write, so a provider has
+to read it back from a `Participant/search` after registering.
+
+**Add the keys when you create the record.** A partial PUT can add a `keys`
+array later but cannot remove or replace one -- the registry is append-only. And
+the value is bare base64 matching `^[A-Za-z0-9+/]{43}=$`, no encoding label: a
+`base64:` prefix left on the front fails verification later with a decode error
+that points nowhere near the registry.
+
 ## networkAdapterUrl
 
 Present as a variable, used by no request. Discover reaches the network adapter
