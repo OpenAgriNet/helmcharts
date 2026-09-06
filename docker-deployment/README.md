@@ -75,7 +75,7 @@ first use. Do that before creating anything.
 
 | Domain | Forward Hostname | Port | Then |
 |---|---|---|---|
-| `exp.oan.example.com` | `exp-adapter` | 9202 | paste `config/gateway/npm-advanced/exp.conf` into **Advanced** |
+| `exp.oan.example.com` | `exp-adapter` | 9202 | paste `config/reverse-proxy/npm-advanced/exp.conf` into **Advanced** |
 | `network.oan.example.com` | `network-adapter` | 9201 | — |
 | `provider.oan.example.com` | `provider-adapter` | 9200 | — |
 
@@ -120,7 +120,7 @@ signature against the registry; `oanProviderPublish`, on the exact path
 the provider's own catalogue system inside the trust boundary. A proxy host pointed at
 `provider-adapter:9200` therefore exposes `<host>/publish` to anyone. NPM's UI
 offers no way to route a host while withholding one path, so the block lives in
-`config/gateway/npm-custom/server_proxy.conf`, which NPM includes in **every**
+`config/reverse-proxy/npm-custom/server_proxy.conf`, which NPM includes in **every**
 proxy host's server block automatically — a mounted file, not a click, and so
 not something to remember on one host out of three.
 
@@ -145,9 +145,9 @@ Worth being exact about, because the two look alike in the repo:
 
 | File | How it applies |
 |---|---|
-| `config/gateway/npm-custom/http_top.conf` | **Automatic.** NPM includes it at the top of its `http` block. Declares the `exp` rate-limit zone and `limit_req_status 429`. |
-| `config/gateway/npm-custom/server_proxy.conf` | **Automatic.** Included in every proxy host's server block. Holds the `/publish` deny. |
-| `config/gateway/npm-advanced/exp.conf` | **Manual.** Paste into the experience host's Advanced tab. Applies `limit_req` to that host only, since a 10 r/s ceiling on signed peer traffic would throttle for no security gain. |
+| `config/reverse-proxy/npm-custom/http_top.conf` | **Automatic.** NPM includes it at the top of its `http` block. Declares the `exp` rate-limit zone and `limit_req_status 429`. |
+| `config/reverse-proxy/npm-custom/server_proxy.conf` | **Automatic.** Included in every proxy host's server block. Holds the `/publish` deny. |
+| `config/reverse-proxy/npm-advanced/exp.conf` | **Manual.** Paste into the experience host's Advanced tab. Applies `limit_req` to that host only, since a 10 r/s ceiling on signed peer traffic would throttle for no security gain. |
 
 The manual one is in a file anyway because NPM's Advanced field is a textarea
 in a database row: nothing diffs it and nothing reviews it. Keeping the source

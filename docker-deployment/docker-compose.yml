@@ -575,7 +575,7 @@ services:
       # What NPM actually rewrites is `listen` directives, and neither file
       # here has one, so the pass is a no-op on content. It does take
       # ownership of the files, which is cosmetic and not tracked by git.
-      - ./config/gateway/npm-custom:/data/nginx/custom
+      - ./config/reverse-proxy/npm-custom:/data/nginx/custom
 
     depends_on:
       # Ordering only; the adapter image has no healthcheck.

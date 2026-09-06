@@ -234,7 +234,7 @@ observability() {
 
 # `git pull`, with the one thing that otherwise stops it.
 #
-# config/gateway/npm-custom is bind-mounted into NPM, and NPM's s6 init chowns
+# config/reverse-proxy/npm-custom is bind-mounted into NPM, and NPM's s6 init chowns
 # everything under /data/nginx on every start -- so those two files end up
 # owned by a UID that is not you, and git cannot unlink them to update:
 #
@@ -245,9 +245,9 @@ observability() {
 # to fix once and for all. Taking the files back before pulling is the whole
 # workaround, and it belongs in a target rather than in someone's memory.
 pull() {
-    step 1 2 "taking back ownership of config/gateway/npm-custom"
-    if [ -n "$(find config/gateway/npm-custom ! -user "$(id -un)" -print -quit 2>/dev/null)" ]; then
-        sudo chown -R "$(id -un):$(id -gn)" config/gateway/npm-custom
+    step 1 2 "taking back ownership of config/reverse-proxy/npm-custom"
+    if [ -n "$(find config/reverse-proxy/npm-custom ! -user "$(id -un)" -print -quit 2>/dev/null)" ]; then
+        sudo chown -R "$(id -un):$(id -gn)" config/reverse-proxy/npm-custom
         info "done -- NPM had chowned them on its last start"
     else
         info "already yours, nothing to do"
@@ -261,7 +261,7 @@ pull() {
 
       make up            new services, changed images or .env
       make restart       changed adapter or registry config
-      make restart-edge  changed config/gateway/npm-custom
+      make restart-edge  changed config/reverse-proxy/npm-custom
 
 NEXT
 }
