@@ -34,7 +34,7 @@ cd "$ROOT"
 # only acts on services whose profile is active, so a plain `docker compose
 # down` leaves the gateway and hyperdx containers running and then reports
 # success. Naming them on teardown is what makes "down" mean down.
-PROFILES=(--profile gateway --profile observability)
+PROFILES=(--profile reverse-proxy --profile observability)
 
 # ------------------------------------------------------------------ output
 
@@ -83,7 +83,7 @@ up() {
     # 0.0.0.0:80 and :443, deliberately not scoped, because Let's Encrypt
     # validates HTTP-01 from its own servers.
     step 4 5 "nginx-proxy-manager -- the public edge (80 and 443, all interfaces)"
-    docker compose --profile gateway up -d nginx-proxy-manager
+    docker compose --profile reverse-proxy up -d nginx-proxy-manager
 
     # ClickStack. Heaviest thing here by a wide margin: ClickHouse alone wants
     # 2-4 GB, which is what takes this VM from 8 GB to 16 GB.
@@ -209,10 +209,10 @@ WARN
 
 # Separate targets rather than part of `up` because neither is needed to
 # exercise the stack, and hyperdx (ClickHouse) alone wants 2-4 GB.
-gateway() {
+reverse_proxy() {
     preflight
     step 1 1 "nginx-proxy-manager -- publishes 80 and 443 on ALL interfaces"
-    docker compose --profile gateway up -d nginx-proxy-manager
+    docker compose --profile reverse-proxy up -d nginx-proxy-manager
     cat <<'NEXT'
 
   The admin UI is on loopback, and ships with a live default login. Tunnel in
@@ -306,7 +306,7 @@ restart_app() {
 # symptom is a bare 502 that looks like the adapter is down.
 restart_edge() {
     step 1 1 "restarting nginx-proxy-manager to re-resolve adapter addresses"
-    docker compose --profile gateway restart nginx-proxy-manager
+    docker compose --profile reverse-proxy restart nginx-proxy-manager
 }
 
 # Just step 2. Re-run it after editing a .tmpl, or to re-render configs that
@@ -327,7 +327,7 @@ bin/stack.sh <command>
   down           stop everything, keep the data
   destroy        stop everything and DELETE every volume
   setup          re-run bin/setup.py only
-  gateway        start nginx-proxy-manager on its own (public, 80/443)
+  reverse-proxy  start nginx-proxy-manager on its own (public, 80/443)
   observability  start hyperdx on its own
   pull           git pull, fixing the npm-custom ownership first
   restart        restart registry, discovery and the adapters only
@@ -344,7 +344,7 @@ case "${1:-}" in
     down)           down ;;
     destroy)        destroy ;;
     setup)          setup ;;
-    gateway)        gateway ;;
+    reverse-proxy)  reverse_proxy ;;
     observability)  observability ;;
     pull)           pull ;;
     restart)        restart_app ;;

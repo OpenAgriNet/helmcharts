@@ -73,7 +73,7 @@ the old answer.
    you do not get to enumerate. Scoping it to yourself fails with a challenge
    timeout that reads like a DNS problem.
 
-3. `make gateway`, then create the proxy host with `<service>.<elastic-ip>.sslip.io`.
+3. `make reverse-proxy`, then create the proxy host with `<service>.<elastic-ip>.sslip.io`.
    No DNS record to create -- that is the entire point of sslip.io here.
 
 4. Confirm it answers over plain HTTP first. Let's Encrypt allows 5 failed

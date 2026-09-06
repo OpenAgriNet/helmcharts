@@ -21,7 +21,7 @@
 #   3. python3 bin/setup.py               keys, the three adapter entries, and
 #                                         the adapter configs they mount
 #   4. docker compose up -d               now the adapters
-#   5. docker compose --profile gateway --profile observability up -d
+#   5. docker compose --profile reverse-proxy --profile observability up -d
 #                                         the edge and the telemetry stack
 #
 # Naming registry and discovery in step 2 is not tidiness. An adapter config
@@ -500,7 +500,7 @@ services:
   # ==========================================================================
   # edge -- Nginx Proxy Manager.
   #
-  #   docker compose --profile gateway up -d
+  #   docker compose --profile reverse-proxy up -d
   #
   # NPM rather than a hand-written nginx.conf because it owns the part that is
   # genuinely tedious to do by hand -- ACME. It requests, installs and renews
@@ -514,7 +514,7 @@ services:
     image: jc21/nginx-proxy-manager:latest
     container_name: oan-npm
     restart: unless-stopped
-    profiles: ["gateway"]
+    profiles: ["reverse-proxy"]
 
     # oan-edge ONLY, and this is the whole security argument for putting a
     # UI-configured proxy in front of this stack.

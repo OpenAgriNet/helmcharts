@@ -4,7 +4,7 @@
 # thing to type.
 #
 #     make up        the whole stack, in the order it has to start
-#     make up-core   the same minus the gateway and hyperdx
+#     make up-core   the same minus the reverse proxy and hyperdx
 #     make down      stop everything, keep the data
 #     make help      the rest
 #
@@ -13,7 +13,7 @@
 
 STACK := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))bin/stack.sh
 
-.PHONY: help up up-core down destroy setup gateway observability pull restart restart-edge ps logs
+.PHONY: help up up-core down destroy setup reverse-proxy observability pull restart restart-edge ps logs
 
 # Default target: running a bare `make` in a directory that can delete a
 # Postgres volume should print the menu, not pick something from it.
@@ -32,7 +32,7 @@ destroy:       ; @$(STACK) destroy
 # `make up` already starts both. These are for starting one without the other,
 # or restarting one after a config change.
 
-gateway:       ; @$(STACK) gateway
+reverse-proxy: ; @$(STACK) reverse-proxy
 observability: ; @$(STACK) observability
 
 # ------------------------------------------------------------------ the rest

@@ -28,7 +28,7 @@ Running here:
   than through the published port.
 - **gateway** — Nginx Proxy Manager, the only container that publishes on a
   routable interface. Routes to the three adapters, and issues and renews the
-  Let's Encrypt certificates from its own UI. Profile `gateway`.
+  Let's Encrypt certificates from its own UI. Profile `reverse-proxy`.
 - **hyperdx** — ClickStack: OTLP ingest, ClickHouse, and the UI over it.
   Profile `observability`.
 
@@ -760,7 +760,7 @@ bin/
                             Every make target is one line of delegation here.
   setup.py                  keys, five registry rows, the adapter configs
 config/
-  gateway/
+  reverse-proxy/
     npm-custom/             mounted to /data/nginx/custom, which NPM includes
       http_top.conf         on its own: the rate-limit zone declaration,
       server_proxy.conf     and the /publish deny that every proxy host gets
