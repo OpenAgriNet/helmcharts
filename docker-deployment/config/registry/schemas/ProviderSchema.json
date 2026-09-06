@@ -15,8 +15,7 @@
       "properties": {
         "bindingKey": {
           "type": "string",
-          "pattern": "^[a-z0-9][a-z0-9._:-]{2,63}\\|openagrinet:[A-Z][A-Za-z0-9]*$",
-          "not": { "pattern": "\\|openagrinet:Agriculture(Capability|Resource)$" }
+          "pattern": "^[a-z0-9][a-z0-9._:-]{2,63}\\|openagrinet:[A-Z][A-Za-z0-9]*$"
         },
         "participantId":  { "$ref": "#/definitions/ParticipantId" },
         "capabilityCode": { "$ref": "#/definitions/CapabilityCode" },
@@ -66,8 +65,7 @@
 
     "ParticipantId": { "type": "string", "maxLength": 253, "pattern": "^[a-z0-9][a-z0-9._:-]{2,252}$" },
     "CapabilityCode": { "type": "string",
-                        "pattern": "^openagrinet:[A-Z][A-Za-z0-9]*$",
-                        "not": { "pattern": "^openagrinet:Agriculture(Capability|Resource)$" } },
+                        "pattern": "^openagrinet:[A-Z][A-Za-z0-9]*$" },
     "Status": { "type": "string", "enum": ["active", "inactive"] },
     "Path": { "type": "string", "maxLength": 512,
               "description": "Appended to that upstream's baseUrl. Single slashes: an empty segment is never deliberate, and many servers answer //a differently from /a. A trailing slash is allowed, because /api/ and /api are a distinction some APIs make.",

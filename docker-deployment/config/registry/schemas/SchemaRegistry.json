@@ -22,8 +22,7 @@
     },
 
     "CapabilityCode": { "type": "string",
-                        "pattern": "^openagrinet:[A-Z][A-Za-z0-9]*$",
-                        "not": { "pattern": "^openagrinet:Agriculture(Capability|Resource)$" } },
+                        "pattern": "^openagrinet:[A-Z][A-Za-z0-9]*$" },
     "Status": { "type": "string", "enum": ["active", "inactive"] }
   },
 
