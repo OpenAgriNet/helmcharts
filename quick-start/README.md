@@ -50,26 +50,28 @@ below follow startup order, so they work top to bottom.
 
 ## Step 1 — Prerequisites
 
-- Docker with Compose v2 — `docker compose version` must work, not `docker-compose`
-- `python3`, and the `cryptography` package: `pip install cryptography`
+- `git`
+- Docker with **Compose v2** — `docker compose version` must work, not `docker-compose`
+- `python3` with `cryptography` — `pip install cryptography`
 - `curl`
 
-`make up` checks all of these before starting anything, because Keycloak's
-healthcheck can take five minutes on a cold volume and a missing dependency
-should not surface after that wait.
+## Step 2 — Get the repo
 
-## Step 2 — Configure
+```sh
+git clone -b feat/4-docker-compose https://github.com/OpenAgriNet/helmcharts.git
+cd helmcharts/quick-start
+```
+
+**Every command below runs from `quick-start/`** — it is where the compose file
+and the Makefile live.
+
+## Step 3 — Configure
 
 ```sh
 cp .env.example .env
 ```
 
-Locally you need change nothing. Read the file once anyway — it is commented
-where the reasoning is not obvious, and it is the reference for every key.
-
-Two things to know:
-
-**The ports.** Published on `localhost` only.
+Locally, nothing in it needs changing. It publishes these on `localhost`:
 
 ```
 8081  registry        9200  provider adapter     9100  mockimd
@@ -78,121 +80,51 @@ Two things to know:
 8090  discovery
 ```
 
-If any of those is already taken, change it in `.env` — that is the only edit
-a local run needs. The adapters reach each other by Compose service name, not
-through the published ports, so moving them changes only what you type into
-Postman.
+If one is already taken, change it here — that is the only edit a local run
+needs. Adapters reach each other by Compose service name, so it only changes
+what you type into Postman.
 
-**The images.** `ADAPTER_IMAGE` and the adapter configs in this repo move
-together: the configs name plugins by id, and an id is the basename of a `.so`
-inside the image. A mismatch is `unrecognized step: <name>` at startup, which
-reads like a config typo and is not.
-
-## Step 3 — Start the shared services
-
-Everything else depends on these.
+## Step 4 — Start it
 
 ```sh
-docker compose up -d registry discovery
+make up-core
 ```
 
-Keycloak and both databases come up with them.
+Three tiers, in the only order that works: registry and discovery, then
+`bin/setup.py`, then the mocks and the three adapters. Allow up to five minutes
+the first time — Keycloak on a cold volume.
 
-One key in `.env` belongs to this step: `APP_NETWORK_ID` is the network every
-published catalogue is filed under, and the discovery service reads it. It is
-also what a `discover` filters on, so a request naming a different network
-finds nothing.
-
-Wait for the registry to report healthy — up to five minutes the first time,
-seconds after that:
+`setup.py` generates a keypair per adapter, registers five participants and two
+capability bindings, and renders the three adapter configs. Nothing needs
+creating by hand. → Appendix C for why the order matters, Appendix D for what
+it wrote.
 
 ```sh
-docker compose ps registry
+make ps
 ```
-
-## Step 4 — Seed and render
-
-```sh
-python3 bin/setup.py
-```
-
-One idempotent script, three jobs:
-
-- generates a keypair per adapter into `keys/keys.json`
-- registers **five participants** — three adapters, two upstreams — and **two
-  capability bindings**
-- renders `config/adapters/{experience,network,provider}.yaml` from the
-  `.tmpl` files beside them
-
-It reads the same `.env` that seeds the registry, which is what keeps the
-registry rows and the adapter configs from disagreeing.
-
-Two things it is worth knowing now rather than later. It **must** run before
-any adapter starts: an adapter's config is a bind-mounted *file*, and Docker
-creates a *directory* at any bind-mount source that does not exist. And
-`keys/keys.json` is the only copy of those keypairs — the registry cannot
-update a published key, so losing the file means picking new participant ids.
-
-→ Appendix D for what it wrote and how to look at it.
 
 ## Step 5 — Provider layer
 
-Calls the upstreams and answers `select`. The only layer that talks to a
-provider, and it serves both capabilities from one adapter.
+Answers `select`, and the only layer that calls an upstream. Serves both
+capabilities from one adapter.
 
-**Config it needs**, in `.env`:
-
-```
-PROVIDER_SUBSCRIBER_ID     this adapter's own network identity
-PROVIDER_PARTICIPANT_ID    the weather upstream's id  ─┐ each pairs with its
-PROVIDER_CAPABILITY        openagrinet:WeatherObservation │ *_CAPABILITY to make
-MANDI_PARTICIPANT_ID       the mandi upstream's id     ─┤ a binding key, which
-MANDI_CAPABILITY           openagrinet:MandiPrice        ┘ is how a step knows
-MANDI_TOKEN                the mandi upstream's credential   its own work
-```
-
-Those same four values seed the registry rows, which is why changing one here
-means re-running `setup.py` — and why a mismatch shows up as a 404 rather than
-a config error. → Appendix F.
-
-`setup.py` renders these into `config/adapters/provider.yaml`. Do not edit
-that file — it is regenerated, and it holds a private key.
-
-**Bring it up**
-
-```sh
-docker compose up -d provider-adapter
-```
-
-Compose starts the registry and both mocks first; it will not come up without
-them.
-
-**Check it worked**
+`.env` keys: `PROVIDER_SUBSCRIBER_ID`, and the two pairs that become binding
+keys — `PROVIDER_PARTICIPANT_ID` + `PROVIDER_CAPABILITY`,
+`MANDI_PARTICIPANT_ID` + `MANDI_CAPABILITY` — plus `MANDI_TOKEN`.
 
 ```sh
 docker compose logs provider-adapter | grep 'Processor steps initialized'
 ```
 
-You want the capability steps listed by name.
+Both capability steps should be listed by name.
 
 ## Step 6 — Network layer
 
-Fronts discovery. Verifies the caller, passes `discover` and `publish` on to
-the discovery service, and re-signs as itself.
+Fronts discovery: verifies the caller, passes `discover` and `publish` on, and
+re-signs as itself.
 
-**Config it needs**
-
-```
-NETWORK_SUBSCRIBER_ID      this adapter's own network identity
-```
-
-**Bring it up**
-
-```sh
-docker compose up -d network-adapter
-```
-
-**Check it worked**
+`.env` keys: `NETWORK_SUBSCRIBER_ID`. `APP_NETWORK_ID` belongs to the discovery
+service behind it — a `discover` naming a different network finds nothing.
 
 ```sh
 docker compose logs network-adapter | grep 'Server listening'
@@ -201,138 +133,98 @@ docker compose logs network-adapter | grep 'Server listening'
 ## Step 7 — Experience layer
 
 The consumer's edge. Sends `discover` to the network layer and `select`
-straight to the provider layer — which action goes where is
-`config/adapters/routing-experience.yaml`, not a code path.
+straight to the provider layer, per `config/adapters/routing-experience.yaml`.
 
-**Config it needs**
-
-```
-EXP_SUBSCRIBER_ID          this adapter's own network identity
-```
-
-**Bring it up**
+`.env` keys: `EXP_SUBSCRIBER_ID`.
 
 ```sh
-docker compose up -d exp-adapter
+docker compose logs exp-adapter | grep 'Server listening'
 ```
 
-**Check it worked**
-
-```sh
-make ps
-```
-
-All three adapters running. Or bring the whole thing up in one command, in the
-order it has to happen:
-
-```sh
-make up-core
-```
+`setup.py` renders all three configs from these keys. **Do not edit the
+rendered `config/adapters/*.yaml`** — they are regenerated and hold private
+keys. Change `.env`, re-run `make up`.
 
 ## Step 8 — Verify end to end
 
-Import both files from `../postman-collection/` into Postman:
-
-```
-api-collection.json               the requests
-local_postman_environment.json    the URLs, already pointing at localhost
-```
-
-Run it top to bottom: **6 requests, 32 assertions**, two folders, one per
-capability. Each folder publishes a catalogue, discovers it, then selects
-against it — so run publish before discover the first time.
-
-A green run means the registry is seeded, both adapters sign and verify, both
-mappings work, and discovery is indexing.
-
-Or without Postman:
+Import both files from `../postman-collection/` into Postman —
+`api-collection.json` and `local_postman_environment.json`, which already
+points at localhost. Or:
 
 ```sh
-newman run ../postman-collection/api-collection.json --folder "2. MandiPrice"
+newman run ../postman-collection/api-collection.json
 ```
 
-**To point it at another deployment, edit the environment file, not the
-collection.** Postman resolves an environment variable ahead of a collection
-variable of the same name, so the loopback defaults stay intact for the next
-person. No deployment address is committed in either file, deliberately.
+**6 requests, 32 assertions**, one folder per capability. Each folder
+publishes, discovers, then selects, so run publish before discover the first
+time. Green means the registry is seeded, signatures verify both ways, both
+mappings work and discovery is indexing.
 
-There are no registry requests in the collection either — the registry has no
-route through the edge, so `setup.py` seeds it instead.
-
-→ Appendix N for what the two `select` requests demonstrate, and why one
-variable is deliberately called by nothing.
+To point it at another deployment, edit the **environment** file, not the
+collection. → Appendix N.
 
 ---
 
 # Part 2 — Run it on a VM
 
-Part 1 Steps 2–8 apply as written. This is only what is different.
+Four differences. **V1 comes before Part 1 Step 2**, because it installs `git`.
 
 ## Step V1 — Prepare the VM
 
+Nothing is cloned yet, so fetch the script rather than running it from the repo:
+
 ```sh
-bin/bootstrap-ubuntu.sh
+curl -fsSL https://raw.githubusercontent.com/OpenAgriNet/helmcharts/feat/4-docker-compose/quick-start/bin/bootstrap-ubuntu.sh | bash
 ```
 
-Docker, Compose v2, `python3-cryptography` and the docker group, idempotent.
-It deliberately does not clone anything, write `.env` or start anything —
-those need decisions that do not belong in a script piped from the internet.
+Installs `git`, `make`, `python3-cryptography` and Docker from Docker's own apt
+repo, then adds you to the `docker` group — **log out and back in** for that to
+take effect. Idempotent, and it deliberately does not clone, write `.env` or
+start anything.
 
-**8 GB** runs the stack. **16 GB** if you want the observability tier, which
-ClickHouse alone can spend 2–4 GB on.
+**8 GB** runs the stack; **16 GB** for the observability tier.
+
+Then Part 1 Steps 2 and 3 as written.
 
 ## Step V2 — Change every credential
 
-`.env.example` ships working defaults, which means they are public. Change all
-of them before the VM is reachable by anyone but you:
+`.env.example` ships working defaults, which means they are public:
 
 ```
 POSTGRES_PASSWORD    KEYCLOAK_ADMIN_PASSWORD    KEYCLOAK_SECRET
 REGISTRY_DEFAULT_USER_PASSWORD
 ```
 
-The adapter keypairs are the exception — `setup.py` generates those, and they
-are never written to `.env`.
+Change all four before the VM is reachable by anyone but you. Adapter keypairs
+are the exception — `setup.py` generates those and never writes them to `.env`.
 
-## Step V3 — Bring it up
+## Step V3 — Start it
 
 ```sh
 make up
 ```
 
-`make up` rather than `make up-core`: two more tiers.
+`make up`, not `make up-core`: two more tiers on top of Part 1's three —
+nginx-proxy-manager on 80 and 443, and HyperDX. **This is the step that makes
+the VM reachable from the internet.**
 
-```
-4. nginx-proxy-manager   the public edge — 80 and 443, all interfaces
-5. hyperdx               ClickStack. Optional, and the reason for 16 GB.
-```
+## Step V4 — Decide what is exposed
 
-Step 4 is the one that makes the VM reachable from the internet.
+Everything except the edge's 80 and 443 is bound to `127.0.0.1`, written
+literally in `docker-compose.yml` rather than taken from a variable. So the
+registry, Keycloak and the databases are not publicly reachable — deliberately.
 
-## Step V4 — Expose it, and decide what is exposed
-
-Every port except the edge's 80 and 443 is bound to `127.0.0.1`, written
-literally in `docker-compose.yml` rather than taken from a variable. One
-switch that moves every port to the public interface at once is a footgun; the
-ports that should be reachable are reachable through the edge instead.
-
-So the registry, Keycloak and the databases are **not** publicly reachable,
-and that is deliberate — a registry whose write token any reader of `.env.example`
-can mint should not be on the internet.
-
-Adding the proxy hosts, requesting certificates, and the `/publish` deny that
-every host gets → **Appendix B**. Read it before pointing DNS at the box.
+Proxy hosts, certificates, and the `/publish` deny every host gets →
+**Appendix B**. Read it before pointing DNS at the box.
 
 ## Step V5 — Reach the loopback ports
-
-From a workstation:
 
 ```sh
 ssh -L 9202:127.0.0.1:9202 -L 9200:127.0.0.1:9200 \
     -L 8081:127.0.0.1:8081 -L 8080:127.0.0.1:8080 -N you@the-vm
 ```
 
-The collection's defaults then work unchanged, because they already point at
+The collection's defaults then work unchanged, since they already point at
 loopback.
 
 ## Step V6 — Observability (optional)
@@ -341,9 +233,8 @@ loopback.
 make observability
 ```
 
-Three signals over OTLP/gRPC to HyperDX. `OTEL_ENABLED=false` builds no
-exporter at all, which is what you want on a box with no collector — leaving
-it true against a missing one is the noisy case. → Appendix H.
+HyperDX on `127.0.0.1:8085`, OTLP on 4317/4318. → Appendix H, which is honest
+about how much actually arrives.
 
 ---
 
