@@ -443,6 +443,68 @@ That 403 is the check worth repeating after any NPM change: it is the only
 evidence that `npm-custom/server_proxy.conf` is still mounted, and losing the
 mount silently opens an unauthenticated catalogue write.
 
+## Updating a deployment that is already running
+
+Three things can change, and they need different work. Getting this wrong is
+the most likely way to break a working VM, so the order matters.
+
+**Config only** — a `.tmpl`, a routing file, `.env`. Re-render and recreate:
+
+```sh
+make pull          # git pull, and fixes the ownership NPM leaves behind
+make up            # step 2 re-renders the adapter configs, then recreates
+```
+
+`make restart` is not enough on its own for a `.tmpl` change: the adapters read
+a rendered `.yaml`, and only `setup.py` writes it.
+
+**A new adapter image as well.** Any change to the plugin ids in
+`config/adapters/*.tmpl` is this case, because an id is the basename of a `.so`
+inside the image. Set `ADAPTER_IMAGE` to the matching tag BEFORE `make up`, or
+the new config meets the old image and every adapter dies at startup. Build it
+from the adapter repo at the commit the config expects:
+
+```sh
+git clone https://github.com/OpenAgriNet/network-adapter.git
+cd network-adapter && git checkout <the branch or tag>
+
+docker build -f Dockerfile.adapter-with-plugins \
+  --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) \
+  -t ghcr.io/<you>/oan-adapter:$(git rev-parse --short HEAD) .
+
+# the check worth doing before you push or deploy it
+docker run --rm --entrypoint sh ghcr.io/<you>/oan-adapter:<tag> \
+  -c 'ls plugins/ | grep -iE "weather|mandi"'
+```
+
+That last command should print the ids the config actually names. If it prints
+something else, the image is from the wrong commit and nothing downstream will
+work.
+
+**Payload shapes changed.** If `@context` moved, catalogues already in the
+discovery database still carry the old value, and `discover` matches
+`schemaContext` by exact string equality — so discover alone returns zero rows
+against a database seeded before the change. Run the collection top to bottom
+so publish reseeds first. `updateMode: MERGE` on the same `catalogId` updates
+in place rather than duplicating.
+
+**Then check, in this order.** Cheapest first, because each failure explains
+the next:
+
+```sh
+docker compose logs provider-adapter | grep 'Processor steps initialized'
+docker compose logs provider-adapter | grep -iE '"level":"(error|fatal)"'
+make ps
+```
+
+The first should list the capability steps by the ids the config names. The
+second should be empty. Only then run the collection.
+
+**Rolling back** is `git checkout <old commit>`, `ADAPTER_IMAGE` back to the
+old tag, `make up`. Both, together — the old image with the new config fails at
+startup, and the new image with the old config starts but silently runs the old
+behaviour.
+
 ## What is in the registry, and why you did not create it
 
 `bin/setup.py` wrote all of it. Nothing in this section is a step to perform —
@@ -939,6 +1001,20 @@ Passing through is deliberate: it is what lets this one adapter serve both
 capabilities. Compare the payload against `.env`, and re-run
 `bin/setup.py` plus `docker compose up -d --force-recreate provider-adapter`
 after changing `.env`.
+
+**Every adapter exits at startup with `unrecognized step: <name>`.** Not a
+config typo. A step name that is not one of the built-ins is looked up among
+the loaded plugins, and a plugin's id is the basename of its `.so` in the
+image — so this is `ADAPTER_IMAGE` pointing at a build that predates the name
+in the config. Check what the image actually carries:
+
+```sh
+docker run --rm --entrypoint sh $ADAPTER_IMAGE -c 'ls plugins/*.so'
+```
+
+Fix the tag, do not rename the step to match an old image — the config and the
+image are meant to move together. See "Updating a deployment that is already
+running".
 
 **404 naming a binding with no active record.** The other side. A step *is*
 configured for the key, and it got as far as asking the registry which upstream
