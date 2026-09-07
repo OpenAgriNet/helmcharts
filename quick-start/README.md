@@ -1,15 +1,381 @@
-# OAN stack, on Docker Compose
+# OAN quick-start
 
-The whole OpenAgriNet stack for a **dev deployment on a VM**: the registry, the
-discovery service, the three adapters, and a mock upstream per capability so a
-request has something to answer it. One compose file, one config folder,
-`make up`.
+The whole OAN stack in Docker Compose: a registry, a discovery service, three
+adapters, and two mock upstreams standing in for real provider APIs.
 
-This is a dev environment. It is not production: the adapter signing keys sit
-in a config file on disk, nothing terminates TLS, and every credential shipped
-in `.env.example` is a public default.
+Nothing is built here — the images are pulled. Locally that is about ten
+minutes, most of it waiting for Keycloak.
 
-## What is here, and what is not
+## The stack in one picture
+
+```
+                    consumer
+                       │
+                       ▼
+  ┌──────────── experience adapter ────────────┐   the caller's edge
+  │                                            │
+  │   discover ──► network adapter ──► discovery service
+  │                                            │
+  │   select ────────────────────────► provider adapter
+  └────────────────────────────────────────────┘        │
+                                                        ▼
+                                          mockimd  ·  mockagmarknet
+
+  every adapter reads the registry: who signed this, and where does
+  this capability's provider live
+```
+
+A `discover` asks the network layer what exists. A `select` goes straight to
+the provider layer, which calls the upstream and answers in the same HTTP
+round trip — there is no callback.
+
+That is the request order. The **startup** order is the reverse: the
+experience adapter depends on the other two, so Compose brings them up first.
+The steps below are in startup order, so they work top to bottom.
+
+## Which path are you on?
+
+|                      | Local                    | VM                          |
+|----------------------|--------------------------|-----------------------------|
+| Reached over         | `localhost`              | a public hostname, TLS      |
+| Public edge (Nginx)  | not started              | started, on 80 and 443      |
+| Observability        | not started              | optional, wants 2–4 GB      |
+| Credentials          | shipped defaults are ok  | **must all be changed**     |
+| Command              | `make up-core`           | `make up`                   |
+
+**Local** is Part 1. **VM** is Part 1, then Part 2 for the differences.
+
+---
+
+# Part 1 — Run it locally
+
+## Step 1 — Prerequisites
+
+- Docker with Compose v2 — `docker compose version` must work, not `docker-compose`
+- `python3`, and the `cryptography` package: `pip install cryptography`
+- `curl`
+
+`make up` checks all of these before starting anything, because Keycloak's
+healthcheck can take five minutes on a cold volume and a missing dependency
+should not surface after that wait.
+
+## Step 2 — Configure
+
+```sh
+cp .env.example .env
+```
+
+Locally you need change nothing. Read the file once anyway — it is commented
+where the reasoning is not obvious, and it is the reference for every key.
+
+Two things to know:
+
+**The ports.** Published on `localhost` only.
+
+```
+8081  registry        9200  provider adapter     9100  mockimd
+8080  keycloak        9201  network adapter      9101  mockagmarknet
+9990  keycloak admin  9202  experience adapter
+8090  discovery
+```
+
+If any of those is already taken, change it in `.env` — that is the only edit
+a local run needs. The adapters reach each other by Compose service name, not
+through the published ports, so moving them changes only what you type into
+Postman.
+
+**The images.** `ADAPTER_IMAGE` and the adapter configs in this repo move
+together: the configs name plugins by id, and an id is the basename of a `.so`
+inside the image. A mismatch is `unrecognized step: <name>` at startup, which
+reads like a config typo and is not.
+
+## Step 3 — Start the shared services
+
+Everything else depends on these.
+
+```sh
+docker compose up -d registry discovery
+```
+
+Keycloak and both databases come up with them.
+
+One key in `.env` belongs to this step: `APP_NETWORK_ID` is the network every
+published catalogue is filed under, and the discovery service reads it. It is
+also what a `discover` filters on, so a request naming a different network
+finds nothing.
+
+Wait for the registry to report healthy — up to five minutes the first time,
+seconds after that:
+
+```sh
+docker compose ps registry
+```
+
+## Step 4 — Seed and render
+
+```sh
+python3 bin/setup.py
+```
+
+One idempotent script, three jobs:
+
+- generates a keypair per adapter into `keys/keys.json`
+- registers **five participants** — three adapters, two upstreams — and **two
+  capability bindings**
+- renders `config/adapters/{experience,network,provider}.yaml` from the
+  `.tmpl` files beside them
+
+It reads the same `.env` that seeds the registry, which is what keeps the
+registry rows and the adapter configs from disagreeing.
+
+Two things it is worth knowing now rather than later. It **must** run before
+any adapter starts: an adapter's config is a bind-mounted *file*, and Docker
+creates a *directory* at any bind-mount source that does not exist. And
+`keys/keys.json` is the only copy of those keypairs — the registry cannot
+update a published key, so losing the file means picking new participant ids.
+
+→ Appendix D for what it wrote and how to look at it.
+
+## Step 5 — Provider layer
+
+Calls the upstreams and answers `select`. The only layer that talks to a
+provider, and it serves both capabilities from one adapter.
+
+**Config it needs**, in `.env`:
+
+```
+PROVIDER_SUBSCRIBER_ID     this adapter's own network identity
+PROVIDER_PARTICIPANT_ID    the weather upstream's id  ─┐ each pairs with its
+PROVIDER_CAPABILITY        openagrinet:WeatherObservation │ *_CAPABILITY to make
+MANDI_PARTICIPANT_ID       the mandi upstream's id     ─┤ a binding key, which
+MANDI_CAPABILITY           openagrinet:MandiPrice        ┘ is how a step knows
+MANDI_TOKEN                the mandi upstream's credential   its own work
+```
+
+Those same four values seed the registry rows, which is why changing one here
+means re-running `setup.py` — and why a mismatch shows up as a 404 rather than
+a config error. → Appendix F.
+
+`setup.py` renders these into `config/adapters/provider.yaml`. Do not edit
+that file — it is regenerated, and it holds a private key.
+
+**Bring it up**
+
+```sh
+docker compose up -d provider-adapter
+```
+
+Compose starts the registry and both mocks first; it will not come up without
+them.
+
+**Check it worked**
+
+```sh
+docker compose logs provider-adapter | grep 'Processor steps initialized'
+```
+
+You want the capability steps listed by name.
+
+## Step 6 — Network layer
+
+Fronts discovery. Verifies the caller, passes `discover` and `publish` on to
+the discovery service, and re-signs as itself.
+
+**Config it needs**
+
+```
+NETWORK_SUBSCRIBER_ID      this adapter's own network identity
+```
+
+**Bring it up**
+
+```sh
+docker compose up -d network-adapter
+```
+
+**Check it worked**
+
+```sh
+docker compose logs network-adapter | grep 'Server listening'
+```
+
+## Step 7 — Experience layer
+
+The consumer's edge. Sends `discover` to the network layer and `select`
+straight to the provider layer — which action goes where is
+`config/adapters/routing-exp.yaml`, not a code path.
+
+**Config it needs**
+
+```
+EXP_SUBSCRIBER_ID          this adapter's own network identity
+```
+
+**Bring it up**
+
+```sh
+docker compose up -d exp-adapter
+```
+
+**Check it worked**
+
+```sh
+make ps
+```
+
+All three adapters running. Or bring the whole thing up in one command, in the
+order it has to happen:
+
+```sh
+make up-core
+```
+
+## Step 8 — Verify end to end
+
+Import both files from `../postman-collection/` into Postman:
+
+```
+api-collection.json               the requests
+local_postman_environment.json    the URLs, already pointing at localhost
+```
+
+Run it top to bottom: **6 requests, 32 assertions**, two folders, one per
+capability. Each folder publishes a catalogue, discovers it, then selects
+against it — so run publish before discover the first time.
+
+A green run means the registry is seeded, both adapters sign and verify, both
+mappings work, and discovery is indexing.
+
+There are no registry requests in the collection deliberately — the registry
+has no route through the edge, so `setup.py` seeds it instead.
+
+---
+
+# Part 2 — Run it on a VM
+
+Part 1 Steps 2–8 apply as written. This is only what is different.
+
+## Step V1 — Prepare the VM
+
+```sh
+bin/bootstrap-ubuntu.sh
+```
+
+Docker, Compose v2, `python3-cryptography` and the docker group, idempotent.
+It deliberately does not clone anything, write `.env` or start anything —
+those need decisions that do not belong in a script piped from the internet.
+
+**8 GB** runs the stack. **16 GB** if you want the observability tier, which
+ClickHouse alone can spend 2–4 GB on.
+
+## Step V2 — Change every credential
+
+`.env.example` ships working defaults, which means they are public. Change all
+of them before the VM is reachable by anyone but you:
+
+```
+POSTGRES_PASSWORD    KEYCLOAK_ADMIN_PASSWORD    KEYCLOAK_SECRET
+REGISTRY_DEFAULT_USER_PASSWORD
+```
+
+The adapter keypairs are the exception — `setup.py` generates those, and they
+are never written to `.env`.
+
+## Step V3 — Bring it up
+
+```sh
+make up
+```
+
+`make up` rather than `make up-core`: two more tiers.
+
+```
+4. nginx-proxy-manager   the public edge — 80 and 443, all interfaces
+5. hyperdx               ClickStack. Optional, and the reason for 16 GB.
+```
+
+Step 4 is the one that makes the VM reachable from the internet.
+
+## Step V4 — Expose it, and decide what is exposed
+
+Every port except the edge's 80 and 443 is bound to `127.0.0.1`, written
+literally in `docker-compose.yml` rather than taken from a variable. One
+switch that moves every port to the public interface at once is a footgun; the
+ports that should be reachable are reachable through the edge instead.
+
+So the registry, Keycloak and the databases are **not** publicly reachable,
+and that is deliberate — a registry whose write token any reader of `.env.example`
+can mint should not be on the internet.
+
+Adding the proxy hosts, requesting certificates, and the `/publish` deny that
+every host gets → **Appendix B**. Read it before pointing DNS at the box.
+
+## Step V5 — Reach the loopback ports
+
+From a workstation:
+
+```sh
+ssh -L 9202:127.0.0.1:9202 -L 9200:127.0.0.1:9200 \
+    -L 8081:127.0.0.1:8081 -L 8080:127.0.0.1:8080 -N you@the-vm
+```
+
+The collection's defaults then work unchanged, because they already point at
+loopback.
+
+## Step V6 — Observability (optional)
+
+```sh
+make observability
+```
+
+Three signals over OTLP/gRPC to HyperDX. `OTEL_ENABLED=false` builds no
+exporter at all, which is what you want on a box with no collector — leaving
+it true against a missing one is the noisy case. → Appendix H.
+
+---
+
+## If something is wrong
+
+- **`unrecognized step: <name>`** — `ADAPTER_IMAGE` predates the config.
+  Appendix G.
+- **404 `NET_ENTITY_NOT_FOUND`** — no provider step claimed the payload; a
+  binding key disagrees with `.env`. Appendix F.
+- **404 naming a binding with no active record** — the step matched but the
+  registry has no `ProviderSchema` row for it. Appendix F.
+- **502 from a `select`** — the upstream answered non-2xx. Appendix F.
+- **NPM's default page, or a 502 that worked yesterday** — Appendix B.
+- **An adapter config is a directory** — something started before
+  `setup.py`. Appendix F.
+
+Full set, with what to run for each → **Appendix F**.
+
+---
+
+## Appendices
+
+Reference, read on demand. Nothing here is a step.
+
+| | |
+|---|---|
+| **A** | What is here, and what is not |
+| **B** | Reaching it: the edge, routes, certificates, tunnels |
+| **C** | Startup order, and why it is that order |
+| **D** | What is in the registry, and why you did not create it |
+| **E** | How a request flows |
+| **F** | When it does not work |
+| **G** | Updating a deployment that is already running |
+| **H** | Telemetry |
+| **I** | Schema validation |
+| **J** | About the mapping files |
+| **K** | The layout |
+| **L** | Renaming this directory |
+| **M** | Starting over |
+| **N** | Before you start, and bringing it up — the long form |
+| **O** | Testing it end to end — the long form |
+
+---
+
+## Appendix A — What is here, and what is not
 
 Running here:
 
@@ -49,7 +415,7 @@ Deliberately **not** here:
   The provider adapter never holds that address in a config file; it reads it
   from the registry per request.
 
-## Reaching it
+## Appendix B — Reaching it
 
 Two doors, and which one you use depends on what you are reaching.
 
@@ -348,24 +714,7 @@ There is no `BIND_ADDR` any more. It used to move every published port onto the
 public interface at once, which is a footgun once something exists to expose
 the one tier that should be reachable.
 
-## Before you start
-
-On the VM:
-
-- Docker with Compose **v2.24 or newer**, logged in to wherever the images live
-  if it is private — `docker login ghcr.io`. The version floor is the
-  `env_file: required: false` on the HyperDX service, which is what lets an
-  absent `.env.docker` be absent instead of fatal.
-- Python 3 and the `cryptography` package — `pip install cryptography`
-- 16 GB of RAM if you run the `observability` profile — ClickHouse alone wants
-  2-4 GB on top of the two JVM services. 8 GB is workable without it.
-
-Nothing else. No external API and no tunnel: the two mock upstreams are part
-of the stack, so a select has something to answer it the moment it comes up.
-
-`bin/bootstrap-ubuntu.sh` installs the first two on a fresh Ubuntu VM.
-
-## Bring it up
+## Appendix C — Startup order, and why it is that order
 
 ```sh
 cp .env.example .env
@@ -443,85 +792,7 @@ That 403 is the check worth repeating after any NPM change: it is the only
 evidence that `npm-custom/server_proxy.conf` is still mounted, and losing the
 mount silently opens an unauthenticated catalogue write.
 
-## Updating a deployment that is already running
-
-Three things can change, and they need different work. Getting this wrong is
-the most likely way to break a working VM, so the order matters.
-
-**Config only** — a `.tmpl`, a routing file, `.env`. Re-render and recreate:
-
-```sh
-make pull          # git pull, and fixes the ownership NPM leaves behind
-make up            # step 2 re-renders the adapter configs, then recreates
-```
-
-`make restart` is not enough on its own for a `.tmpl` change: the adapters read
-a rendered `.yaml`, and only `setup.py` writes it.
-
-**A new adapter image as well.** Any change to the plugin ids in
-`config/adapters/*.tmpl` is this case, because an id is the basename of a `.so`
-inside the image. The new config must not meet the old image, or every adapter
-dies at startup.
-
-If `ADAPTER_IMAGE` names a **new tag**, set it before `make up` and that is
-all. If it follows **`latest`**, `make up` alone is not enough: `pull_policy:
-missing` means a tag already on disk is never re-fetched, and nothing in
-`stack.sh` pulls, so the stack would quietly come back on the old image. Fetch
-it explicitly first:
-
-```sh
-docker compose pull provider-adapter network-adapter exp-adapter
-```
-
-Either way, build it from the adapter repo at the commit the config expects:
-
-```sh
-git clone https://github.com/OpenAgriNet/network-adapter.git
-cd network-adapter && git checkout <the branch or tag>
-
-docker build -f Dockerfile.adapter-with-plugins \
-  --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) \
-  -t ghcr.io/<you>/oan-adapter:$(git rev-parse --short HEAD) .
-
-# the check worth doing before you push or deploy it
-docker run --rm --entrypoint sh ghcr.io/<you>/oan-adapter:<tag> \
-  -c 'ls plugins/ | grep -iE "weather|mandi"'
-```
-
-That last command should print the ids the config actually names. If it prints
-something else, the image is from the wrong commit and nothing downstream will
-work.
-
-**Payload shapes changed.** If `@context` moved, catalogues already in the
-discovery database still carry the old value, and `discover` matches
-`schemaContext` by exact string equality — so discover alone returns zero rows
-against a database seeded before the change. Run the collection top to bottom
-so publish reseeds first. `updateMode: MERGE` on the same `catalogId` updates
-in place rather than duplicating.
-
-**Then check, in this order.** Cheapest first, because each failure explains
-the next:
-
-```sh
-docker compose logs provider-adapter | grep 'Processor steps initialized'
-docker compose logs provider-adapter | grep -iE '"level":"(error|fatal)"'
-make ps
-```
-
-The first should list the capability steps by the ids the config names. The
-second should be empty. Only then run the collection.
-
-**Rolling back** is `git checkout <old commit>`, `ADAPTER_IMAGE` back to the
-old image, `make up`. Both, together — the old image with the new config fails
-at startup, and the new image with the old config starts but silently runs the
-old behaviour.
-
-Note this is the case `latest` serves badly. Rolling the config back is exact,
-but "the old image" has no name if the tag has already moved, so you would be
-recovering it by digest — `docker images --digests` on the VM, if it is still
-there at all. Pin a tag before a change you might need to undo.
-
-## What is in the registry, and why you did not create it
+## Appendix D — What is in the registry, and why you did not create it
 
 `bin/setup.py` wrote all of it. Nothing in this section is a step to perform —
 it is what to look at when something does not match.
@@ -670,116 +941,7 @@ Things worth knowing before editing any of this:
   `config/registry/schemas/` needs `docker compose restart registry` before it
   takes effect.
 
-## Test it end to end
-
-**Quickest path: import `../postman-collection/`.** Six requests, 32
-assertions, nothing to fill in — publish, discover and select for each
-capability, with every value already matching this deployment. There are no
-registry requests: the registry has no route through the edge, so `setup.py`
-seeds it instead. A green run means the stack is healthy
-rather than merely answering.
-
-It sits at the repo root rather than in here, because it is not part of the
-compose stack — it is what you point at one, and its environment file exists so
-it can be aimed somewhere else.
-
-The rest of this section is one of those requests as curl, if you would rather
-see it than run it.
-
-```sh
-curl -s -X POST http://127.0.0.1:9202/select \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "context": {
-      "version": "2.0.0", "action": "select",
-      "networkId": "oan-dev",
-      "transactionId": "9f2c1a8e-4b70-4d31-9c55-6f2e0b1d7a44",
-      "messageId": "7d41b9e0-52a6-4c18-8b73-1e9f0a4c6d22",
-      "timestamp": "2026-09-04T06:12:01.330Z"
-    },
-    "message": { "contract": { "commitments": [ {
-      "status": { "descriptor": { "code": "DRAFT", "name": "Draft" } },
-      "resources": [ {
-        "id": "res:mausamgram:point-forecast",
-        "quantity": 1,
-        "resourceAttributes": {
-          "@context": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/schema-packs-v0.1/schema/WeatherObservation/v0.1/context.jsonld",
-          "@type": "openagrinet:WeatherObservation",
-          "subjectCategories": ["Weather"],
-          "informationMode": "OnDemand",
-          "supportedObservationTypes": ["Forecast"],
-          "supportedParameters": ["Rainfall", "Temperature"],
-          "geographicGranularities": ["Point"],
-          "location": { "type": "Point", "coordinates": [73.7898, 19.9975] }
-        }
-      } ],
-      "offer": {
-        "id": "offer:mausamgram:open-data",
-        "resourceIds": ["res:mausamgram:point-forecast"],
-        "provider": { "id": "mausamgram-mock",
-                      "descriptor": { "code": "IMD-NWP-01", "name": "IMD Mausamgram NWP" } }
-      }
-    } ] } }
-  }' | python3 -m json.tool
-```
-
-An `on_select` comes back with one resource per forecast day — three by
-default, which is `MOCKIMD_DAYS`.
-
-The mandi equivalent is the same call to the same endpoint with a `MandiPrice`
-resource and `agmarknet-mock` as the provider, and that is the point worth
-taking from this section: **one endpoint, two capabilities, and no routing
-config in between.** Each provider step builds a binding key out of the
-payload it is handed, answers if the key is its own, and passes the payload
-through untouched if it is not. Adding a third capability is a plugin and two
-registry rows, not a new route.
-
-Two things about the payload:
-
-**No party is named, in either direction.** Identity travels in the
-`Authorization` header's `keyId`, which names the signer and the key the
-registry published for it; a body that declares no caller simply skips the
-declared-identity comparison. Nothing needs `bapId` or `bppId`, and the `*Uri`
-fields they came with were container-internal addresses that meant nothing
-outside this compose network anyway.
-
-**The experience adapter is the only one that takes an unsigned request.** The
-experience app is inside the trust boundary, so there is no network signature
-to check — which is what makes this testable with a plain curl. The same call
-to the provider adapter on 9200 is rejected unsigned.
-
-## Telemetry
-
-`docker compose --profile observability up -d` brings up HyperDX on
-`127.0.0.1:8085` (tunnel to reach it) with OTLP on 4317/4318. It is
-`clickstack-local`, not `clickstack-all-in-one`: local runs single-user with no
-team to create and no ingestion key to mint, which is what makes `up -d` the
-whole setup step — and also why it must stay on loopback, since there is no
-login in front of it.
-
-**What actually arrives today is less than the wiring suggests, and that is
-worth knowing before you go looking for traces that are not there.**
-
-- **discovery** reads `OTEL_EXPORTER` and `OTEL_EXPORTER_OTLP_ENDPOINT` into
-  its config, and nothing in the current build consumes them — the only
-  OpenTelemetry packages in its `go.mod` are indirect. So `OTEL_EXPORTER`
-  stays `none` by default; setting it to `otlp` emits nothing rather than
-  failing. When the exporter is wired, `OTEL_EXPORTER=otlp` in `.env` is the
-  whole change and the endpoint already points here.
-- **the three adapters** get `OTEL_EXPORTER_OTLP_ENDPOINT` and
-  `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`. Whether that image's SDK reads
-  them is unverified in either direction — the image is pulled and its source
-  is not in this repo. Nothing depends on the answer: an absent collector makes
-  an OTLP exporter drop spans, not fail a request.
-- **container logs go nowhere near HyperDX** without something to ship them.
-  `docker compose logs -f <service>` remains the way to read them. Shipping
-  them would mean an OTel collector with a `filelog` receiver over
-  `/var/lib/docker/containers`, which is not in this stack.
-
-So treat this profile as the destination being ready and in one place, rather
-than as observability that is switched on.
-
-## How a request flows
+## Appendix E — How a request flows
 
 Three paths, and which adapter answers is the whole design:
 
@@ -849,158 +1011,7 @@ Three things about that:
   signature — and its identity check skips a body that declares no caller
   rather than demanding one.
 
-## Schema validation
-
-Every adapter loads the pinned Beckn v2 LTS spec and validates request bodies
-against it. On the **provider adapter** a second layer runs too: it walks the
-payload for objects carrying `@context` and `@type`, resolves the schema that
-`@type` names, and validates the object against it. Base validation treats
-`resourceAttributes` as a free-form object, so this is the only layer that
-checks a capability's own attributes at all.
-
-The schemas are not in this repository and are not mounted. Each resource's
-`@context` names the published pack, and the validator swaps `context.jsonld`
-for `attributes.yaml` to fetch the schema beside it:
-
-```
-@context   .../network-specs/schema-packs-v0.1/schema/MandiPrice/v0.1/context.jsonld
-fetched    .../network-specs/schema-packs-v0.1/schema/MandiPrice/v0.1/attributes.yaml
-```
-
-So a payload names the pack revision it wants to be judged against, and there is
-no copy here to drift from the published one — the same reason the mappings are
-fetched rather than committed.
-
-It is cached for 24 hours, so only the first payload after a restart pays for
-the fetch. Two consequences: the provider adapter needs egress to
-`raw.githubusercontent.com`, and a fetch that **fails rejects the payload**
-rather than skipping validation. An `@context` on any other host is refused
-before anything is fetched — `extendedSchema_allowedDomains` in the config is
-the list.
-
-**What it does not check.** The validator library parses `if`/`then`/`else` but
-never evaluates it, so every pack rule predicated on `informationMode` is
-unenforced — a pass here is not full conformance to a pack. It does enforce
-types, string formats, `enum`, `const`, `required`, `additionalProperties`,
-`not` and `allOf`/`anyOf`/`oneOf`.
-
-Three consequences worth knowing before you write a payload:
-
-- **Each resource under a commitment needs a `quantity`.** The spec's
-  `Commitment.resources` requires `["id", "quantity"]` while `Resource` itself
-  defines no `quantity` property and the spec has no `Quantity` schema at all —
-  a defect upstream, not something this deployment chose. Any value satisfies
-  it. Without one, every `select` is refused with
-  `SCH_REQUIRED_FIELD_MISSING: property "quantity" is missing`.
-- **A `date-time` field will not take a bare date.** `validity.startsAt` and
-  `endsAt` are `format: date-time` in the packs, so `2025-08-20` is refused
-  and `2025-08-20T00:00:00+05:30` is accepted. `arrivalDate` is `format: date`
-  and wants the opposite.
-- **`publish` is validated, on the provider adapter.** Declaring the validator
-  is not enough — a plugin missing from `steps:` never runs, which is why
-  publish went unchecked for a while — so `validateSchema` is in that module's
-  `steps:` and its resources are checked against their packs like any other.
-  The network adapter validates nothing: its single module runs
-  `validateSign`, `addRoute`, `sign` and never declares a validator.
-
-An action the spec does not know, or a body missing a required field, comes
-back as a signed NACK with a `SCH_*` code and the JSON path that failed.
-
-## The layout
-
-```
-docker-compose.yml          the whole stack. Read it in tiers -- the banner
-                            comments are the structure: registry, discovery,
-                            adapters, observability (profile), edge (profile)
-.env.example                copy to .env
-Makefile                    the front door: make up / up-core / down / help.
-bin/
-  bootstrap-ubuntu.sh       docker and python on a fresh Ubuntu VM
-  stack.sh                  the startup order, and why it is that order.
-                            Every make target is one line of delegation here.
-  setup.py                  keys, five registry rows, the adapter configs
-config/
-  reverse-proxy/
-    npm-custom/             mounted to /data/nginx/custom, which NPM includes
-      http_top.conf         on its own: the rate-limit zone declaration,
-      server_proxy.conf     and the /publish deny that every proxy host gets
-    npm-advanced/
-      exp.conf              NOT loaded -- paste into the experience host's
-                            Advanced tab. Kept here because a textarea in
-                            NPM's database is not reviewable.
-                            The routing table itself is not a file: it is
-                            rows in the npm-data volume.
-  adapters/
-    experience.yaml.tmpl    templates. setup.py renders these to .yaml,
-    network.yaml.tmpl       filling in the keys it generated. The rendered
-    provider.yaml.tmpl      files hold private keys and are gitignored.
-    routing-exp.yaml        which action goes where. exp sends discover to
-    routing-network.yaml    the network layer and select to the provider;
-    routing-provider.yaml   provider sends publish to the network layer;
-                            network sends discover and publish to discovery
-  registry/
-    schemas/                Participant, ProviderSchema, SchemaRegistry.
-                            Read at startup -- a change needs the registry
-                            service restarted.
-    imports/                the Keycloak realm
-  discovery/
-    instance.yaml.example   optional override; see the compose file
-  mappings/
-    mausamgram/             one file per binding-action: the request and the
-    agmarknet/              response transformation, in JSONata. These are the
-                            files the adapters fetch over the raw CDN -- the
-                            served copy and the reviewable copy are one file
-mock-server/
-  mockimd/                  the two mock upstreams. Sources only: they are
-  mockagmarknet/            pulled as published images like everything else.
-                            See mock-server/README.md for the build commands and
-                            for what each deliberately gets wrong.
-../postman-collection/      NOT in here -- a sibling of this directory. The
-                            collection plus an environment file, because it is
-                            what you point AT a stack rather than part of one
-keys/keys.json              generated, gitignored. The private halves of the
-                            three adapter keypairs -- the one file here that
-                            is worth backing up, and the reason setup.py can
-                            be re-run without invalidating what it registered
-```
-
-## About the mapping files
-
-`config/mappings/` holds the two this deployment uses — one per binding-action
-— and `MAPPING_URL` and `MANDI_MAPPING_URL` point at **this repo's own copies**
-over GitHub's raw CDN. So the file a reader reviews and the file the adapter
-fetches are one file, and cannot drift.
-
-Each file has two halves. The request half turns the incoming Beckn payload
-into the query string or body the upstream expects; the response half turns
-what comes back into the resources that go in the answer. The mandi one is the
-better example of why this is not a field-renaming exercise: it converts ISO
-dates to the `dd-MM-yyyy` Agmarknet wants, sends `marketcode` only when the
-request carried one, turns price strings into numbers, and omits a price that
-was not reported rather than sending a zero.
-
-It is a URL rather than a path because the registry publishes the full URL and
-the adapter fetches it verbatim — which means a mapping has to be reachable
-before it can be tested, and what this stack exercises is exactly what any
-consumer fetches.
-
-Note the branch in those URLs. Once this merges, point them at the default
-branch, or pin a tag so a deployment is not following a moving file.
-
-**What can be fixed here without touching code.** Quite a lot, and this is the
-design intent: when a real upstream turns out to answer with different field
-names, a different date format, or a nested envelope, that is a mapping edit
-and a cache expiry. What is *not* fixable here is anything that depends on the
-response never arriving — a non-2xx never reaches the mapping, because the
-step fails first.
-
-To change one: edit the file here and push, or publish a fork anywhere that
-serves raw text over https and put that URL in the `mappings` field of the
-ProviderSchema row. The adapter caches a mapping for `cacheTTL` (one minute,
-in the adapter config) and GitHub's raw CDN caches for about five, so give an
-edit a few minutes to show up.
-
-## When it does not work
+## Appendix F — When it does not work
 
 Both of the common failures are a binding key disagreeing with itself, and
 which 404 you get says which side is wrong.
@@ -1158,7 +1169,267 @@ docker run --rm -v quick-start_npm-data:/data -v "$PWD":/backup \
   alpine tar czf /backup/npm-data.tgz -C /data .
 ```
 
-## Renaming this directory
+## Appendix G — Updating a deployment that is already running
+
+Three things can change, and they need different work. Getting this wrong is
+the most likely way to break a working VM, so the order matters.
+
+**Config only** — a `.tmpl`, a routing file, `.env`. Re-render and recreate:
+
+```sh
+make pull          # git pull, and fixes the ownership NPM leaves behind
+make up            # step 2 re-renders the adapter configs, then recreates
+```
+
+`make restart` is not enough on its own for a `.tmpl` change: the adapters read
+a rendered `.yaml`, and only `setup.py` writes it.
+
+**A new adapter image as well.** Any change to the plugin ids in
+`config/adapters/*.tmpl` is this case, because an id is the basename of a `.so`
+inside the image. The new config must not meet the old image, or every adapter
+dies at startup.
+
+If `ADAPTER_IMAGE` names a **new tag**, set it before `make up` and that is
+all. If it follows **`latest`**, `make up` alone is not enough: `pull_policy:
+missing` means a tag already on disk is never re-fetched, and nothing in
+`stack.sh` pulls, so the stack would quietly come back on the old image. Fetch
+it explicitly first:
+
+```sh
+docker compose pull provider-adapter network-adapter exp-adapter
+```
+
+Either way, build it from the adapter repo at the commit the config expects:
+
+```sh
+git clone https://github.com/OpenAgriNet/network-adapter.git
+cd network-adapter && git checkout <the branch or tag>
+
+docker build -f Dockerfile.adapter-with-plugins \
+  --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) \
+  -t ghcr.io/<you>/oan-adapter:$(git rev-parse --short HEAD) .
+
+# the check worth doing before you push or deploy it
+docker run --rm --entrypoint sh ghcr.io/<you>/oan-adapter:<tag> \
+  -c 'ls plugins/ | grep -iE "weather|mandi"'
+```
+
+That last command should print the ids the config actually names. If it prints
+something else, the image is from the wrong commit and nothing downstream will
+work.
+
+**Payload shapes changed.** If `@context` moved, catalogues already in the
+discovery database still carry the old value, and `discover` matches
+`schemaContext` by exact string equality — so discover alone returns zero rows
+against a database seeded before the change. Run the collection top to bottom
+so publish reseeds first. `updateMode: MERGE` on the same `catalogId` updates
+in place rather than duplicating.
+
+**Then check, in this order.** Cheapest first, because each failure explains
+the next:
+
+```sh
+docker compose logs provider-adapter | grep 'Processor steps initialized'
+docker compose logs provider-adapter | grep -iE '"level":"(error|fatal)"'
+make ps
+```
+
+The first should list the capability steps by the ids the config names. The
+second should be empty. Only then run the collection.
+
+**Rolling back** is `git checkout <old commit>`, `ADAPTER_IMAGE` back to the
+old image, `make up`. Both, together — the old image with the new config fails
+at startup, and the new image with the old config starts but silently runs the
+old behaviour.
+
+Note this is the case `latest` serves badly. Rolling the config back is exact,
+but "the old image" has no name if the tag has already moved, so you would be
+recovering it by digest — `docker images --digests` on the VM, if it is still
+there at all. Pin a tag before a change you might need to undo.
+
+## Appendix H — Telemetry
+
+`docker compose --profile observability up -d` brings up HyperDX on
+`127.0.0.1:8085` (tunnel to reach it) with OTLP on 4317/4318. It is
+`clickstack-local`, not `clickstack-all-in-one`: local runs single-user with no
+team to create and no ingestion key to mint, which is what makes `up -d` the
+whole setup step — and also why it must stay on loopback, since there is no
+login in front of it.
+
+**What actually arrives today is less than the wiring suggests, and that is
+worth knowing before you go looking for traces that are not there.**
+
+- **discovery** reads `OTEL_EXPORTER` and `OTEL_EXPORTER_OTLP_ENDPOINT` into
+  its config, and nothing in the current build consumes them — the only
+  OpenTelemetry packages in its `go.mod` are indirect. So `OTEL_EXPORTER`
+  stays `none` by default; setting it to `otlp` emits nothing rather than
+  failing. When the exporter is wired, `OTEL_EXPORTER=otlp` in `.env` is the
+  whole change and the endpoint already points here.
+- **the three adapters** get `OTEL_EXPORTER_OTLP_ENDPOINT` and
+  `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`. Whether that image's SDK reads
+  them is unverified in either direction — the image is pulled and its source
+  is not in this repo. Nothing depends on the answer: an absent collector makes
+  an OTLP exporter drop spans, not fail a request.
+- **container logs go nowhere near HyperDX** without something to ship them.
+  `docker compose logs -f <service>` remains the way to read them. Shipping
+  them would mean an OTel collector with a `filelog` receiver over
+  `/var/lib/docker/containers`, which is not in this stack.
+
+So treat this profile as the destination being ready and in one place, rather
+than as observability that is switched on.
+
+## Appendix I — Schema validation
+
+Every adapter loads the pinned Beckn v2 LTS spec and validates request bodies
+against it. On the **provider adapter** a second layer runs too: it walks the
+payload for objects carrying `@context` and `@type`, resolves the schema that
+`@type` names, and validates the object against it. Base validation treats
+`resourceAttributes` as a free-form object, so this is the only layer that
+checks a capability's own attributes at all.
+
+The schemas are not in this repository and are not mounted. Each resource's
+`@context` names the published pack, and the validator swaps `context.jsonld`
+for `attributes.yaml` to fetch the schema beside it:
+
+```
+@context   .../network-specs/schema-packs-v0.1/schema/MandiPrice/v0.1/context.jsonld
+fetched    .../network-specs/schema-packs-v0.1/schema/MandiPrice/v0.1/attributes.yaml
+```
+
+So a payload names the pack revision it wants to be judged against, and there is
+no copy here to drift from the published one — the same reason the mappings are
+fetched rather than committed.
+
+It is cached for 24 hours, so only the first payload after a restart pays for
+the fetch. Two consequences: the provider adapter needs egress to
+`raw.githubusercontent.com`, and a fetch that **fails rejects the payload**
+rather than skipping validation. An `@context` on any other host is refused
+before anything is fetched — `extendedSchema_allowedDomains` in the config is
+the list.
+
+**What it does not check.** The validator library parses `if`/`then`/`else` but
+never evaluates it, so every pack rule predicated on `informationMode` is
+unenforced — a pass here is not full conformance to a pack. It does enforce
+types, string formats, `enum`, `const`, `required`, `additionalProperties`,
+`not` and `allOf`/`anyOf`/`oneOf`.
+
+Three consequences worth knowing before you write a payload:
+
+- **Each resource under a commitment needs a `quantity`.** The spec's
+  `Commitment.resources` requires `["id", "quantity"]` while `Resource` itself
+  defines no `quantity` property and the spec has no `Quantity` schema at all —
+  a defect upstream, not something this deployment chose. Any value satisfies
+  it. Without one, every `select` is refused with
+  `SCH_REQUIRED_FIELD_MISSING: property "quantity" is missing`.
+- **A `date-time` field will not take a bare date.** `validity.startsAt` and
+  `endsAt` are `format: date-time` in the packs, so `2025-08-20` is refused
+  and `2025-08-20T00:00:00+05:30` is accepted. `arrivalDate` is `format: date`
+  and wants the opposite.
+- **`publish` is validated, on the provider adapter.** Declaring the validator
+  is not enough — a plugin missing from `steps:` never runs, which is why
+  publish went unchecked for a while — so `validateSchema` is in that module's
+  `steps:` and its resources are checked against their packs like any other.
+  The network adapter validates nothing: its single module runs
+  `validateSign`, `addRoute`, `sign` and never declares a validator.
+
+An action the spec does not know, or a body missing a required field, comes
+back as a signed NACK with a `SCH_*` code and the JSON path that failed.
+
+## Appendix J — About the mapping files
+
+`config/mappings/` holds the two this deployment uses — one per binding-action
+— and `MAPPING_URL` and `MANDI_MAPPING_URL` point at **this repo's own copies**
+over GitHub's raw CDN. So the file a reader reviews and the file the adapter
+fetches are one file, and cannot drift.
+
+Each file has two halves. The request half turns the incoming Beckn payload
+into the query string or body the upstream expects; the response half turns
+what comes back into the resources that go in the answer. The mandi one is the
+better example of why this is not a field-renaming exercise: it converts ISO
+dates to the `dd-MM-yyyy` Agmarknet wants, sends `marketcode` only when the
+request carried one, turns price strings into numbers, and omits a price that
+was not reported rather than sending a zero.
+
+It is a URL rather than a path because the registry publishes the full URL and
+the adapter fetches it verbatim — which means a mapping has to be reachable
+before it can be tested, and what this stack exercises is exactly what any
+consumer fetches.
+
+Note the branch in those URLs. Once this merges, point them at the default
+branch, or pin a tag so a deployment is not following a moving file.
+
+**What can be fixed here without touching code.** Quite a lot, and this is the
+design intent: when a real upstream turns out to answer with different field
+names, a different date format, or a nested envelope, that is a mapping edit
+and a cache expiry. What is *not* fixable here is anything that depends on the
+response never arriving — a non-2xx never reaches the mapping, because the
+step fails first.
+
+To change one: edit the file here and push, or publish a fork anywhere that
+serves raw text over https and put that URL in the `mappings` field of the
+ProviderSchema row. The adapter caches a mapping for `cacheTTL` (one minute,
+in the adapter config) and GitHub's raw CDN caches for about five, so give an
+edit a few minutes to show up.
+
+## Appendix K — The layout
+
+```
+docker-compose.yml          the whole stack. Read it in tiers -- the banner
+                            comments are the structure: registry, discovery,
+                            adapters, observability (profile), edge (profile)
+.env.example                copy to .env
+Makefile                    the front door: make up / up-core / down / help.
+bin/
+  bootstrap-ubuntu.sh       docker and python on a fresh Ubuntu VM
+  stack.sh                  the startup order, and why it is that order.
+                            Every make target is one line of delegation here.
+  setup.py                  keys, five registry rows, the adapter configs
+config/
+  reverse-proxy/
+    npm-custom/             mounted to /data/nginx/custom, which NPM includes
+      http_top.conf         on its own: the rate-limit zone declaration,
+      server_proxy.conf     and the /publish deny that every proxy host gets
+    npm-advanced/
+      exp.conf              NOT loaded -- paste into the experience host's
+                            Advanced tab. Kept here because a textarea in
+                            NPM's database is not reviewable.
+                            The routing table itself is not a file: it is
+                            rows in the npm-data volume.
+  adapters/
+    experience.yaml.tmpl    templates. setup.py renders these to .yaml,
+    network.yaml.tmpl       filling in the keys it generated. The rendered
+    provider.yaml.tmpl      files hold private keys and are gitignored.
+    routing-exp.yaml        which action goes where. exp sends discover to
+    routing-network.yaml    the network layer and select to the provider;
+    routing-provider.yaml   provider sends publish to the network layer;
+                            network sends discover and publish to discovery
+  registry/
+    schemas/                Participant, ProviderSchema, SchemaRegistry.
+                            Read at startup -- a change needs the registry
+                            service restarted.
+    imports/                the Keycloak realm
+  discovery/
+    instance.yaml.example   optional override; see the compose file
+  mappings/
+    mausamgram/             one file per binding-action: the request and the
+    agmarknet/              response transformation, in JSONata. These are the
+                            files the adapters fetch over the raw CDN -- the
+                            served copy and the reviewable copy are one file
+mock-server/
+  mockimd/                  the two mock upstreams. Sources only: they are
+  mockagmarknet/            pulled as published images like everything else.
+                            See mock-server/README.md for the build commands and
+                            for what each deliberately gets wrong.
+../postman-collection/      NOT in here -- a sibling of this directory. The
+                            collection plus an environment file, because it is
+                            what you point AT a stack rather than part of one
+keys/keys.json              generated, gitignored. The private halves of the
+                            three adapter keypairs -- the one file here that
+                            is worth backing up, and the reason setup.py can
+                            be re-run without invalidating what it registered
+```
+
+## Appendix L — Renaming this directory
 
 Worth knowing before you pull a rename onto a running host, because Docker will
 not warn you.
@@ -1206,7 +1477,7 @@ Keycloak shares `registry-data` with the registry, so its realm travels with
 that one volume -- there is nothing separate to migrate, and equally nothing
 that survives if you skip it.
 
-## Starting over
+## Appendix M — Starting over
 
 ```sh
 docker compose down -v   # -v also deletes the registry and discovery data
@@ -1216,3 +1487,98 @@ rm -rf keys config/adapters/experience.yaml config/adapters/network.yaml config/
 Then start again from `docker compose up -d`. New keys mean new identities, so
 the provider rows have to be created again too — and the old participant ids
 cannot be reused.
+
+## Appendix N — Before you start — the long form
+
+On the VM:
+
+- Docker with Compose **v2.24 or newer**, logged in to wherever the images live
+  if it is private — `docker login ghcr.io`. The version floor is the
+  `env_file: required: false` on the HyperDX service, which is what lets an
+  absent `.env.docker` be absent instead of fatal.
+- Python 3 and the `cryptography` package — `pip install cryptography`
+- 16 GB of RAM if you run the `observability` profile — ClickHouse alone wants
+  2-4 GB on top of the two JVM services. 8 GB is workable without it.
+
+Nothing else. No external API and no tunnel: the two mock upstreams are part
+of the stack, so a select has something to answer it the moment it comes up.
+
+`bin/bootstrap-ubuntu.sh` installs the first two on a fresh Ubuntu VM.
+
+## Appendix O — Testing it end to end — the long form
+
+**Quickest path: import `../postman-collection/`.** Six requests, 32
+assertions, nothing to fill in — publish, discover and select for each
+capability, with every value already matching this deployment. There are no
+registry requests: the registry has no route through the edge, so `setup.py`
+seeds it instead. A green run means the stack is healthy
+rather than merely answering.
+
+It sits at the repo root rather than in here, because it is not part of the
+compose stack — it is what you point at one, and its environment file exists so
+it can be aimed somewhere else.
+
+The rest of this section is one of those requests as curl, if you would rather
+see it than run it.
+
+```sh
+curl -s -X POST http://127.0.0.1:9202/select \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "context": {
+      "version": "2.0.0", "action": "select",
+      "networkId": "oan-dev",
+      "transactionId": "9f2c1a8e-4b70-4d31-9c55-6f2e0b1d7a44",
+      "messageId": "7d41b9e0-52a6-4c18-8b73-1e9f0a4c6d22",
+      "timestamp": "2026-09-04T06:12:01.330Z"
+    },
+    "message": { "contract": { "commitments": [ {
+      "status": { "descriptor": { "code": "DRAFT", "name": "Draft" } },
+      "resources": [ {
+        "id": "res:mausamgram:point-forecast",
+        "quantity": 1,
+        "resourceAttributes": {
+          "@context": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/schema-packs-v0.1/schema/WeatherObservation/v0.1/context.jsonld",
+          "@type": "openagrinet:WeatherObservation",
+          "subjectCategories": ["Weather"],
+          "informationMode": "OnDemand",
+          "supportedObservationTypes": ["Forecast"],
+          "supportedParameters": ["Rainfall", "Temperature"],
+          "geographicGranularities": ["Point"],
+          "location": { "type": "Point", "coordinates": [73.7898, 19.9975] }
+        }
+      } ],
+      "offer": {
+        "id": "offer:mausamgram:open-data",
+        "resourceIds": ["res:mausamgram:point-forecast"],
+        "provider": { "id": "mausamgram-mock",
+                      "descriptor": { "code": "IMD-NWP-01", "name": "IMD Mausamgram NWP" } }
+      }
+    } ] } }
+  }' | python3 -m json.tool
+```
+
+An `on_select` comes back with one resource per forecast day — three by
+default, which is `MOCKIMD_DAYS`.
+
+The mandi equivalent is the same call to the same endpoint with a `MandiPrice`
+resource and `agmarknet-mock` as the provider, and that is the point worth
+taking from this section: **one endpoint, two capabilities, and no routing
+config in between.** Each provider step builds a binding key out of the
+payload it is handed, answers if the key is its own, and passes the payload
+through untouched if it is not. Adding a third capability is a plugin and two
+registry rows, not a new route.
+
+Two things about the payload:
+
+**No party is named, in either direction.** Identity travels in the
+`Authorization` header's `keyId`, which names the signer and the key the
+registry published for it; a body that declares no caller simply skips the
+declared-identity comparison. Nothing needs `bapId` or `bppId`, and the `*Uri`
+fields they came with were container-internal addresses that meant nothing
+outside this compose network anyway.
+
+**The experience adapter is the only one that takes an unsigned request.** The
+experience app is inside the trust boundary, so there is no network signature
+to check — which is what makes this testable with a plain curl. The same call
+to the provider adapter on 9200 is rejected unsigned.
