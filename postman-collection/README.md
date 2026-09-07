@@ -21,118 +21,32 @@ stay intact for the next person.
 No VM hostname or address is committed in either file. Deployment addresses are
 shared separately, and the environment file is the place to put them.
 
-## Three folders
+## Two folders, one per capability
 
-    1. Registry    13 requests -- token, creates, updates, searches
-    2. Weather      1. Publish   2. Discover   3. Select
-    3. Mandi        1. Publish   2. Discover   3. Select
+    1. Weather    1. Publish   2. Discover   3. Select
+    2. Mandi      1. Publish   2. Discover   3. Select
 
-Grouped by capability rather than by action, so one capability is one folder you
-can run end to end:
+Six requests, 32 assertions. Run a folder top to bottom the first time --
+Publish seeds the catalogue Discover looks for -- and after that any request
+works on its own:
 
-    newman run OAN-dev-flow.postman_collection.json --folder "3. Mandi"
+    newman run OAN-dev-flow.postman_collection.json --folder "2. Mandi"
 
-**Order is still position.** Registry issues the token the writes after it need,
-and inside a capability folder Publish seeds the catalogue Discover looks for.
-So a first run goes top to bottom; after that any folder runs on its own.
+The two Select requests are the pair worth comparing. They hit the same
+endpoint on the same adapter and different domain packages answer them, because
+each provider step recognises its own binding key from the payload and passes
+through anything else. Nothing routes by URL, path or domain.
 
-The two Select requests are the pair worth comparing. They hit the same endpoint
-on the same adapter and different domain packages answer them, because each
-provider step recognises its own binding key from the payload and passes through
-anything else. Nothing routes by URL, path or domain.
+## No registry requests here
 
-Each folder carries a description of what that leg does and what its failures
-mean.
+Deliberate. The registry has no route through the gateway and publishes on
+loopback only, so nothing in a shared collection could reach it.
+`bin/setup.py` seeds all of it -- five participants and both capability
+bindings -- from the same `.env` the adapter configs are rendered from, which is
+what keeps the two from disagreeing.
 
-## A default run changes nothing
-
-That is deliberate, so the collection is safe to re-run against a live stack.
-
-- **The creates** report "already present". The registry is append-only -- no
-  update on create, and a soft delete keeps the unique index -- so a second run
-  cannot succeed. The test accepts a duplicate and fails anything else, so a
-  validation error or a bad token is still caught.
-- **The updates** write back the same value the variable already holds. Change
-  a variable to actually change a row.
-
-## What the updates need
-
-`PUT /api/v1/{Entity}/{osid}` works, and a **partial body merges** -- send only
-`baseUrl` and the name, type and status keep their stored values.
-
-Two things follow from how the registry implements it:
-
-- **The URL takes an osid, not a participantId.** The registry addresses a
-  record by the id it assigned on write. Each PUT resolves that itself in a
-  pre-request script, so the request still runs on its own.
-- **The entity schema has to permit additional properties.** The registry
-  re-validates the *merged* document, and that document carries the `osid`,
-  `osUpdatedAt` and `osOwner` it injected itself -- which `additionalProperties:
-  false` rejects as extraneous, naming its own fields. `Participant`,
-  `ProviderSchema` and `ActionBinding` in `config/registry/schemas/` allow them
-  for this reason. `PublicKey` deliberately does not: nothing here updates key
-  material, and a partial PUT that omits `keys` never re-validates it.
-
-Schemas are read at startup, so a change there needs the registry restarted.
-
-## Filling in the node keys
-
-`expNodeKey`, `networkNodeKey` and `providerNodeKey` ship blank, because the
-keypairs are generated per deployment into `keys/keys.json` on the host.
-`bin/setup.py` already created those three rows, so requests 2-4 are normally
-not needed at all -- they are here to show what a node record looks like. With
-the keys blank they report "awaiting a key" rather than failing the run.
-
-If you do fill them in, use the public half exactly as `keys/keys.json` holds
-it: bare base64, no encoding label. A node created with a key the adapter does
-not hold produces signatures nobody can verify, and the id cannot be reclaimed.
-
-## Giving an upstream its own signing key
-
-The two upstream creates carry a `keys` block, blank by default, and drop it
-when the variable is empty. Set `weatherProviderKey` or `mandiProviderKey` to a
-provider's **public** signing key and the block is sent.
-
-**Why an upstream may have keys.** The `Participant` schema declares `keys` for
-every type. Its only conditional is `if type == "node" then require role and
-keys`, and it has no `else` -- so that branch adds requirements for a node and
-never forbids keys on an upstream. The adapter accepts such a key as a signer
-too: the signature lookup filters on `participantId` alone and never compares
-`type`, and `isSigning()` treats an absent `use` as signing, which matters
-because this schema drops `use` and lets `alg` carry the purpose.
-
-**Why you would want it.** With a key on that row the provider can sign its own
-catalogue and `POST /publish` straight at the **network** adapter, which
-verifies the signature against the row. The provider adapter drops out of the
-publish path -- and with it the unauthenticated `/publish` it otherwise has to
-expose, which is the whole reason the gateway carries a deny rule for that path.
-
-Verified end to end: an upstream record created with an `ed25519` key signed a
-catalogue and the network adapter answered `catalog/on_publish` `ACCEPTED`,
-while a wrong key, a body tampered with after signing, and a missing
-`Authorization` header each came back `401`.
-
-The header a provider has to produce:
-
-    Signature keyId="<participantId>|<key osid>|ed25519",
-              algorithm="ed25519",created="<unix>",expires="<unix>",
-              headers="(created) (expires) digest",signature="<base64>"
-
-signed over exactly this string -- real newlines, and `BLAKE-512` meaning
-BLAKE2b-512, not SHA:
-
-    (created): <unix>
-    (expires): <unix>
-    digest: BLAKE-512=<base64 of blake2b-512 over the raw body>
-
-The `osid` is the one the registry assigns the key on write, so a provider has
-to read it back from a `Participant/search` after registering.
-
-**Add the keys when you create the record.** A partial PUT can add a `keys`
-array later but cannot remove or replace one -- the registry is append-only. And
-the value is bare base64 matching `^[A-Za-z0-9+/]{43}=$`, no encoding label: a
-`base64:` prefix left on the front fails verification later with a decode error
-that points nowhere near the registry.
+To look at a registry row, tunnel to the VM and use `Participant/search`
+directly; the quick-start README has the curl.
 
 ## networkAdapterUrl
 
