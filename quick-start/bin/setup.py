@@ -360,13 +360,29 @@ def key_osids(identities):
 
 # ------------------------------------------------------------------ configs
 
+# The config filename for each role.
+#
+# Deliberately separate from the role key. That key is also the entry in
+# keys/keys.json and the __EXP_* placeholder prefix, and changing it would make
+# this script generate a FRESH keypair for a participant the registry has
+# already published a public key for -- which it cannot update and whose delete
+# is soft, so the id could not be reused either. The adapter would then sign
+# with a key nobody can verify, and it would surface much later as an
+# authentication error with no obvious cause.
+#
+# So the file can be spelled out in full without touching the thing that has to
+# stay stable.
+CONFIG_STEM = {"exp": "experience", "network": "network", "provider": "provider"}
+
+
 def render(identities):
     print("configs:")
     binding = f"{env('PROVIDER_PARTICIPANT_ID')}|{env('PROVIDER_CAPABILITY')}"
     mandi_binding = f"{env('MANDI_PARTICIPANT_ID')}|{env('MANDI_CAPABILITY')}"
     for role in ("exp", "network", "provider"):
         identity = identities[role]
-        template = (ADAPTERS / f"{role}.yaml.tmpl").read_text()
+        stem = CONFIG_STEM[role]
+        template = (ADAPTERS / f"{stem}.yaml.tmpl").read_text()
         prefix = role.upper()
         for placeholder, value in (
                 (f"__{prefix}_SUBSCRIBER_ID__", identity["participantId"]),
@@ -386,8 +402,8 @@ def render(identities):
                 ("__OTEL_ENVIRONMENT__", env("OTEL_ENVIRONMENT", "dev"))):
             template = template.replace(placeholder, value)
         if "__" in template:
-            sys.exit(f"setup: {role}.yaml still has unrendered placeholders")
-        out = ADAPTERS / f"{role}.yaml"
+            sys.exit(f"setup: {stem}.yaml still has unrendered placeholders")
+        out = ADAPTERS / f"{stem}.yaml"
         # A bare `docker compose up -d` before this script runs starts the
         # adapters too, and Docker creates a DIRECTORY at a bind-mount source
         # that does not exist. Writing would then fail with a bare
@@ -402,7 +418,7 @@ def render(identities):
                 f"    make up")
         out.write_text(template)
         out.chmod(0o600)  # holds a private key
-        print(f"  config/adapters/{role}.yaml")
+        print(f"  config/adapters/{stem}.yaml")
 
 
 if __name__ == "__main__":

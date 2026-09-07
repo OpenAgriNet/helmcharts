@@ -6,7 +6,7 @@ keys/
 
 # Rendered from the .tmpl files beside them, and they carry the private key
 # material that keys/ holds. The templates are the tracked source.
-config/adapters/exp.yaml
+config/adapters/experience.yaml
 config/adapters/network.yaml
 config/adapters/provider.yaml
 

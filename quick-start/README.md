@@ -931,7 +931,7 @@ config/
                             The routing table itself is not a file: it is
                             rows in the npm-data volume.
   adapters/
-    exp.yaml.tmpl           templates. setup.py renders these to .yaml,
+    experience.yaml.tmpl    templates. setup.py renders these to .yaml,
     network.yaml.tmpl       filling in the keys it generated. The rendered
     provider.yaml.tmpl      files hold private keys and are gitignored.
     routing-exp.yaml        which action goes where. exp sends discover to
@@ -1210,7 +1210,7 @@ that survives if you skip it.
 
 ```sh
 docker compose down -v   # -v also deletes the registry and discovery data
-rm -rf keys config/adapters/exp.yaml config/adapters/network.yaml config/adapters/provider.yaml
+rm -rf keys config/adapters/experience.yaml config/adapters/network.yaml config/adapters/provider.yaml
 ```
 
 Then start again from `docker compose up -d`. New keys mean new identities, so
