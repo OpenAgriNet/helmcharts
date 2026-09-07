@@ -390,7 +390,7 @@ stops after step 3, which is enough to exercise the stack:
 ```
 1. registry and discovery        (also registry-db, keycloak, discovery-db)
 2. bin/setup.py                  keys, five registry participants, adapter configs
-3. mocks, then the three adapters
+3. mock upstreams, then the three adapters
 4. nginx-proxy-manager           the public edge -- 80 and 443, all interfaces
 5. hyperdx                       ClickStack
 ```
@@ -547,10 +547,15 @@ Things worth knowing before editing any of this:
 
 ## Test it end to end
 
-**Quickest path: import `postman-collection/`.** Six requests, 32 assertions,
-nothing to fill in — publish, discover and select for both capabilities, with
-every value already matching this deployment. A green run means the stack is
-healthy rather than merely answering.
+**Quickest path: import `../postman-collection/`.** Nineteen requests, 50
+assertions, nothing to fill in — the registry writes and reads that set the
+stack up, then publish, discover and select for each capability, with every
+value already matching this deployment. A green run means the stack is healthy
+rather than merely answering.
+
+It sits at the repo root rather than in here, because it is not part of the
+compose stack — it is what you point at one, and its environment file exists so
+it can be aimed somewhere else.
 
 The rest of this section is one of those requests as curl, if you would rather
 see it than run it.
@@ -795,9 +800,9 @@ mock-server/
   mockagmarknet/            pulled as published images like everything else.
                             See mock-server/README.md for the build commands and
                             for what each deliberately gets wrong.
-postman-collection/         the whole flow as a Postman collection, with the
-                            deployment's own values prefilled and no registry
-                            request in it
+../postman-collection/      NOT in here -- a sibling of this directory. The
+                            collection plus an environment file, because it is
+                            what you point AT a stack rather than part of one
 keys/keys.json              generated, gitignored. The private halves of the
                             three adapter keypairs -- the one file here that
                             is worth backing up, and the reason setup.py can
@@ -983,6 +988,54 @@ the volume and you also lose every proxy host and certificate. Back it up:
 docker run --rm -v quick-start_npm-data:/data -v "$PWD":/backup \
   alpine tar czf /backup/npm-data.tgz -C /data .
 ```
+
+## Renaming this directory
+
+Worth knowing before you pull a rename onto a running host, because Docker will
+not warn you.
+
+**Compose takes its project name from the directory holding the compose file**,
+and every named volume is prefixed with it. So this directory becoming
+`quick-start` renames all five:
+
+    docker-deployment_registry-data   ->  quick-start_registry-data
+    docker-deployment_discovery-data  ->  quick-start_discovery-data
+    docker-deployment_npm-data        ->  quick-start_npm-data
+    docker-deployment_npm-letsencrypt ->  quick-start_npm-letsencrypt
+    docker-deployment_hyperdx-data    ->  quick-start_hyperdx-data
+
+Docker does not move data between them. A plain `make up` after the pull starts
+on **empty** volumes: an empty registry, an empty discovery catalogue, and an
+NPM with no proxy hosts and no certificates. The old volumes are still there,
+just orphaned.
+
+`npm-letsencrypt` is the one to care about. Re-issuing certificates means
+Let's Encrypt's duplicate-certificate limit, five per week for the same set of
+names, so losing it can leave you unable to get them back for days.
+
+**Copy the data across before starting.** Stop the stack first, from whichever
+directory name it is currently running under:
+
+```sh
+make down
+
+for v in registry-data discovery-data npm-data npm-letsencrypt hyperdx-data; do
+  docker volume create "quick-start_$v" >/dev/null
+  docker run --rm -v "docker-deployment_$v:/from" -v "quick-start_$v:/to" alpine \
+    sh -c 'cd /from && tar cf - . | (cd /to && tar xf -)'
+done
+```
+
+Then `make up`, and check the registry has its five participants and NPM still
+lists your proxy hosts before deleting anything:
+
+```sh
+docker volume ls | grep docker-deployment_    # the old copies, once you are sure
+```
+
+Keycloak shares `registry-data` with the registry, so its realm travels with
+that one volume -- there is nothing separate to migrate, and equally nothing
+that survives if you skip it.
 
 ## Starting over
 
