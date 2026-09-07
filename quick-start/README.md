@@ -21,7 +21,7 @@ Running here:
 - **three adapters** — experience, network and provider. Same image, three
   configs.
 - **two mock upstreams** — one standing in for Mausamgram's forecast API, one
-  for Agmarknet's Vistaar prices. Sources in `mocks/`; they are pulled as
+  for Agmarknet's Vistaar prices. Sources in `mock-server/`; they are pulled as
   published images like everything else. They exist so the stack answers a
   select end to end out of the box, with no external API and no ngrok tunnel.
   Loopback only, and the adapter reaches them by compose service name rather
@@ -790,10 +790,10 @@ config/
     agmarknet/              response transformation, in JSONata. These are the
                             files the adapters fetch over the raw CDN -- the
                             served copy and the reviewable copy are one file
-mocks/
+mock-server/
   mockimd/                  the two mock upstreams. Sources only: they are
   mockagmarknet/            pulled as published images like everything else.
-                            See mocks/README.md for the build commands and
+                            See mock-server/README.md for the build commands and
                             for what each deliberately gets wrong.
 postman-collection/         the whole flow as a Postman collection, with the
                             deployment's own values prefilled and no registry
@@ -980,7 +980,7 @@ The account lives in the `npm-data` volume, and there is no reset flow. Recreate
 the volume and you also lose every proxy host and certificate. Back it up:
 
 ```sh
-docker run --rm -v docker-deployment_npm-data:/data -v "$PWD":/backup \
+docker run --rm -v quick-start_npm-data:/data -v "$PWD":/backup \
   alpine tar czf /backup/npm-data.tgz -C /data .
 ```
 

@@ -26,7 +26,7 @@ set -euo pipefail
 
 # Every path in here is relative to the compose directory, and `docker compose`
 # needs to find docker-compose.yml, so anchor to it rather than to $PWD. That
-# makes `make -C docker-deployment up` work from anywhere.
+# makes `make -C quick-start up` work from anywhere.
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 

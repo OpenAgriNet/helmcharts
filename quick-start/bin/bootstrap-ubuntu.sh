@@ -3,7 +3,7 @@
 # Everything an Ubuntu VM needs before `make up` will run. Idempotent -- safe to
 # re-run, and safe to run on a box that already has some of this.
 #
-#     curl -fsSL https://raw.githubusercontent.com/OpenAgriNet/helmcharts/<branch>/docker-deployment/bin/bootstrap-ubuntu.sh | bash
+#     curl -fsSL https://raw.githubusercontent.com/OpenAgriNet/helmcharts/<branch>/quick-start/bin/bootstrap-ubuntu.sh | bash
 #
 # or, once the repo is cloned:
 #
@@ -111,7 +111,7 @@ cat <<'NEXT'
   Then:
 
       git clone -b feat/4-docker-compose https://github.com/OpenAgriNet/helmcharts.git
-      cd helmcharts/docker-deployment
+      cd helmcharts/quick-start
       cp .env.example .env && nano .env      # change every credential
       make up
 

@@ -1510,7 +1510,7 @@
     },
     {
       "key": "weatherMappingUrl",
-      "value": "https://raw.githubusercontent.com/OpenAgriNet/helmcharts/feat/4-docker-compose/docker-deployment/config/mappings/mausamgram/weather-observation.select.yaml"
+      "value": "https://raw.githubusercontent.com/OpenAgriNet/helmcharts/feat/4-docker-compose/quick-start/config/mappings/mausamgram/weather-observation.select.yaml"
     },
     {
       "key": "mandiProviderId",
@@ -1540,7 +1540,7 @@
     },
     {
       "key": "mandiMappingUrl",
-      "value": "https://raw.githubusercontent.com/OpenAgriNet/helmcharts/feat/4-docker-compose/docker-deployment/config/mappings/agmarknet/mandi-price.select.yaml"
+      "value": "https://raw.githubusercontent.com/OpenAgriNet/helmcharts/feat/4-docker-compose/quick-start/config/mappings/agmarknet/mandi-price.select.yaml"
     },
     {
       "key": "networkId",
