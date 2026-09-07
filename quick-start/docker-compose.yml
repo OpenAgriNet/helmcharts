@@ -452,7 +452,7 @@ services:
       OTEL_SERVICE_NAME: oan-exp-adapter
     volumes:
       - ./config/adapters/experience.yaml:/app/config/adapter.yaml:ro
-      - ./config/adapters/routing-exp.yaml:/app/config/routing-exp.yaml:ro
+      - ./config/adapters/routing-experience.yaml:/app/config/routing-experience.yaml:ro
     ports:
       - "127.0.0.1:${EXP_ADAPTER_PORT}:9202"
 

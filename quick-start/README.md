@@ -203,7 +203,7 @@ docker compose logs network-adapter | grep 'Server listening'
 
 The consumer's edge. Sends `discover` to the network layer and `select`
 straight to the provider layer — which action goes where is
-`config/adapters/routing-exp.yaml`, not a code path.
+`config/adapters/routing-experience.yaml`, not a code path.
 
 **Config it needs**
 
@@ -246,8 +246,22 @@ against it — so run publish before discover the first time.
 A green run means the registry is seeded, both adapters sign and verify, both
 mappings work, and discovery is indexing.
 
-There are no registry requests in the collection deliberately — the registry
-has no route through the edge, so `setup.py` seeds it instead.
+Or without Postman:
+
+```sh
+newman run ../postman-collection/api-collection.json --folder "2. MandiPrice"
+```
+
+**To point it at another deployment, edit the environment file, not the
+collection.** Postman resolves an environment variable ahead of a collection
+variable of the same name, so the loopback defaults stay intact for the next
+person. No deployment address is committed in either file, deliberately.
+
+There are no registry requests in the collection either — the registry has no
+route through the edge, so `setup.py` seeds it instead.
+
+→ Appendix O for what the two `select` requests demonstrate, and why one
+variable is deliberately called by nothing.
 
 ---
 
@@ -1399,7 +1413,7 @@ config/
     experience.yaml.tmpl    templates. setup.py renders these to .yaml,
     network.yaml.tmpl       filling in the keys it generated. The rendered
     provider.yaml.tmpl      files hold private keys and are gitignored.
-    routing-exp.yaml        which action goes where. exp sends discover to
+    routing-experience.yaml which action goes where. it sends discover to
     routing-network.yaml    the network layer and select to the provider;
     routing-provider.yaml   provider sends publish to the network layer;
                             network sends discover and publish to discovery
@@ -1513,6 +1527,22 @@ capability, with every value already matching this deployment. There are no
 registry requests: the registry has no route through the edge, so `setup.py`
 seeds it instead. A green run means the stack is healthy
 rather than merely answering.
+
+**The two `select` requests are the pair worth comparing.** They hit the same
+endpoint on the same adapter, and different domain packages answer them —
+because each provider step builds a binding key from the payload, serves the
+request if the key is its own, and passes through anything else. Nothing routes
+by URL, path or domain. That is the whole dispatch mechanism, and these two
+requests are what demonstrate it.
+
+**`networkAdapterUrl` is a variable no request uses, on purpose.** `discover`
+reaches the network adapter through the experience adapter and `publish`
+through the provider adapter, so nothing in the collection calls it directly.
+It is listed because it is the other adapter a deployment exposes publicly:
+its `/publish` and `/discover` both verify signatures, so a network peer calls
+it directly. Signing is not something Postman does, so those calls are not
+scripted — the variable is there so the address has somewhere to live, not
+because a request is missing.
 
 It sits at the repo root rather than in here, because it is not part of the
 compose stack — it is what you point at one, and its environment file exists so
