@@ -2,8 +2,8 @@
 
 Two files. Import both.
 
-    OAN-dev-flow.postman_collection.json    the requests
-    OAN-dev.postman_environment.json        where your deployment's URLs go
+    api-collection.json                 the requests
+    local_postman_environment.json      where your deployment's URLs go
 
 **The collection alone works against a tunnel.** Every URL variable defaults to
 loopback, because the stack publishes its ports on the VM's loopback only:
@@ -30,7 +30,7 @@ Six requests, 32 assertions. Run a folder top to bottom the first time --
 Publish seeds the catalogue Discover looks for -- and after that any request
 works on its own:
 
-    newman run OAN-dev-flow.postman_collection.json --folder "2. MandiPrice"
+    newman run api-collection.json --folder "2. MandiPrice"
 
 The two Select requests are the pair worth comparing. They hit the same
 endpoint on the same adapter and different domain packages answer them, because

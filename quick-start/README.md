@@ -672,10 +672,11 @@ Things worth knowing before editing any of this:
 
 ## Test it end to end
 
-**Quickest path: import `../postman-collection/`.** Nineteen requests, 50
-assertions, nothing to fill in — the registry writes and reads that set the
-stack up, then publish, discover and select for each capability, with every
-value already matching this deployment. A green run means the stack is healthy
+**Quickest path: import `../postman-collection/`.** Six requests, 32
+assertions, nothing to fill in — publish, discover and select for each
+capability, with every value already matching this deployment. There are no
+registry requests: the registry has no route through the edge, so `setup.py`
+seeds it instead. A green run means the stack is healthy
 rather than merely answering.
 
 It sits at the repo root rather than in here, because it is not part of the
