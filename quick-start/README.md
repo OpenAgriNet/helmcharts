@@ -460,9 +460,20 @@ a rendered `.yaml`, and only `setup.py` writes it.
 
 **A new adapter image as well.** Any change to the plugin ids in
 `config/adapters/*.tmpl` is this case, because an id is the basename of a `.so`
-inside the image. Set `ADAPTER_IMAGE` to the matching tag BEFORE `make up`, or
-the new config meets the old image and every adapter dies at startup. Build it
-from the adapter repo at the commit the config expects:
+inside the image. The new config must not meet the old image, or every adapter
+dies at startup.
+
+If `ADAPTER_IMAGE` names a **new tag**, set it before `make up` and that is
+all. If it follows **`latest`**, `make up` alone is not enough: `pull_policy:
+missing` means a tag already on disk is never re-fetched, and nothing in
+`stack.sh` pulls, so the stack would quietly come back on the old image. Fetch
+it explicitly first:
+
+```sh
+docker compose pull provider-adapter network-adapter exp-adapter
+```
+
+Either way, build it from the adapter repo at the commit the config expects:
 
 ```sh
 git clone https://github.com/OpenAgriNet/network-adapter.git
@@ -501,9 +512,14 @@ The first should list the capability steps by the ids the config names. The
 second should be empty. Only then run the collection.
 
 **Rolling back** is `git checkout <old commit>`, `ADAPTER_IMAGE` back to the
-old tag, `make up`. Both, together — the old image with the new config fails at
-startup, and the new image with the old config starts but silently runs the old
-behaviour.
+old image, `make up`. Both, together — the old image with the new config fails
+at startup, and the new image with the old config starts but silently runs the
+old behaviour.
+
+Note this is the case `latest` serves badly. Rolling the config back is exact,
+but "the old image" has no name if the tag has already moved, so you would be
+recovering it by digest — `docker images --digests` on the VM, if it is still
+there at all. Pin a tag before a change you might need to undo.
 
 ## What is in the registry, and why you did not create it
 
