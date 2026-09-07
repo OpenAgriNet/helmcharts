@@ -8,7 +8,7 @@
   },
   "item": [
     {
-      "name": "1. Weather",
+      "name": "1. WeatherObservation",
       "item": [
         {
           "name": "1. Publish",
@@ -179,7 +179,7 @@
       "description": "The weather capability end to end: publish its catalogue, find it, then ask for a forecast.\n\nRUN IN ORDER the first time -- Publish seeds the catalogue Discover looks for. After that Select works on its own.\n\nSelect is the interesting one. It goes to the same endpoint on the same adapter as Mandi's, and a different domain package answers it: each provider step builds a binding key from the payload, serves the request if the key is its own, and passes it through untouched if not. A 404 NET_ENTITY_NOT_FOUND here means no step claimed this payload -- compare {{providerId}} and the capability @type against the bindings in Registry."
     },
     {
-      "name": "2. Mandi",
+      "name": "2. MandiPrice",
       "item": [
         {
           "name": "1. Publish",

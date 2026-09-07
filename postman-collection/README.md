@@ -23,14 +23,14 @@ shared separately, and the environment file is the place to put them.
 
 ## Two folders, one per capability
 
-    1. Weather    1. Publish   2. Discover   3. Select
-    2. Mandi      1. Publish   2. Discover   3. Select
+    1. WeatherObservation    1. Publish   2. Discover   3. Select
+    2. MandiPrice            1. Publish   2. Discover   3. Select
 
 Six requests, 32 assertions. Run a folder top to bottom the first time --
 Publish seeds the catalogue Discover looks for -- and after that any request
 works on its own:
 
-    newman run OAN-dev-flow.postman_collection.json --folder "2. Mandi"
+    newman run OAN-dev-flow.postman_collection.json --folder "2. MandiPrice"
 
 The two Select requests are the pair worth comparing. They hit the same
 endpoint on the same adapter and different domain packages answer them, because
