@@ -414,12 +414,6 @@ services:
     volumes:
       - ./config/adapters/provider.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/routing-provider.yaml:/app/config/routing-provider.yaml:ro
-      # The capability schemas extended validation resolves @type against.
-      # Preloaded at startup, so this container needs no egress to validate and
-      # no payload costs a fetch. bin/fetch-schemas.sh populates it from the
-      # published specs repository; a missing directory fails startup, which is
-      # why bin/stack.sh fetches before the adapters come up.
-      - ./config/schemas:/app/config/schemas:ro
     ports:
       - "127.0.0.1:${PROVIDER_ADAPTER_PORT}:9200"
 

@@ -10,11 +10,6 @@ config/adapters/exp.yaml
 config/adapters/network.yaml
 config/adapters/provider.yaml
 
-# Downloaded by bin/fetch-schemas.sh from the published specs repository, and
-# not committed for the same reason the mappings are not: a copy here would
-# drift from what the network publishes.
-config/schemas/
-
 # A local override for the discovery service, if you make one.
 config/discovery/instance.yaml
 

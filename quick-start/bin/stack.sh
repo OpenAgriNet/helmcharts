@@ -62,9 +62,6 @@ preflight() {
 
     python3 -c 'import cryptography' >/dev/null 2>&1 \
         || die "the python 'cryptography' package is missing -- pip install cryptography"
-
-    command -v curl >/dev/null 2>&1 \
-        || die "curl is not installed -- bin/fetch-schemas.sh needs it"
 }
 
 # ------------------------------------------------------------------- up
@@ -127,20 +124,13 @@ up_registry_tier() {
     docker compose up -d registry discovery
 }
 
-# Generates the adapter keypairs, registers the three adapter identities,
+# Generates the adapter keypairs, registers the three adapter identities, and
 # renders config/adapters/{provider,network,exp}.yaml from the .tmpl files
-# beside them, and downloads the schema packs. Safe to re-run: keys come from
-# keys/keys.json once it exists, and participants already registered are left
-# alone.
-#
-# The schemas have to be here rather than in step 3: the provider adapter
-# preloads them at startup and REFUSES TO START without them, and the directory
-# is bind-mounted, so an adapter started first would find a directory Docker
-# invented and fail on an empty one.
+# beside them. Safe to re-run: keys come from keys/keys.json once it exists,
+# and participants already registered are left alone.
 up_setup() {
     step 2 "$1" "bin/setup.py -- keys, five registry participants, adapter configs"
     python3 bin/setup.py
-    bash bin/fetch-schemas.sh
 }
 
 # Only now do the bind-mounted config files exist.
@@ -319,14 +309,12 @@ restart_edge() {
     docker compose --profile reverse-proxy restart nginx-proxy-manager
 }
 
-# Just step 2. Re-run it after editing a .tmpl, to re-render configs that were
-# deleted, or to pick up a new SCHEMA_PACKS_URL. It is idempotent, so this is
-# always safe.
+# Just step 2. Re-run it after editing a .tmpl, or to re-render configs that
+# were deleted. It is idempotent, so this is always safe.
 setup() {
     preflight
     step 1 1 "bin/setup.py"
     python3 bin/setup.py
-    bash bin/fetch-schemas.sh
 }
 
 usage() {
@@ -338,7 +326,7 @@ bin/stack.sh <command>
   up-core        steps 1-3 only. Nothing public, no ClickHouse.
   down           stop everything, keep the data
   destroy        stop everything and DELETE every volume
-  setup          re-run bin/setup.py and fetch the schema packs
+  setup          re-run bin/setup.py only
   reverse-proxy  start nginx-proxy-manager on its own (public, 80/443)
   observability  start hyperdx on its own
   pull           git pull, fixing the npm-custom ownership first

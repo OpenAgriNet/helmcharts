@@ -118,12 +118,13 @@ modules:
         # treats that object as free-form, so extended is the only layer that
         # checks a capability's own attributes at all.
         #
-        # Resolution is local: every schema under localSchemaPath is loaded at
-        # STARTUP and looked up by @type, so no payload costs a network call
-        # and this container needs no egress to validate. bin/fetch-schemas.sh
-        # populates it from the published specs repository and bin/stack.sh
-        # runs that before the adapters come up, because a missing directory
-        # fails startup rather than quietly accepting unvalidated payloads.
+        # Resolution is a FETCH of the @context each resource declares. The
+        # validator swaps context.jsonld for attributes.yaml to get the schema
+        # beside it, so a payload names the pack revision it is judged
+        # against and no copy of the schemas is kept here to drift. Cached for
+        # the TTL below, so only the first payload after a restart pays; a
+        # fetch that FAILS rejects the payload rather than skipping
+        # validation, so this container does need egress to the allowed host.
         #
         # Not enforced, and worth knowing before reading a pass as pack
         # conformance: the validator library parses if/then/else but never
@@ -136,11 +137,9 @@ modules:
             location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "true"
-            extendedSchema_localSchemaPath: "/app/config/schemas"
-            # The network fallback, reached only on a local miss. Restricted to
-            # the host the packs' own @context names, so a miss fails loudly
-            # instead of quietly fetching a schema from somewhere else.
-            extendedSchema_allowedDomains: "schemas.openagrinet.global"
+            # The host the packs' @context resolves to. An @context on any
+            # other host is refused before anything is fetched.
+            extendedSchema_allowedDomains: "raw.githubusercontent.com"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
@@ -276,11 +275,9 @@ modules:
             # keeping the ones a schema declares, which is what makes a
             # catalogue's resource attributes checkable at all.
             extendedSchema_enabled: "true"
-            extendedSchema_localSchemaPath: "/app/config/schemas"
-            # The network fallback, reached only on a local miss. Restricted to
-            # the host the packs' own @context names, so a miss fails loudly
-            # instead of quietly fetching a schema from somewhere else.
-            extendedSchema_allowedDomains: "schemas.openagrinet.global"
+            # The host the packs' @context resolves to. An @context on any
+            # other host is refused before anything is fetched.
+            extendedSchema_allowedDomains: "raw.githubusercontent.com"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"

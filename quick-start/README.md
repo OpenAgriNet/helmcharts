@@ -624,7 +624,7 @@ curl -s -X POST http://127.0.0.1:9202/select \
         "id": "res:mausamgram:point-forecast",
         "quantity": 1,
         "resourceAttributes": {
-          "@context": "https://schemas.openagrinet.global/schema/WeatherObservation/v0.1/context.jsonld",
+          "@context": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/schema-packs-v0.1/schema/WeatherObservation/v0.1/context.jsonld",
           "@type": "openagrinet:WeatherObservation",
           "subjectCategories": ["Weather"],
           "informationMode": "OnDemand",
@@ -779,17 +779,25 @@ payload for objects carrying `@context` and `@type`, resolves the schema that
 `resourceAttributes` as a free-form object, so this is the only layer that
 checks a capability's own attributes at all.
 
-The schemas are not in this repository. `bin/fetch-schemas.sh` downloads the
-published packs into `config/schemas/`, mounted read-only at
-`/app/config/schemas`, and `bin/stack.sh` runs it in step 2 — before the
-adapters, because the provider adapter preloads them at startup and refuses to
-start without them. `SCHEMA_PACKS_URL` in `.env` picks the revision; fetched
-rather than committed for the same reason the mappings are, so what the stack
-validates against is what the network publishes.
+The schemas are not in this repository and are not mounted. Each resource's
+`@context` names the published pack, and the validator swaps `context.jsonld`
+for `attributes.yaml` to fetch the schema beside it:
 
-Resolution is a memory lookup rather than a fetch per payload: everything under
-that path is loaded once at startup and found by `@type`, so the container needs
-no egress to validate and a `select` costs no extra round trip.
+```
+@context   .../network-specs/schema-packs-v0.1/schema/MandiPrice/v0.1/context.jsonld
+fetched    .../network-specs/schema-packs-v0.1/schema/MandiPrice/v0.1/attributes.yaml
+```
+
+So a payload names the pack revision it wants to be judged against, and there is
+no copy here to drift from the published one — the same reason the mappings are
+fetched rather than committed.
+
+It is cached for 24 hours, so only the first payload after a restart pays for
+the fetch. Two consequences: the provider adapter needs egress to
+`raw.githubusercontent.com`, and a fetch that **fails rejects the payload**
+rather than skipping validation. An `@context` on any other host is refused
+before anything is fetched — `extendedSchema_allowedDomains` in the config is
+the list.
 
 **What it does not check.** The validator library parses `if`/`then`/`else` but
 never evaluates it, so every pack rule predicated on `informationMode` is
@@ -832,8 +840,6 @@ bin/
   stack.sh                  the startup order, and why it is that order.
                             Every make target is one line of delegation here.
   setup.py                  keys, five registry rows, the adapter configs
-  fetch-schemas.sh          downloads the published schema packs that
-                            extended validation resolves @type against
 config/
   reverse-proxy/
     npm-custom/             mounted to /data/nginx/custom, which NPM includes
@@ -865,9 +871,6 @@ config/
     agmarknet/              response transformation, in JSONata. These are the
                             files the adapters fetch over the raw CDN -- the
                             served copy and the reviewable copy are one file
-  schemas/                  NOT in git. Downloaded by bin/fetch-schemas.sh
-                            and mounted at /app/config/schemas, where the
-                            provider adapter preloads them at startup
 mock-server/
   mockimd/                  the two mock upstreams. Sources only: they are
   mockagmarknet/            pulled as published images like everything else.
