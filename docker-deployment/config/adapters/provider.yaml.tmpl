@@ -127,7 +127,7 @@ modules:
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
-            extendedSchema_allowedDomains: "beckn.org,example.com,raw.githubusercontent.com"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com"
 
         # Generic: fetches, compiles and caches whatever the registry's mapping
         # URLs point at. Knows nothing about any provider.
@@ -253,11 +253,22 @@ modules:
             type: url
             location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
+            # OFF, and not for the usual reason. The fetch works: @context points
+            # at the published pack and the allowlist permits that host. What
+            # fails is a mismatch at the seam -- this validator strips @context
+            # and @type before validating, on the reasoning that they are JSON-LD
+            # plumbing it handles itself, while the OAN pack lists @type in
+            # allOf[].required. So every resource is rejected for a missing @type
+            # that the payload did send and the validator removed.
+            #
+            # Nothing here can bridge that. Either the pack drops @type from
+            # required, or the validator stops stripping it. Base validation
+            # below is unaffected and stays on.
             extendedSchema_enabled: "false"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
-            extendedSchema_allowedDomains: "beckn.org,example.com,raw.githubusercontent.com"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com"
 
         router:
           id: router
@@ -265,6 +276,9 @@ modules:
             routingConfig: /app/config/routing-provider.yaml
 
       steps:
+        # Declaring the validator above is not enough: a plugin missing from this
+        # list never runs, which is why publish went unvalidated until now.
+        - validateSchema # the Beckn v2 spec, plus each resource's own @context
         - addRoute       # publish -> the network layer
         - sign           # as this provider, so the network layer can verify
 
