@@ -21,21 +21,28 @@ stay intact for the next person.
 No VM hostname or address is committed in either file. Deployment addresses are
 shared separately, and the environment file is the place to put them.
 
-## Four folders
+## Three folders
 
     1. Registry    13 requests -- token, creates, updates, searches
-    2. Publish      2 -- one catalogue per capability
-    3. Discover     2
-    4. Select       2
+    2. Weather      1. Publish   2. Discover   3. Select
+    3. Mandi        1. Publish   2. Discover   3. Select
 
-**Their order matters on a first run.** The token in Registry is what the
-writes after it use, and Publish seeds the catalogues Discover searches for. So
-run it top to bottom once; after that any folder runs on its own:
+Grouped by capability rather than by action, so one capability is one folder you
+can run end to end:
 
-    newman run OAN-dev-flow.postman_collection.json --folder "4. Select"
+    newman run OAN-dev-flow.postman_collection.json --folder "3. Mandi"
 
-Each folder carries a description explaining what that leg of the flow does and
-what its failures mean.
+**Order is still position.** Registry issues the token the writes after it need,
+and inside a capability folder Publish seeds the catalogue Discover looks for.
+So a first run goes top to bottom; after that any folder runs on its own.
+
+The two Select requests are the pair worth comparing. They hit the same endpoint
+on the same adapter and different domain packages answer them, because each
+provider step recognises its own binding key from the payload and passes through
+anything else. Nothing routes by URL, path or domain.
+
+Each folder carries a description of what that leg does and what its failures
+mean.
 
 ## A default run changes nothing
 

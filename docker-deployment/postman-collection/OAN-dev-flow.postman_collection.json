@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "7458e3b4-dd16-4ec1-84ce-006f2e423183",
     "name": "OAN dev \u2014 registry, publish, discover, select",
-    "description": "The whole stack from Postman: the registry writes that set it up, updates for the fields that change, the reads that show what is there, and the three flows that use it.\n\nFOUR FOLDERS, AND THEIR ORDER MATTERS. Registry, Publish, Discover, Select. The token in Registry is what the writes after it use, and Publish seeds the catalogues Discover searches for -- so a first run should go top to bottom. After that any folder runs on its own.\n\nNOTHING HERE CHANGES THE STACK ON A DEFAULT RUN. The creates report \"already present\" once setup.py has run, because the registry is append-only. The updates write back the same values the variables already hold -- edit a variable to actually change a row.\n\nTHE UPDATES NEED A SCHEMA THAT PERMITS THEM. The registry re-validates the merged document on update, and that document carries its own osid and osUpdatedAt, so additionalProperties: false rejects the registry's own fields. Participant and ProviderSchema in config/registry/schemas/ must allow additional properties, and the registry reads schemas only at startup.\n\nEvery URL here is loopback, because the deployment publishes these ports on the VM's loopback only and nothing else is routable. Open a tunnel first and the defaults work unchanged:\n\n    ssh -L 9202:127.0.0.1:9202 -L 9200:127.0.0.1:9200 \\\n        -L 8081:127.0.0.1:8081 -L 8080:127.0.0.1:8080 -N you@the-vm\n\nNo VM hostname or address appears in this file.",
+    "description": "The whole stack from Postman: the registry writes that set it up, updates for the fields that change, the reads that show what is there, and the three flows that use it.\n\nTHREE FOLDERS: Registry, then one per capability. Registry issues the token the writes after it need; inside a capability folder Publish seeds the catalogue Discover looks for. So a first run goes top to bottom, and after that any folder -- or any one capability -- runs on its own.\n\nNOTHING HERE CHANGES THE STACK ON A DEFAULT RUN. The creates report \"already present\" once setup.py has run, because the registry is append-only. The updates write back the same values the variables already hold -- edit a variable to actually change a row.\n\nTHE UPDATES NEED A SCHEMA THAT PERMITS THEM. The registry re-validates the merged document on update, and that document carries its own osid and osUpdatedAt, so additionalProperties: false rejects the registry's own fields. Participant and ProviderSchema in config/registry/schemas/ must allow additional properties, and the registry reads schemas only at startup.\n\nEvery URL here is loopback, because the deployment publishes these ports on the VM's loopback only and nothing else is routable. Open a tunnel first and the defaults work unchanged:\n\n    ssh -L 9202:127.0.0.1:9202 -L 9200:127.0.0.1:9200 \\\n        -L 8081:127.0.0.1:8081 -L 8080:127.0.0.1:8080 -N you@the-vm\n\nNo VM hostname or address appears in this file.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "42114807"
   },
@@ -1020,10 +1020,10 @@
       "description": "Everything that talks to the registry: one write token, the records bin/setup.py already created, updates for the fields that change, and the two searches.\n\nRUN THE TOKEN FIRST. Requests 2-11 need it; it is saved to {{token}}. Searches need no token at all -- that is the one registry call a network peer makes, and the reason the whole service is kept off the public edge, since SunbirdRC uses POST for reads and writes alike.\n\nNone of this changes a seeded stack. The creates report \"already present\" because the registry is append-only, and the updates write back the value the variable already holds."
     },
     {
-      "name": "2. Publish",
+      "name": "2. Weather",
       "item": [
         {
-          "name": "1. Weather catalogue",
+          "name": "1. Publish",
           "event": [
             {
               "listen": "test",
@@ -1071,63 +1071,7 @@
           "response": []
         },
         {
-          "name": "2. Mandi catalogue",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"200\", () => pm.response.to.have.status(200));",
-                  "const b = pm.response.json();",
-                  "pm.test(\"catalog/on_publish\", () => pm.expect(b.context.action).to.eql(\"catalog/on_publish\"));",
-                  "const r = b.message.results[0];",
-                  "pm.test(\"ACCEPTED\", () => pm.expect(r.status).to.eql(\"ACCEPTED\"));",
-                  "pm.test(\"the catalogue id comes back\", () => pm.expect(r.catalogId).to.eql(\"cat-agmarknet-mandi-prices\"));"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"context\": {\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"d3a1b2c4-5e6f-4a7b-8c9d-0e1f2a3b4c5d\",\n    \"messageId\": \"e4b2c3d5-6f7a-4b8c-9d0e-1f2a3b4c5d6e\",\n    \"timestamp\": \"2026-09-01T06:05:00Z\"\n  },\n  \"message\": {\n    \"catalogs\": [\n      {\n        \"id\": \"cat-agmarknet-mandi-prices\",\n        \"isActive\": true,\n        \"descriptor\": {\n          \"code\": \"AGMARKNET-01\",\n          \"name\": \"Agmarknet mandi prices\",\n          \"shortDesc\": \"Daily commodity prices by market from Agmarknet\",\n          \"longDesc\": \"Minimum, maximum and modal prices per commodity per market, reported daily by the Agmarknet Vistaar service.\"\n        },\n        \"provider\": {\n          \"id\": \"{{mandiProviderId}}\",\n          \"descriptor\": {\n            \"code\": \"AGMARKNET-01\",\n            \"name\": \"Agmarknet Vistaar\"\n          }\n          \n        },\n        \"validity\": {\n          \"startDate\": \"2026-01-01T00:00:00Z\",\n          \"endDate\": \"2027-12-31T23:59:59Z\"\n        },\n        \"resources\": [\n          {\n            \"id\": \"res:agmarknet:mandi-price\",\n            \"descriptor\": {\n              \"code\": \"MANDI-PRICE\",\n              \"name\": \"Mandi commodity price\",\n              \"shortDesc\": \"Prices for a commodity at a named market\"\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"https://schemas.openagrinet.global/schema/MandiPrice/v0.1/context.jsonld\",\n              \"@type\": \"openagrinet:MandiPrice\",\n              \"informationMode\": \"OnDemand\",\n              \"subjectCategories\": [\n                \"Market\"\n              ],\n              \"supportedCommodities\": [\n                {\n                  \"code\": \"2\",\n                  \"name\": \"Paddy(Common)\"\n                },\n                {\n                  \"code\": \"78\",\n                  \"name\": \"Tomato\"\n                }\n              ],\n              \"supportedPriceFields\": [\n                \"Minimum\",\n                \"Maximum\",\n                \"Modal\"\n              ],\n              \"historicalDataAvailable\": true,\n              \"historyPeriod\": \"P1Y\",\n              \"updateFrequency\": \"P1D\",\n              \"languages\": [\n                \"en\"\n              ],\n              \"coverageAreas\": [\n                {\n                  \"codeScheme\": \"ISO-3166-1\",\n                  \"areaCode\": \"IN\",\n                  \"areaLevel\": \"Country\",\n                  \"areaName\": \"India\"\n                }\n              ]\n            }\n          }\n        ]\n      }\n    ]\n  }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{providerAdapterUrl}}/publish",
-              "host": [
-                "{{providerAdapterUrl}}"
-              ],
-              "path": [
-                "publish"
-              ]
-            },
-            "description": "The second catalogue, entering the same way as the first: the provider adapter signs it and the network layer forwards it to discovery. Publishing is capability-agnostic -- no provider step runs, and nothing on this path knows what a MandiPrice is.\n\nThe resource is OnDemand, which is what a catalogue entry should be: it advertises the commodities and price fields this provider CAN answer for. The pack forbids `prices` in that mode, so a catalogue cannot carry stale numbers -- those appear only in the Direct answer to a select, request 8."
-          },
-          "response": []
-        }
-      ],
-      "description": "A provider's catalogue entering the network.\n\nThese post to the PROVIDER adapter, which signs on the caller's behalf and forwards to the network layer -- so the body carries no signature and names no party. That module has no signature check at all, which is why the gateway denies /publish from outside.\n\nA provider that holds its own signing key can skip all of that and post straight at the network adapter, which verifies against its registry row. See the keys block on the upstream creates in the Registry folder.\n\nRUN THESE BEFORE DISCOVER. They seed the catalogues it searches for."
-    },
-    {
-      "name": "3. Discover",
-      "item": [
-        {
-          "name": "1. Weather",
+          "name": "2. Discover",
           "event": [
             {
               "listen": "test",
@@ -1175,74 +1119,7 @@
           "response": []
         },
         {
-          "name": "2. Mandi",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"200\", () => pm.response.to.have.status(200));",
-                  "const b = pm.response.json();",
-                  "pm.test(\"on_discover\", () => pm.expect(b.context.action).to.eql(\"on_discover\"));",
-                  "const cats = b.message.catalogs || [];",
-                  "pm.test(\"at least one catalogue\", () => pm.expect(cats.length).to.be.above(0));",
-                  "// The mandi catalogue specifically, so this cannot pass on the weather one.",
-                  "pm.test(\"the mandi catalogue is discoverable\", () => {",
-                  "  pm.expect(cats.map(c => c.id)).to.include(\"cat-agmarknet-mandi-prices\");",
-                  "});",
-                  "// A catalogue entry advertises a capability rather than carrying data.",
-                  "pm.test(\"it advertises OnDemand and carries no prices\", () => {",
-                  "  const mandi = cats.find(c => c.id === \"cat-agmarknet-mandi-prices\");",
-                  "  const ra = mandi.resources[0].resourceAttributes;",
-                  "  pm.expect(ra.informationMode).to.eql(\"OnDemand\");",
-                  "  pm.expect(ra).to.not.have.property(\"prices\");",
-                  "  pm.expect(ra.supportedCommodities.length).to.be.above(0);",
-                  "});"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"context\": {\n    \"version\": \"2.0.0\",\n    \"action\": \"discover\",\n    \"transactionId\": \"a1b2c3d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d\",\n    \"messageId\": \"b2c3d4e5-6f7a-4b8c-9d0e-1f2a3b4c5d6e\",\n    \"timestamp\": \"2026-09-01T06:10:00Z\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"textSearch\": \"mandi commodity price\"\n    }\n  }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{expAdapterUrl}}/discover",
-              "host": [
-                "{{expAdapterUrl}}"
-              ],
-              "path": [
-                "discover"
-              ]
-            },
-            "description": "The same route as request 5 -- exp adapter, network adapter, discovery service -- looking for the other catalogue. No provider plugin and no upstream call: discovery answers from its own index.\n\nAn empty list here almost always means networkId or domain did not match what was published, rather than the text search failing."
-          },
-          "response": []
-        }
-      ],
-      "description": "Catalogue search, through the experience adapter to the network layer and on to the discovery service.\n\nScoped by networkId: a catalogue published under a different one is invisible here, and comes back as an empty result rather than an error. If discover returns nothing, check {{networkId}} against what the publish requests used before looking anywhere else."
-    },
-    {
-      "name": "4. Select",
-      "item": [
-        {
-          "name": "1. Weather, per-day forecast",
+          "name": "3. Select \u2014 per-day forecast",
           "event": [
             {
               "listen": "test",
@@ -1309,9 +1186,126 @@
             "description": "Asks for a priced quote on the resource discover returned.\n\nRoute: **exp adapter \u2192 provider adapter \u2192 mock IMD.** This is where the plugins do their work:\n\n1. `validateSign` verifies the caller's key, fetched from the registry \u2014 the row you saw in step 1\n2. the provider plugin builds the binding key from the payload, asks the registry for the call plan \u2014 the row from step 2 \u2014 resolves the coordinates, calls the upstream, and maps the answer back\n3. `signAck` signs the answer\n\n**The answer is the HTTP response \u2014 there is no callback.** A bare `ACK` here would mean nothing served the request; the adapter now returns `404 NET_ENTITY_NOT_FOUND` in that case rather than pretending to accept it.\n\nThe response quotes **one** resource, carrying the id this request selected, and follows the same schema pack in `informationMode: Direct` \u2014 which requires `observationType`, `source`, `location`, `generatedAt` and `parameters`.\n\n**Two fields here are not in the pack, both deliberately.** The pack carries one validity and one flat `parameters` array per resource, so it cannot express a five-day forecast in the one resource the request selected \u2014 hence `observations`. And its parameter entry is `parameter`/`value`/`unit` only, so `aggregation` is ours, because this provider reports a minimum *and* a maximum for temperature and humidity. Both validate: the pack sets no `additionalProperties`."
           },
           "response": []
+        }
+      ],
+      "description": "The weather capability end to end: publish its catalogue, find it, then ask for a forecast.\n\nRUN IN ORDER the first time -- Publish seeds the catalogue Discover looks for. After that Select works on its own.\n\nSelect is the interesting one. It goes to the same endpoint on the same adapter as Mandi's, and a different domain package answers it: each provider step builds a binding key from the payload, serves the request if the key is its own, and passes it through untouched if not. A 404 NET_ENTITY_NOT_FOUND here means no step claimed this payload -- compare {{providerId}} and the capability @type against the bindings in Registry."
+    },
+    {
+      "name": "3. Mandi",
+      "item": [
+        {
+          "name": "1. Publish",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200\", () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test(\"catalog/on_publish\", () => pm.expect(b.context.action).to.eql(\"catalog/on_publish\"));",
+                  "const r = b.message.results[0];",
+                  "pm.test(\"ACCEPTED\", () => pm.expect(r.status).to.eql(\"ACCEPTED\"));",
+                  "pm.test(\"the catalogue id comes back\", () => pm.expect(r.catalogId).to.eql(\"cat-agmarknet-mandi-prices\"));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context\": {\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"d3a1b2c4-5e6f-4a7b-8c9d-0e1f2a3b4c5d\",\n    \"messageId\": \"e4b2c3d5-6f7a-4b8c-9d0e-1f2a3b4c5d6e\",\n    \"timestamp\": \"2026-09-01T06:05:00Z\"\n  },\n  \"message\": {\n    \"catalogs\": [\n      {\n        \"id\": \"cat-agmarknet-mandi-prices\",\n        \"isActive\": true,\n        \"descriptor\": {\n          \"code\": \"AGMARKNET-01\",\n          \"name\": \"Agmarknet mandi prices\",\n          \"shortDesc\": \"Daily commodity prices by market from Agmarknet\",\n          \"longDesc\": \"Minimum, maximum and modal prices per commodity per market, reported daily by the Agmarknet Vistaar service.\"\n        },\n        \"provider\": {\n          \"id\": \"{{mandiProviderId}}\",\n          \"descriptor\": {\n            \"code\": \"AGMARKNET-01\",\n            \"name\": \"Agmarknet Vistaar\"\n          }\n          \n        },\n        \"validity\": {\n          \"startDate\": \"2026-01-01T00:00:00Z\",\n          \"endDate\": \"2027-12-31T23:59:59Z\"\n        },\n        \"resources\": [\n          {\n            \"id\": \"res:agmarknet:mandi-price\",\n            \"descriptor\": {\n              \"code\": \"MANDI-PRICE\",\n              \"name\": \"Mandi commodity price\",\n              \"shortDesc\": \"Prices for a commodity at a named market\"\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"https://schemas.openagrinet.global/schema/MandiPrice/v0.1/context.jsonld\",\n              \"@type\": \"openagrinet:MandiPrice\",\n              \"informationMode\": \"OnDemand\",\n              \"subjectCategories\": [\n                \"Market\"\n              ],\n              \"supportedCommodities\": [\n                {\n                  \"code\": \"2\",\n                  \"name\": \"Paddy(Common)\"\n                },\n                {\n                  \"code\": \"78\",\n                  \"name\": \"Tomato\"\n                }\n              ],\n              \"supportedPriceFields\": [\n                \"Minimum\",\n                \"Maximum\",\n                \"Modal\"\n              ],\n              \"historicalDataAvailable\": true,\n              \"historyPeriod\": \"P1Y\",\n              \"updateFrequency\": \"P1D\",\n              \"languages\": [\n                \"en\"\n              ],\n              \"coverageAreas\": [\n                {\n                  \"codeScheme\": \"ISO-3166-1\",\n                  \"areaCode\": \"IN\",\n                  \"areaLevel\": \"Country\",\n                  \"areaName\": \"India\"\n                }\n              ]\n            }\n          }\n        ]\n      }\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{providerAdapterUrl}}/publish",
+              "host": [
+                "{{providerAdapterUrl}}"
+              ],
+              "path": [
+                "publish"
+              ]
+            },
+            "description": "The second catalogue, entering the same way as the first: the provider adapter signs it and the network layer forwards it to discovery. Publishing is capability-agnostic -- no provider step runs, and nothing on this path knows what a MandiPrice is.\n\nThe resource is OnDemand, which is what a catalogue entry should be: it advertises the commodities and price fields this provider CAN answer for. The pack forbids `prices` in that mode, so a catalogue cannot carry stale numbers -- those appear only in the Direct answer to a select, request 8."
+          },
+          "response": []
         },
         {
-          "name": "2. Mandi, prices per market day",
+          "name": "2. Discover",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200\", () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test(\"on_discover\", () => pm.expect(b.context.action).to.eql(\"on_discover\"));",
+                  "const cats = b.message.catalogs || [];",
+                  "pm.test(\"at least one catalogue\", () => pm.expect(cats.length).to.be.above(0));",
+                  "// The mandi catalogue specifically, so this cannot pass on the weather one.",
+                  "pm.test(\"the mandi catalogue is discoverable\", () => {",
+                  "  pm.expect(cats.map(c => c.id)).to.include(\"cat-agmarknet-mandi-prices\");",
+                  "});",
+                  "// A catalogue entry advertises a capability rather than carrying data.",
+                  "pm.test(\"it advertises OnDemand and carries no prices\", () => {",
+                  "  const mandi = cats.find(c => c.id === \"cat-agmarknet-mandi-prices\");",
+                  "  const ra = mandi.resources[0].resourceAttributes;",
+                  "  pm.expect(ra.informationMode).to.eql(\"OnDemand\");",
+                  "  pm.expect(ra).to.not.have.property(\"prices\");",
+                  "  pm.expect(ra.supportedCommodities.length).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context\": {\n    \"version\": \"2.0.0\",\n    \"action\": \"discover\",\n    \"transactionId\": \"a1b2c3d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d\",\n    \"messageId\": \"b2c3d4e5-6f7a-4b8c-9d0e-1f2a3b4c5d6e\",\n    \"timestamp\": \"2026-09-01T06:10:00Z\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"textSearch\": \"mandi commodity price\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{expAdapterUrl}}/discover",
+              "host": [
+                "{{expAdapterUrl}}"
+              ],
+              "path": [
+                "discover"
+              ]
+            },
+            "description": "The same route as request 5 -- exp adapter, network adapter, discovery service -- looking for the other catalogue. No provider plugin and no upstream call: discovery answers from its own index.\n\nAn empty list here almost always means networkId or domain did not match what was published, rather than the text search failing."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Select \u2014 prices per market day",
           "event": [
             {
               "listen": "test",
@@ -1400,7 +1394,7 @@
           "response": []
         }
       ],
-      "description": "The synchronous one. No callback -- the answer is the HTTP response.\n\nBoth requests hit the SAME endpoint on the same adapter, and different domain packages answer them. Each provider step builds a binding key from the payload -- the provider id plus the capability @type -- serves the request if the key is its own, and passes it through untouched if not. Nothing routes by URL, path or domain, which is what lets one adapter host both capabilities.\n\nA 404 NET_ENTITY_NOT_FOUND here means no step claimed the payload's binding key. Compare it against the bindings in the Registry folder."
+      "description": "The mandi capability end to end: publish its catalogue, find it, then ask for prices.\n\nRUN IN ORDER the first time -- Publish seeds the catalogue Discover looks for.\n\nNothing here is shared with Weather except the adapter, the registry client and the mapper. A different upstream, a different mapping, a different binding key. The mapping is doing more work than weather's: it converts ISO dates to the dd-MM-yyyy Agmarknet wants, sends marketcode only when the request carried one, turns price strings into numbers, and omits a price that was not reported rather than sending a zero."
     }
   ],
   "variable": [
