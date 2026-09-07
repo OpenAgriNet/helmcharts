@@ -716,7 +716,8 @@ the caller and re-signs. `select` never touches it: it goes straight to the
 provider adapter, which calls the upstream.
 
 Which upstream is not in any routing table. The provider adapter runs a chain
-of capability steps — weather, then mandi — and each one builds a binding key
+of capability steps — `WeatherObservation`, then `MandiPrice` — and each one
+builds a binding key
 from the payload it is handed, serves the request if the key is its own, and
 passes it along untouched if not. The step that claims it looks the upstream up
 in the registry by that key. So one adapter fronts both capabilities, and a
@@ -772,12 +773,31 @@ Three things about that:
 ## Schema validation
 
 Every adapter loads the pinned Beckn v2 LTS spec and validates request bodies
-against it. The **extended** layer is off: it fetches each resource's own
-`@context` and validates against that, which is a network call per payload and
-a second thing that can fail. The `extendedSchema_*` settings in the configs
-only take effect if it is switched on.
+against it. On the **provider adapter** a second layer runs too: it walks the
+payload for objects carrying `@context` and `@type`, resolves the schema that
+`@type` names, and validates the object against it. Base validation treats
+`resourceAttributes` as a free-form object, so this is the only layer that
+checks a capability's own attributes at all.
 
-Two consequences worth knowing before you write a payload:
+The schemas are not in this repository. `bin/fetch-schemas.sh` downloads the
+published packs into `config/schemas/`, mounted read-only at
+`/app/config/schemas`, and `bin/stack.sh` runs it in step 2 — before the
+adapters, because the provider adapter preloads them at startup and refuses to
+start without them. `SCHEMA_PACKS_URL` in `.env` picks the revision; fetched
+rather than committed for the same reason the mappings are, so what the stack
+validates against is what the network publishes.
+
+Resolution is a memory lookup rather than a fetch per payload: everything under
+that path is loaded once at startup and found by `@type`, so the container needs
+no egress to validate and a `select` costs no extra round trip.
+
+**What it does not check.** The validator library parses `if`/`then`/`else` but
+never evaluates it, so every pack rule predicated on `informationMode` is
+unenforced — a pass here is not full conformance to a pack. It does enforce
+types, string formats, `enum`, `const`, `required`, `additionalProperties`,
+`not` and `allOf`/`anyOf`/`oneOf`.
+
+Three consequences worth knowing before you write a payload:
 
 - **Each resource under a commitment needs a `quantity`.** The spec's
   `Commitment.resources` requires `["id", "quantity"]` while `Resource` itself
@@ -785,15 +805,16 @@ Two consequences worth knowing before you write a payload:
   a defect upstream, not something this deployment chose. Any value satisfies
   it. Without one, every `select` is refused with
   `SCH_REQUIRED_FIELD_MISSING: property "quantity" is missing`.
-- **`publish` is not validated here, though it could be.** The two modules
-  that carry publishing — the provider adapter's root mount and the network
-  adapter — declare the validator but leave `validateSchema` out of their
-  `steps:`, and a plugin that is not in `steps:` never runs. That is a choice
-  in this config, not a limitation: the spec does define `/catalog/publish`,
-  the validator indexes it under the action `catalog/publish` that these
-  payloads send, and the collection's two publish bodies validate against it
-  with no errors. Turning it on is one line per module. It is off pending a
-  test rather than because it cannot work.
+- **A `date-time` field will not take a bare date.** `validity.startsAt` and
+  `endsAt` are `format: date-time` in the packs, so `2025-08-20` is refused
+  and `2025-08-20T00:00:00+05:30` is accepted. `arrivalDate` is `format: date`
+  and wants the opposite.
+- **`publish` is validated, on the provider adapter.** Declaring the validator
+  is not enough — a plugin missing from `steps:` never runs, which is why
+  publish went unchecked for a while — so `validateSchema` is in that module's
+  `steps:` and its resources are checked against their packs like any other.
+  The network adapter validates nothing: its single module runs
+  `validateSign`, `addRoute`, `sign` and never declares a validator.
 
 An action the spec does not know, or a body missing a required field, comes
 back as a signed NACK with a `SCH_*` code and the JSON path that failed.
@@ -811,6 +832,8 @@ bin/
   stack.sh                  the startup order, and why it is that order.
                             Every make target is one line of delegation here.
   setup.py                  keys, five registry rows, the adapter configs
+  fetch-schemas.sh          downloads the published schema packs that
+                            extended validation resolves @type against
 config/
   reverse-proxy/
     npm-custom/             mounted to /data/nginx/custom, which NPM includes
@@ -842,6 +865,9 @@ config/
     agmarknet/              response transformation, in JSONata. These are the
                             files the adapters fetch over the raw CDN -- the
                             served copy and the reviewable copy are one file
+  schemas/                  NOT in git. Downloaded by bin/fetch-schemas.sh
+                            and mounted at /app/config/schemas, where the
+                            provider adapter preloads them at startup
 mock-server/
   mockimd/                  the two mock upstreams. Sources only: they are
   mockagmarknet/            pulled as published images like everything else.
@@ -907,7 +933,7 @@ capability at `...resources[].resourceAttributes.@type` — and comparing it
 against the key in its own config, which `setup.py` rendered from `.env`.
 
 Passing through is deliberate: it is what lets this one adapter serve both
-weather and mandi. Compare the payload against `.env`, and re-run
+capabilities. Compare the payload against `.env`, and re-run
 `bin/setup.py` plus `docker compose up -d --force-recreate provider-adapter`
 after changing `.env`.
 

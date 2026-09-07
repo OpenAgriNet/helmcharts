@@ -112,22 +112,38 @@ modules:
         signer:
           id: signer
 
-        # Base Beckn v2 schema validation, against the pinned LTS spec. The
-        # extended layer is off: it fetches a resource's own @context and
-        # validates against that, which is a network call per payload and a
-        # second failure mode, and nothing here needs it yet. The allowed
-        # domains and cache settings below only take effect if it is turned on.
+        # Base Beckn v2 schema validation against the pinned LTS spec, plus the
+        # extended layer, which resolves each resource's @type to a capability
+        # schema and validates resourceAttributes against it. Base validation
+        # treats that object as free-form, so extended is the only layer that
+        # checks a capability's own attributes at all.
+        #
+        # Resolution is local: every schema under localSchemaPath is loaded at
+        # STARTUP and looked up by @type, so no payload costs a network call
+        # and this container needs no egress to validate. bin/fetch-schemas.sh
+        # populates it from the published specs repository and bin/stack.sh
+        # runs that before the adapters come up, because a missing directory
+        # fails startup rather than quietly accepting unvalidated payloads.
+        #
+        # Not enforced, and worth knowing before reading a pass as pack
+        # conformance: the validator library parses if/then/else but never
+        # evaluates it, so every pack rule predicated on informationMode is
+        # unchecked.
         schemaValidator:
           id: schemav2validator
           config:
             type: url
             location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
-            extendedSchema_enabled: "false"
+            extendedSchema_enabled: "true"
+            extendedSchema_localSchemaPath: "/app/config/schemas"
+            # The network fallback, reached only on a local miss. Restricted to
+            # the host the packs' own @context names, so a miss fails loudly
+            # instead of quietly fetching a schema from somewhere else.
+            extendedSchema_allowedDomains: "schemas.openagrinet.global"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
-            extendedSchema_allowedDomains: "raw.githubusercontent.com"
 
         # Generic: fetches, compiles and caches whatever the registry's mapping
         # URLs point at. Knows nothing about any provider.
@@ -153,7 +169,7 @@ modules:
         # row per capability. Comma-separated, because a plugin config value is
         # a string; a binding key uses a pipe, so a comma is unambiguous.
         providerSteps:
-          - id: weather
+          - id: WeatherObservation
             config:
               bindingKeys: "__PROVIDER_BINDING_KEY__"
               authScheme: none
@@ -165,7 +181,7 @@ modules:
           # Agmarknet takes its token as a QUERY parameter. The adapter holds
           # the parameter's name and the name of the variable carrying the
           # value, never the value -- and it redacts it from the URL it logs.
-          - id: mandi
+          - id: MandiPrice
             config:
               bindingKeys: "__MANDI_BINDING_KEY__"
               authScheme: query
@@ -179,8 +195,8 @@ modules:
       steps:
         - validateSign   # the sender's key, from the registry
         - validateSchema # the pinned Beckn v2 spec
-        - weather        # openagrinet:WeatherObservation, or pass through
-        - mandi          # openagrinet:MandiPrice, or pass through
+        - WeatherObservation  # its binding key, or pass through
+        - MandiPrice          # its binding key, or pass through
         - signAck        # signs whatever the step answered with
 
   # The outbound leg: the provider's own catalogue system publishing to the
@@ -253,22 +269,21 @@ modules:
             type: url
             location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
-            # OFF, and not for the usual reason. The fetch works: @context points
-            # at the published pack and the allowlist permits that host. What
-            # fails is a mismatch at the seam -- this validator strips @context
-            # and @type before validating, on the reasoning that they are JSON-LD
-            # plumbing it handles itself, while the OAN pack lists @type in
-            # allOf[].required. So every resource is rejected for a missing @type
-            # that the payload did send and the validator removed.
-            #
-            # Nothing here can bridge that. Either the pack drops @type from
-            # required, or the validator stops stripping it. Base validation
-            # below is unaffected and stays on.
-            extendedSchema_enabled: "false"
+            # ON. It could not be before: the validator stripped @context and
+            # @type as JSON-LD plumbing, while the packs list @type in
+            # allOf[].required -- so every resource was rejected for a missing
+            # @type the payload had sent. The validator now decides per key,
+            # keeping the ones a schema declares, which is what makes a
+            # catalogue's resource attributes checkable at all.
+            extendedSchema_enabled: "true"
+            extendedSchema_localSchemaPath: "/app/config/schemas"
+            # The network fallback, reached only on a local miss. Restricted to
+            # the host the packs' own @context names, so a miss fails loudly
+            # instead of quietly fetching a schema from somewhere else.
+            extendedSchema_allowedDomains: "schemas.openagrinet.global"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
-            extendedSchema_allowedDomains: "raw.githubusercontent.com"
 
         router:
           id: router
