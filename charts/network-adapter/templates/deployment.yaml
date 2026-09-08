@@ -1,0 +1,186 @@
+apiVersion: {{ include "oan-common.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include "network-adapter.fullname" . }}
+  labels:
+    {{- include "network-adapter.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "network-adapter.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "network-adapter.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        {{/*
+        Rolls the pods when the config changes. Deliberately does NOT cover the
+        keys: that Secret is not rendered here, so its content is unknowable at
+        template time. Rotating a key needs `kubectl rollout restart`.
+        */}}
+        checksum/config: {{ include "network-adapter.configChecksum" . }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.serviceAccount.enabled }}
+      serviceAccountName: {{ include "network-adapter.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- end }}
+      {{- with (include "oan-common.imagePullSecrets" . | trim) }}
+      {{- . | nindent 6 }}
+      {{- end }}
+      {{- with (include "oan-common.podSecurityContext" .) }}
+      securityContext:
+        {{- . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        {{- include "oan-common.waitFor" (dict "ctx" . "tcp" list "http" list) | nindent 8 }}
+        {{/*
+        Substitutes the keypair into the config.
+
+        Why an init container at all: the adapter reads one file and wants the
+        keys inline in it, so the alternative is a ConfigMap holding private
+        keys. This keeps them in a Secret, mounted as files rather than env
+        vars so they are not readable from /proc/<pid>/environ, and writes the
+        result to an emptyDir that dies with the pod.
+
+        `|` as the sed delimiter, not `/`: these values are base64 and base64
+        contains `/`. It does not contain `|`.
+        */}}
+        - name: render-config
+          image: "{{ .Values.configRenderer.image.registry }}/{{ .Values.configRenderer.image.repository }}:{{ .Values.configRenderer.image.tag }}"
+          imagePullPolicy: {{ .Values.configRenderer.image.pullPolicy }}
+          {{- with (include "oan-common.securityContext" .) }}
+          securityContext:
+            {{- . | nindent 12 }}
+          {{- end }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              cp /config-template/adapter.yaml         /rendered/adapter.yaml
+              cp /config-template/routing-network.yaml /rendered/routing-network.yaml
+
+              subst() {
+                # $1 placeholder, $2 file holding the value
+                if [ ! -s "$2" ]; then
+                  echo "render-config: $(basename "$2") is missing or empty in the keys Secret" >&2
+                  exit 1
+                fi
+                sed -i "s|$1|$(cat "$2")|g" /rendered/adapter.yaml
+              }
+
+              subst __NETWORK_SUBSCRIBER_ID__   /keys/{{ .Values.keys.existingSecret.subscriberIdKey }}
+              subst __NETWORK_KEY_ID__          /keys/{{ .Values.keys.existingSecret.keyIdKey }}
+              subst __NETWORK_SIGNING_PRIVATE__ /keys/{{ .Values.keys.existingSecret.signingPrivateKey }}
+              subst __NETWORK_SIGNING_PUBLIC__  /keys/{{ .Values.keys.existingSecret.signingPublicKey }}
+              subst __NETWORK_ENCR_PRIVATE__    /keys/{{ .Values.keys.existingSecret.encrPrivateKey }}
+              subst __NETWORK_ENCR_PUBLIC__     /keys/{{ .Values.keys.existingSecret.encrPublicKey }}
+
+              # A placeholder that survived means a key was substituted with
+              # nothing. Catch it here rather than at the far end, in a peer's
+              # logs, as a signature that will not verify.
+              if grep -q '__NETWORK_' /rendered/adapter.yaml; then
+                echo "render-config: placeholders remain after substitution:" >&2
+                grep -o '__NETWORK_[A-Z_]*__' /rendered/adapter.yaml | sort -u >&2
+                exit 1
+              fi
+              echo "render-config: config rendered"
+          volumeMounts:
+            - name: config-template
+              mountPath: /config-template
+              readOnly: true
+            - name: keys
+              mountPath: /keys
+              readOnly: true
+            - name: config
+              mountPath: /rendered
+          resources:
+            {{- toYaml .Values.configRenderer.resources | nindent 12 }}
+        {{- with .Values.extraInitContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ include "network-adapter.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with (include "oan-common.securityContext" .) }}
+          securityContext:
+            {{- . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          env:
+            {{/*
+            The image's CMD is `./server --config=${CONFIG_FILE}`, so this is
+            not decoration -- unset, the binary is handed an empty --config.
+            */}}
+            - name: CONFIG_FILE
+              value: {{ include "network-adapter.configDir" . }}/adapter.yaml
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.envFromSecrets }}
+          envFrom:
+            {{- range . }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
+          {{- end }}
+          {{- with (include "oan-common.probes" . | trim) }}
+          {{- . | nindent 10 }}
+          {{- end }}
+          resources:
+            {{- include "oan-common.resources" . | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: {{ include "network-adapter.configDir" . }}
+              readOnly: true
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: config-template
+          configMap:
+            name: {{ include "network-adapter.fullname" . }}-config
+        - name: keys
+          secret:
+            secretName: {{ include "network-adapter.keysSecretName" . }}
+            defaultMode: 0400
+        {{/*
+        The rendered config. emptyDir rather than anything durable: it is
+        derived from a ConfigMap and a Secret and is rebuilt on every start,
+        so persisting it would only let a stale copy outlive a key rotation.
+        */}}
+        - name: config
+          emptyDir:
+            sizeLimit: 1Mi
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

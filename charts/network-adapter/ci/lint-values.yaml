@@ -1,0 +1,16 @@
+# Minimum that renders. Every value here is one the chart fails without, which
+# makes this file a list of what a real deployment must decide.
+image:
+  registry: ghcr.io
+  repository: openagrinet/network-adapter
+  tag: "v1.9.0"
+
+keys:
+  existingSecret:
+    name: network-adapter-keys
+
+registry:
+  url: http://registry:8081/api/v1
+
+discovery:
+  url: http://discovery:8080
