@@ -9,7 +9,7 @@
 #     make help      the rest
 #
 # Anchored to this file's own directory rather than $(PWD), so `make -C
-# docker-deployment up` works from the repo root.
+# quick-start up` works from the repo root.
 
 STACK := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))bin/stack.sh
 

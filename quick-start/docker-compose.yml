@@ -90,14 +90,42 @@ x-adapter: &adapter
 
 x-adapter-env: &adapter-env
   CONFIG_FILE: /app/config/adapter.yaml
-  # Sent if the image's OpenTelemetry SDK picks these up, ignored if it does
-  # not -- which is the state this has not been verified in either direction,
-  # because the adapter image is pulled and its source is not in this repo.
-  # Nothing here depends on the answer: an unroutable or absent collector
-  # makes an OTLP exporter drop spans, not fail a request. What IS decided is
-  # the destination, so there is one place to change it.
-  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTLP_ENDPOINT:-http://hyperdx:4318}
-  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+  # OpenTelemetry. These ARE read: the otelsetup plugin builds gRPC exporters
+  # and the SDK applies its OTEL_EXPORTER_OTLP_* environment config before any
+  # option the plugin passes.
+  #
+  # OTEL_EXPORTER_OTLP_INSECURE IS LOAD-BEARING, and the reason is worth
+  # knowing because the symptom names TLS and the cause does not.
+  #
+  # The SDK derives transport security from the endpoint's SCHEME:
+  #
+  #     switch u.Scheme { case "http", "unix": WithInsecure(); default: WithSecure() }
+  #
+  # "default" includes an EMPTY scheme. OTLP_ENDPOINT is a bare host:port,
+  # because that is what the plugin's own otlpEndpoint config field takes --
+  # so without the scheme prefix below, or this flag, the exporter dials TLS
+  # at hyperdx's plaintext 4317 and logs, once per export interval:
+  #
+  #     failed to upload metrics: ... authentication handshake failed:
+  #     tls: first record does not look like a TLS handshake
+  #
+  # The flag is set explicitly rather than left to the scheme, so a future
+  # edit to the URL cannot silently turn TLS back on.
+  #
+  # This does not weaken anything that was encrypted: the collector is on
+  # oan-internal, reachable from nowhere else, and serves plaintext OTLP.
+  #
+  # There is also a bug underneath, in the plugin rather than here: it passes
+  # insecure credentials via WithDialOption, and NewGRPCConfig appends its own
+  # default TLS credentials AFTER user options, so gRPC takes the TLS ones and
+  # the plugin's setting is silently discarded. The env var is what actually
+  # controls this until that is fixed upstream.
+  #
+  # OTEL_EXPORTER_OTLP_PROTOCOL is deliberately absent. The plugin constructs
+  # gRPC exporters in code, so a protocol preference here is ignored and only
+  # suggests the transport is configurable from this file.
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://${OTLP_ENDPOINT:-hyperdx:4317}
+  OTEL_EXPORTER_OTLP_INSECURE: "true"
 
 services:
   # ==========================================================================
@@ -290,7 +318,11 @@ services:
       # flip OTEL_EXPORTER=otlp in .env once the exporter is wired and the
       # traces land in HyperDX with no other change here.
       OTEL_EXPORTER: ${OTEL_EXPORTER:-none}
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTLP_ENDPOINT:-http://hyperdx:4318}
+      # Same scheme requirement as the adapters -- see the note on the
+      # x-adapter anchor. Inert while OTEL_EXPORTER is none, but wrong
+      # in a way that would only surface when someone turns it on.
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://${OTLP_ENDPOINT:-hyperdx:4317}
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
       OTEL_SERVICE_NAME: oan-discovery
     # config/common.yaml is baked into the image and is the reviewed default.
     # To override a setting, copy config/discovery/instance.yaml.example to
@@ -319,8 +351,8 @@ services:
   # mock upstreams -- stand-ins for the real provider APIs, so the stack can be
   # exercised without their credentials.
   #
-  # Pulled like everything else. The sources are in mocks/ to be built and
-  # published once, not built here -- see mocks/README.md.
+  # Pulled like everything else. The sources are in mock-server/ to be built and
+  # published once, not built here -- see mock-server/README.md.
   #
   # oan-internal only: an upstream is called BY the provider adapter and is
   # never reached from outside, so NPM has no business seeing it. The published
@@ -419,8 +451,8 @@ services:
       <<: *adapter-env
       OTEL_SERVICE_NAME: oan-exp-adapter
     volumes:
-      - ./config/adapters/exp.yaml:/app/config/adapter.yaml:ro
-      - ./config/adapters/routing-exp.yaml:/app/config/routing-exp.yaml:ro
+      - ./config/adapters/experience.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/routing-experience.yaml:/app/config/routing-experience.yaml:ro
     ports:
       - "127.0.0.1:${EXP_ADAPTER_PORT}:9202"
 

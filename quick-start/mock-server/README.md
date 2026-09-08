@@ -14,8 +14,8 @@ The compose file **pulls** every image and builds nothing, so these are not
 built by `make up`. They are here to be built and published once, and then
 pulled like everything else:
 
-    docker build -t ghcr.io/<org>/oan-mockimd:latest       mocks/mockimd
-    docker build -t ghcr.io/<org>/oan-mockagmarknet:latest  mocks/mockagmarknet
+    docker build -t ghcr.io/<org>/oan-mockimd:latest       mock-server/mockimd
+    docker build -t ghcr.io/<org>/oan-mockagmarknet:latest  mock-server/mockagmarknet
     docker push ghcr.io/<org>/oan-mockimd:latest
     docker push ghcr.io/<org>/oan-mockagmarknet:latest
 

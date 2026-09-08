@@ -85,7 +85,7 @@ modules:
         # Serves both halves: the sender's signing key for validateSign, and the
         # capability call plans the provider steps resolve against.
         registry:
-          id: oanregistry
+          id: sunbirdRegistry
           config:
             url: http://registry:8081/api/v1
             entity: Participant
@@ -112,22 +112,37 @@ modules:
         signer:
           id: signer
 
-        # Base Beckn v2 schema validation, against the pinned LTS spec. The
-        # extended layer is off: it fetches a resource's own @context and
-        # validates against that, which is a network call per payload and a
-        # second failure mode, and nothing here needs it yet. The allowed
-        # domains and cache settings below only take effect if it is turned on.
+        # Base Beckn v2 schema validation against the pinned LTS spec, plus the
+        # extended layer, which resolves each resource's @type to a capability
+        # schema and validates resourceAttributes against it. Base validation
+        # treats that object as free-form, so extended is the only layer that
+        # checks a capability's own attributes at all.
+        #
+        # Resolution is a FETCH of the @context each resource declares. The
+        # validator swaps context.jsonld for attributes.yaml to get the schema
+        # beside it, so a payload names the pack revision it is judged
+        # against and no copy of the schemas is kept here to drift. Cached for
+        # the TTL below, so only the first payload after a restart pays; a
+        # fetch that FAILS rejects the payload rather than skipping
+        # validation, so this container does need egress to the allowed host.
+        #
+        # Not enforced, and worth knowing before reading a pass as pack
+        # conformance: the validator library parses if/then/else but never
+        # evaluates it, so every pack rule predicated on informationMode is
+        # unchecked.
         schemaValidator:
           id: schemav2validator
           config:
             type: url
             location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
-            extendedSchema_enabled: "false"
+            extendedSchema_enabled: "true"
+            # The host the packs' @context resolves to. An @context on any
+            # other host is refused before anything is fetched.
+            extendedSchema_allowedDomains: "raw.githubusercontent.com"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
-            extendedSchema_allowedDomains: "beckn.org,example.com,raw.githubusercontent.com"
 
         # Generic: fetches, compiles and caches whatever the registry's mapping
         # URLs point at. Knows nothing about any provider.
@@ -153,7 +168,7 @@ modules:
         # row per capability. Comma-separated, because a plugin config value is
         # a string; a binding key uses a pipe, so a comma is unambiguous.
         providerSteps:
-          - id: weather
+          - id: WeatherObservation
             config:
               bindingKeys: "__PROVIDER_BINDING_KEY__"
               authScheme: none
@@ -165,7 +180,7 @@ modules:
           # Agmarknet takes its token as a QUERY parameter. The adapter holds
           # the parameter's name and the name of the variable carrying the
           # value, never the value -- and it redacts it from the URL it logs.
-          - id: mandi
+          - id: MandiPrice
             config:
               bindingKeys: "__MANDI_BINDING_KEY__"
               authScheme: query
@@ -179,8 +194,8 @@ modules:
       steps:
         - validateSign   # the sender's key, from the registry
         - validateSchema # the pinned Beckn v2 spec
-        - weather        # openagrinet:WeatherObservation, or pass through
-        - mandi          # openagrinet:MandiPrice, or pass through
+        - WeatherObservation  # its binding key, or pass through
+        - MandiPrice          # its binding key, or pass through
         - signAck        # signs whatever the step answered with
 
   # The outbound leg: the provider's own catalogue system publishing to the
@@ -223,7 +238,7 @@ modules:
 
       plugins:
         registry:
-          id: oanregistry
+          id: sunbirdRegistry
           config:
             url: http://registry:8081/api/v1
             entity: Participant
@@ -253,11 +268,19 @@ modules:
             type: url
             location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
-            extendedSchema_enabled: "false"
+            # ON. It could not be before: the validator stripped @context and
+            # @type as JSON-LD plumbing, while the packs list @type in
+            # allOf[].required -- so every resource was rejected for a missing
+            # @type the payload had sent. The validator now decides per key,
+            # keeping the ones a schema declares, which is what makes a
+            # catalogue's resource attributes checkable at all.
+            extendedSchema_enabled: "true"
+            # The host the packs' @context resolves to. An @context on any
+            # other host is refused before anything is fetched.
+            extendedSchema_allowedDomains: "raw.githubusercontent.com"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
-            extendedSchema_allowedDomains: "beckn.org,example.com,raw.githubusercontent.com"
 
         router:
           id: router
@@ -265,6 +288,9 @@ modules:
             routingConfig: /app/config/routing-provider.yaml
 
       steps:
+        # Declaring the validator above is not enough: a plugin missing from this
+        # list never runs, which is why publish went unvalidated until now.
+        - validateSchema # the Beckn v2 spec, plus each resource's own @context
         - addRoute       # publish -> the network layer
         - sign           # as this provider, so the network layer can verify
 

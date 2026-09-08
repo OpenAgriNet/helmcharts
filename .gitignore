@@ -1,3 +1,4 @@
+
 # macOS
 .DS_Store
 
@@ -13,3 +14,10 @@ rendered/
 .vscode/
 .idea/
 *.swp
+
+
+# Local scratch: a standalone registry someone ran by hand, with a real .env in
+# it. Not part of this repo, and its .env holds live credentials -- it was
+# committed once by a `git add -A` and must not be again.
+registry/
+
