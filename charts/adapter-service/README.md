@@ -1,33 +1,57 @@
-# network-adapter
+# adapter-service
 
-The network layer of the Beckn network. It answers nothing itself: it verifies
-that the caller's signature checks out against the key the registry publishes
-for them, forwards `discover` and `publish` to the discovery service, and signs
-the response as itself.
+One chart for all three Beckn adapters. `provider`, `network` and `experience`
+are the same image and the same config format, so `role` selects the handler
+role, the step list and where requests are routed.
 
 ```
-experience adapter ─┐
-                    ├─signed─▶ network-adapter ──▶ discovery
-provider adapter ───┘              │
-                                   └── registry (whose key signed this?)
+  experience ──unsigned──▶ network ──▶ discovery
+                              │
+    provider ──signed─────────┤
+        │                     └── registry (whose key signed this?)
+        └──▶ mandi / agmarknet upstreams
 ```
 
-Stateless. Its identity is a keypair in a Secret; everything else it needs it
+| Role | Handler | Steps | Routes to |
+|---|---|---|---|
+| `provider` | `bpp` | `validateSign → addRoute → sign` | upstream APIs (several) |
+| `network` | `bpp` | `validateSign → addRoute → sign` | discovery |
+| `experience` | `bap` | `addRoute → sign` | network |
+
+`experience` is the only one that accepts **unsigned** requests: the experience
+app is inside the trust boundary, so there is no network signature to check.
+That is why it has no `validateSign`, and why an Ingress on it exposes an
+unauthenticated entry point.
+
+Stateless. Each adapter's identity is a keypair in a Secret; everything else it
 reads from the registry at request time.
 
 ## Install
 
+Once per role. **Keep the release name per-role** — it is what the Service is
+called, which is the DNS name the other adapters address.
+
 ```sh
-helm dependency build charts/network-adapter
-helm upgrade --install network-adapter charts/network-adapter -n oan \
-  -f charts/network-adapter/examples/network-adapter.dev.yaml
+helm dependency build charts/adapter-service
+
+helm upgrade --install provider-adapter charts/adapter-service -n oan \
+  -f charts/adapter-service/examples/provider.yaml
+helm upgrade --install network-adapter charts/adapter-service -n oan \
+  -f charts/adapter-service/examples/network.yaml
+helm upgrade --install experience-adapter charts/adapter-service -n oan \
+  -f charts/adapter-service/examples/experience.yaml
 ```
+
+Each example sets `fullnameOverride` to `<role>-adapter`. Without it the Service
+would be named `<release>-adapter-service`, and nothing routing by name would
+resolve. Rename a release and you must update whatever routes to it — `experience`
+points at the network adapter, `network` points at discovery.
 
 The Secret comes first — the render fails without it.
 
 ## What you must decide
 
-Five values have no default, and the chart fails rather than guessing. Each one
+Six values have no default, and the chart fails rather than guessing. Each one
 is something that produces a *silent* failure if wrong, which is why it is a
 render error rather than a default:
 
@@ -36,7 +60,8 @@ render error rather than a default:
 | `image.repository` | An empty one renders `ghcr.io/:tag`, which Helm and the API server both accept and which surfaces later as `ImagePullBackOff` |
 | `keys.existingSecret.name` | Without an identity the pod starts, serves `/health`, reports Ready, and fails every signature it makes — in a peer's logs |
 | `registry.url` | The adapter verifies every caller against the registry, so with none it can verify nobody |
-| `discovery.url` | Every request it accepts has nowhere to go |
+| `role` | It decides the handler role, the step list and the routing target. A default would give one adapter another one's behaviour |
+| `routing.rules` | An adapter with no route accepts requests and has nowhere to send them |
 | `otel.endpoint` | Only when `otel.enabled` — an enabled exporter with nowhere to send logs a failure every interval |
 
 ## The identity Secret
@@ -44,7 +69,7 @@ render error rather than a default:
 Six keys, all required:
 
 ```sh
-kubectl -n oan create secret generic network-adapter-keys \
+kubectl -n oan create secret generic <role>-adapter-keys \
   --from-literal=subscriberId=... \
   --from-literal=keyId=... \
   --from-literal=signingPrivateKey=... \
@@ -82,7 +107,7 @@ The keys Secret is not rendered by this chart, so its contents cannot go into
 the config checksum, so changing it restarts nothing:
 
 ```sh
-kubectl -n oan rollout restart deploy/network-adapter
+kubectl -n oan rollout restart deploy/<role>-adapter
 ```
 
 Changing anything else — log level, upstreams, telemetry — rolls the pods on
@@ -99,7 +124,7 @@ healthy.
 ## Values
 
 See `values.yaml` — every field is commented with what it does and what breaks
-without it. `examples/network-adapter.dev.yaml` is a working dev deployment;
+without it. `examples/{provider,network,experience}.yaml` are working dev deployments;
 `ci/` holds the two files lint renders, one minimal and one with every switch
 turned on.
 

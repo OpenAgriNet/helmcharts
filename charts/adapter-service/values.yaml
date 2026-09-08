@@ -1,12 +1,21 @@
 # ===========================================================================
-# network-adapter
+# adapter-service
 #
-# The network layer of the Beckn network. It answers nothing itself: it
-# verifies that the caller's signature checks out against the key the registry
-# publishes for them, forwards discover and publish to the discovery service,
-# and signs the response as itself.
+# One chart for all three Beckn adapters. provider, network and experience are the
+# same image and the same config format; `role` below decides the handler
+# role, the step list and where requests are routed.
 #
-# Two things it needs that this chart cannot give it:
+# INSTALL ONCE PER ROLE, and keep the RELEASE name per-role:
+#
+#   helm install provider-adapter . -f examples/provider.yaml
+#   helm install network-adapter  . -f examples/network.yaml
+#   helm install experience-adapter      . -f examples/experience.yaml
+#
+# The release name is what the Service is called, which is the DNS name the
+# other adapters address. Rename a release and you must update whatever routes
+# to it -- experience routes to the network adapter, provider is routed to by network.
+#
+# Two things every role needs that this chart cannot give it:
 #
 #   1. an identity -- a keypair, and the osid the registry indexes it by. That
 #      is `keys.existingSecret` below, and this chart renders no Secrets.
@@ -14,6 +23,18 @@
 #      every peer that verifies this adapter's signature fails, and the
 #      symptom is a signature error at the far end rather than anything here.
 # ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Role: provider | network | experience
+#
+# Required, with no default. A default would hand one role's handler role and
+# step list to a different adapter, which renders, starts, reports Ready and
+# then mis-handles every request. See examples/ for a values file per role.
+# ---------------------------------------------------------------------------
+role: ""
+
+# Overrides for what the role implies. Leave empty to take the role's default.
+appName: ""
 
 replicaCount: 1
 
@@ -35,7 +56,7 @@ replicaCount: 1
 # ---------------------------------------------------------------------------
 image:
   registry: ghcr.io
-  repository: openagrinet/network-adapter
+  repository: openagrinet/network-adapter  # one image for all three roles
   tag: "latest"
   digest: ""
   pullPolicy: IfNotPresent
@@ -60,7 +81,7 @@ serviceAccount:
 # Create it with ExternalSecrets, or by hand from what bin/setup.py wrote into
 # keys/keys.json in the compose stack:
 #
-#   kubectl create secret generic network-adapter-keys \
+#   kubectl create secret generic <role>-adapter-keys \
 #     --from-literal=subscriberId=... \
 #     --from-literal=keyId=... \
 #     --from-literal=signingPrivateKey=... \
@@ -111,7 +132,7 @@ configRenderer:
 # ---------------------------------------------------------------------------
 # Upstreams
 #
-# In-cluster addresses, and both are read at request time rather than at
+# In-cluster address, read at request time rather than at
 # start-up -- so a registry that is briefly unreachable produces failed
 # requests, not a crash loop.
 # ---------------------------------------------------------------------------
@@ -122,23 +143,34 @@ registry:
   entity: Participant
   providerEntity: ProviderSchema
 
-discovery:
-  # Where discover and publish are forwarded. No path -- the router appends
-  # the action, so anything here becomes a prefix on every forwarded call.
-  url: ""
+# ---------------------------------------------------------------------------
+# Handler
+#
+# role: bap originates a call, bpp receives one. Left empty, experience gets bap and
+#   the other two get bpp.
+# steps: left empty, experience gets [addRoute, sign] and the other two get
+#   [validateSign, addRoute, sign]. experience sits inside the trust boundary and
+#   accepts unsigned requests, so it has no signature to validate -- that
+#   difference is the reason this is a value and not a constant.
+# ---------------------------------------------------------------------------
+handler:
+  path: /
+  role: ""
+  steps: []
 
 # ---------------------------------------------------------------------------
 # Routing
 #
-# Both actions share one rule because they share a target: publish arrives
-# from the provider adapter, discover from the experience adapter, and neither
-# is answered here.
+# A list, because provider fans out to several upstreams while network and experience
+# each have one target. Required: an adapter with no route accepts requests and
+# has nowhere to send them.
+#
+# target.url is a bare host and port with NO path -- targetType "url" appends
+# the action, so a trailing slash produces //discover. In-cluster the host is
+# the RELEASE name of the target, which is what its Service is called.
 # ---------------------------------------------------------------------------
 routing:
-  version: "2.0.0"
-  endpoints:
-    - discover
-    - publish
+  rules: []
 
 # ---------------------------------------------------------------------------
 # Beckn schema validation
@@ -179,10 +211,21 @@ otel:
   # OTLP/gRPC, e.g. "otel-collector.observability.svc.cluster.local:4317"
   endpoint: ""
   environment: dev
-  serviceName: oan-network-adapter
+  # Left empty, defaults to oan-<role>-adapter, matching OTEL_SERVICE_NAME in
+  # the compose stack so traces from either deployment line up.
+  serviceName: ""
 
 logLevel: info
 
+http:
+  timeout:
+    read: 30
+    write: 30
+    idle: 30
+
+# The compose stack uses 9200 for provider, 9201 for network and 9202 for experience.
+# Nothing in-cluster requires that -- each adapter has its own Service -- but
+# keeping them distinct means a rendered config reads the same in both places.
 service:
   type: ClusterIP
   port: 9201

@@ -13,6 +13,7 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`keycloak`](charts/keycloak) | application | Auth for the registry, on the Sunbird RC Keycloak image. Imports the realm the registry expects. |
 | [`registry`](charts/registry) | application | The OAN participant registry, on Sunbird RC core. Needs `postgresql-cnpg` and `keycloak`. |
 | [`discovery`](charts/discovery) | application | The OAN Beckn discover-and-publish service. Needs `postgresql-cnpg` **with pgvector**. |
+| [`adapter-service`](charts/adapter-service) | application | The OAN Beckn adapters. One chart, installed once per `role` — `provider`, `network` or `experience`. Needs `registry`. |
 
 ## How they fit together
 
@@ -24,7 +25,8 @@ charts/
 ├── postgresql-migration/# schema migrations (Flyway Job)
 ├── keycloak/            # auth for the registry
 ├── registry/            # the participant registry
-└── discovery/           # the Beckn discover-and-publish service
+├── discovery/           # the Beckn discover-and-publish service
+└── adapter-service/     # the Beckn adapters — one release per role
 ```
 
 Every chart depends on `oan-common` via `file://../oan-common`.

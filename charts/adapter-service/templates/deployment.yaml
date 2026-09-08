@@ -1,9 +1,9 @@
 apiVersion: {{ include "oan-common.deployment.apiVersion" . }}
 kind: Deployment
 metadata:
-  name: {{ include "network-adapter.fullname" . }}
+  name: {{ include "adapter-service.fullname" . }}
   labels:
-    {{- include "network-adapter.labels" . | nindent 4 }}
+    {{- include "adapter-service.labels" . | nindent 4 }}
   {{- with .Values.commonAnnotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -14,11 +14,11 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      {{- include "network-adapter.selectorLabels" . | nindent 6 }}
+      {{- include "adapter-service.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "network-adapter.selectorLabels" . | nindent 8 }}
+        {{- include "adapter-service.selectorLabels" . | nindent 8 }}
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -28,13 +28,13 @@ spec:
         keys: that Secret is not rendered here, so its content is unknowable at
         template time. Rotating a key needs `kubectl rollout restart`.
         */}}
-        checksum/config: {{ include "network-adapter.configChecksum" . }}
+        checksum/config: {{ include "adapter-service.configChecksum" . }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
       {{- if .Values.serviceAccount.enabled }}
-      serviceAccountName: {{ include "network-adapter.serviceAccountName" . }}
+      serviceAccountName: {{ include "adapter-service.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
       {{- end }}
       {{- with (include "oan-common.imagePullSecrets" . | trim) }}
@@ -70,8 +70,8 @@ spec:
             - -c
             - |
               set -eu
-              cp /config-template/adapter.yaml         /rendered/adapter.yaml
-              cp /config-template/routing-network.yaml /rendered/routing-network.yaml
+              cp /config-template/adapter.yaml /rendered/adapter.yaml
+              cp /config-template/{{ include "adapter-service.routingFile" . }} /rendered/{{ include "adapter-service.routingFile" . }}
 
               subst() {
                 # $1 placeholder, $2 file holding the value
@@ -82,22 +82,22 @@ spec:
                 sed -i "s|$1|$(cat "$2")|g" /rendered/adapter.yaml
               }
 
-              subst __NETWORK_SUBSCRIBER_ID__   /keys/{{ .Values.keys.existingSecret.subscriberIdKey }}
-              subst __NETWORK_KEY_ID__          /keys/{{ .Values.keys.existingSecret.keyIdKey }}
-              subst __NETWORK_SIGNING_PRIVATE__ /keys/{{ .Values.keys.existingSecret.signingPrivateKey }}
-              subst __NETWORK_SIGNING_PUBLIC__  /keys/{{ .Values.keys.existingSecret.signingPublicKey }}
-              subst __NETWORK_ENCR_PRIVATE__    /keys/{{ .Values.keys.existingSecret.encrPrivateKey }}
-              subst __NETWORK_ENCR_PUBLIC__     /keys/{{ .Values.keys.existingSecret.encrPublicKey }}
+              subst __ADAPTER_SUBSCRIBER_ID__   /keys/{{ .Values.keys.existingSecret.subscriberIdKey }}
+              subst __ADAPTER_KEY_ID__          /keys/{{ .Values.keys.existingSecret.keyIdKey }}
+              subst __ADAPTER_SIGNING_PRIVATE__ /keys/{{ .Values.keys.existingSecret.signingPrivateKey }}
+              subst __ADAPTER_SIGNING_PUBLIC__  /keys/{{ .Values.keys.existingSecret.signingPublicKey }}
+              subst __ADAPTER_ENCR_PRIVATE__    /keys/{{ .Values.keys.existingSecret.encrPrivateKey }}
+              subst __ADAPTER_ENCR_PUBLIC__     /keys/{{ .Values.keys.existingSecret.encrPublicKey }}
 
               # A placeholder that survived means a key was substituted with
               # nothing. Catch it here rather than at the far end, in a peer's
               # logs, as a signature that will not verify.
-              if grep -q '__NETWORK_' /rendered/adapter.yaml; then
+              if grep -q '__ADAPTER_' /rendered/adapter.yaml; then
                 echo "render-config: placeholders remain after substitution:" >&2
-                grep -o '__NETWORK_[A-Z_]*__' /rendered/adapter.yaml | sort -u >&2
+                grep -o '__ADAPTER_[A-Z_]*__' /rendered/adapter.yaml | sort -u >&2
                 exit 1
               fi
-              echo "render-config: config rendered"
+              echo "render-config: config rendered for the {{ include "adapter-service.role" . }} role"
           volumeMounts:
             - name: config-template
               mountPath: /config-template
@@ -114,7 +114,7 @@ spec:
         {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          image: {{ include "network-adapter.image" . }}
+          image: {{ include "adapter-service.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- with (include "oan-common.securityContext" .) }}
           securityContext:
@@ -130,7 +130,7 @@ spec:
             not decoration -- unset, the binary is handed an empty --config.
             */}}
             - name: CONFIG_FILE
-              value: {{ include "network-adapter.configDir" . }}/adapter.yaml
+              value: {{ include "adapter-service.configDir" . }}/adapter.yaml
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -148,7 +148,7 @@ spec:
             {{- include "oan-common.resources" . | nindent 12 }}
           volumeMounts:
             - name: config
-              mountPath: {{ include "network-adapter.configDir" . }}
+              mountPath: {{ include "adapter-service.configDir" . }}
               readOnly: true
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
@@ -156,10 +156,10 @@ spec:
       volumes:
         - name: config-template
           configMap:
-            name: {{ include "network-adapter.fullname" . }}-config
+            name: {{ include "adapter-service.fullname" . }}-config
         - name: keys
           secret:
-            secretName: {{ include "network-adapter.keysSecretName" . }}
+            secretName: {{ include "adapter-service.keysSecretName" . }}
             defaultMode: 0400
         {{/*
         The rendered config. emptyDir rather than anything durable: it is

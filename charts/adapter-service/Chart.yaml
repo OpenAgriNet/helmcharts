@@ -1,10 +1,11 @@
 apiVersion: v2
-name: network-adapter
+name: adapter-service
 description: >-
-  The OAN network-layer Beckn adapter. Verifies the caller's signature against
-  the registry, hands discover and publish to the discovery service, and
-  re-signs as itself on the way out. Stateless: its identity is a keypair held
-  in a Secret, and everything else it needs it reads from the registry.
+  One chart for the OAN Beckn adapters. provider, network and experience are the same
+  image and config format, so `role` selects the handler role, the step list
+  and the routing target; install once per role. Stateless: an adapter's
+  identity is a keypair held in a Secret, and everything else it reads from
+  the registry.
 type: application
 version: 0.1.0
 # The adapter binary, not this chart. `/health` reports the build it is
@@ -18,7 +19,9 @@ keywords:
   - openagrinet
   - beckn
   - adapter
+  - provider
   - network
+  - experience
 home: https://github.com/OpenAgriNet/helmcharts
 sources:
   - https://github.com/OpenAgriNet/helmcharts

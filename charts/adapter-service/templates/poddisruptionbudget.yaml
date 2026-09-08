@@ -10,9 +10,9 @@ time, which is later and less legible than here.
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "network-adapter.fullname" . }}
+  name: {{ include "adapter-service.fullname" . }}
   labels:
-    {{- include "network-adapter.labels" . | nindent 4 }}
+    {{- include "adapter-service.labels" . | nindent 4 }}
 spec:
   {{- with .Values.podDisruptionBudget.minAvailable }}
   minAvailable: {{ . }}
@@ -22,5 +22,5 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      {{- include "network-adapter.selectorLabels" . | nindent 6 }}
+      {{- include "adapter-service.selectorLabels" . | nindent 6 }}
 {{- end }}

@@ -11,9 +11,9 @@ registry's contents, not of this Ingress.
 apiVersion: {{ include "oan-common.ingress.apiVersion" . }}
 kind: Ingress
 metadata:
-  name: {{ include "network-adapter.fullname" . }}
+  name: {{ include "adapter-service.fullname" . }}
   labels:
-    {{- include "network-adapter.labels" . | nindent 4 }}
+    {{- include "adapter-service.labels" . | nindent 4 }}
   {{- with (merge (dict) .Values.ingress.annotations (.Values.commonAnnotations | default dict)) }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -36,7 +36,7 @@ spec:
             pathType: {{ .pathType | default "Prefix" }}
             backend:
               service:
-                name: {{ include "network-adapter.fullname" $ }}
+                name: {{ include "adapter-service.fullname" $ }}
                 port:
                   number: {{ $.Values.service.port }}
           {{- end }}
