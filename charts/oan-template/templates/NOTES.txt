@@ -1,0 +1,28 @@
+Thank you for installing {{ .Chart.Name }} (release: {{ .Release.Name }}).
+
+Rendered from the oan-template reference chart.
+
+Resources in namespace "{{ .Release.Namespace }}":
+  - Deployment/{{ include "oan-template.fullname" . }} ({{ .Values.replicaCount }} replica(s))
+  - Service/{{ include "oan-template.fullname" . }} ({{ .Values.service.type }} on port {{ .Values.service.port }})
+  - ConfigMap/{{ include "oan-template.envConfigMapName" . }}
+{{- if .Values.serviceAccount.enabled }}
+  - ServiceAccount/{{ include "oan-template.serviceAccountName" . }}
+{{- end }}
+{{- if .Values.ingress.enabled }}
+  - Ingress/{{ include "oan-template.fullname" . }}
+{{- end }}
+
+Image in use:
+  {{ include "oan-template.image" . }}
+{{- if not .Values.image.repository }}
+
+WARNING: image.repository is empty. Set image.registry/repository/tag before a
+real deployment, e.g. --set image.repository=openagrinet/my-service
+{{- end }}
+
+Check the rollout:
+  kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "oan-template.fullname" . }}
+
+Reach the service in-cluster:
+  {{ include "oan-template.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}

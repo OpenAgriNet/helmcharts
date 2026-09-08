@@ -1,0 +1,55 @@
+{{ .Chart.Name }} {{ .Chart.Version }} — {{ include "adapter-service.fullname" . }}
+
+  role       {{ include "adapter-service.role" . }} ({{ include "adapter-service.handlerRole" . }})
+  steps      {{ include "adapter-service.steps" . | fromYamlArray | join " -> " }}
+  image      {{ include "adapter-service.image" . }}
+  service    {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}
+  registry   {{ .Values.registry.url }}
+  routes to  {{ range $i, $r := .Values.routing.rules }}{{ if $i }}, {{ end }}{{ $r.target.url }}{{ end }}
+  telemetry  {{ if .Values.otel.enabled }}{{ .Values.otel.endpoint }}{{ else }}off{{ end }}
+
+This Service is reachable in-cluster as {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}.
+That name comes from the RELEASE name — whatever routes here must use it, so
+renaming this release means updating the adapter that points at it.
+
+Check it is serving:
+
+  kubectl -n {{ include "oan-common.namespace" . }} port-forward svc/{{ include "adapter-service.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+  curl localhost:{{ .Values.service.port }}/health
+
+/health reports the build actually running, which is worth more than this
+chart's appVersion.
+
+TWO THINGS THIS CHART CANNOT CHECK FOR YOU
+
+1. The Participant row. This adapter signs as {{ .Values.keys.existingSecret.name }}'s
+   subscriberId, and every peer verifies that signature against the public key
+   the registry publishes for it. If the row is missing, or carries a different
+   key, this pod runs and reports Ready while every peer rejects what it signs
+   — and the error appears in their logs, not yours.
+
+2. Key rotation. The keys live in Secret/{{ include "adapter-service.keysSecretName" . }},
+   which this chart does not render and therefore cannot include in the config
+   checksum. Changing that Secret does not restart anything:
+
+     kubectl -n {{ include "oan-common.namespace" . }} rollout restart deploy/{{ include "adapter-service.fullname" . }}
+
+{{- if not .Values.otel.enabled }}
+
+Telemetry is off, which is the right setting until a collector exists: with it
+on and nothing listening the exporter logs a failure every interval.
+{{- end }}
+{{- if .Values.ingress.enabled }}
+
+Ingress is ON.
+{{- if eq (include "adapter-service.role" .) "experience" }}
+This is the experience role, which accepts UNSIGNED requests — it is inside the trust
+boundary and has no validateSign step. An Ingress therefore exposes an
+unauthenticated entry point to the network: rate-limit this host, and do not
+route it from anywhere you would not trust to call the network directly.
+{{- else }}
+This adapter verifies signatures on the way in, so what keeps it safe is the
+registry's contents rather than this route — every caller must hold a key the
+registry publishes for them.
+{{- end }}
+{{- end }}

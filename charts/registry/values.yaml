@@ -1,0 +1,353 @@
+# ============================================================================
+# registry - default values
+#
+# The OAN participant registry, on Sunbird RC core. Defaults mirror the verified
+# compose stack (registry/docker-compose.yml): participant records and lookup
+# only, with every optional Sunbird RC subsystem (credentials, DIDs,
+# certificates, file storage, notifications, webhooks) switched off.
+#
+# Depends on two things already running:
+#   - PostgreSQL          -> database.host
+#   - Keycloak            -> keycloak.url
+#
+# Minimum you must set:
+#   - database.host, database.passwordSecret.name
+#   - keycloak.url, keycloak.adminClientSecret.name
+#   - defaultUserPasswordSecret.name
+# ============================================================================
+
+replicaCount: 1
+
+# ---------------------------------------------------------------------------
+# Image
+#
+# repository is intentionally EMPTY: the image OAN deploys is not settled yet, and
+# a default here would look like a decision that has not been made. The render
+# fails while it is empty rather than producing "ghcr.io/:v2.0.0", which would
+# only surface later as an ImagePullBackOff.
+#
+# The compose stack runs ghcr.io/sunbird-rc/sunbird-rc-core:v2.0.0, which is what
+# the dev example values use. Set this per environment.
+# ---------------------------------------------------------------------------
+image:
+  registry: ghcr.io
+  repository: ""
+  # RELEASE_VERSION in the compose stack
+  tag: "v2.0.0"
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: true
+
+service:
+  type: ClusterIP
+  port: 8081
+  targetPort: 8081
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: registry.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# ---------------------------------------------------------------------------
+# Database
+#
+# Compose runs the registry as the postgres superuser against the same database
+# Keycloak uses. On a cluster, prefer a dedicated owner role: set user to the
+# CNPG cluster's bootstrap owner and give Keycloak its own database.
+# ---------------------------------------------------------------------------
+database:
+  # PostgreSQL primary service, e.g. "registry-db-rw"
+  host: ""
+  port: 5432
+  name: registry
+  user: postgres
+  # Secret holding the database password. Required.
+  passwordSecret:
+    name: ""
+    key: password
+
+# ---------------------------------------------------------------------------
+# Keycloak
+#
+# `url` must include the /auth context path the legacy Keycloak serves under,
+# and must be the URL Keycloak itself puts in the `iss` claim. If they disagree,
+# every authenticated request is rejected - and the failure looks like a
+# permissions problem, not a configuration one.
+#
+# The keycloak chart prints the exact value to use in its NOTES.
+# ---------------------------------------------------------------------------
+keycloak:
+  # e.g. http://keycloak.oan-registry.svc.cluster.local:8080/auth
+  url: ""
+  realm: sunbird-rc
+  # Confidential client the registry uses for admin operations on Keycloak
+  adminClientId: admin-api
+  # Client tokens are issued to
+  clientId: registry-frontend
+  rolesPath: realm_access.roles
+  identityProvider: dev.sunbirdrc.auth.keycloak.KeycloakProviderImpl
+  # Secret holding the admin-api client secret.
+  #
+  # The realm export ships this masked, so it is NOT usable until someone
+  # regenerates it: Keycloak console -> realm sunbird-rc -> Clients -> admin-api
+  # -> Credentials -> Regenerate Secret. First install is two-phase because of
+  # this.
+  adminClientSecret:
+    name: ""
+    key: keycloakAdminClientSecret
+
+# Role checks on Participant only apply while this is true.
+authenticationEnabled: true
+
+# Whether the registry sets a password on Keycloak users it creates.
+keycloakUserSetPassword: true
+# The password it sets. Required while keycloakUserSetPassword is true.
+defaultUserPasswordSecret:
+  name: ""
+  key: registryDefaultUserPassword
+
+# ---------------------------------------------------------------------------
+# Entity schemas
+#
+# Every .json under the registry's schema directory is an entity definition.
+# The chart ships the participant schema and mounts it at mountPath.
+#
+# NOTE: this schema was built and verified against the local stack, but per
+# engineering-tracker #33 it has no design issue of its own yet. Expect it to
+# change - a schema change is a chart release.
+# ---------------------------------------------------------------------------
+schemas:
+  filesGlob: "files/schemas/*.json"
+  mountPath: /home/sunbirdrc/config/public/_schemas
+  # Manage schemas outside this chart instead of shipping them
+  existingConfigMap: ""
+  # Extra or overriding schemas, as filename -> JSON string
+  inline: {}
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "1"
+    memory: 2Gi
+
+# ---------------------------------------------------------------------------
+# Probes
+#
+# /health is what the compose healthcheck uses. Sunbird's own Helm chart probes
+# /api/docs/swagger.json instead, which additionally requires swagger to be
+# enabled; /health is the narrower, more honest check.
+#
+# The registry runs schema migrations on first start, so startupProbe carries
+# the slow path.
+# ---------------------------------------------------------------------------
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  timeoutSeconds: 10
+  failureThreshold: 30
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 5
+
+podSecurityContext:
+  enabled: false
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+securityContext:
+  enabled: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+
+# ---------------------------------------------------------------------------
+# Dependency waiting
+#
+# Kubernetes has no equivalent of compose's `depends_on: condition:
+# service_healthy`. Without these init containers the pod starts before its
+# dependencies are up, fails, and crashloops with backoff - which recovers on
+# its own but makes a first install look broken.
+# ---------------------------------------------------------------------------
+waitFor:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: busybox
+    tag: "1.37"
+    pullPolicy: IfNotPresent
+  timeoutSeconds: 300
+  intervalSeconds: 3
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 50m
+      memory: 32Mi
+  # Wait for the database. Host and port come from `database` above.
+  database: true
+  # Wait for Keycloak's REALM endpoint, derived from keycloak.url and
+  # keycloak.realm - not just its port. The realm is imported during Keycloak's
+  # first start, so the port opens well before the realm exists, and a TCP check
+  # would let the registry start against a Keycloak that cannot yet issue it a
+  # usable token.
+  keycloak: true
+  extraTcp: []
+  extraHttp: []
+
+# Extra init containers, appended after the waitFor ones. Rendered verbatim.
+extraInitContainers: []
+
+# Extra volumes and mounts, rendered verbatim. For certificates, extra config,
+# or a writable scratch directory when readOnlyRootFilesystem is enabled.
+extraVolumes: []
+extraVolumeMounts: []
+
+# ---------------------------------------------------------------------------
+# PodDisruptionBudget
+#
+# Caps voluntary disruptions - node drains, cluster upgrades, autoscaler
+# scale-down. Disabled by default because with a single replica a PDB of
+# minAvailable: 1 blocks drains entirely; the render fails if you enable it
+# anyway without acknowledging that.
+# ---------------------------------------------------------------------------
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # Set one or the other, not both.
+  maxUnavailable: ""
+  # Enable a PDB with a single replica anyway, accepting that node drains block.
+  allowSingleReplica: false
+
+# ---------------------------------------------------------------------------
+# `helm test` checks
+#
+#   helm test <release> -n <namespace>
+#
+# Runs after install to confirm the service actually answers, which is the
+# difference between "the pod is running" and "the deployment works".
+# ---------------------------------------------------------------------------
+tests:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: busybox
+    tag: "1.37"
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 50m
+      memory: 32Mi
+
+# ---------------------------------------------------------------------------
+# Autoscaling
+#
+# The registry is stateless, so it scales horizontally. Note that every replica
+# opens its own connection pool, so check the database's max_connections before
+# raising maxReplicas much. When enabled, replicaCount is ignored.
+# ---------------------------------------------------------------------------
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  # Set to a number to also scale on memory.
+  targetMemoryUtilizationPercentage: ""
+  # Scale-up/scale-down tuning, rendered verbatim into spec.behavior.
+  behavior: {}
+
+
+# ---------------------------------------------------------------------------
+# ENVIRONMENT CONFIGURATION
+#
+# Rendered into a ConfigMap and injected with envFrom. These are exactly the
+# non-secret, non-derived variables from the compose stack. Database and
+# Keycloak variables are derived from the sections above instead, so they are
+# not repeated here.
+#
+# The *_enabled flags are all false on purpose: this deployment is participant
+# records and lookup only. Turning any of them on pulls in another Sunbird RC
+# service that is not deployed - the registry will start and then fail at the
+# first request that needs it.
+#
+# NEVER put secrets here.
+# ---------------------------------------------------------------------------
+envConfig:
+  search_providerName: dev.sunbirdrc.registry.service.NativeSearchService
+  manager_type: DefinitionsManager
+  expand_reference: "false"
+  encryption_enabled: "false"
+  event_enabled: "false"
+  idgen_enabled: "false"
+  claims_enabled: "false"
+  did_enabled: "false"
+  signature_enabled: "false"
+  certificate_enabled: "false"
+  filestorage_enabled: "false"
+  notification_enabled: "false"
+  notification_async_enabled: "false"
+  async_enabled: "false"
+  webhook_enabled: "false"
+  registry_base_apis_enable: "false"
+  swagger_title: OAN Registry
+  logging.level.root: INFO
+
+# Extra env vars from specific Secret keys, beyond the three wired above.
+secretEnv: {}
+extraEnv: []
+envFromSecrets: []
+
+commonLabels: {}
+commonAnnotations: {}

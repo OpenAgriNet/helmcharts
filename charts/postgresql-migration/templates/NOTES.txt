@@ -1,0 +1,41 @@
+{{- $targets := include "postgresql-migration.enabledTargets" . | fromJsonArray }}
+{{ .Chart.Name }} installed as release "{{ .Release.Name }}".
+
+{{ if .Values.hook.enabled -}}
+The migration Job runs as a Helm hook ({{ join ", " .Values.hook.events }}), so it
+has already completed - `helm install` would have failed otherwise.
+{{- else -}}
+The migration Job is an ordinary release resource, so it is starting now.
+{{- end }}
+
+Targets, in order:
+{{- range $targets }}
+  - {{ .name }} -> database {{ .database }}{{ if not (include "postgresql-migration.targetHasSql" (dict "ctx" $ "name" .name)) }}  (no .sql files - will be skipped){{ end }}
+{{- end }}
+
+Connection: {{ .Values.postgresql.user }}@{{ .Values.postgresql.host }}:{{ .Values.postgresql.port }}
+
+Read what it did:
+  kubectl -n {{ .Release.Namespace }} logs job/{{ include "postgresql-migration.fullname" . }}
+
+{{ if .Values.hook.enabled -}}
+Because the Job is a hook with deletePolicy "{{ .Values.hook.deletePolicy }}", it
+stays until the next install or upgrade replaces it - so the logs above are
+readable now, but will be gone after the next run.
+{{- end }}
+
+Check the schema history Flyway keeps, per database:
+{{- range $targets }}
+{{- if include "postgresql-migration.targetHasSql" (dict "ctx" $ "name" .name) }}
+  psql -h {{ $.Values.postgresql.host }} -U {{ $.Values.postgresql.user }} -d {{ .database }} \
+    -c 'SELECT version, description, success, installed_on FROM flyway_schema_history ORDER BY installed_rank'
+{{- end }}
+{{- end }}
+
+If a target failed, the log names which one. The usual causes:
+  - The role lacks CREATEDB (bootstrap target) or rights on the database.
+  - A database listed in the bootstrap migration already exists, created by the
+    PostgreSQL cluster itself. Remove it from the migration - the cluster's
+    bootstrap database must not be created here.
+  - A migration was edited after it ran; Flyway rejects the checksum change.
+    {{ if .Values.repairOnFailure }}repairOnFailure is on, so it retried once after `flyway repair`.{{ else }}repairOnFailure is off, so it failed without retrying.{{ end }}
