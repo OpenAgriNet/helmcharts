@@ -1,0 +1,31 @@
+apiVersion: v2
+name: postgresql-cnpg
+description: >-
+  CloudNativePG-managed PostgreSQL cluster for OAN services (Cluster +
+  optional ScheduledBackup and Barman Cloud ObjectStore). One release per
+  database. Requires the CloudNativePG operator; backups additionally require
+  the Barman Cloud Plugin, both cluster-wide installs.
+type: application
+version: 0.2.1
+# The PostgreSQL major line this chart targets by default. Unlike other OAN
+# charts, this is not an image tag: when image.repository is empty the operator
+# supplies its own default image. Pin image.* per environment for reproducibility.
+appVersion: "17"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - postgresql
+  - postgres
+  - cloudnative-pg
+  - cnpg
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
+  - https://cloudnative-pg.io/
+dependencies:
+  - name: oan-common
+    version: "0.2.x"
+    repository: "file://../oan-common"

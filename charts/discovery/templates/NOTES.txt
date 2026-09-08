@@ -1,0 +1,59 @@
+{{ .Chart.Name }} installed as release "{{ .Release.Name }}".
+
+Resources in namespace "{{ .Release.Namespace }}":
+  - Deployment/{{ include "discovery.fullname" . }} ({{ if .Values.autoscaling.enabled }}autoscaled {{ .Values.autoscaling.minReplicas }}-{{ .Values.autoscaling.maxReplicas }}{{ else }}{{ .Values.replicaCount }} replica(s){{ end }})
+  - Service/{{ include "discovery.fullname" . }} ({{ .Values.service.type }} on port {{ .Values.service.port }})
+  - ConfigMap/{{ include "discovery.envConfigMapName" . }}
+{{- if .Values.serviceAccount.enabled }}
+  - ServiceAccount/{{ include "discovery.serviceAccountName" . }}
+{{- end }}
+{{- if .Values.ingress.enabled }}
+  - Ingress/{{ include "discovery.fullname" . }}
+{{- end }}
+{{- if .Values.podDisruptionBudget.enabled }}
+  - PodDisruptionBudget/{{ include "discovery.fullname" . }}
+{{- end }}
+
+Wired to:
+  network:    {{ .Values.app.networkId }}
+  database:   {{ if .Values.database.urlSecret.name }}DSN from Secret/{{ .Values.database.urlSecret.name }} key {{ .Values.database.urlSecret.key }}{{ else }}{{ .Values.database.host }}:{{ .Values.database.port }}/{{ .Values.database.name }} (as {{ .Values.database.user }}){{ end }}
+  migrations: {{ if .Values.database.autoMigrate }}APPLIED ON BOOT{{ else }}not applied - DATABASE_AUTO_MIGRATE is false{{ end }}
+  beckn spec: {{ if .Values.becknSpec.url }}{{ .Values.becknSpec.url }}{{ else }}no URL - cache only{{ end }}
+              cache {{ if .Values.becknSpec.existingConfigMap }}from ConfigMap/{{ .Values.becknSpec.existingConfigMap }}{{ else }}in an emptyDir (refetched on every reschedule){{ end }} at {{ include "discovery.specCachePath" . }}
+  embeddings: {{ .Values.embeddings.provider }}{{ if eq .Values.embeddings.provider "noop" }} - semantic search is OFF, and discover says so in X-Beckn-Degraded{{ end }}
+
+In-cluster endpoint:
+  http://{{ include "discovery.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+Check it:
+  kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "discovery.fullname" . }}
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "discovery.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+  curl http://localhost:{{ .Values.service.port }}/healthz   # liveness - depends on nothing
+  curl http://localhost:{{ .Values.service.port }}/readyz    # readiness - 503 when PostgreSQL is unreachable
+
+{{ if not .Values.database.autoMigrate -}}
+Migrations are OFF. On a database that has never been migrated, every request
+fails against missing tables while /healthz still answers 200. To migrate:
+
+  helm upgrade {{ .Release.Name }} <chart> -n {{ .Release.Namespace }} --reuse-values \
+    --set database.autoMigrate=true --set replicaCount=1
+  # then turn it back off once the rollout is complete
+
+Scale to one replica first: the migration runs in-process on boot, so several
+pods starting at once race to apply it.
+{{ end -}}
+
+If the pods crashloop before serving, check these in order - the first two look
+nothing like their cause in the logs:
+  1. "permission denied to create extension vector" means the database was not
+     bootstrapped with it. `vector` is not a trusted extension, so the owner
+     this service connects as cannot create it - the cluster must, at bootstrap,
+     as superuser. See charts/postgresql-cnpg/examples/discovery-db.dev.yaml.
+     "could not open extension control file" instead means the image has no
+     pgvector at all; no stock CNPG operand image does.
+  2. "load the validation spec" means neither the fetch nor the cache produced
+     a Beckn document. With becknSpec.url set and no ConfigMap, the pod needs
+     egress to that URL.
+  3. A key in `envConfig` matching no config field fails the boot by design, so
+     a typo there stops the service rather than being ignored.

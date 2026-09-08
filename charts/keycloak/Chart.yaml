@@ -1,0 +1,28 @@
+apiVersion: v2
+name: keycloak
+description: >-
+  Keycloak for the OAN registry, on the Sunbird RC Keycloak image. Issues and
+  validates the tokens the registry authorises requests with, and imports the
+  realm, clients and roles the registry expects.
+type: application
+version: 0.2.0
+# Tag of ghcr.io/sunbird-rc/sunbird-rc-keycloak. Sunbird's own v2 deployment
+# pairs this version with sunbird-rc-core v2.0.0.
+appVersion: "v1.0.0"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - keycloak
+  - sunbird-rc
+  - authentication
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
+  - https://github.com/Sunbird-RC/devops/tree/main/deploy-as-code
+dependencies:
+  - name: oan-common
+    version: "0.2.x"
+    repository: "file://../oan-common"

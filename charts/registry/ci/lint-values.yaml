@@ -1,0 +1,18 @@
+# Minimum values that let `helm template` run in CI. Dummy references only -
+# see examples/ for real per-environment configuration.
+database:
+  host: registry-db-rw
+  passwordSecret:
+    name: registry-db-app
+keycloak:
+  url: http://keycloak:8080/auth
+  adminClientSecret:
+    name: registry-keycloak
+defaultUserPasswordSecret:
+  name: registry-keycloak
+
+# image.repository is intentionally empty in the chart, so CI supplies one.
+image:
+  registry: ghcr.io
+  repository: sunbird-rc/sunbird-rc-core
+  tag: "v2.0.0"

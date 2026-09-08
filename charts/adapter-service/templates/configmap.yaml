@@ -1,0 +1,131 @@
+{{/*
+The adapter's two config files.
+
+adapter.yaml carries PLACEHOLDERS where the keypair goes, not the keypair --
+this is a ConfigMap, and a ConfigMap is world-readable to anything with get on
+the namespace. The init container substitutes the real values from the Secret
+into an emptyDir at start-up.
+
+Everything that differs between the provider, network and experience adapters is a
+value: they are one image with one config format, and the role decides the
+identity, the handler role, the step list and where requests are routed.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "adapter-service.fullname" . }}-config
+  labels:
+    {{- include "adapter-service.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  adapter.yaml: |
+    # Rendered by the adapter-service chart for the {{ include "adapter-service.role" . }} role.
+    # Do not edit in place: the init container rewrites a copy of this, and
+    # this object is replaced on every helm upgrade.
+    appName: {{ include "adapter-service.appName" . | quote }}
+
+    log:
+      level: {{ .Values.logLevel | quote }}
+      destinations:
+        - type: stdout
+      contextKeys: [transaction_id, message_id, subscriber_id, module_id]
+
+    http:
+      port: {{ .Values.service.targetPort }}
+      timeout:
+        read: {{ .Values.http.timeout.read }}
+        write: {{ .Values.http.timeout.write }}
+        idle: {{ .Values.http.timeout.idle }}
+
+    pluginManager:
+      root: ./plugins
+
+    plugins:
+      otelsetup:
+        id: otelsetup
+        config:
+          serviceName: {{ include "adapter-service.otelServiceName" . | quote }}
+          environment: {{ .Values.otel.environment | quote }}
+          otlpEndpoint: {{ include "adapter-service.otlpEndpoint" . | quote }}
+          enableMetrics: {{ .Values.otel.enabled | quote }}
+          enableTracing: {{ .Values.otel.enabled | quote }}
+          enableLogs: {{ .Values.otel.enabled | quote }}
+
+    modules:
+      - name: {{ include "adapter-service.appName" . | quote }}
+        # A subtree: every action lands here and the payload says which one.
+        path: {{ .Values.handler.path | quote }}
+        handler:
+          type: std
+          {{/*
+          bap originates a call, bpp receives one. It decides which declared
+          identity validateSign would compare a signer against -- so it is not
+          cosmetic, and it is why experience (which originates) differs from network
+          and provider (which receive).
+          */}}
+          role: {{ include "adapter-service.handlerRole" . | quote }}
+          subscriberId: __ADAPTER_SUBSCRIBER_ID__
+
+          plugins:
+            registry:
+              id: oanregistry
+              config:
+                url: {{ include "adapter-service.registryUrl" . | quote }}
+                entity: {{ .Values.registry.entity | quote }}
+                providerEntity: {{ .Values.registry.providerEntity | quote }}
+
+            keyManager:
+              id: simplekeymanager
+              config:
+                subscriberId: __ADAPTER_SUBSCRIBER_ID__
+                # The KEY's osid, not a friendly name: that is what the
+                # registry indexes keys by, and what a verifier looks up.
+                keyId: __ADAPTER_KEY_ID__
+                signingPrivateKey: "__ADAPTER_SIGNING_PRIVATE__"
+                signingPublicKey: "__ADAPTER_SIGNING_PUBLIC__"
+                encrPrivateKey: "__ADAPTER_ENCR_PRIVATE__"
+                encrPublicKey: "__ADAPTER_ENCR_PUBLIC__"
+
+            signer:
+              id: signer
+            signValidator:
+              id: signvalidator
+
+            schemaValidator:
+              id: schemav2validator
+              config:
+                type: url
+                location: {{ .Values.becknSpec.url | quote }}
+                cacheTTL: {{ .Values.becknSpec.cacheTTL | quote }}
+                extendedSchema_enabled: {{ .Values.becknSpec.extendedSchema.enabled | quote }}
+                extendedSchema_cacheTTL: {{ .Values.becknSpec.extendedSchema.cacheTTL | quote }}
+                extendedSchema_maxCacheSize: {{ .Values.becknSpec.extendedSchema.maxCacheSize | quote }}
+                extendedSchema_downloadTimeout: {{ .Values.becknSpec.extendedSchema.downloadTimeout | quote }}
+                extendedSchema_allowedDomains: {{ .Values.becknSpec.extendedSchema.allowedDomains | quote }}
+
+            router:
+              id: router
+              config:
+                routingConfig: {{ include "adapter-service.configDir" . }}/{{ include "adapter-service.routingFile" . }}
+
+          {{/*
+          The step list is role-specific and the difference matters. experience is
+          inside the trust boundary and takes unsigned requests, so it has no
+          validateSign to run; network and provider receive from the network
+          and must verify before they do anything else.
+          */}}
+          steps:
+            {{- range include "adapter-service.steps" . | fromYamlArray }}
+            - {{ . }}
+            {{- end }}
+
+  {{ include "adapter-service.routingFile" . }}: |
+    # Where this adapter hands requests on.
+    #
+    # targetType "url" appends the action to whatever base is given, so a base
+    # must be the bare host and port with no path.
+    routingRules:
+      {{- include "adapter-service.routingRules" . | nindent 6 }}
