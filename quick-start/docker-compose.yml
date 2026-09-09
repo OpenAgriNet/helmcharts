@@ -7,7 +7,7 @@
 #   discovery       discovery-db, discovery
 #   adapters        provider, network, exp
 #   observability   hyperdx                      profile: observability
-#   edge            nginx-proxy-manager          profile: gateway
+#   edge            nginx-proxy-manager          profile: reverse-proxy
 #
 # The last two are behind profiles because neither is needed to exercise the
 # stack, and HyperDX is the heaviest thing here.
@@ -39,6 +39,11 @@
 # Keycloak, the registry, discovery, the HyperDX UI, and NPM's own admin UI on
 # 81 -- publishes on 127.0.0.1 and is reachable only through an SSH tunnel:
 #
+# The HyperDX UI is the one item on that list with a second way in: it also has
+# a proxy host, so it is readable at https://<your hyperdx name>/ with the
+# Access List's username and password. Its loopback publish is unchanged --
+# routing it did not open a port here.
+#
 #   ssh -L 81:127.0.0.1:81   -L 8080:127.0.0.1:8080 \
 #       -L 8081:127.0.0.1:8081 -L 8085:127.0.0.1:8085 -N you@the-vm
 #
@@ -55,9 +60,9 @@
 # decoration and becomes the actual control. NPM's "Forward Hostname" is a
 # free-text field, so anyone with the admin password can point a public route
 # at `registry` or `keycloak`. NPM sits only on oan-edge, where neither name
-# resolves and neither address is routable -- the three adapters are the only
-# containers it shares a network with. The adapters straddle both networks;
-# everything else is internal-only.
+# resolves and neither address is routable -- the three adapters and hyperdx
+# are the only containers it shares a network with. Those four straddle both
+# networks; everything else is internal-only.
 #
 # Neither is `internal: true`: the adapters and discovery fetch the Beckn spec
 # from raw.githubusercontent.com at boot, the provider adapter calls an
@@ -468,13 +473,28 @@ services:
   hyperdx:
     # clickstack-local, not clickstack-all-in-one: local runs single-user with
     # no team to create and no ingestion API key to mint, which is what makes
-    # `up -d` the whole setup step. It is also why this must stay on loopback
-    # -- there is no login in front of it.
+    # `up -d` the whole setup step. It is also why it has NO login of its own
+    # -- so once this is routed (see networks, below) the Access List on the
+    # proxy host is the only authentication in front of every trace, log and
+    # metric the stack has emitted. It is not an optional hardening step.
     image: clickhouse/clickstack-local:latest
     container_name: oan-hyperdx
     restart: unless-stopped
     profiles: ["observability"]
-    networks: [oan-internal]
+
+    # oan-edge in addition to oan-internal, so NPM can resolve `hyperdx` and
+    # serve the UI on a hostname instead of an `ssh -L`. oan-internal stays,
+    # because that is the network the in-stack senders reach 4317/4318 on.
+    #
+    # This widens what a wrong click in NPM can reach, and the widening is
+    # worth stating rather than discovering: this container is also ClickHouse,
+    # so `hyperdx` is now a resolvable Forward Hostname for port 8123 -- an
+    # HTTP interface clickstack-local leaves open, over the same volume. The
+    # proxy host for the UI pins 8080 and is fine; nothing in NPM stops someone
+    # typing 8123 into a second one. Registry and Keycloak remain off oan-edge,
+    # so that bound is unchanged -- this is a deliberate trade of one name for
+    # not having to tunnel to read telemetry.
+    networks: [oan-internal, oan-edge]
     env_file:
       # Optional. Present so an existing .env.docker keeps working; compose
       # errors on a missing env_file unless it is declared this way.
@@ -497,6 +517,12 @@ services:
       # 8085, not the 8080 this image serves the UI on and not the 8081 it is
       # usually published as: 8081 is REGISTRY_PORT here, and two services
       # cannot claim one host port.
+      #
+      # Still 127.0.0.1 now that there is a route: the public path is NPM ->
+      # hyperdx:8080 across oan-edge, which is what makes the Access List
+      # unavoidable. Rebinding this to 0.0.0.0 would open a second door on the
+      # same UI with no credential on it, and the security group is the only
+      # thing that would be holding it shut.
       - "127.0.0.1:${HYPERDX_PORT:-8085}:8080"
       # OTLP. Published on loopback only so a reverse tunnel can carry
       # telemetry from a provider API running on someone's laptop; the
@@ -554,10 +580,10 @@ services:
     # NPM's "Forward Hostname" is a free-text field. Anyone with the admin
     # password can type `registry`, `keycloak` or `discovery-db` into it. On
     # this network none of those names resolve and none of those addresses are
-    # routable from here -- the three adapters are the only containers NPM
-    # shares a network with. So the blast radius of a wrong click, or of the
-    # admin UI being reached by someone who should not have it, is bounded to
-    # the tier that is meant to be public anyway.
+    # routable from here -- the three adapters, and hyperdx when the
+    # observability profile is up, are the only containers NPM shares a network
+    # with. So the blast radius of a wrong click, or of the admin UI being
+    # reached by someone who should not have it, is bounded to that set.
     #
     # Putting NPM on oan-internal to "make things easier" would remove that
     # bound entirely and put the registry's write API one form field away from
@@ -620,6 +646,12 @@ services:
       # spend an afternoon on a 502:
       #
       #   docker compose restart nginx-proxy-manager
+      #
+      # hyperdx is deliberately absent even though it is routed: it is behind
+      # the `observability` profile, and a depends_on would make it start
+      # whenever NPM does. That means the restart above is not optional after
+      # `make observability` -- NPM was started before the name existed, so the
+      # HyperDX host 502s until it re-resolves.
       exp-adapter:
         condition: service_started
       network-adapter:
