@@ -351,9 +351,17 @@ List publishes every trace, log and metric the stack has emitted, to anyone who
 resolves the name.
 
 Access Lists → Add → name it → **Authorization** tab → username + password →
-Satisfy Any, and leave the Access tab empty unless you also want an IP
-allowlist. Then the proxy host → Details → Access List. Check both directions,
-because a detached list fails open and a 200 looks like success either way:
+leave **Satisfy Any unchecked**, and leave the Access tab empty unless you also
+want an IP allowlist. Then the proxy host → Details → Access List.
+
+**Satisfy Any is the trap.** It maps to nginx's `satisfy any` — access is
+granted when *any* access-phase module is satisfied rather than all of them, so
+combined with an empty Access tab it can hand out the UI without ever asking
+for the password. Unchecked (`satisfy all`) means basic auth must pass. Only
+check it if you have IP rules and want address *or* password to be enough.
+
+Check both directions, because a detached list fails open and a 200 looks like
+success either way:
 
 ```sh
 curl -s -o /dev/null -w '%{http_code}\n' https://hyperdx.oan.example.com/ -u user:pass   # 200
