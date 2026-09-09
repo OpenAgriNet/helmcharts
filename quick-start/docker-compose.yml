@@ -530,6 +530,30 @@ services:
       # need these at all.
       - "127.0.0.1:${OTLP_GRPC_PORT:-4317}:4317"
       - "127.0.0.1:${OTLP_HTTP_PORT:-4318}:4318"
+
+      # ClickHouse's HTTP interface, and it is published for one specific
+      # reason: clickstack-local is LOCAL mode, where the UI queries ClickHouse
+      # straight from the BROWSER with no API server in between. So the Host
+      # field in Team Settings is dialled by your laptop, not by the container
+      # -- its `http://localhost:8123` default means *your* machine, and over
+      # any remote hostname it fails with "Error connecting to ClickHouse
+      # server" no matter how the proxy is set up.
+      #
+      # Tunnel both, then point the connection at your own loopback:
+      #
+      #   ssh -L 8085:127.0.0.1:8085 -L 8123:127.0.0.1:8123 -N you@the-vm
+      #   http://localhost:8085, connection Host http://localhost:8123
+      #
+      # 127.0.0.1 and NOT negotiable, unlike the UI on 8085. This interface
+      # executes arbitrary SQL and clickstack-local leaves it open, so a
+      # 0.0.0.0 bind or an NPM route publishes the whole telemetry store --
+      # and its own auth uses the same `Authorization: Basic` header an NPM
+      # Access List needs, so the two cannot be stacked.
+      #
+      # The real fix is clickstack-all-in-one: a server-side API queries
+      # ClickHouse, connections stop being browser state, and this publish and
+      # the tunnel both become unnecessary. See README Appendix H.
+      - "127.0.0.1:${CLICKHOUSE_HTTP_PORT:-8123}:8123"
     volumes:
       - hyperdx-data:/var/lib/clickhouse
     healthcheck:
