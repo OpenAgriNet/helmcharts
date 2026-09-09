@@ -139,7 +139,7 @@ services:
   # ==========================================================================
   registry-db:
     image: postgres:14
-    container_name: oan-registry-db
+    container_name: registry-db
     restart: unless-stopped
     networks: [oan-internal]
     environment:
@@ -159,7 +159,7 @@ services:
 
   keycloak:
     image: ghcr.io/sunbird-rc/sunbird-rc-keycloak:latest
-    container_name: oan-keycloak
+    container_name: keycloak
     restart: unless-stopped
     networks: [oan-internal]
     volumes:
@@ -191,7 +191,7 @@ services:
 
   registry:
     image: ghcr.io/sunbird-rc/sunbird-rc-core:${REGISTRY_VERSION}
-    container_name: oan-registry
+    container_name: registry
     restart: unless-stopped
     # oan-internal ONLY, and that is the decision, not an omission. NPM sits
     # on oan-edge alone, so it cannot resolve the name `registry` -- a proxy
@@ -282,7 +282,7 @@ services:
     # pgvector rather than plain postgres: the discovery service's HNSW index
     # options arrived in 0.8.
     image: pgvector/pgvector:0.8.0-pg16
-    container_name: oan-discovery-db
+    container_name: discovery-db
     restart: unless-stopped
     networks: [oan-internal]
     environment:
@@ -304,7 +304,7 @@ services:
   discovery:
     image: ${DISCOVERY_IMAGE}
     pull_policy: missing
-    container_name: oan-discovery
+    container_name: discovery
     restart: unless-stopped
     networks: [oan-internal]
     environment:
@@ -328,7 +328,7 @@ services:
       # in a way that would only surface when someone turns it on.
       OTEL_EXPORTER_OTLP_ENDPOINT: http://${OTLP_ENDPOINT:-hyperdx:4317}
       OTEL_EXPORTER_OTLP_INSECURE: "true"
-      OTEL_SERVICE_NAME: oan-discovery
+      OTEL_SERVICE_NAME: discovery
     # config/common.yaml is baked into the image and is the reviewed default.
     # To override a setting, copy config/discovery/instance.yaml.example to
     # config/discovery/instance.yaml and uncomment the mount below -- compose
@@ -370,7 +370,7 @@ services:
   mockimd:
     image: ${MOCKIMD_IMAGE}
     pull_policy: missing
-    container_name: oan-mockimd
+    container_name: mockimd
     restart: unless-stopped
     networks: [oan-internal]
     command:
@@ -384,7 +384,7 @@ services:
   mockagmarknet:
     image: ${MOCKAGMARKNET_IMAGE}
     pull_policy: missing
-    container_name: oan-mockagmarknet
+    container_name: mockagmarknet
     restart: unless-stopped
     networks: [oan-internal]
     command:
@@ -402,7 +402,7 @@ services:
   # change here or a restart.
   provider-adapter:
     <<: *adapter
-    container_name: oan-provider-adapter
+    container_name: provider-adapter
     depends_on:
       registry:
         condition: service_healthy
@@ -412,7 +412,7 @@ services:
         condition: service_started
     environment:
       <<: *adapter-env
-      OTEL_SERVICE_NAME: oan-provider-adapter
+      OTEL_SERVICE_NAME: provider-adapter
       # The mandi upstream's credential. Named here and read at call time, so
       # it is never in a config file or in the registry.
       MANDI_TOKEN: ${MANDI_TOKEN}
@@ -425,7 +425,7 @@ services:
   # Verifies the caller, hands discovery on, re-signs as itself.
   network-adapter:
     <<: *adapter
-    container_name: oan-network-adapter
+    container_name: network-adapter
     depends_on:
       registry:
         condition: service_healthy
@@ -433,7 +433,7 @@ services:
         condition: service_started
     environment:
       <<: *adapter-env
-      OTEL_SERVICE_NAME: oan-network-adapter
+      OTEL_SERVICE_NAME: network-adapter
     volumes:
       - ./config/adapters/network.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/routing-network.yaml:/app/config/routing-network.yaml:ro
@@ -446,7 +446,7 @@ services:
   # is also why the edge rate-limits this host and nothing else.
   exp-adapter:
     <<: *adapter
-    container_name: oan-exp-adapter
+    container_name: exp-adapter
     depends_on:
       network-adapter:
         condition: service_started
@@ -454,7 +454,7 @@ services:
         condition: service_started
     environment:
       <<: *adapter-env
-      OTEL_SERVICE_NAME: oan-exp-adapter
+      OTEL_SERVICE_NAME: exp-adapter
     volumes:
       - ./config/adapters/experience.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/routing-experience.yaml:/app/config/routing-experience.yaml:ro
@@ -478,7 +478,7 @@ services:
     # proxy host is the only authentication in front of every trace, log and
     # metric the stack has emitted. It is not an optional hardening step.
     image: clickhouse/clickstack-local:latest
-    container_name: oan-hyperdx
+    container_name: hyperdx
     restart: unless-stopped
     profiles: ["observability"]
 
@@ -602,7 +602,7 @@ services:
   # ==========================================================================
   nginx-proxy-manager:
     image: jc21/nginx-proxy-manager:latest
-    container_name: oan-npm
+    container_name: npm
     restart: unless-stopped
     profiles: ["reverse-proxy"]
 

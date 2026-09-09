@@ -451,10 +451,11 @@ cannot widen what is public** — that is the property worth keeping.
    (`networks: [oan-internal, oan-edge]`), then
    `docker compose up -d some-service nginx-proxy-manager`. NPM needs the
    restart to resolve a name it could not see before.
-2. **Add the proxy host.** Forward Hostname is the **Compose service name**
-   (`discovery`, not `oan-discovery`, not an IP); Forward Port is the
-   **container** port, not what loopback publishes it as. Then SSL, and a DNS
-   record before requesting the certificate.
+2. **Add the proxy host.** Forward Hostname is the **Compose service name** —
+   `discovery`, never an IP. Each `container_name` is now the same string as its
+   service name, so there is no longer a wrong-but-plausible second spelling to
+   pick. Forward Port is the **container** port, not what loopback publishes it
+   as. Then SSL, and a DNS record before requesting the certificate.
 
 A service **not** in this Compose file needs no step 1 — NPM has egress, so put
 its address straight into Forward Hostname. A **second path on an existing

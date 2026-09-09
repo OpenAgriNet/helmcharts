@@ -4,7 +4,7 @@
 # against the registry,
 # resolves the capability's call plan, calls the provider, and answers with the
 # mapped result. No callback -- the answer is the HTTP response.
-appName: "oan-provider-adapter"
+appName: "provider-adapter"
 
 log:
   level: debug
@@ -51,7 +51,7 @@ plugins:
   otelsetup:
     id: otelsetup
     config:
-      serviceName: "oan-provider-adapter"
+      serviceName: "provider-adapter"
       environment: "__OTEL_ENVIRONMENT__"
       otlpEndpoint: "__OTLP_ENDPOINT__"
       enableMetrics: "__OTEL_ENABLED__"
