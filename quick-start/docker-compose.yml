@@ -309,21 +309,62 @@ services:
       SERVER_PORT: 8080
       VALIDATION_SPEC_URL: ${BECKN_SPEC_URL}
 
-      # Telemetry. The endpoint is the SDK's own variable, which is what this
-      # service reads (src/platform/config/config.go), so it needs no
-      # translation -- but the exporter stays `none` by default on purpose:
-      # in the current build OTEL_EXPORTER is parsed into config and nothing
-      # consumes it, and the only OpenTelemetry packages in go.mod are
-      # indirect. Setting it to otlp today emits nothing rather than failing;
-      # flip OTEL_EXPORTER=otlp in .env once the exporter is wired and the
-      # traces land in HyperDX with no other change here.
-      OTEL_EXPORTER: ${OTEL_EXPORTER:-none}
-      # Same scheme requirement as the adapters -- see the note on the
-      # x-adapter anchor. Inert while OTEL_EXPORTER is none, but wrong
-      # in a way that would only surface when someone turns it on.
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://${OTLP_ENDPOINT:-hyperdx:4317}
-      OTEL_EXPORTER_OTLP_INSECURE: "true"
-      OTEL_SERVICE_NAME: oan-discovery
+      # ---- telemetry --------------------------------------------------------
+      #
+      # This block used to say the exporter was parsed and unread, and that
+      # `none` was therefore the honest default. That stopped being true when
+      # the telemetry package landed: the service exports spans and two pgxpool
+      # instruments over OTLP/gRPC, straight to hyperdx like the adapters.
+      #
+      # WHAT DOES NOT ARRIVE, so nobody goes looking for it: the five OAN
+      # `metric.code` streams -- the two *_total_count and the three *_percent.
+      # They are not instrumented in the service at all; they are derived from
+      # the exported span stream by a collector running the discovery-service
+      # repo's otel/collector.yaml, and this stack does not run one. Traces
+      # arrive, everything looks healthy, and those five are simply absent.
+      # That is a quick-start simplification, not the deployment shape -- see
+      # Appendix H.
+      OTEL_EXPORTER: ${OTEL_EXPORTER:-otlp}
+
+      # NO SCHEME, and that is the opposite of the adapters two screens up --
+      # worth reading beside the note on the x-adapter anchor, because the same
+      # bare host:port means opposite things on either side.
+      #
+      # This service does not consult the SDK's env lookup; it passes the
+      # endpoint in explicitly, having branched on whether it has a scheme:
+      #
+      #     if hasScheme(endpoint) { WithEndpointURL(endpoint) }
+      #     else                   { WithEndpoint(endpoint), WithInsecure() }
+      #
+      # So a bare host:port is plaintext HERE, where on the adapters a bare
+      # host:port is what silently selects TLS. Adding http:// to this line
+      # would not make it more explicit; it would route through the URL branch.
+      # OTEL_EXPORTER_OTLP_INSECURE is absent for the same reason: unread.
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTLP_ENDPOINT:-hyperdx:4317}
+
+      # BOTH ARE REQUIRED once the exporter is otlp, and their absence fails
+      # the boot rather than degrading -- the service refuses to export a
+      # stream it cannot attribute. That refusal is why they are here: before
+      # this, flipping OTEL_EXPORTER=otlp would have stopped the container
+      # starting, naming a variable this file never set.
+      #
+      # APP_SUBSCRIBER_ID is the Resource's `producer` and every span's
+      # recipient.id. Empty means the whole stream lands under no participant,
+      # which is worse than no stream: an empty grouping key reads as data
+      # rather than as an absence.
+      #
+      # APP_DOMAIN is checked against the sector list the build declares, so a
+      # typo fails the boot instead of splitting this deployment's telemetry
+      # into a group of one.
+      APP_SUBSCRIBER_ID: ${DISCOVERY_SUBSCRIBER_ID}
+      APP_DOMAIN: ${DISCOVERY_DOMAIN:-Agriculture}
+
+      # OTEL_SERVICE_NAME is deliberately absent, and it USED TO BE SET HERE to
+      # `oan-discovery`. The service never read it: `service.name` is a
+      # compile-time constant, `discovery-service`, because it says what
+      # SOFTWARE this is and so must not vary by deployment. The variable was
+      # worse than inert -- it named a value you would then go hunting for in
+      # HyperDX and never find. What varies per deployment is `producer`.
     # config/common.yaml is baked into the image and is the reviewed default.
     # To override a setting, copy config/discovery/instance.yaml.example to
     # config/discovery/instance.yaml and uncomment the mount below -- compose

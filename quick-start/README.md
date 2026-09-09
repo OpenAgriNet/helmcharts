@@ -662,17 +662,62 @@ need to undo.
 ingestion key to mint, which is what makes it one command — and also why it
 must stay on loopback, since there is no login in front of it.
 
-**Less arrives than the wiring suggests**, which is worth knowing before
-hunting for absent traces. Discovery reads the OTLP variables but nothing in
-the current build consumes them, so `OTEL_EXPORTER` stays `none`. Whether the
-adapter image's SDK reads them is unverified — nothing depends on the answer,
-since an absent collector makes an exporter drop spans rather than fail a
-request. And container logs go nowhere near HyperDX without a collector with a
-`filelog` receiver, which is not in this stack; `docker compose logs -f`
-remains the way to read them.
+**Discovery now exports.** It used to read the OTLP variables and consume
+nothing; that changed when its telemetry package landed, so `OTEL_EXPORTER`
+defaults to `otlp` and its spans and two `pgxpool` instruments go to HyperDX
+over OTLP/gRPC — the same hop the adapters make.
 
-Treat this profile as the destination being ready, not as observability being
-switched on.
+Two `.env` keys come with that, and they are not optional:
+`DISCOVERY_SUBSCRIBER_ID` and `DISCOVERY_DOMAIN`. Discovery **refuses to boot**
+with the exporter on and either one missing, rather than emitting a stream that
+cannot be attributed to a participant. On `make up-core`, where nothing is
+listening, set `OTEL_EXPORTER=none` to stop the periodic export failures in the
+log.
+
+### What does not arrive, and why
+
+The five OAN `metric.code` streams:
+
+| | |
+|---|---|
+| `publish_api_total_count` | `discover_api_total_count` |
+| `publish_api_failure_percent` | `discover_api_failure_percent` |
+| `discover_api_empty_result_percent` | |
+
+**These are not instrumented in the discovery service.** There is no counter for
+them in the Go code, by design — they are computed from the exported span stream
+by a `spanmetrics` connector and a `metricsgeneration` processor in
+`otel/collector.yaml` in the discovery-service repo. This stack does not run
+that collector, so the codes are simply absent. Traces still arrive and
+everything looks healthy, which is exactly why it is worth stating here.
+
+That is a **quick-start simplification, not the deployment shape**. A real OAN
+deployment runs that collector between discovery and its telemetry backend; the
+five codes are a network contract owed to the facilitator, and the collector is
+what produces them.
+
+HyperDX's own collector cannot stand in for it, which is worth knowing before
+someone tries. Despite a `/otelcontribcol` binary and an `/etc/otelcol-contrib`
+directory, it is a trimmed custom build:
+
+```
+$ docker exec oan-hyperdx /otelcontribcol --version
+otelcol-hyperdx version 0.155.0
+$ docker exec oan-hyperdx /otelcontribcol components   # connectors:
+forward, routing
+```
+
+No `spanmetrics`, no `metricsgeneration` — the two components that *are* the
+derivation.
+
+### Everything else unchanged
+
+The three adapters send to HyperDX directly, as they always have. Whether the
+adapter image's SDK actually reads the OTLP variables is still unverified —
+nothing depends on the answer, since an absent collector makes an exporter drop
+spans rather than fail a request. Container logs go nowhere near HyperDX either;
+that needs a `filelog` receiver, which is not in this stack, so
+`docker compose logs -f` remains the way to read them.
 
 ## Appendix I — Schema validation
 
