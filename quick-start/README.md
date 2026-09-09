@@ -351,8 +351,16 @@ List publishes every trace, log and metric the stack has emitted, to anyone who
 resolves the name.
 
 Access Lists → Add → name it → **Authorization** tab → username + password →
-leave **Satisfy Any unchecked**, and leave the Access tab empty unless you also
-want an IP allowlist. Then the proxy host → Details → Access List.
+leave **Satisfy Any off**, and leave the **Rules** tab empty. Then the proxy
+host → Details → Access List — a list that exists but is not attached does
+nothing.
+
+**Rules takes IP addresses, not hostnames.** It is the address of whoever is
+*browsing*, not the domain being protected. Putting the hostname there fails
+schema validation with a wall of IPv6 regex and `must match pattern "^all$"`,
+and — the part that costs you an hour — **the Save fails with it**, so Satisfy
+Any and the Authorizations you set in the same dialog are never written either.
+An empty Rules tab is correct for this host.
 
 **Satisfy Any is the trap.** It maps to nginx's `satisfy any` — access is
 granted when *any* access-phase module is satisfied rather than all of them, so
