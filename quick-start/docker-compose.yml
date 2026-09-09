@@ -535,14 +535,22 @@ services:
       # reason: clickstack-local is LOCAL mode, where the UI queries ClickHouse
       # straight from the BROWSER with no API server in between. So the Host
       # field in Team Settings is dialled by your laptop, not by the container
-      # -- its `http://localhost:8123` default means *your* machine, and over
-      # any remote hostname it fails with "Error connecting to ClickHouse
-      # server" no matter how the proxy is set up.
+      # -- its `http://localhost:8123` default means *your* machine, so with
+      # nothing listening there it fails with "Error connecting to ClickHouse
+      # server" however the proxy is set up. The route and the Access List are
+      # not implicated; the query never leaves the browser's own stack.
       #
-      # Tunnel both, then point the connection at your own loopback:
+      # A tunnel to 8123 is all it needs, and the UI can still be the public
+      # host -- the origin serving the UI and the address it queries are
+      # independent:
       #
-      #   ssh -L 8085:127.0.0.1:8085 -L 8123:127.0.0.1:8123 -N you@the-vm
-      #   http://localhost:8085, connection Host http://localhost:8123
+      #   ssh -L 8123:127.0.0.1:8123 -N you@the-vm
+      #   then https://hyperdx.<your host>/ with connection Host
+      #   http://localhost:8123     (add -L 8085 if you want the UI local too)
+      #
+      # The catch is that this is PER VIEWER: a teammate who opens the public
+      # host without that tunnel gets the same error, and connections live in
+      # browser local storage, so each origin needs its own set up by hand.
       #
       # 127.0.0.1 and NOT negotiable, unlike the UI on 8085. This interface
       # executes arbitrary SQL and clickstack-local leaves it open, so a
