@@ -6,30 +6,35 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 
 | Chart | Type | Purpose |
 |---|---|---|
-| [`oan-common`](charts/oan-common) | library | Shared template helpers — names, labels, image refs, probes, resources, service account, env config, dependency waits. Renders nothing; never installed directly. |
-| [`oan-template`](charts/oan-template) | application | Complete, working starter chart built on `oan-common`. Copy it to bootstrap a service chart. |
+| [`common`](charts/common) | library | Shared template helpers — names, labels, image refs, probes, resources, service account, env config, dependency waits. Renders nothing; never installed directly. |
+| [`template`](charts/template) | application | Complete, working starter chart built on `common`. Copy it to bootstrap a service chart. |
 | [`postgresql-cnpg`](charts/postgresql-cnpg) | application | CloudNativePG-managed PostgreSQL cluster. One release per database. Requires the CNPG operator. |
 | [`postgresql-migration`](charts/postgresql-migration) | application | Flyway migrations as a Job. Creates the per-service databases and applies versioned SQL. |
 | [`keycloak`](charts/keycloak) | application | Auth for the registry, on the Sunbird RC Keycloak image. Imports the realm the registry expects. |
 | [`registry`](charts/registry) | application | The OAN participant registry, on Sunbird RC core. Needs `postgresql-cnpg` and `keycloak`. |
 | [`discovery`](charts/discovery) | application | The OAN Beckn discover-and-publish service. Needs `postgresql-cnpg` **with pgvector**. |
 | [`adapter-service`](charts/adapter-service) | application | The OAN Beckn adapters. One chart, installed once per `role` — `provider`, `network` or `experience`. Needs `registry`. |
+| [`clickstack`](charts/clickstack) | application | Observability — ClickHouse, an OTel collector and the HyperDX UI. A verbatim copy of the official upstream chart, with no OAN changes yet. |
 
 ## How they fit together
 
 ```
 charts/
-├── oan-common/          # library chart — shared helpers
-├── oan-template/        # starter chart — copy this to build a service chart
+├── common/          # library chart — shared helpers
+├── template/        # starter chart — copy this to build a service chart
 ├── postgresql-cnpg/     # data store
 ├── postgresql-migration/# schema migrations (Flyway Job)
 ├── keycloak/            # auth for the registry
 ├── registry/            # the participant registry
 ├── discovery/           # the Beckn discover-and-publish service
-└── adapter-service/     # the Beckn adapters — one release per role
+├── adapter-service/     # the Beckn adapters — one release per role
+└── clickstack/          # observability — vendored upstream, not yet OAN-shaped
 ```
 
-Every chart depends on `oan-common` via `file://../oan-common`.
+Every chart depends on `common` via `file://../common`, except
+`clickstack`: it is the official upstream chart committed unmodified, so it
+carries neither the dependency nor the conventions. Its README lists what that
+leaves to override.
 
 ## The registry stack
 
@@ -77,7 +82,7 @@ independent installs. Full walkthrough, including how the DSN and the Beckn
 specification are supplied:
 [`charts/discovery/README.md`](charts/discovery/README.md).
 
-Service charts depend on `oan-common` and call its helpers through thin
+Service charts depend on `common` and call its helpers through thin
 chart-local wrappers. That keeps naming, labelling, probe, resource, and secret
 conventions identical across every OAN chart, and means a convention change is
 one edit in the library rather than one edit per chart.
@@ -88,30 +93,30 @@ Build a service chart from the template:
 
 ```bash
 # 1. Copy the starter chart
-cp -r charts/oan-template charts/oan-my-service
+cp -r charts/template charts/my-service
 
-# 2. In charts/oan-my-service/Chart.yaml set name: oan-my-service
+# 2. In charts/my-service/Chart.yaml set name: my-service
 #    and appVersion to the image tag you deploy by default.
-#    Keep the oan-common dependency.
+#    Keep the common dependency.
 
 # 3. Rename the chart-local helpers to your service name. Change only the left
-#    side of each define in templates/_helpers.tpl (oan-template.* ->
-#    oan-my-service.*); the oan-common.* include inside the body stays. This
+#    side of each define in templates/_helpers.tpl (template.* ->
+#    my-service.*); the common.* include inside the body stays. This
 #    renames the defines and the include calls together:
-grep -rl 'oan-template\.' charts/oan-my-service | xargs sed -i '' 's/oan-template\./oan-my-service./g'
+grep -rl 'template\.' charts/my-service | xargs sed -i '' 's/template\./my-service./g'
 #    (sed -i '' is the macOS form; on Linux use sed -i)
 
 # 4. Set image, ports, probe paths, resources and envConfig in
-#    charts/oan-my-service/values.yaml
+#    charts/my-service/values.yaml
 
 # 5. Validate
 ./scripts/lint-charts.sh
-helm template oan-my-service charts/oan-my-service
+helm template my-service charts/my-service
 ```
 
-See [`charts/oan-common/README.md`](charts/oan-common/README.md) for the full
+See [`charts/common/README.md`](charts/common/README.md) for the full
 helper reference and
-[`charts/oan-template/README.md`](charts/oan-template/README.md) for the
+[`charts/template/README.md`](charts/template/README.md) for the
 step-by-step adaptation guide.
 
 ## Validation
@@ -125,8 +130,8 @@ application chart. CI runs the identical script
 ([`.github/workflows/helm-lint.yml`](.github/workflows/helm-lint.yml)) on pull
 requests and on pushes to `main` and `development`.
 
-Because charts depend on `oan-common` through `file://../oan-common` and the
-packaged dependency is not committed, an edit to `oan-common` only reaches a
+Because charts depend on `common` through `file://../common` and the
+packaged dependency is not committed, an edit to `common` only reaches a
 consuming chart after `helm dependency update charts/<chart>` — or a run of the
 lint script, which does it for you.
 

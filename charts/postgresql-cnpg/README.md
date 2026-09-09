@@ -187,7 +187,7 @@ cluster:
 
 | Condition | Why it matters |
 |---|---|
-| `resources` empty | Every OAN component must declare requests and limits (`oan-common.resources`) |
+| `resources` empty | Every OAN component must declare requests and limits (`common.resources`) |
 | `backup.enabled` with no `bucket` or `destinationPath` | The ObjectStore would have nowhere to write |
 | `backup.objectStore.provider` not `s3`/`gcs`/`azure` | Would render an unknown credentials field |
 | A credentials key not valid for the chosen provider | Catches the Helm map-merge trap described above |

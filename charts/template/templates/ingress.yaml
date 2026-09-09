@@ -1,10 +1,10 @@
 {{- if .Values.ingress.enabled -}}
-apiVersion: {{ include "oan-common.ingress.apiVersion" . }}
+apiVersion: {{ include "common.ingress.apiVersion" . }}
 kind: Ingress
 metadata:
-  name: {{ include "oan-template.fullname" . }}
+  name: {{ include "template.fullname" . }}
   labels:
-    {{- include "oan-template.labels" . | nindent 4 }}
+    {{- include "template.labels" . | nindent 4 }}
   {{- with (merge (dict) .Values.ingress.annotations (.Values.commonAnnotations | default dict)) }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -33,7 +33,7 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "oan-template.fullname" $ }}
+                name: {{ include "template.fullname" $ }}
                 port:
                   number: {{ $.Values.service.port }}
           {{- end }}

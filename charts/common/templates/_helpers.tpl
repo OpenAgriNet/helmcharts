@@ -4,24 +4,24 @@
 # Owner: OpenAgriNet Engineering Team
 # Purpose: reusable template helpers consumed by every OAN service chart.
 #          This chart renders no resources of its own.
-# GitHub: https://github.com/OpenAgriNet/helmcharts/blob/main/charts/oan-common/templates/_helpers.tpl
+# GitHub: https://github.com/OpenAgriNet/helmcharts/blob/main/charts/common/templates/_helpers.tpl
 # ============================================================================
 */}}
 
 {{/*
 Chart name, honoring nameOverride.
-Usage: {{ include "oan-common.name" . }}
+Usage: {{ include "common.name" . }}
 */}}
-{{- define "oan-common.name" -}}
+{{- define "common.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Fully qualified app name (<release>-<chart>), honoring fullnameOverride.
 Truncated to 63 chars for the DNS label limit.
-Usage: {{ include "oan-common.fullname" . }}
+Usage: {{ include "common.fullname" . }}
 */}}
-{{- define "oan-common.fullname" -}}
+{{- define "common.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -36,19 +36,19 @@ Usage: {{ include "oan-common.fullname" . }}
 
 {{/*
 Chart name and version for the helm.sh/chart label.
-Usage: {{ include "oan-common.chart" . }}
+Usage: {{ include "common.chart" . }}
 */}}
-{{- define "oan-common.chart" -}}
+{{- define "common.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Standard labels for every resource.
-Usage: {{ include "oan-common.labels" . | nindent 4 }}
+Usage: {{ include "common.labels" . | nindent 4 }}
 */}}
-{{- define "oan-common.labels" -}}
-helm.sh/chart: {{ include "oan-common.chart" . }}
-{{ include "oan-common.selectorLabels" . }}
+{{- define "common.labels" -}}
+helm.sh/chart: {{ include "common.chart" . }}
+{{ include "common.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -62,18 +62,18 @@ app.kubernetes.io/part-of: oan
 {{/*
 Selector labels for pods and services. These are immutable on a Deployment
 selector, so nothing environment-specific belongs here.
-Usage: {{ include "oan-common.selectorLabels" . | nindent 4 }}
+Usage: {{ include "common.selectorLabels" . | nindent 4 }}
 */}}
-{{- define "oan-common.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "oan-common.name" . }}
+{{- define "common.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "common.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Common annotations for every resource.
-Usage: {{ include "oan-common.annotations" . | nindent 4 }}
+Usage: {{ include "common.annotations" . | nindent 4 }}
 */}}
-{{- define "oan-common.annotations" -}}
+{{- define "common.annotations" -}}
 {{- with .Values.commonAnnotations }}
 {{ toYaml . }}
 {{- end }}
@@ -81,11 +81,11 @@ Usage: {{ include "oan-common.annotations" . | nindent 4 }}
 
 {{/*
 Name of the service account to use.
-Usage: {{ include "oan-common.serviceAccount.name" . }}
+Usage: {{ include "common.serviceAccount.name" . }}
 */}}
-{{- define "oan-common.serviceAccount.name" -}}
+{{- define "common.serviceAccount.name" -}}
 {{- if .Values.serviceAccount.enabled }}
-{{- default (include "oan-common.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "common.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
@@ -93,9 +93,9 @@ Usage: {{ include "oan-common.serviceAccount.name" . }}
 
 {{/*
 Emits "true" when a ServiceAccount should be created.
-Usage: {{ if include "oan-common.serviceAccount.enabled" . }}
+Usage: {{ if include "common.serviceAccount.enabled" . }}
 */}}
-{{- define "oan-common.serviceAccount.enabled" -}}
+{{- define "common.serviceAccount.enabled" -}}
 {{- if .Values.serviceAccount.enabled }}
 {{- true }}
 {{- end }}
@@ -109,9 +109,9 @@ A digest wins over a tag, so an environment can pin an exact image without
 having to blank out the tag.
 
 Tag falls back to Chart.appVersion, then "latest".
-Usage: {{ include "oan-common.image" . }}
+Usage: {{ include "common.image" . }}
 */}}
-{{- define "oan-common.image" -}}
+{{- define "common.image" -}}
 {{- $registry := .Values.image.registry | default "" }}
 {{- $repository := .Values.image.repository | default "" }}
 {{- if not $repository }}
@@ -135,9 +135,9 @@ successful. Fail here instead.
 
 {{/*
 imagePullSecrets block, rendered only when image.pullSecrets is non-empty.
-Usage: {{ include "oan-common.imagePullSecrets" . | nindent 6 }}
+Usage: {{ include "common.imagePullSecrets" . | nindent 6 }}
 */}}
-{{- define "oan-common.imagePullSecrets" -}}
+{{- define "common.imagePullSecrets" -}}
 {{- with .Values.image.pullSecrets }}
 imagePullSecrets:
 {{- range . }}
@@ -148,17 +148,17 @@ imagePullSecrets:
 
 {{/*
 Name of the env ConfigMap (<fullname>-env).
-Usage: {{ include "oan-common.envConfigMapName" . }}
+Usage: {{ include "common.envConfigMapName" . }}
 */}}
-{{- define "oan-common.envConfigMapName" -}}
-{{- printf "%s-env" (include "oan-common.fullname" .) }}
+{{- define "common.envConfigMapName" -}}
+{{- printf "%s-env" (include "common.fullname" .) }}
 {{- end }}
 
 {{/*
 envConfig rendered as ConfigMap data entries.
-Usage: {{ include "oan-common.envConfigMapData" . | nindent 2 }}
+Usage: {{ include "common.envConfigMapData" . | nindent 2 }}
 */}}
-{{- define "oan-common.envConfigMapData" -}}
+{{- define "common.envConfigMapData" -}}
 {{- range $key, $value := .Values.envConfig }}
 {{ $key }}: {{ $value | quote }}
 {{- end }}
@@ -166,9 +166,9 @@ Usage: {{ include "oan-common.envConfigMapData" . | nindent 2 }}
 
 {{/*
 Checksum of envConfig, so a config change rolls the pods.
-Usage: checksum/env-config: {{ include "oan-common.checksumAnnotation" . }}
+Usage: checksum/env-config: {{ include "common.checksumAnnotation" . }}
 */}}
-{{- define "oan-common.checksumAnnotation" -}}
+{{- define "common.checksumAnnotation" -}}
 {{- $envConfig := .Values.envConfig | default dict }}
 {{- $envConfig | toJson | sha256sum }}
 {{- end }}
@@ -190,12 +190,12 @@ expects (CNPG writes `password`; Sunbird RC wants `connectionInfo_password`):
 this schema does not cover (fieldRef, resourceFieldRef, plain values).
 
 Usage:
-  {{- with (include "oan-common.env" . | trim) }}
+  {{- with (include "common.env" . | trim) }}
   env:
     {{- . | nindent 12 }}
   {{- end }}
 */}}
-{{- define "oan-common.env" -}}
+{{- define "common.env" -}}
 {{- range $name, $ref := .Values.secretEnv }}
 {{- if not $ref.name }}
 {{- fail (printf "secretEnv.%s.name is required - it must name the Secret holding the value" $name) }}
@@ -229,7 +229,7 @@ Takes the checks explicitly, so a consuming chart derives them from its own
 settings (database.host, keycloak.url) instead of making the operator retype
 values that would then be free to drift:
 
-  {{- include "oan-common.waitFor" (dict "ctx" . "tcp" $tcp "http" $http) }}
+  {{- include "common.waitFor" (dict "ctx" . "tcp" $tcp "http" $http) }}
 
 where $tcp entries are {name, host, port} and $http entries are {name, url}.
 
@@ -237,7 +237,7 @@ TCP checks use `nc -z`; HTTP checks use `wget --spider`. Both loop until success
 or waitFor.timeoutSeconds, then fail the pod so the reason is visible in
 `kubectl describe` rather than buried in a crashloop.
 */}}
-{{- define "oan-common.waitFor" -}}
+{{- define "common.waitFor" -}}
 {{- $ctx := .ctx -}}
 {{- $w := $ctx.Values.waitFor | default dict -}}
 {{- if $w.enabled -}}
@@ -302,9 +302,9 @@ Resources block.
 Fails the render when resources is empty: every OAN component must declare a
 resource contract so the scheduler and the cluster autoscaler have real numbers
 to work with.
-Usage: {{ include "oan-common.resources" . | nindent 10 }}
+Usage: {{ include "common.resources" . | nindent 10 }}
 */}}
-{{- define "oan-common.resources" -}}
+{{- define "common.resources" -}}
 {{- if not .Values.resources -}}
 {{- fail (printf "%s: .Values.resources is required - every OAN component must declare requests and limits (see CONVENTIONS.md)" .Chart.Name) -}}
 {{- end -}}
@@ -321,10 +321,10 @@ tcpSocket would leave BOTH handlers in the merged value - which the API server
 rejects at apply time, long after the render looked fine. This fails the render
 instead and tells you to null out the default.
 
-Usage: {{ include "oan-common.probeSpec"
+Usage: {{ include "common.probeSpec"
           (dict "probe" .Values.livenessProbe "name" "livenessProbe" "chart" .Chart.Name) | nindent 2 }}
 */}}
-{{- define "oan-common.probeSpec" -}}
+{{- define "common.probeSpec" -}}
 {{- $probe := .probe -}}
 {{- $name := .name | default "probe" -}}
 {{- $chart := .chart | default "chart" -}}
@@ -345,28 +345,28 @@ Usage: {{ include "oan-common.probeSpec"
 
 {{/*
 All enabled probe blocks (startup, liveness, readiness) for a container spec.
-Usage: {{ include "oan-common.probes" . | nindent 8 }}
+Usage: {{ include "common.probes" . | nindent 8 }}
 */}}
-{{- define "oan-common.probes" -}}
+{{- define "common.probes" -}}
 {{- if and .Values.startupProbe .Values.startupProbe.enabled }}
 startupProbe:
-  {{- include "oan-common.probeSpec" (dict "probe" .Values.startupProbe "name" "startupProbe" "chart" .Chart.Name) | nindent 2 }}
+  {{- include "common.probeSpec" (dict "probe" .Values.startupProbe "name" "startupProbe" "chart" .Chart.Name) | nindent 2 }}
 {{- end }}
 {{- if and .Values.livenessProbe .Values.livenessProbe.enabled }}
 livenessProbe:
-  {{- include "oan-common.probeSpec" (dict "probe" .Values.livenessProbe "name" "livenessProbe" "chart" .Chart.Name) | nindent 2 }}
+  {{- include "common.probeSpec" (dict "probe" .Values.livenessProbe "name" "livenessProbe" "chart" .Chart.Name) | nindent 2 }}
 {{- end }}
 {{- if and .Values.readinessProbe .Values.readinessProbe.enabled }}
 readinessProbe:
-  {{- include "oan-common.probeSpec" (dict "probe" .Values.readinessProbe "name" "readinessProbe" "chart" .Chart.Name) | nindent 2 }}
+  {{- include "common.probeSpec" (dict "probe" .Values.readinessProbe "name" "readinessProbe" "chart" .Chart.Name) | nindent 2 }}
 {{- end }}
 {{- end }}
 
 {{/*
 Pod-level security context, rendered only when enabled.
-Usage: {{ include "oan-common.podSecurityContext" . | nindent 8 }}
+Usage: {{ include "common.podSecurityContext" . | nindent 8 }}
 */}}
-{{- define "oan-common.podSecurityContext" -}}
+{{- define "common.podSecurityContext" -}}
 {{- if and .Values.podSecurityContext .Values.podSecurityContext.enabled }}
 {{- toYaml (omit .Values.podSecurityContext "enabled") }}
 {{- end }}
@@ -374,9 +374,9 @@ Usage: {{ include "oan-common.podSecurityContext" . | nindent 8 }}
 
 {{/*
 Container-level security context, rendered only when enabled.
-Usage: {{ include "oan-common.securityContext" . | nindent 10 }}
+Usage: {{ include "common.securityContext" . | nindent 10 }}
 */}}
-{{- define "oan-common.securityContext" -}}
+{{- define "common.securityContext" -}}
 {{- if and .Values.securityContext .Values.securityContext.enabled }}
 {{- toYaml (omit .Values.securityContext "enabled") }}
 {{- end }}
@@ -384,19 +384,19 @@ Usage: {{ include "oan-common.securityContext" . | nindent 10 }}
 
 {{/*
 Release namespace.
-Usage: {{ include "oan-common.namespace" . }}
+Usage: {{ include "common.namespace" . }}
 */}}
-{{- define "oan-common.namespace" -}}
+{{- define "common.namespace" -}}
 {{- .Release.Namespace }}
 {{- end }}
 
 {{/*
 apiVersion helpers, so a bump lands in one place.
 */}}
-{{- define "oan-common.deployment.apiVersion" -}}
+{{- define "common.deployment.apiVersion" -}}
 apps/v1
 {{- end }}
 
-{{- define "oan-common.ingress.apiVersion" -}}
+{{- define "common.ingress.apiVersion" -}}
 networking.k8s.io/v1
 {{- end }}

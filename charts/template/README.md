@@ -1,9 +1,9 @@
-# oan-template
+# template
 
 The **reference / starter** Helm chart for OpenAgriNet (OAN) services.
 
-`oan-template` is a complete, working example of an OAN service chart built on
-the [`oan-common`](../oan-common) library chart. It is meant to be **copied and
+`template` is a complete, working example of an OAN service chart built on
+the [`common`](../common) library chart. It is meant to be **copied and
 adapted** — not installed as-is.
 
 ## What it renders
@@ -17,42 +17,42 @@ adapted** — not installed as-is.
 | Ingress | `templates/ingress.yaml` | Optional, off by default |
 
 Names, labels, image refs, probes, resources, and secret wiring all come from
-`oan-common` helpers, so every chart derived from this template stays consistent.
+`common` helpers, so every chart derived from this template stays consistent.
 
-## How it depends on oan-common
+## How it depends on common
 
 `Chart.yaml` declares:
 
 ```yaml
 dependencies:
-  - name: oan-common
+  - name: common
     version: "0.1.x"
-    repository: "file://../oan-common"
+    repository: "file://../common"
 ```
 
 The chart-local helpers in `templates/_helpers.tpl` are thin wrappers that
-delegate to the library (`oan-template.fullname` → `oan-common.fullname`).
+delegate to the library (`template.fullname` → `common.fullname`).
 
 ## Create your own chart from this template
 
 1. Copy the directory and rename it:
 
    ```bash
-   cp -r charts/oan-template charts/oan-my-service
+   cp -r charts/template charts/oan-my-service
    ```
 
 2. In `charts/oan-my-service/Chart.yaml`, set `name: oan-my-service` and
-   `appVersion` to the image tag you deploy by default. Keep the `oan-common`
+   `appVersion` to the image tag you deploy by default. Keep the `common`
    dependency.
 
 3. Rename the chart-local helpers. Change only the **left side** of each
-   `define` in `templates/_helpers.tpl` — the `oan-common.*` include inside the
+   `define` in `templates/_helpers.tpl` — the `common.*` include inside the
    body stays, since that is the shared library you delegate to. Then update the
-   matching `include "oan-template..."` calls in the template YAML. Both at once,
+   matching `include "template..."` calls in the template YAML. Both at once,
    from the repo root:
 
    ```bash
-   grep -rl 'oan-template\.' charts/oan-my-service | xargs sed -i '' 's/oan-template\./oan-my-service./g'
+   grep -rl 'template\.' charts/oan-my-service | xargs sed -i '' 's/template\./oan-my-service./g'
    ```
 
    (`sed -i ''` is the macOS form; on Linux use `sed -i`.)
@@ -74,8 +74,8 @@ delegate to the library (`oan-template.fullname` → `oan-common.fullname`).
 ## Try the template directly
 
 ```bash
-helm dependency update charts/oan-template
-helm template demo charts/oan-template \
+helm dependency update charts/template
+helm template demo charts/template \
   --set image.repository=nginx --set image.tag=1.27
 ```
 

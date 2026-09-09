@@ -1,4 +1,4 @@
-apiVersion: {{ include "oan-common.deployment.apiVersion" . }}
+apiVersion: {{ include "common.deployment.apiVersion" . }}
 kind: Deployment
 metadata:
   name: {{ include "adapter-service.fullname" . }}
@@ -37,15 +37,15 @@ spec:
       serviceAccountName: {{ include "adapter-service.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
       {{- end }}
-      {{- with (include "oan-common.imagePullSecrets" . | trim) }}
+      {{- with (include "common.imagePullSecrets" . | trim) }}
       {{- . | nindent 6 }}
       {{- end }}
-      {{- with (include "oan-common.podSecurityContext" .) }}
+      {{- with (include "common.podSecurityContext" .) }}
       securityContext:
         {{- . | nindent 8 }}
       {{- end }}
       initContainers:
-        {{- include "oan-common.waitFor" (dict "ctx" . "tcp" list "http" list) | nindent 8 }}
+        {{- include "common.waitFor" (dict "ctx" . "tcp" list "http" list) | nindent 8 }}
         {{/*
         Substitutes the keypair into the config.
 
@@ -61,7 +61,7 @@ spec:
         - name: render-config
           image: "{{ .Values.configRenderer.image.registry }}/{{ .Values.configRenderer.image.repository }}:{{ .Values.configRenderer.image.tag }}"
           imagePullPolicy: {{ .Values.configRenderer.image.pullPolicy }}
-          {{- with (include "oan-common.securityContext" .) }}
+          {{- with (include "common.securityContext" .) }}
           securityContext:
             {{- . | nindent 12 }}
           {{- end }}
@@ -116,7 +116,7 @@ spec:
         - name: {{ .Chart.Name }}
           image: {{ include "adapter-service.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- with (include "oan-common.securityContext" .) }}
+          {{- with (include "common.securityContext" .) }}
           securityContext:
             {{- . | nindent 12 }}
           {{- end }}
@@ -141,11 +141,11 @@ spec:
                 name: {{ . }}
             {{- end }}
           {{- end }}
-          {{- with (include "oan-common.probes" . | trim) }}
+          {{- with (include "common.probes" . | trim) }}
           {{- . | nindent 10 }}
           {{- end }}
           resources:
-            {{- include "oan-common.resources" . | nindent 12 }}
+            {{- include "common.resources" . | nindent 12 }}
           volumeMounts:
             - name: config
               mountPath: {{ include "adapter-service.configDir" . }}

@@ -5,9 +5,9 @@
 # Run locally exactly as CI runs it:
 #   ./scripts/lint-charts.sh
 #
-# Charts depending on oan-common via file://../oan-common carry no committed
+# Charts depending on common via file://../common carry no committed
 # dependency artifact, so the dependency is rebuilt here before linting. That
-# also means a local edit to oan-common is only picked up after this runs (or
+# also means a local edit to common is only picked up after this runs (or
 # after `helm dependency update <chart>`).
 #
 # A chart whose defaults deliberately fail the render - because it requires a

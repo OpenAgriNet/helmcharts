@@ -1,9 +1,17 @@
 # Changelog
 
-All notable changes to the `oan-template` chart are documented here.
+All notable changes to the `template` chart are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Changed
+- Renamed from `oan-template` to `template`, and its chart-local helper prefix
+  from `oan-template.*` to `template.*`. When copying this chart, rename that
+  prefix to your service name as before — the `common.*` includes in the helper
+  bodies stay untouched.
 
 ## [0.2.0] - 2026-08-31
 
@@ -21,10 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-08-31
 
 ### Added
-- Initial release of the `oan-template` reference/starter application chart.
-- Depends on the `oan-common` library chart via `file://../oan-common`.
+- Initial release of the `template` reference/starter application chart.
+- Depends on the `common` library chart via `file://../common`.
 - Templates for Deployment, Service, ServiceAccount, env ConfigMap, optional
-  ESO ExternalSecret, and optional Ingress, all wired through `oan-common`
+  ESO ExternalSecret, and optional Ingress, all wired through `common`
   helpers.
 - Liveness and readiness probes and resource requests/limits enabled by default,
   per the deployment epic's requirement for every component.

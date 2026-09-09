@@ -1,10 +1,10 @@
 # ============================================================================
-# oan-template - default values
+# template - default values
 #
-# This is a REFERENCE / STARTER chart. Copy the whole `oan-template` directory,
+# This is a REFERENCE / STARTER chart. Copy the whole `template` directory,
 # rename it to your service, then adjust the values below. It renders a standard
 # stateless service: Deployment + Service + ServiceAccount + env ConfigMap +
-# optional Ingress, all wired through oan-common.
+# optional Ingress, all wired through common.
 #
 # Minimum you must change for a real deployment:
 #   - image.registry / image.repository / image.tag
@@ -138,7 +138,7 @@ podAnnotations: {}
 # ============================================================================
 envConfig:
   LOG_LEVEL: "info"
-  SERVICE_NAME: "oan-template"
+  SERVICE_NAME: "template"
 
 # Names of pre-existing Secrets in this namespace to inject via envFrom, for
 # secrets not managed by ESO.

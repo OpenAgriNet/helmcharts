@@ -8,7 +8,7 @@ it is still a Beckn peer endpoint, and the thing that makes it safe is that
 every caller must hold a key the registry publishes. That is a property of the
 registry's contents, not of this Ingress.
 */}}
-apiVersion: {{ include "oan-common.ingress.apiVersion" . }}
+apiVersion: {{ include "common.ingress.apiVersion" . }}
 kind: Ingress
 metadata:
   name: {{ include "adapter-service.fullname" . }}

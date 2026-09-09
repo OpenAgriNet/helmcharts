@@ -1,5 +1,5 @@
 # ============================================================================
-# Default values for the oan-common library chart.
+# Default values for the common library chart.
 #
 # A library chart renders no resources of its own. These keys define the value
 # schema that consuming charts inherit, and are what the helpers in
@@ -12,7 +12,7 @@ nameOverride: ""
 # Override the generated fullname (default: <release>-<chart>)
 fullnameOverride: ""
 
-# Image configuration. Consumed by `oan-common.image`.
+# Image configuration. Consumed by `common.image`.
 image:
   # Container registry, e.g. "ghcr.io" or "<account>.dkr.ecr.ap-south-1.amazonaws.com"
   registry: ""
@@ -27,7 +27,7 @@ image:
   # Names of image pull secrets in the release namespace
   pullSecrets: []
 
-# Service account configuration. Consumed by `oan-common.serviceAccount.*`.
+# Service account configuration. Consumed by `common.serviceAccount.*`.
 serviceAccount:
   # Create a dedicated ServiceAccount for this release
   enabled: true
@@ -42,7 +42,7 @@ serviceAccount:
 envConfig: {}
 
 # Resource requests and limits.
-# REQUIRED on every OAN component: `oan-common.resources` fails the render when
+# REQUIRED on every OAN component: `common.resources` fails the render when
 # this is empty, so a chart cannot ship without a resource contract.
 resources:
   limits:
@@ -110,7 +110,7 @@ securityContext:
 
 # Init containers that block startup until dependencies are reachable, standing
 # in for compose's `depends_on: condition: service_healthy`, which Kubernetes has
-# no equivalent of. Consumed by `oan-common.waitFor`.
+# no equivalent of. Consumed by `common.waitFor`.
 waitFor:
   enabled: false
   image:
@@ -136,7 +136,7 @@ waitFor:
 # Individual environment variables sourced from Secret keys, for when the
 # secret's key name differs from the variable the application expects
 # (CNPG writes `password`; Sunbird RC wants `connectionInfo_password`).
-# Consumed by `oan-common.env`.
+# Consumed by `common.env`.
 secretEnv: {}
   # connectionInfo_password:
   #   name: registry-db-app

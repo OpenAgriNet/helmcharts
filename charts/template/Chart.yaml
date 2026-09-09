@@ -1,6 +1,6 @@
 apiVersion: v2
-name: oan-template
-description: Reference starter chart for OpenAgriNet (OAN) services, built on oan-common
+name: template
+description: Reference starter chart for OpenAgriNet (OAN) services, built on common
 type: application
 version: 0.2.0
 appVersion: "1.0.0"
@@ -17,6 +17,6 @@ home: https://github.com/OpenAgriNet/helmcharts
 sources:
   - https://github.com/OpenAgriNet/helmcharts
 dependencies:
-  - name: oan-common
+  - name: common
     version: "0.2.x"
-    repository: "file://../oan-common"
+    repository: "file://../common"

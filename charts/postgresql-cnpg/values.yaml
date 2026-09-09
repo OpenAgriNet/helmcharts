@@ -51,7 +51,7 @@ image:
 instances: 2
 
 # Resource requests and limits for each instance. REQUIRED - the render fails
-# when this is empty (oan-common.resources).
+# when this is empty (common.resources).
 resources:
   requests:
     cpu: 250m

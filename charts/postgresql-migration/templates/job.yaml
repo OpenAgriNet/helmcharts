@@ -36,10 +36,10 @@ spec:
       serviceAccountName: {{ include "postgresql-migration.serviceAccountName" . }}
       {{- end }}
       automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
-      {{- with (include "oan-common.imagePullSecrets" . | trim) }}
+      {{- with (include "common.imagePullSecrets" . | trim) }}
       {{- . | nindent 6 }}
       {{- end }}
-      {{- with (include "oan-common.podSecurityContext" .) }}
+      {{- with (include "common.podSecurityContext" .) }}
       securityContext:
         {{- . | nindent 8 }}
       {{- end }}
@@ -47,7 +47,7 @@ spec:
         - name: flyway
           image: {{ include "postgresql-migration.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- with (include "oan-common.securityContext" .) }}
+          {{- with (include "common.securityContext" .) }}
           securityContext:
             {{- . | nindent 12 }}
           {{- end }}
@@ -60,7 +60,7 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.postgresql.passwordSecret.name }}
                   key: {{ .Values.postgresql.passwordSecret.key }}
-            {{- with (include "oan-common.env" . | trim) }}
+            {{- with (include "common.env" . | trim) }}
             {{- . | nindent 12 }}
             {{- end }}
           envFrom:
@@ -71,7 +71,7 @@ spec:
                 name: {{ . }}
             {{- end }}
           resources:
-            {{- include "oan-common.resources" . | nindent 12 }}
+            {{- include "common.resources" . | nindent 12 }}
           volumeMounts:
             - name: script
               mountPath: /script

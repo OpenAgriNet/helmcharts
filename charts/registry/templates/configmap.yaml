@@ -8,7 +8,7 @@ metadata:
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-{{- with (include "oan-common.envConfigMapData" . | trim) }}
+{{- with (include "common.envConfigMapData" . | trim) }}
 data:
   {{- . | nindent 2 }}
 {{- else }}

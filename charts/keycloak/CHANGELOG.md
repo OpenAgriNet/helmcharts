@@ -26,7 +26,7 @@ stack, with the deployment shape taken from Sunbird's own Helm charts
 
 ### Added
 - Deployment, Service, env ConfigMap, realm ConfigMap, ServiceAccount, and
-  optional Ingress and ESO ExternalSecret, built on the `oan-common` library.
+  optional Ingress and ESO ExternalSecret, built on the `common` library.
 - All ten Keycloak environment variables from the compose stack, verified at
   parity: `DB_VENDOR`, `DB_ADDR`, `DB_PORT`, `DB_DATABASE`, `DB_USER`,
   `DB_PASSWORD`, `KEYCLOAK_USER`, `KEYCLOAK_PASSWORD`, `KEYCLOAK_IMPORT` and

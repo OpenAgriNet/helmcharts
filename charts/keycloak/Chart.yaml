@@ -23,6 +23,6 @@ sources:
   - https://github.com/OpenAgriNet/helmcharts
   - https://github.com/Sunbird-RC/devops/tree/main/deploy-as-code
 dependencies:
-  - name: oan-common
+  - name: common
     version: "0.2.x"
-    repository: "file://../oan-common"
+    repository: "file://../common"
