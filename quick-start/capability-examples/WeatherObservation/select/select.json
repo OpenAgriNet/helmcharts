@@ -1,0 +1,84 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "select",
+    "version": "2.0.0",
+    "networkId": "oan-dev",
+    "senderId": "exp.oan.dev",
+    "receiverId": "provider.oan.dev",
+    "transactionId": "a2000000-0000-4000-8000-000000000003",
+    "messageId": "b2000000-0000-4000-8000-000000000003",
+    "timestamp": "2026-09-10T09:31:00Z",
+    "schemaContext": [
+      "https://openagrinet.github.io/network-specs/schema/WeatherObservation/v0.1/context.jsonld#openagrinet:WeatherObservation"
+    ]
+  },
+  "message": {
+    "contract": {
+      "status": {
+        "code": "DRAFT",
+        "name": "Draft"
+      },
+      "commitments": [
+        {
+          "status": {
+            "descriptor": {
+              "code": "DRAFT",
+              "name": "Draft"
+            }
+          },
+          "resources": [
+            {
+              "id": "resource:weather-observation:mausamgram:daily-forecast",
+              "quantity": {
+                "count": 1
+              },
+              "resourceAttributes": {
+                "@context": "https://openagrinet.github.io/network-specs/schema/WeatherObservation/v0.1/context.jsonld",
+                "@type": "openagrinet:WeatherObservation",
+                "informationMode": "OnDemand",
+                "subjectCategories": [
+                  "Weather"
+                ],
+                "supportedObservationTypes": [
+                  "Forecast"
+                ],
+                "supportedParameters": [
+                  "Rainfall",
+                  "Temperature",
+                  "Humidity",
+                  "WindSpeed",
+                  "WindDirection",
+                  "Alert"
+                ],
+                "geographicGranularities": [
+                  "Point"
+                ],
+                "location": {
+                  "type": "Point",
+                  "coordinates": [
+                    74.4,
+                    18.4
+                  ]
+                }
+              }
+            }
+          ],
+          "offer": {
+            "id": "offer:weather-observation:mausamgram:open-data",
+            "resourceIds": [
+              "resource:weather-observation:mausamgram:daily-forecast"
+            ],
+            "provider": {
+              "id": "mausamgram",
+              "descriptor": {
+                "code": "MAUSAMGRAM",
+                "name": "IMD Mausamgram"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

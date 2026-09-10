@@ -1,0 +1,86 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "select",
+    "version": "2.0.0",
+    "networkId": "oan-dev",
+    "senderId": "exp.oan.dev",
+    "receiverId": "provider.oan.dev",
+    "transactionId": "a3000000-0000-4000-8000-000000000003",
+    "messageId": "b3000000-0000-4000-8000-00000000f003",
+    "timestamp": "2026-09-10T09:31:00Z",
+    "schemaContext": [
+      "https://openagrinet.github.io/network-specs/schema/AgricultureFacility/v0.1/context.jsonld#openagrinet:AgricultureFacility"
+    ]
+  },
+  "message": {
+    "contract": {
+      "status": {
+        "code": "DRAFT",
+        "name": "Draft"
+      },
+      "commitments": [
+        {
+          "status": {
+            "descriptor": {
+              "code": "DRAFT",
+              "name": "Draft"
+            }
+          },
+          "resources": [
+            {
+              "id": "resource:agriculture-facility:pocra:facility-search",
+              "quantity": {
+                "count": 1
+              },
+              "resourceAttributes": {
+                "@context": "https://openagrinet.github.io/network-specs/schema/AgricultureFacility/v0.1/context.jsonld",
+                "@type": "openagrinet:AgricultureFacility",
+                "informationMode": "OnDemand",
+                "subjectCategories": [
+                  "Facility"
+                ],
+                "supportedFacilityTypes": [
+                  "Warehouse"
+                ]
+              }
+            }
+          ],
+          "offer": {
+            "id": "offer:agriculture-facility:pocra:open-data",
+            "resourceIds": [
+              "resource:agriculture-facility:pocra:facility-search"
+            ],
+            "provider": {
+              "id": "pocra",
+              "descriptor": {
+                "code": "POCRA",
+                "name": "PoCRA, Government of Maharashtra"
+              }
+            }
+          },
+          "fulfillment": {
+            "stops": [
+              {
+                "location": {
+                  "geo": {
+                    "type": "Point",
+                    "coordinates": [
+                      73.7898,
+                      19.9975
+                    ]
+                  }
+                },
+                "time": {
+                  "range": {
+                    "start": "2026-09-10T09:31:00+05:30"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
