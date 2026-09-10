@@ -369,6 +369,23 @@ services:
       SERVER_PORT: 8080
       VALIDATION_SPEC_URL: ${BECKN_SPEC_URL}
 
+      # ---- the publish geometry budget --------------------------------------
+      #
+      # How many GeoJSON shapes ONE catalog may contribute to the spatial index.
+      # Past it the publish still answers 200, with status PARTIAL and a fault
+      # per shape naming its path -- so nothing is dropped in silence, but those
+      # shapes are not searchable. Set here rather than left to the image's own
+      # 256 because it is the one discovery setting whose right value depends
+      # entirely on what you publish, and the failure it causes reads as missing
+      # data rather than as configuration.
+      #
+      # Count SHAPES, not resources: the walker recognises GeoJSON by shape and
+      # not by field name, at any depth. A mandi catalog carrying a Point under
+      # both coverageAreas and market.location spends TWO per market -- 273
+      # Maharashtra markets published that way need 546, and under 256 only the
+      # first 128 markets are findable by place.
+      GEO_MAX_GEOMETRIES_PER_CATALOG: ${DISCOVERY_MAX_GEOMETRIES_PER_CATALOG:-256}
+
       # ---- telemetry --------------------------------------------------------
       #
       # This block used to say the exporter was parsed and unread, and that
