@@ -107,18 +107,24 @@ make ps
 
 ## Step 5 — Provider layer
 
-Answers `select`, and the only layer that calls an upstream. Serves both
+Answers `select`, and the only layer that calls an upstream. Serves all three
 capabilities from one adapter.
 
-`.env` keys: `PROVIDER_SUBSCRIBER_ID`, and the two pairs that become binding
+`.env` keys: `PROVIDER_SUBSCRIBER_ID`, and the three pairs that become binding
 keys — `PROVIDER_PARTICIPANT_ID` + `PROVIDER_CAPABILITY`,
-`MANDI_PARTICIPANT_ID` + `MANDI_CAPABILITY` — plus `MANDI_TOKEN`.
+`MANDI_PARTICIPANT_ID` + `MANDI_CAPABILITY`, `KNOWLEDGE_PARTICIPANT_ID` +
+`KNOWLEDGE_CAPABILITY` — plus the credentials each upstream needs: `MANDI_TOKEN`,
+and `KNOWLEDGE_CLIENT_ID` + `KNOWLEDGE_CLIENT_SECRET`.
+
+Knowledge also needs `KNOWLEDGE_BASE_URL`, `KNOWLEDGE_PATH` and
+`KNOWLEDGE_TOKEN_URL`, because it is the one upstream that is a real external
+host rather than a mock in this network — so the stack needs egress to it.
 
 ```sh
 docker compose logs provider-adapter | grep 'Processor steps initialized'
 ```
 
-Both capability steps should be listed by name.
+All three capability steps should be listed by name.
 
 ## Step 6 — Network layer
 
@@ -157,10 +163,15 @@ points at localhost. Or:
 newman run ../postman-collection/api-collection.json
 ```
 
-**6 requests, 32 assertions**, one folder per capability. Each folder
-publishes, discovers, then selects, so run publish before discover the first
-time. Green means the registry is seeded, signatures verify both ways, both
-mappings work and discovery is indexing.
+**7 requests, 40 assertions**, one folder per capability. The weather and mandi
+folders publish, discover, then select, so run publish before discover the
+first time. Knowledge is a single select: its `informationMode` is `OnDemand`,
+so there is no catalogue to publish and nothing to discover.
+
+Green means the registry is seeded, signatures verify both ways, all three
+mappings work and discovery is indexing. Knowledge is also the one folder that
+can fail on a missing credential rather than on wiring — it authenticates with
+OAuth2 client credentials that only the adapter reads, at call time.
 
 To point it at another deployment, edit the **environment** file, not the
 collection. → Appendix N.
