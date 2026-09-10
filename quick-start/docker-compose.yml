@@ -365,7 +365,9 @@ services:
     environment:
       DATABASE_URL: postgres://discovery:discovery@discovery-db:5432/discovery?sslmode=disable
       DATABASE_AUTO_MIGRATE: "true"
-      BECKN_NETWORK_ID: ${BECKN_NETWORK_ID}
+      # APP_NETWORK_ID is the discovery image's own variable, so the left side
+      # cannot be renamed with the rest -- only the .env name it reads from.
+      APP_NETWORK_ID: ${BECKN_NETWORK_ID}
       SERVER_PORT: 8080
       VALIDATION_SPEC_URL: ${BECKN_SPEC_URL}
 
