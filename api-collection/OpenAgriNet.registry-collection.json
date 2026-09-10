@@ -126,7 +126,7 @@
     },
     {
       "name": "2. Participants",
-      "description": "Seven rows once bin/setup.py has run: three adapter nodes and four upstreams.\n\nBOTH CREATES ARE SAFE TO RE-RUN, and only because they fail. A second row for an id that exists is refused by a unique index -- public_V_Participant_participantId_sqlgIdx, by name, in the errmsg -- so a duplicate participant cannot be made from here.\n\nWHAT IS NOT RECOVERABLE IS THE FIRST WRITE. Delete is soft and leaves that index in place, so a participantId is never reusable: a row seeded with a wrong baseUrl or a stale public key is permanent, and the only fix is a new id in .env plus a re-run.",
+      "description": "Seven rows once bin/setup.py has run: three adapter nodes and four upstreams.\n\nBOTH CREATES CHECK BEFORE WRITING, the way ensure_participant() does in setup.py: a pre-request script searches for the id and skips the write when it is already there, so a run against a seeded stack reads as skipped rather than failed.\n\nTWO GUARDS SIT UNDER THAT ANYWAY. A second row for an id that exists is refused by a unique index -- public_V_Participant_participantId_sqlgIdx, by name, in the errmsg -- and the node create is refused on its key pattern while consumer-participant-key is empty. The script only stops you seeing errors that say nothing new; remove it and nothing becomes possible that was not before.\n\nWHAT IS NOT RECOVERABLE IS THE FIRST WRITE. Delete is soft and leaves that index in place, so a participantId is never reusable: a row seeded with a wrong baseUrl or a stale public key is permanent, and the only fix is a new id in .env plus a re-run.",
       "item": [
         {
           "name": "List all participants",
@@ -269,6 +269,41 @@
           },
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.replaceIn('{{consumer-participant-key}}')) {",
+                  "    console.log('consumer-participant-key is empty, so this write would be'",
+                  "        + ' refused on the key pattern. Fill it from quick-start/keys/'",
+                  "        + 'keys.json -- the consumer.signingPublic value -- to run this.');",
+                  "    pm.execution.skipRequest();",
+                  "}",
+                  "",
+                  "const value = pm.variables.replaceIn('{{consumer-participant-id}}');",
+                  "const host = pm.variables.replaceIn('{{registry-host}}');",
+                  "",
+                  "pm.sendRequest({",
+                  "    url: `${host}/api/v1/Participant/search`,",
+                  "    method: 'POST',",
+                  "    header: {'Content-Type': 'application/json'},",
+                  "    body: {mode: 'raw', raw: JSON.stringify({",
+                  "        filters: {participantId: {eq: value}}})}",
+                  "}, (err, res) => {",
+                  "    if (err) {",
+                  "        console.log(`could not check for ${value}: ${err}.`",
+                  "            + ' Sending the write anyway.');",
+                  "        return;",
+                  "    }",
+                  "    if (((res.json() || {}).data || []).length) {",
+                  "        console.log(`${value}: already present -- write skipped`);",
+                  "        pm.execution.skipRequest();",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -318,9 +353,37 @@
                 "Participant"
               ]
             },
-            "description": "upstream(), setup.py:308. No role, no keys, no credential. Both role and keys are permitted by the schema but neither is read -- a signature is checked against the node identity that signed it.\n\nAgainst a seeded registry this comes back 200 with status UNSUCCESSFUL and a duplicate-key errmsg naming public_V_Participant_participantId_sqlgIdx. That is the expected answer, not a fault."
+            "description": "upstream(), setup.py:308. No role, no keys, no credential. Both role and keys are permitted by the schema but neither is read -- a signature is checked against the node identity that signed it.\n\nAgainst a seeded registry the pre-request script finds the row and skips the write, logging 'mausamgram: already present'. Without it the answer is 200 with status UNSUCCESSFUL and a duplicate-key errmsg naming public_V_Participant_participantId_sqlgIdx -- correct, but it reads as a fault when it is not one."
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const value = pm.variables.replaceIn('{{mausamgram-participant-id}}');",
+                  "const host = pm.variables.replaceIn('{{registry-host}}');",
+                  "",
+                  "pm.sendRequest({",
+                  "    url: `${host}/api/v1/Participant/search`,",
+                  "    method: 'POST',",
+                  "    header: {'Content-Type': 'application/json'},",
+                  "    body: {mode: 'raw', raw: JSON.stringify({",
+                  "        filters: {participantId: {eq: value}}})}",
+                  "}, (err, res) => {",
+                  "    if (err) {",
+                  "        console.log(`could not check for ${value}: ${err}.`",
+                  "            + ' Sending the write anyway.');",
+                  "        return;",
+                  "    }",
+                  "    if (((res.json() || {}).data || []).length) {",
+                  "        console.log(`${value}: already present -- write skipped`);",
+                  "        pm.execution.skipRequest();",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -484,9 +547,37 @@
                 "ProviderSchema"
               ]
             },
-            "description": "ensure_binding(), setup.py:321. method is the provider's contract, not a network convention: Mausamgram and Agmarknet answer a GET whose query the mapping builds, while Vistaar and POCRA take a POST. The adapter reads it from this row, so nothing about it is compiled in -- change GET to POST here for those two.\n\nbindingKey carries a unique index of its own, public_V_ProviderSchema_bindingKey_sqlgIdx, so this is safe to re-run and CANNOT produce a second row for a key that already exists. To change an existing binding, use the PUT below rather than trying to re-create it."
+            "description": "ensure_binding(), setup.py:321. method is the provider's contract, not a network convention: Mausamgram and Agmarknet answer a GET whose query the mapping builds, while Vistaar and POCRA take a POST. The adapter reads it from this row, so nothing about it is compiled in -- change GET to POST here for those two.\n\nbindingKey carries a unique index of its own, public_V_ProviderSchema_bindingKey_sqlgIdx, and the pre-request script checks for the key before writing, so this is safe to re-run twice over and CANNOT produce a second row for a key that already exists. To change an existing binding, use the PUT below rather than trying to re-create it."
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const value = pm.variables.replaceIn('{{mausamgram-binding-key}}');",
+                  "const host = pm.variables.replaceIn('{{registry-host}}');",
+                  "",
+                  "pm.sendRequest({",
+                  "    url: `${host}/api/v1/ProviderSchema/search`,",
+                  "    method: 'POST',",
+                  "    header: {'Content-Type': 'application/json'},",
+                  "    body: {mode: 'raw', raw: JSON.stringify({",
+                  "        filters: {bindingKey: {eq: value}}})}",
+                  "}, (err, res) => {",
+                  "    if (err) {",
+                  "        console.log(`could not check for ${value}: ${err}.`",
+                  "            + ' Sending the write anyway.');",
+                  "        return;",
+                  "    }",
+                  "    if (((res.json() || {}).data || []).length) {",
+                  "        console.log(`${value}: already present -- write skipped`);",
+                  "        pm.execution.skipRequest();",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -713,9 +804,37 @@
                 "SchemaRegistry"
               ]
             },
-            "description": "REFUSED AGAINST A SEEDED STACK, like the other three creates in this collection -- setup.py writes all four schema rows now, so this answers with a duplicate capabilityCode. It is the request to reach for when adding a capability setup.py does not know about; the eight packs in network-specs outnumber the four capabilities this deployment serves.\n\nTHE REF IN weather-observation-schema-url IS main, AND main DOES NOT SERVE THIS PATH YET -- it is a 404 today; only the schema-packs-v0.1 branch answers 200. The registry only pattern-checks the URL's shape and never fetches it, so the row stores either way: main is the value that becomes correct when the schema packs merge, and pointing at the branch instead would resolve now but break on delete. Change this one variable to switch.\n\ncapabilityCode is uniquely indexed, so a second row for the same capability is refused; correcting a URL means the PUT below, not a re-create."
+            "description": "SKIPPED AGAINST A SEEDED STACK, like the other three creates in this collection -- setup.py writes all four schema rows now, so the pre-request script finds the row and does not write. It is the request to reach for when adding a capability setup.py does not know about; the eight packs in network-specs outnumber the four capabilities this deployment serves. Point capability-code at one of the other four and it writes for real.\n\nschema-pack-ref IS main, AND main DOES NOT SERVE THIS PATH YET -- it is a 404 today; only the schema-packs-v0.1 branch answers 200. The registry only pattern-checks the URL's shape and never fetches it, so the row stores either way: main is the value that becomes correct when the schema packs merge, and pointing at the branch instead would resolve now but break on delete. Change this one variable to switch.\n\ncapabilityCode is uniquely indexed, so a second row for the same capability is refused; correcting a URL means the PUT below, not a re-create."
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const value = pm.variables.replaceIn('{{capability-code}}');",
+                  "const host = pm.variables.replaceIn('{{registry-host}}');",
+                  "",
+                  "pm.sendRequest({",
+                  "    url: `${host}/api/v1/SchemaRegistry/search`,",
+                  "    method: 'POST',",
+                  "    header: {'Content-Type': 'application/json'},",
+                  "    body: {mode: 'raw', raw: JSON.stringify({",
+                  "        filters: {capabilityCode: {eq: value}}})}",
+                  "}, (err, res) => {",
+                  "    if (err) {",
+                  "        console.log(`could not check for ${value}: ${err}.`",
+                  "            + ' Sending the write anyway.');",
+                  "        return;",
+                  "    }",
+                  "    if (((res.json() || {}).data || []).length) {",
+                  "        console.log(`${value}: already present -- write skipped`);",
+                  "        pm.execution.skipRequest();",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
             {
               "listen": "prerequest",
               "script": {
