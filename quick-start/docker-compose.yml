@@ -209,7 +209,7 @@ services:
     # silently depend on it.
     #
     # What this costs: nothing outside the VM can write a registry row, which
-    # is why bin/setup.py seeds all six participants and all three bindings from
+    # is why bin/setup.py seeds all seven participants and all four bindings from
     # inside. It is also why the Postman collection has no registry request --
     # there is no way for one to work.
     #

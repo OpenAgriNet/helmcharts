@@ -8,16 +8,17 @@ the adapter configs.
 it renders are bind-mounted files, and an adapter started before they exist
 leaves a directory in their place.
 
-WHAT IT WRITES. Six participants and three capability bindings:
+WHAT IT WRITES. Seven participants and four capability bindings:
 
     3 x node      one per adapter -- exp, network, provider -- each with the
                   public halves of a keypair. The private halves stay in
                   keys/keys.json and never reach the registry.
-    3 x upstream  the APIs this deployment calls. Two are mocks addressed by
-                  compose service name; the knowledge provider is a real
-                  external host, so its base URL comes from .env. An upstream
-                  signs nothing, so it needs no role and no keys.
-    3 x binding   a ProviderSchema row per capability: which upstream answers
+    4 x upstream  the APIs this deployment calls. ONE is a mock addressed by
+                  compose service name -- mausamgram; mandi, knowledge and
+                  pocra are real external hosts whose base URLs come from
+                  .env. An upstream signs nothing, so it needs no role and no
+                  keys.
+    4 x binding   a ProviderSchema row per capability: which upstream answers
                   it, the method and path, timeouts, and the mapping URL.
 
 This is all of it. Nothing has to be created by hand afterwards, and nothing
@@ -292,7 +293,7 @@ def seed(identities):
     wait_for_registry()
     bearer = token()
 
-    # Six participants and three capability bindings, all of it from here.
+    # Seven participants and four capability bindings, all of it from here.
     #
     # The registry is not reachable from outside this stack -- no published
     # port beyond loopback and no proxy host in front of it -- so there is no
@@ -310,7 +311,7 @@ def seed(identities):
 
     # Weather is the only mock left, addressed by compose service name: it is
     # called from inside this network and nowhere else.
-    print("registry: three upstream providers")
+    print("registry: four upstream providers")
     weather = env("PROVIDER_PARTICIPANT_ID")
     ensure_participant(bearer, weather,
                        upstream(weather, "IMD Mausamgram NWP (mock)",
@@ -334,11 +335,18 @@ def seed(identities):
                        upstream(knowledge, "Bharat Vistaar knowledge retrieval",
                                 env("KNOWLEDGE_BASE_URL")))
 
+    # POCRA, serving AgricultureFacility. A real external provider too, and the
+    # only one needing no credential at all.
+    pocra = env("POCRA_PARTICIPANT_ID")
+    ensure_participant(bearer, pocra,
+                       upstream(pocra, "POCRA agriculture facilities",
+                                env("POCRA_BASE_URL")))
+
     # And what each of them answers. The binding key is participantId piped to
     # capabilityCode, and it has to match what the provider adapter was
     # rendered with -- both come from the same .env, which is what keeps them
     # from disagreeing.
-    print("registry: three capability bindings")
+    print("registry: four capability bindings")
     ensure_binding(bearer, weather, env("PROVIDER_CAPABILITY"),
                    env("MAUSAMGRAM_PATH", "/get-daily"), env("MAPPING_URL"))
     ensure_binding(bearer, mandi, env("MANDI_CAPABILITY"),
@@ -346,6 +354,9 @@ def seed(identities):
                    env("MANDI_MAPPING_URL"))
     ensure_binding(bearer, knowledge, env("KNOWLEDGE_CAPABILITY"),
                    env("KNOWLEDGE_PATH"), env("KNOWLEDGE_MAPPING_URL"),
+                   method="POST")
+    ensure_binding(bearer, pocra, env("POCRA_CAPABILITY"),
+                   env("POCRA_PATH"), env("POCRA_MAPPING_URL"),
                    method="POST")
 
 
@@ -405,6 +416,7 @@ def render(identities):
     mandi_binding = f"{env('MANDI_PARTICIPANT_ID')}|{env('MANDI_CAPABILITY')}"
     knowledge_binding = (f"{env('KNOWLEDGE_PARTICIPANT_ID')}"
                          f"|{env('KNOWLEDGE_CAPABILITY')}")
+    pocra_binding = f"{env('POCRA_PARTICIPANT_ID')}|{env('POCRA_CAPABILITY')}"
     for role in ("exp", "network", "provider"):
         identity = identities[role]
         stem = CONFIG_STEM[role]
@@ -428,9 +440,11 @@ def render(identities):
                 ("__MANDI_TOKEN_URL__", env("MANDI_TOKEN_URL")),
                 # Auth is per provider, so the participant id is a YAML KEY in
                 # the adapter config, not only half of a binding key.
+                ("__POCRA_BINDING_KEY__", pocra_binding),
                 ("__PROVIDER_PARTICIPANT_ID__", env("PROVIDER_PARTICIPANT_ID")),
                 ("__MANDI_PARTICIPANT_ID__", env("MANDI_PARTICIPANT_ID")),
                 ("__KNOWLEDGE_PARTICIPANT_ID__", env("KNOWLEDGE_PARTICIPANT_ID")),
+                ("__POCRA_PARTICIPANT_ID__", env("POCRA_PARTICIPANT_ID")),
                 # Telemetry. One switch drives all three signals: with every
                 # one false the plugin builds no exporter and never dials, so
                 # a stack running without the observability profile stays
@@ -467,7 +481,7 @@ if __name__ == "__main__":
     KEYS.write_text(json.dumps(identities, indent=2))
     render(identities)
     print(f"""
-ready. The registry holds six participants and three capability bindings, and
+ready. The registry holds seven participants and four capability bindings, and
 the adapter configs are rendered, so nothing further has to be created by hand.
 
   {env('PROVIDER_PARTICIPANT_ID')}|{env('PROVIDER_CAPABILITY')}

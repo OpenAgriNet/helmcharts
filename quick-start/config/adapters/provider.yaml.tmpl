@@ -267,8 +267,31 @@ modules:
               # measured 15.7 KB against the live corpus.
               maxResponseBytes: 1048576
 
+          # AgricultureFacility, served by POCRA. Also a real external
+          # provider, and the only capability here that needs NO credential --
+          # authScheme none, which is what its registry row publishes.
+          #
+          # THE ONE CAPABILITY THAT FANS OUT. POCRA's search takes exactly ONE
+          # facility type per call: a comma-separated pair answers 200 with no
+          # providers, and an array is refused outright, both measured against
+          # the live API. So a payload asking for three types becomes three
+          # calls, and the step merges the answers.
+          #
+          # searchConcurrency IS PINNED TO 1 AND MUST STAY THERE. POCRA starts
+          # answering 200 WITH AN EMPTY CATALOGUE after roughly twenty calls in
+          # a few minutes, and recovers after a pause. A healthy "nothing
+          # nearby" and a rate-limited answer are structurally identical, so
+          # raising this buys nothing and risks telling a farmer there is no
+          # facility when there is.
+          - id: AgricultureFacility
+            config:
+              bindingKeys: "__POCRA_BINDING_KEY__"
+              __POCRA_PARTICIPANT_ID__:
+                authScheme: none
+              searchConcurrency: 1
+
       # Declaring a provider step above is not enough: this list is what runs.
-      # All three provider steps sit in the pipeline in order, and each
+      # All four provider steps sit in the pipeline in order, and each
       # recognises its own binding key and passes through anything else -- so
       # which one answers is decided by the payload, not by this order.
       steps:
@@ -277,6 +300,7 @@ modules:
         - WeatherObservation  # its binding key, or pass through
         - MandiPrice          # its binding key, or pass through
         - KnowledgeAdvisory   # its binding key, or pass through
+        - AgricultureFacility # its binding key, or pass through
         - signAck        # signs whatever the step answered with
 
   # The outbound leg: the provider's own catalogue system publishing to the
