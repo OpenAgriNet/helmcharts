@@ -1,0 +1,294 @@
+# IMD, openagrinet:WeatherObservation, select. Both directions, one file.
+#
+# The registry entry pointing here decides which action this serves, so nothing
+# in the file names it. The filename's action segment must match that entry --
+# a mismatch would apply a correct mapping to the wrong call, silently.
+#
+# Both halves read:
+#   beckn     the inbound Beckn payload -- the context to echo, the offer to
+#             quote against
+#   _local    whatever the step's prerequisites resolved before the call. IT
+#             CARRIES stationId HERE, and this is the only shipped mapping that
+#             reads it: IMD's API is addressed by a station id and a Beckn
+#             payload carries a point.
+# and the response half additionally reads:
+#   response  the provider's answer, in its own shape
+#
+# THE STATION IS MOCKED: the resolver behind _local.stationId returns a fixed
+# station and ignores the point, so every answer this file produces is for one
+# place.
+#
+# HOW IMD'S ANSWER DIFFERS FROM MAUSAMGRAM'S, since the two files look alike:
+#
+#   one flat object   All seven days arrive in ONE object with the day number
+#                     inside the field name -- Day_2_Max_Temp -- so the days
+#                     are read by building field names, not by walking keys.
+#   the casing        Max_Temp has a capital T and Min_temp a small one, on
+#                     every day. IMD's, not a typo here.
+#   the date          Given once. Day N is that date plus N-1 days.
+#   three wrappings   A bare array, {"data": [...]}, or the object alone.
+#
+# The response half follows the openagrinet:WeatherObservation v0.1 pack, Direct
+# mode, which requires observationType, source, location, generatedAt and
+# parameters, plus modelRunAt for a Forecast. @context is not stated here: the
+# response echoes what the request declared, so this file cannot go stale
+# against the pack URL or contradict the caller.
+#
+# ONE RESOURCE PER DAY, each with an id derived from its date, because the pack
+# carries a single validity and a flat parameters array per resource. Those ids
+# are new -- the request named a station -- which is why the offer's resourceIds
+# are rewritten below rather than echoed.
+#
+# ONE FIELD IS NOT IN THE PACK and does NOT validate against it: `aggregation`.
+# The pack's parameter entry is parameter/value/unit with
+# additionalProperties false, and its enum has no minimum or maximum variants,
+# but IMD reports both every day -- so without it the two arrive as identical
+# Temperature readings. Kept for the same reason Mausamgram's mapping keeps it;
+# the fix is a pack change.
+
+# What this capability requires of a payload, checked before either half runs.
+# A predicate that is false refuses the request with the message beside it.
+#
+# A POINT IS REQUIRED EVEN THOUGH IT IS NOT WHAT IS SENT UPSTREAM: it is what
+# the station is resolved from. The mock ignores it and whatever replaces the
+# mock cannot work without it, so accepting a payload with no point would be
+# accepting requests that break the day it becomes real.
+#
+# These checks CANNOT read _local -- they run before prerequisites resolve. The
+# station is guarded in the request half instead.
+#
+# One check, because there is one thing to say. $exists guards the type test, so
+# a payload with no location and one carrying a Polygon both land here and both
+# learn what this capability needs.
+required:
+  - check: |
+      (
+        $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
+        $exists($ra.location) and $ra.location.type = "Point"
+      )
+    message: "this capability needs a Point location; the IMD station is resolved from it"
+
+# The request half decides what the provider is asked for. Whatever it produces
+# IS the request, so this one object is the whole upstream query string:
+#
+#   GET {baseUrl}/api/weather?id=43382
+#
+# The parameter is named id because that is what IMD reads. THE PATH COMES FROM
+# THE REGISTRY AND IS STATIC -- the step appends a query string but cannot put a
+# value INTO a path, so an endpoint serving /api/weather/{station} is not
+# reachable by configuration alone. Both forms appear in the material the old
+# provider service left behind; confirm which one a deployment serves.
+#
+# $assert rather than a silently empty query: a step configured with no
+# prerequisite would otherwise send ?id= and read IMD's 404 as an outage.
+request: |
+  (
+    $assert($exists(_local.stationId),
+      "no IMD station was resolved; this binding key has no entry in the step's prerequisites");
+    {
+      "id": _local.stationId
+    }
+  )
+
+# Keyed by direction, not by the action it produces: a select is answered by an
+# on_select over the same HTTP round trip, so the callback is this half rather
+# than an action of its own.
+response: |
+  (
+    /* Whichever of the three shapes this deployment answers with. A plain
+       object indexed at [0] is itself in JSONata, so one expression covers the
+       object and the array; the .data probe covers the wrapper. */
+    $w := $exists(response.data) ? response.data[0] : response[0];
+
+    /* IMD gives ONE date and names the rest by number, so day N's date is
+       derived. Getting this wrong delivers a forecast for the wrong day, which
+       nothing downstream could detect. Falls back to today when the field is
+       absent, because the pack requires a validity on every resource. */
+    $base := $toMillis($exists($w.Date) ? $w.Date : $now());
+    $dateOf := function($n) {
+      $fromMillis($base + ($n - 1) * 86400000, "[Y0001]-[M01]-[D01]")
+    };
+
+    /* However many days IMD sent: a day with no maximum, no minimum and no
+       description yields nothing, so a five-day answer returns five resources
+       rather than seven with two empty.
+
+       Built by NAME rather than by walking keys, because IMD's days are not
+       separate objects -- one object whose field names carry the day number.
+       Note the casing, Max_Temp and Min_temp, which is IMD's. */
+    $forecastDay := function($n, $max, $min, $forecast) {
+      ($exists($max) or $exists($min) or $exists($forecast)) ? {
+        "n": $n,
+        "date": $dateOf($n),
+        "max": $max,
+        "min": $min,
+        "forecast": $forecast
+      }
+    };
+
+    /* Day 1 is named differently, so it is its own line. It PREFERS THE
+       FORECAST TEMPERATURES: IMD sends both today's observed and today's
+       predicted, and every resource below is labelled Forecast -- so the
+       observed pair is a fallback only. */
+    $days := $append(
+      $forecastDay(1,
+        $exists($w.Todays_Forecast_Max_Temp) ? $w.Todays_Forecast_Max_Temp : $w.Today_Max_temp,
+        $exists($w.Todays_Forecast_Min_temp) ? $w.Todays_Forecast_Min_temp : $w.Today_Min_temp,
+        $w.Todays_Forecast),
+      $map([2..7], function($n) {
+        $forecastDay($n,
+          $lookup($w, "Day_" & $n & "_Max_Temp"),
+          $lookup($w, "Day_" & $n & "_Min_temp"),
+          $lookup($w, "Day_" & $n & "_Forecast"))
+      })
+    );
+
+    $reading := function($name, $aggregation, $unit, $value) {
+      $exists($value) ? {
+        "parameter": $name,
+        "aggregation": $aggregation,
+        "unit": $unit,
+        "value": $value
+      }
+    };
+
+    /* A description is a parameter, not a field of its own: the pack has no
+       advisory property but does have an Alert parameter. Unit "1" is what it
+       prescribes for a value with no unit. */
+    $alert := function($value) {
+      $exists($value) ? {
+        "parameter": "Alert",
+        "unit": "1",
+        "value": $value
+      }
+    };
+
+    $selected := beckn.message.contract.commitments[0];
+
+    /* The caller's own @context, echoed rather than restated: a hardcoded one
+       goes stale when the pack URL moves and can contradict the request.
+       Backticks because @ is an operator in JSONata. */
+    $ctx := beckn.message.contract.commitments[0].resources[0].resourceAttributes.`@context`;
+
+    /* The station IMD echoed, falling back to the one asked for. Reported in
+       the source descriptor below, NOT in the resource id: a station is how
+       this provider is addressed internally, and a consumer that read it out
+       of an id would be depending on that. */
+    $station := $exists($w.Station_Code) ? $string($w.Station_Code) : _local.stationId;
+
+    /* The station's coordinates as IMD echoed them, falling back to the point
+       the caller asked about. Emitted either way: the pack requires a location
+       on every Direct resource. */
+    $point := $exists($w.Latitude) and $exists($w.Longitude)
+      ? { "type": "Point", "coordinates": [$number($w.Longitude), $number($w.Latitude)] }
+      : beckn.message.contract.commitments[0].resources[0].resourceAttributes.location;
+
+    /* Bound once because it is used twice -- a resource's own id, and the
+       offer's reference to it. Two copies is how they drift apart.
+       Same shape as the mausamgram mapping's: the day is what distinguishes
+       one answered resource from another. */
+    $resourceId := function($day) { "res:imd:forecast:" & $day.date };
+
+    {
+      /* Correlation only. bapId, bapUri, bppId and bppUri are deliberately
+         absent: a mapping transforms a payload, it does not assert who anyone
+         is, and the Uri fields it could copy are whatever the caller sent --
+         in a deployed stack a container-internal address. Identity on the wire
+         is the adapter's own signature. */
+      "context": {
+        "version": beckn.context.version,
+        "action": "on_select",
+        "networkId": beckn.context.networkId,
+        "transactionId": beckn.context.transactionId,
+        "messageId": beckn.context.messageId,
+        "timestamp": $now()
+      },
+      "message": {
+        "contract": {
+          "commitments": [
+            {
+              /* DRAFT, not QUOTED. The Beckn v2 status enum is DRAFT, ACTIVE
+                 and CLOSED, and a quote is still a draft: nothing is committed
+                 until init and confirm. QUOTED read better and validated
+                 nowhere -- base schema validation refuses it. */
+              "status": {
+                "descriptor": { "code": "DRAFT", "name": "Draft" }
+              },
+              /* The offer is echoed, but its references are not: the request
+                 named a station, and the answer returns the concrete days.
+                 Leaving resourceIds as they arrived would point the offer at an
+                 id that appears nowhere in the answer.
+
+                 $merge keeps everything else the request offered -- the id, the
+                 descriptor, the provider -- and replaces one key. */
+              "offer": $merge([
+                $selected.offer,
+                { "resourceIds": [$map($days, function($day) { $resourceId($day) })] }
+              ]),
+              /* One resource per day, which is the shape the pack describes.
+
+                 Wrapped for the same reason as the resourceIds above: JSONata
+                 collapses a one-element sequence to a bare value, so a one-day
+                 forecast would answer with an object where every other N
+                 answers with a list. */
+              "resources": [$map($days, function($day) {
+                {
+                  "id": $resourceId($day),
+                  /* Required by Commitment.resources even though the spec
+                     defines no quantity property -- a defect upstream. One
+                     resource is one day, so one. */
+                  "quantity": 1,
+                  "resourceAttributes": {
+                    "@context": $ctx,
+                    "@type": "openagrinet:WeatherObservation",
+                    "informationMode": "Direct",
+                    "observationType": "Forecast",
+                    "subjectCategories": ["Weather"],
+                    "source": {
+                      "sourceId": "imd",
+                      "sourceName": $exists($w.Station_Name)
+                        ? "IMD " & $w.Station_Name
+                        : "India Meteorological Department"
+                    },
+                    "location": $point,
+                    "generatedAt": $now(),
+                    /* Required for a Direct Forecast. IMD publishes no model
+                       run time, so this is when the answer was produced. */
+                    "modelRunAt": $now(),
+                    /* This resource reports one day, so its validity opens and
+                       closes on it. */
+                    "validity": {
+                      "startsAt": $day.date,
+                      "endsAt": $day.date
+                    },
+                    /* Temperature and the description are per day. RAINFALL AND
+                       HUMIDITY ARE NOT: IMD reports them once for the station,
+                       as a past-24-hour total and two fixed-hour readings, so
+                       they go on day 1 alone -- repeating them would be
+                       inventing data.
+
+                       They are also observations inside a forecast resource.
+                       The pack cannot say "yesterday's rain" on a forecast, and
+                       dropping them loses the only rainfall and humidity IMD
+                       gives. Kept, and flagged; the fix is a pack change.
+
+                       08:30 as the minimum and 17:30 as the maximum is what the
+                       old provider service did. IMD labels neither as an
+                       extreme, so it is a convention, not a fact IMD stated. */
+                    "parameters": [
+                      $reading("Temperature", "Maximum", "Cel", $day.max),
+                      $reading("Temperature", "Minimum", "Cel", $day.min),
+                      $day.n = 1 ? $reading("Rainfall", "Total", "mm", $w.Past_24_hrs_Rainfall),
+                      $day.n = 1 ? $reading("Humidity", "Minimum", "%", $w.Relative_Humidity_at_0830),
+                      $day.n = 1 ? $reading("Humidity", "Maximum", "%", $w.Relative_Humidity_at_1730),
+                      $alert($day.forecast)
+                    ]
+                  }
+                }
+              })]
+            }
+          ]
+        }
+      }
+    }
+  )

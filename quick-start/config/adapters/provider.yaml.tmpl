@@ -192,7 +192,13 @@ modules:
         providerSteps:
           - id: WeatherObservation
             config:
-              bindingKeys: "__PROVIDER_BINDING_KEY__"
+              # TWO PROVIDERS OF ONE CAPABILITY on a single step. Mausamgram
+              # and IMD's city endpoint both answer
+              # openagrinet:WeatherObservation, and everything that differs
+              # between them -- credentials, base URL, path, mapping -- is
+              # already per provider, so the second is one more key here and
+              # one more block below.
+              bindingKeys: "__PROVIDER_BINDING_KEY__,__IMD_BINDING_KEY__"
               # none matches what the registry publishes for this upstream --
               # a mock inside this compose network, which is what lets its
               # baseUrl be plaintext http. Against a real provider this is
@@ -203,6 +209,29 @@ modules:
               #   passwordEnv: MAUSAMGRAM_X_API_KEY
               __PROVIDER_PARTICIPANT_ID__:
                 authScheme: none
+
+              # IMD's city weather endpoint is open, so there is nothing to
+              # present -- but a served provider with no block is refused at
+              # startup, so none is declared rather than left out.
+              #
+              # prerequisite names the work THIS PROVIDER must do before it can
+              # be called, chosen from the resolvers its domain package offers.
+              # Per provider rather than per step, and that distinction is the
+              # point: IMD's API is addressed by a station id, which a Beckn
+              # payload has no field for, while Mausamgram's call needs nothing
+              # resolved -- so one setting for the whole step would run a
+              # station lookup for Mausamgram too. Omitted, or none, means the
+              # payload is enough; an unknown name fails at STARTUP, listing
+              # what is available.
+              #
+              # The mapping reads what it returns as _local.stationId.
+              #
+              # THE STATION IS MOCKED: a fixed one, with the requested point
+              # ignored, because resolving a point to a station is a spatial
+              # query and the adapter is not allowed a database.
+              __IMD_PARTICIPANT_ID__:
+                authScheme: none
+                prerequisite: findStation
 
           # A second capability in the same pipeline, from a different domain
           # package. Each step recognises its own binding key and passes

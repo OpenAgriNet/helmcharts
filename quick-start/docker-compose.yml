@@ -478,6 +478,10 @@ services:
       # How many forecast days it answers with. The mapping reads however many
       # arrive, so this is the knob for checking that it does.
       - "-days=${MOCKIMD_DAYS:-3}"
+      # Which envelope /api/weather answers in: array, data or object. The real
+      # IMD city endpoint has been seen in all three, and the mapping handles
+      # all three, so this is the knob that proves it does.
+      - "-imd-wrap=${MOCKIMD_WRAP:-array}"
     ports:
       - "127.0.0.1:${MOCKIMD_PORT}:9100"
 

@@ -311,11 +311,24 @@ def seed(identities):
 
     # Weather is the only mock left, addressed by compose service name: it is
     # called from inside this network and nowhere else.
-    print("registry: four upstream providers")
+    print("registry: five upstream providers")
     weather = env("PROVIDER_PARTICIPANT_ID")
     ensure_participant(bearer, weather,
                        upstream(weather, "IMD Mausamgram NWP (mock)",
                                 env("MAUSAMGRAM_BASE_URL", "http://mockimd:9100")))
+
+    # IMD's city endpoint, a SECOND participant rather than a second action on
+    # the one above: Mausamgram and city weather are separate APIs, addressed
+    # differently and shaped differently, so they carry separate call plans.
+    # That one mock container serves both is the mock's business.
+    #
+    # Mocked for a reason that is not convenience: the real endpoint is behind
+    # an IP allowlist and answers 401 until the adapter's egress address is on
+    # it, so there is nothing to point at yet.
+    imd = env("IMD_PARTICIPANT_ID", "imd")
+    ensure_participant(bearer, imd,
+                       upstream(imd, "IMD City Weather (mock)",
+                                env("IMD_BASE_URL", "http://mockimd:9100")))
 
     # Mandi is the REAL Agmarknet now, because authScheme tokenQuery needs a
     # token endpoint and mockagmarknet has none. No default base URL for the
@@ -346,9 +359,16 @@ def seed(identities):
     # capabilityCode, and it has to match what the provider adapter was
     # rendered with -- both come from the same .env, which is what keeps them
     # from disagreeing.
-    print("registry: four capability bindings")
+    print("registry: five capability bindings")
     ensure_binding(bearer, weather, env("PROVIDER_CAPABILITY"),
                    env("MAUSAMGRAM_PATH", "/get-daily"), env("MAPPING_URL"))
+    # The same capability as Mausamgram above -- the provider adapter serves
+    # both binding keys on one step -- so the capability defaults to the same
+    # one. The path is its own: this API is addressed by a station id in the
+    # query string, which the adapter resolves rather than reading from the
+    # payload.
+    ensure_binding(bearer, imd, env("IMD_CAPABILITY", env("PROVIDER_CAPABILITY")),
+                   env("IMD_PATH", "/api/weather"), env("IMD_MAPPING_URL"))
     ensure_binding(bearer, mandi, env("MANDI_CAPABILITY"),
                    env("MANDI_PATH", "/v1/fetch-agmarknet-vistaar"),
                    env("MANDI_MAPPING_URL"))
@@ -413,6 +433,10 @@ CONFIG_STEM = {"exp": "experience", "network": "network", "provider": "provider"
 def render(identities):
     print("configs:")
     binding = f"{env('PROVIDER_PARTICIPANT_ID')}|{env('PROVIDER_CAPABILITY')}"
+    # IMD's city endpoint answers the same capability as Mausamgram, so it
+    # defaults to the same one -- only the participant id differs.
+    imd_participant = env("IMD_PARTICIPANT_ID", "imd")
+    imd_binding = f"{imd_participant}|{env('IMD_CAPABILITY', env('PROVIDER_CAPABILITY'))}"
     mandi_binding = f"{env('MANDI_PARTICIPANT_ID')}|{env('MANDI_CAPABILITY')}"
     knowledge_binding = (f"{env('KNOWLEDGE_PARTICIPANT_ID')}"
                          f"|{env('KNOWLEDGE_CAPABILITY')}")
@@ -430,6 +454,7 @@ def render(identities):
                 (f"__{prefix}_ENCR_PRIVATE__", identity["encrPrivate"]),
                 (f"__{prefix}_ENCR_PUBLIC__", identity["encrPublic"]),
                 ("__PROVIDER_BINDING_KEY__", binding),
+                ("__IMD_BINDING_KEY__", imd_binding),
                 ("__MANDI_BINDING_KEY__", mandi_binding),
                 ("__KNOWLEDGE_BINDING_KEY__", knowledge_binding),
                 ("__KNOWLEDGE_TOKEN_URL__", env("KNOWLEDGE_TOKEN_URL")),
@@ -442,6 +467,7 @@ def render(identities):
                 # the adapter config, not only half of a binding key.
                 ("__POCRA_BINDING_KEY__", pocra_binding),
                 ("__PROVIDER_PARTICIPANT_ID__", env("PROVIDER_PARTICIPANT_ID")),
+                ("__IMD_PARTICIPANT_ID__", imd_participant),
                 ("__MANDI_PARTICIPANT_ID__", env("MANDI_PARTICIPANT_ID")),
                 ("__KNOWLEDGE_PARTICIPANT_ID__", env("KNOWLEDGE_PARTICIPANT_ID")),
                 ("__POCRA_PARTICIPANT_ID__", env("POCRA_PARTICIPANT_ID")),
