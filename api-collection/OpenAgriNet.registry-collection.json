@@ -30,6 +30,16 @@
       "key": "capability-osid",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "schema-url",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "schema-name",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -558,7 +568,7 @@
     },
     {
       "name": "4. Capability Schemas",
-      "description": "The SchemaRegistry entity: what a capabilityCode MEANS, as opposed to who serves it. One row per capability, pointing at the schema pack in OpenAgriNet/network-specs that defines its attributes.\n\nEMPTY ON A FRESHLY SEEDED STACK. bin/setup.py creates seven participants and four bindings and does not mention SchemaRegistry at all, so nothing in the quick-start puts a row here -- these requests are the only way one arrives.\n\nTHE ENTITY IS REAL, THOUGH, not a leftover: config/registry/schemas/SchemaRegistry.json is mounted at /home/sunbirdrc/config/public/_schemas alongside Participant and ProviderSchema. Schemas are read at startup, so editing one needs sunbird-registry-service restarted before the registry honours it.\n\nschemaUrl IS PATTERN-CHECKED, and narrowly: a raw.githubusercontent URL under OpenAgriNet/network-specs, with a schema/<Capability>/v<major>.<minor>/<name>.yaml path. version is checked against ^v[0-9]+\\.[0-9]+$ and capabilityCode against ^openagrinet:[A-Z][A-Za-z0-9]*$, so a typo in any of the three is refused rather than stored.",
+      "description": "The SchemaRegistry entity: what a capabilityCode MEANS, as opposed to who serves it. One row per capability, pointing at the schema pack in OpenAgriNet/network-specs that defines its attributes.\n\nSEEDED, AS OF THE COMMIT THAT ADDED THIS FOLDER. bin/setup.py now writes all four rows, so a fresh stack comes up with them and every request here reads or re-reads rather than filling a gap. It did not before: the entity was mounted, uniquely indexed and empty, with nothing in the quick-start able to put a row in it.\n\nONE VARIABLE DRIVES THE WHOLE FOLDER. Set capability-code and every request follows, the two writes included -- schemaUrl and the display name are derived from it by a pre-request script, the same way setup.py's schema_url() derives them, because a capability code already contains its pack's directory name. Nothing in a request body needs editing to work on a different capability, and the code cannot end up naming a different pack than the URL does.\n\nTHE ENTITY IS REAL, not a leftover: config/registry/schemas/SchemaRegistry.json is mounted at /home/sunbirdrc/config/public/_schemas alongside Participant and ProviderSchema. Schemas are read at startup, so editing one needs sunbird-registry-service restarted before the registry honours it.\n\nschemaUrl IS PATTERN-CHECKED, and narrowly: a raw.githubusercontent URL under OpenAgriNet/network-specs, with a schema/<Capability>/v<major>.<minor>/<name>.yaml path. version is checked against ^v[0-9]+\\.[0-9]+$ and capabilityCode against ^openagrinet:[A-Z][A-Za-z0-9]*$, so a typo in any of the three is refused rather than stored.",
       "item": [
         {
           "name": "List all capabilities",
@@ -626,7 +636,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"filters\": {\n    \"capabilityCode\": {\n      \"eq\": \"{{mausamgram-capability}}\"\n    }\n  }\n}",
+              "raw": "{\n  \"filters\": {\n    \"capabilityCode\": {\n      \"eq\": \"{{capability-code}}\"\n    }\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -685,7 +695,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"capabilityCode\": \"{{mausamgram-capability}}\",\n  \"name\": \"Weather Observation and Forecast\",\n  \"version\": \"v0.1\",\n  \"schemaUrl\": \"{{weather-observation-schema-url}}\",\n  \"status\": \"active\"\n}",
+              "raw": "{\n  \"capabilityCode\": \"{{capability-code}}\",\n  \"name\": \"{{schema-name}}\",\n  \"version\": \"{{schema-pack-version}}\",\n  \"schemaUrl\": \"{{schema-url}}\",\n  \"status\": \"active\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -703,9 +713,34 @@
                 "SchemaRegistry"
               ]
             },
-            "description": "THIS ONE ACTUALLY CREATES SOMETHING. The other three creates here are refused against a seeded stack -- a duplicate participantId, a duplicate bindingKey, an empty key -- but SchemaRegistry starts empty, so this succeeds and the row is real.\n\nTHE REF IN weather-observation-schema-url IS main, AND main DOES NOT SERVE THIS PATH YET -- it is a 404 today; only the schema-packs-v0.1 branch answers 200. The registry only pattern-checks the URL's shape and never fetches it, so the row stores either way: main is the value that becomes correct when the schema packs merge, and pointing at the branch instead would resolve now but break on delete. Change this one variable to switch.\n\ncapabilityCode is uniquely indexed, so a second row for the same capability is refused; correcting a URL means the PUT below, not a re-create."
+            "description": "REFUSED AGAINST A SEEDED STACK, like the other three creates in this collection -- setup.py writes all four schema rows now, so this answers with a duplicate capabilityCode. It is the request to reach for when adding a capability setup.py does not know about; the eight packs in network-specs outnumber the four capabilities this deployment serves.\n\nTHE REF IN weather-observation-schema-url IS main, AND main DOES NOT SERVE THIS PATH YET -- it is a 404 today; only the schema-packs-v0.1 branch answers 200. The registry only pattern-checks the URL's shape and never fetches it, so the row stores either way: main is the value that becomes correct when the schema packs merge, and pointing at the branch instead would resolve now but break on delete. Change this one variable to switch.\n\ncapabilityCode is uniquely indexed, so a second row for the same capability is refused; correcting a URL means the PUT below, not a re-create."
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const code = pm.variables.get('capability-code') || '';",
+                  "const pack = code.split(':')[1];",
+                  "if (!pack) {",
+                  "    throw new Error(`capability-code must be <prefix>:<Pack>, got '${code}'`);",
+                  "}",
+                  "",
+                  "const ref = pm.variables.get('schema-pack-ref') || 'main';",
+                  "const version = pm.variables.get('schema-pack-version') || 'v0.1';",
+                  "",
+                  "pm.collectionVariables.set('schema-url',",
+                  "    'https://raw.githubusercontent.com/OpenAgriNet/network-specs/'",
+                  "    + `${ref}/schema/${pack}/${version}/attributes.yaml`);",
+                  "",
+                  "// WeatherObservation -> Weather Observation, which is what the pack's own",
+                  "// info.title says once its 'OpenAgriNet -' and 'Attributes' are stripped.",
+                  "pm.collectionVariables.set('schema-name',",
+                  "    pack.replace(/([a-z0-9])([A-Z])/g, '$1 $2'));"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -714,6 +749,10 @@
                   "pm.test('created, or already there', () => {",
                   "    const p = pm.response.json().params || {};",
                   "    console.log(`${p.status}: ${p.errmsg || ''}`);",
+                  "    // What the pre-request script derived, so a surprise is",
+                  "    // visible here rather than in the stored row.",
+                  "    console.log(`${pm.variables.get('capability-code')} -> `",
+                  "        + pm.collectionVariables.get('schema-url'));",
                   "});"
                 ]
               }
@@ -736,7 +775,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"capabilityCode\": \"{{mausamgram-capability}}\",\n  \"name\": \"Weather Observation and Forecast\",\n  \"version\": \"v0.1\",\n  \"schemaUrl\": \"{{weather-observation-schema-url}}\",\n  \"status\": \"active\"\n}",
+              "raw": "{\n  \"capabilityCode\": \"{{capability-code}}\",\n  \"name\": \"{{schema-name}}\",\n  \"version\": \"{{schema-pack-version}}\",\n  \"schemaUrl\": \"{{schema-url}}\",\n  \"status\": \"active\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -758,6 +797,31 @@
             "description": "RUN \"Find one capability by code\" FIRST -- it sets capability-osid. Without it the URL ends in a bare slash and the answer is 405, which is not the real behaviour below.\n\nTHIS FAILS TODAY, AND NOT BECAUSE OF THE BODY. It answers UNSUCCESSFUL with 'extraneous key [osid] is not permitted' and the same for osOwner, osCreatedAt, osUpdatedAt, osCreatedBy, osUpdatedBy. On an update the registry merges the STORED record into the body and re-validates the result, so those six system fields arrive on their own and are then rejected.\n\nTHE CAUSE IS ONE FLAG. SchemaRegistry.json sets additionalProperties false; Participant.json and ProviderSchema.json both set it true, which is why PUT works on those two and not this one. Set it true and restart sunbird-registry-service -- schemas are read at startup -- and this request starts working.\n\nUNTIL THEN A schemaUrl IS FIXED FOR THE ROW'S LIFETIME, which matters because moving refs is exactly what this field is for. Delete is soft and the unique index on capabilityCode survives it, so a wrong URL cannot be corrected by re-creating the row either.\n\nPUT REPLACES THE RECORD once it does work, so all five required fields belong in this body -- one left out is one dropped from the row."
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const code = pm.variables.get('capability-code') || '';",
+                  "const pack = code.split(':')[1];",
+                  "if (!pack) {",
+                  "    throw new Error(`capability-code must be <prefix>:<Pack>, got '${code}'`);",
+                  "}",
+                  "",
+                  "const ref = pm.variables.get('schema-pack-ref') || 'main';",
+                  "const version = pm.variables.get('schema-pack-version') || 'v0.1';",
+                  "",
+                  "pm.collectionVariables.set('schema-url',",
+                  "    'https://raw.githubusercontent.com/OpenAgriNet/network-specs/'",
+                  "    + `${ref}/schema/${pack}/${version}/attributes.yaml`);",
+                  "",
+                  "// WeatherObservation -> Weather Observation, which is what the pack's own",
+                  "// info.title says once its 'OpenAgriNet -' and 'Attributes' are stripped.",
+                  "pm.collectionVariables.set('schema-name',",
+                  "    pack.replace(/([a-z0-9])([A-Z])/g, '$1 $2'));"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
