@@ -96,7 +96,7 @@ Three tiers, in the only order that works: registry and discovery, then
 `bin/setup.py`, then the mocks and the three adapters. Allow up to five minutes
 the first time — Keycloak on a cold volume.
 
-`setup.py` generates a keypair per adapter, registers five participants and two
+`setup.py` generates a keypair per adapter, registers seven participants and four
 capability bindings, and renders the three adapter configs. Nothing needs
 creating by hand. → Appendix C for why the order matters, Appendix D for what
 it wrote.
@@ -107,18 +107,29 @@ make ps
 
 ## Step 5 — Provider layer
 
-Answers `select`, and the only layer that calls an upstream. Serves both
+Answers `select`, and the only layer that calls an upstream. Serves all four
 capabilities from one adapter.
 
-`.env` keys: `PROVIDER_SUBSCRIBER_ID`, and the two pairs that become binding
+`.env` keys: `PROVIDER_SUBSCRIBER_ID`, and the four pairs that become binding
 keys — `PROVIDER_PARTICIPANT_ID` + `PROVIDER_CAPABILITY`,
-`MANDI_PARTICIPANT_ID` + `MANDI_CAPABILITY` — plus `MANDI_TOKEN`.
+`MANDI_PARTICIPANT_ID` + `MANDI_CAPABILITY`, `KNOWLEDGE_PARTICIPANT_ID` +
+`KNOWLEDGE_CAPABILITY`, `POCRA_PARTICIPANT_ID` + `POCRA_CAPABILITY`.
+
+Plus the credentials each upstream needs: `MANDI_ACCESS_NAME` +
+`MANDI_PASSWORD`, and `KNOWLEDGE_CLIENT_ID` + `KNOWLEDGE_CLIENT_SECRET`. POCRA
+needs none at all.
+
+**Only mausamgram is a mock now.** Mandi, knowledge and POCRA are real
+external hosts, so each needs its own base URL and path in `.env` — and the
+stack needs egress to all three. Mandi and knowledge each also need a token
+endpoint, since both issue short-lived tokens rather than taking a static
+credential.
 
 ```sh
 docker compose logs provider-adapter | grep 'Processor steps initialized'
 ```
 
-Both capability steps should be listed by name.
+All four capability steps should be listed by name.
 
 ## Step 6 — Network layer
 
@@ -157,10 +168,20 @@ points at localhost. Or:
 newman run ../postman-collection/api-collection.json
 ```
 
-**6 requests, 32 assertions**, one folder per capability. Each folder
-publishes, discovers, then selects, so run publish before discover the first
-time. Green means the registry is seeded, signatures verify both ways, both
+**8 requests, 49 assertions**, one folder per capability. The weather and mandi
+folders publish, discover, then select, so run publish before discover the
+first time. Knowledge and POCRA are a single select each: their
+`informationMode` is `OnDemand`, so there is no catalogue to publish and
+nothing to discover.
+
+Green means the registry is seeded, signatures verify both ways, all four
 mappings work and discovery is indexing.
+
+POCRA is the one folder whose empty answer is LOGGED rather than failed: it
+returns 200 with no providers both when nothing is nearby and when it is
+rate-limiting, and the two are indistinguishable. Knowledge is also the one folder that
+can fail on a missing credential rather than on wiring — it authenticates with
+OAuth2 client credentials that only the adapter reads, at call time.
 
 To point it at another deployment, edit the **environment** file, not the
 collection. → Appendix N.
@@ -487,7 +508,7 @@ loopback. A registry route would depend on that silently.
 
 ```
 1. registry and discovery        (also registry-db, keycloak, discovery-db)
-2. bin/setup.py                  keys, five participants, two bindings, three configs
+2. bin/setup.py                  keys, seven participants, four bindings, three configs
 3. mock upstreams, then the three adapters
 4. nginx-proxy-manager           the public edge — 80 and 443, all interfaces
 5. hyperdx                       ClickStack
@@ -858,10 +879,17 @@ fetched    .../network-specs/schema-packs-v0.1/schema/MandiPrice/v0.1/attributes
 
 So a payload names the revision it is judged against, and no copy here can
 drift. Cached 24h, so only the first payload after a restart pays. Two
-consequences: the adapter needs egress to `raw.githubusercontent.com`, and a
-**failed fetch rejects the payload** rather than skipping validation. An
+consequences: the adapter needs egress to **every host on the allowlist**, and
+a **failed fetch rejects the payload** rather than skipping validation. An
 `@context` on any other host is refused before any fetch —
 `extendedSchema_allowedDomains` is the list.
+
+Every entry on it is load-bearing. Loading one capability pack pulls 13–16
+documents: the pack itself from the raw CDN, then `Descriptor`,
+`GeoJSONGeometry`, `Location` and `Address`, which in turn `$ref` a further
+host. `openagrinet.github.io` is where OAN's own packs are published. Drop any
+one entry and no pack loads at all — the failure is
+`SCH_SCHEMA_ADAPTATION_FAILED` on every payload, not a partial validation.
 
 **What it does not check: `if`/`then`/`else`.** The validator library parses
 those keywords and never evaluates them, so every pack rule predicated on
@@ -968,7 +996,7 @@ for v in registry-data discovery-data npm-data npm-letsencrypt hyperdx-data; do
 done
 ```
 
-Then `make up`, and confirm the five participants and your proxy hosts before
+Then `make up`, and confirm the seven participants and your proxy hosts before
 deleting anything. Keycloak shares `registry-data`, so its realm travels with
 that volume — and equally does not survive if you skip it.
 
