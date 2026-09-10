@@ -1,0 +1,555 @@
+{
+  "info": {
+    "name": "OpenAgriNet Registry",
+    "_postman_id": "0a4e1c00-0000-4000-8000-00000000oan2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "The Sunbird RC registry behind the stack: the seven participants and the four capability bindings that tell the provider adapter what each upstream answers. Separate from OpenAgriNet.api-collection.json, which is adapter-facing and writes to nothing.\n\nEverything here mirrors quick-start/bin/setup.py -- the same entities, the same payloads, the same order -- so this collection is what you reach for when a row has to be inspected or repaired after the seed. Each request names the function it came from.\n\nTHE REGISTRY IS LOOPBACK-ONLY. No published port beyond 127.0.0.1 and no proxy host in front of it, by design: nothing outside the stack can reach it. Against a remote deployment, tunnel both ports first --\n\n    ssh -L 8081:localhost:8081 -L 8080:localhost:8080 <host>\n\nImport OpenAgriNet.local-environment.json alongside this and select it, or every {{...}} resolves to nothing.\n\nWRITES HERE ARE MOSTLY PERMANENT. A participant's delete is soft and keeps the unique index, so an id can never be reused: think before you POST one. A ProviderSchema row is the exception -- it does take a PUT, which is what the last request is for. Read with /search freely; the answer is {totalCount, data} rather than a bare array."
+  },
+  "variable": [
+    {
+      "key": "registry-token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "participant-osid",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "binding-osid",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "binding-action-osid",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "description": "One request, and everything that writes needs what it returns. Search does not: bin/setup.py sends no Authorization header on any /search call, and that is what wait_for_registry() polls with.",
+      "item": [
+        {
+          "name": "Registry write token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              },
+              {
+                "key": "X-Forwarded-Host",
+                "value": "sunbird-registry-keycloak:8080"
+              },
+              {
+                "key": "X-Forwarded-Proto",
+                "value": "http"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "client_id",
+                  "value": "{{keycloak-client-id}}"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                },
+                {
+                  "key": "username",
+                  "value": "{{registry-user}}"
+                },
+                {
+                  "key": "password",
+                  "value": "{{registry-password}}"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloak-host}}/auth/realms/{{keycloak-realm}}/protocol/openid-connect/token",
+              "host": [
+                "{{keycloak-host}}"
+              ],
+              "path": [
+                "auth",
+                "realms",
+                "{{keycloak-realm}}",
+                "protocol",
+                "openid-connect",
+                "token"
+              ]
+            },
+            "description": "token(), setup.py:204. The two X-Forwarded headers are not optional -- drop either and the response is 200 with an empty body, which reads as a Postman parse error rather than an auth problem."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "// An empty body here means the X-Forwarded headers did not reach",
+                  "// Keycloak, not that the credentials are wrong.",
+                  "pm.test('a token came back', () => {",
+                  "    const t = pm.response.json().access_token;",
+                  "    if (!t) throw new Error('no access_token in the response');",
+                  "    pm.collectionVariables.set('registry-token', t);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Participants",
+      "description": "Seven rows once bin/setup.py has run: three adapter nodes and four upstreams.\n\nCREATE IS THE ONLY WRITE THAT IS SAFE TO REPEAT, and only because it fails. Delete here is soft and keeps the unique index, so a participantId is never reusable -- a row seeded with a wrong baseUrl or a stale public key is permanent, and the fix is a new id in .env plus a re-run.",
+      "item": [
+        {
+          "name": "List all participants",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filters\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{registry-host}}/api/v1/Participant/search",
+              "host": [
+                "{{registry-host}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "Participant",
+                "search"
+              ]
+            },
+            "description": "search(), setup.py:256. No bearer needed. The answer is {totalCount, data} rather than a bare array -- read .data."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('seven participants', () => {",
+                  "    const rows = pm.response.json().data || [];",
+                  "    console.log(rows.map(r => `${r.participantId} (${r.type})`).join('\\n'));",
+                  "    pm.expect(rows).to.have.lengthOf(7);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Find participant by id",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filters\": {\n    \"participantId\": {\n      \"eq\": \"{{mausamgram-participant-id}}\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{registry-host}}/api/v1/Participant/search",
+              "host": [
+                "{{registry-host}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "Participant",
+                "search"
+              ]
+            },
+            "description": "The osid lookup. Change the id in the body to look up any of the seven; the osid it saves is what an Authorization header names a key by."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('one row, and its osid saved', () => {",
+                  "    const rows = pm.response.json().data || [];",
+                  "    if (!rows.length) throw new Error('no such participant');",
+                  "    pm.collectionVariables.set('participant-osid', rows[0].osid);",
+                  "    console.log(JSON.stringify(rows[0], null, 2));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register a node participant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{registry-token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"participantId\": \"{{consumer-participant-id}}\",\n  \"name\": \"OAN consumer layer adapter\",\n  \"type\": \"node\",\n  \"status\": \"active\",\n  \"baseUrl\": \"{{consumer-base-url}}\",\n  \"role\": \"consumer\",\n  \"keys\": [\n    {\n      \"alg\": \"ed25519\",\n      \"key\": \"{{consumer-participant-key}}\",\n      \"status\": \"active\",\n      \"validFrom\": \"2026-01-01T00:00:00Z\",\n      \"validUntil\": \"2030-01-01T00:00:00Z\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{registry-host}}/api/v1/Participant",
+              "host": [
+                "{{registry-host}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "Participant"
+              ]
+            },
+            "description": "node(), setup.py:289. One level, no {\"Participant\": {...}} wrapper -- a wrapper comes back as \"extraneous key [...] is not permitted\".\n\nconsumer-participant-key IS EMPTY IN BOTH SHIPPED ENVIRONMENTS. The public half lives in quick-start/keys/keys.json, which setup.py generates; paste it in before sending. Sending an empty key registers a participant nobody can verify, permanently."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 200 with params.status ERROR is the normal answer for a row",
+                  "// that already exists -- setup.py searches first for that reason.",
+                  "pm.test('created, or already there', () => {",
+                  "    const p = pm.response.json().params || {};",
+                  "    console.log(`${p.status}: ${p.errmsg || ''}`);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register an upstream participant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{registry-token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"participantId\": \"{{mausamgram-participant-id}}\",\n  \"name\": \"IMD Mausamgram NWP\",\n  \"type\": \"upstream\",\n  \"status\": \"active\",\n  \"baseUrl\": \"{{mausamgram-base-url}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{registry-host}}/api/v1/Participant",
+              "host": [
+                "{{registry-host}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "Participant"
+              ]
+            },
+            "description": "upstream(), setup.py:308. No role, no keys, no credential. Both role and keys are permitted by the schema but neither is read -- a signature is checked against the node identity that signed it."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('created, or already there', () => {",
+                  "    const p = pm.response.json().params || {};",
+                  "    console.log(`${p.status}: ${p.errmsg || ''}`);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Capability Bindings",
+      "description": "The ProviderSchema entity: what each upstream answers, and where the adapter fetches the mapping that shapes it.\n\nTHE BINDING KEY IS <participantId>|<capabilityCode>. The provider adapter builds it from the incoming payload and matches it against this row, so a mismatch is a 404 -- NET_ENTITY_NOT_FOUND or \"no active record\".",
+      "item": [
+        {
+          "name": "List all bindings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filters\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{registry-host}}/api/v1/ProviderSchema/search",
+              "host": [
+                "{{registry-host}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ProviderSchema",
+                "search"
+              ]
+            },
+            "description": "Four rows after a seed. The mapping URL each one publishes is what the deployed stack actually fetches, so this is the request that tells you which branch is live."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('four bindings', () => {",
+                  "    const rows = pm.response.json().data || [];",
+                  "    rows.forEach(r => console.log(",
+                  "        `${r.bindingKey}\\n    ${(r.actions || []).map(a => a.mappings).join('\\n    ')}`));",
+                  "    pm.expect(rows).to.have.lengthOf(4);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Find binding by key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filters\": {\n    \"bindingKey\": {\n      \"eq\": \"{{mausamgram-binding-key}}\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{registry-host}}/api/v1/ProviderSchema/search",
+              "host": [
+                "{{registry-host}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ProviderSchema",
+                "search"
+              ]
+            },
+            "description": "The lookup the update needs: it saves both the row's osid and its nested action's. Run it again after an update to confirm the mapping URL really moved -- see the note on the PUT."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('one row, osids saved', () => {",
+                  "    const rows = pm.response.json().data || [];",
+                  "    if (!rows.length) throw new Error('no binding with that key');",
+                  "    const row = rows[0];",
+                  "    pm.collectionVariables.set('binding-osid', row.osid);",
+                  "",
+                  "    // Nested objects are entities here and carry their own osid.",
+                  "    const action = (row.actions || [])[0] || {};",
+                  "    if (action.osid) pm.collectionVariables.set('binding-action-osid', action.osid);",
+                  "    console.log(`osid ${row.osid}\\naction ${action.osid}\\nmappings ${action.mappings}`);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create a binding",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{registry-token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bindingKey\": \"{{mausamgram-binding-key}}\",\n  \"participantId\": \"{{mausamgram-participant-id}}\",\n  \"capabilityCode\": \"{{mausamgram-capability}}\",\n  \"status\": \"active\",\n  \"actions\": [\n    {\n      \"action\": \"select\",\n      \"method\": \"GET\",\n      \"path\": \"{{mausamgram-path}}\",\n      \"mappings\": \"{{mausamgram-mapping-url}}\",\n      \"timeoutMs\": 15000,\n      \"retryMax\": 2,\n      \"status\": \"active\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{registry-host}}/api/v1/ProviderSchema",
+              "host": [
+                "{{registry-host}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ProviderSchema"
+              ]
+            },
+            "description": "ensure_binding(), setup.py:321. method is the provider's contract, not a network convention: Mausamgram and Agmarknet answer a GET whose query the mapping builds, while Vistaar and POCRA take a POST. The adapter reads it from this row, so nothing about it is compiled in -- change GET to POST here for those two."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('created, or already there', () => {",
+                  "    const p = pm.response.json().params || {};",
+                  "    console.log(`${p.status}: ${p.errmsg || ''}`);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Repoint a binding's mapping URL",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{registry-token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bindingKey\": \"{{mausamgram-binding-key}}\",\n  \"participantId\": \"{{mausamgram-participant-id}}\",\n  \"capabilityCode\": \"{{mausamgram-capability}}\",\n  \"status\": \"active\",\n  \"actions\": [\n    {\n      \"action\": \"select\",\n      \"method\": \"GET\",\n      \"path\": \"{{mausamgram-path}}\",\n      \"mappings\": \"{{mausamgram-mapping-url}}\",\n      \"timeoutMs\": 15000,\n      \"retryMax\": 2,\n      \"status\": \"active\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{registry-host}}/api/v1/ProviderSchema/{{binding-osid}}",
+              "host": [
+                "{{registry-host}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ProviderSchema",
+                "{{binding-osid}}"
+              ]
+            },
+            "description": "RUN \"Find binding by key\" FIRST -- it sets binding-osid.\n\nWhat this is for: the four mapping URLs moved from the quick-start-setup branch to release-0.0.1, but editing .env only changes what the NEXT setup.py run seeds. Rows already in the registry keep the old URL, and that is the URL the provider adapter fetches.\n\nTHIS WORKS, against setup.py's docstrings. They assert three times that the registry cannot update a record; that is true of a participantId, whose delete is soft and whose unique index survives it, but not of a ProviderSchema row. Measured on Sunbird RC v2.0.0: HTTP 200, params.status SUCCESSFUL, and the mapping URL moved.\n\nIT REPLACES THE RECORD RATHER THAN EDITING IT. The parent osid holds, but actions[] carries nested entities and each one comes back with a FRESH osid -- the old action is detached, not amended. So send the whole record: a field left out of this body is a field dropped from the row. Read the current row first and change only what you mean to, rather than rebuilding the body from .env, or a hand-typed method or timeoutMs quietly becomes the new truth.\n\nRe-run \"Find binding by key\" afterwards and read actions[0].mappings. A 200 alone does not tell you the nested action moved with it."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Deliberately not a plain status assertion: the point of this",
+                  "// request is to find out which of these the registry does.",
+                  "pm.test('update is supported', () => {",
+                  "    const code = pm.response.code;",
+                  "    if ([404, 405, 501].includes(code)) {",
+                  "        throw new Error(",
+                  "            `HTTP ${code}: this registry has no update. The row cannot be ` +",
+                  "            `edited in place -- replace it, re-seed, or patch registry-db.`);",
+                  "    }",
+                  "    pm.expect(code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "pm.test('re-read before believing it', () => {",
+                  "    console.log('Now re-run \"Find binding by key\" and check actions[0].mappings.');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
