@@ -139,7 +139,7 @@ modules:
             extendedSchema_enabled: "true"
             # The host the packs' @context resolves to. An @context on any
             # other host is refused before anything is fetched.
-            extendedSchema_allowedDomains: "raw.githubusercontent.com"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
@@ -155,14 +155,18 @@ modules:
         # One entry per provider capability. Each recognises its own binding key
         # and passes through anything else.
         #
-        # authScheme none matches what the registry publishes for this upstream,
-        # which is what lets its baseUrl be plaintext http. Against a real
-        # provider this is basic or header, and the credential is named here as
-        # an environment variable -- never held in this file or in the registry:
+        # AUTH IS PER PROVIDER, in a block named for the participant id. There
+        # is no step-wide setting: one step serves several binding keys and the
+        # providers behind them need not authenticate alike, so a served
+        # provider without a block is refused at startup rather than quietly
+        # sending no credential. A bare top-level authScheme is refused too,
+        # rather than ignored.
         #
-        #   authScheme: basic
-        #   usernameEnv: MAUSAMGRAM_USER
-        #   passwordEnv: MAUSAMGRAM_X_API_KEY
+        # A credential is never a value here. The block names the ENVIRONMENT
+        # VARIABLE carrying it -- usernameEnv, passwordEnv, queryValueEnv,
+        # clientIdEnv, clientSecretEnv -- so nothing secret is in this file or
+        # in the registry.
+        #
         # A list: one provider can serve several capabilities, and the registry
         # contract expects exactly that -- one Participant, one ProviderSchema
         # row per capability. Comma-separated, because a plugin config value is
@@ -171,7 +175,17 @@ modules:
           - id: WeatherObservation
             config:
               bindingKeys: "__PROVIDER_BINDING_KEY__"
-              authScheme: none
+              # none matches what the registry publishes for this upstream --
+              # a mock inside this compose network, which is what lets its
+              # baseUrl be plaintext http. Against a real provider this is
+              # basic, and the two variables are named rather than valued:
+              #
+              #   authScheme: basic
+              #   usernameEnv: MAUSAMGRAM_USER
+              #   passwordEnv: MAUSAMGRAM_X_API_KEY
+              __PROVIDER_PARTICIPANT_ID__:
+                authScheme: none
+
           # A second capability in the same pipeline, from a different domain
           # package. Each step recognises its own binding key and passes
           # through anything else, so adding one is an entry here rather than a
@@ -183,19 +197,44 @@ modules:
           - id: MandiPrice
             config:
               bindingKeys: "__MANDI_BINDING_KEY__"
-              authScheme: query
-              queryName: token
-              queryValueEnv: MANDI_TOKEN
+              __MANDI_PARTICIPANT_ID__:
+                authScheme: query
+                queryName: token
+                queryValueEnv: MANDI_TOKEN
+
+          # KnowledgeAdvisory. The first capability here that calls a REAL
+          # external provider rather than a mock in this network, so the stack
+          # needs egress to it and its base URL comes from .env rather than a
+          # compose service name. It is also the first that cannot use a static
+          # credential: the provider sits behind an OAuth2 token endpoint, so
+          # authScheme oauth2 exchanges the client credentials for a token and
+          # holds it until just before it expires.
+          #
+          # tokenUrl is rendered from .env because it is a deployment fact. The
+          # client id and secret are named as VARIABLES, so neither value is in
+          # this file or in the registry.
+          - id: KnowledgeAdvisory
+            config:
+              bindingKeys: "__KNOWLEDGE_BINDING_KEY__"
+              __KNOWLEDGE_PARTICIPANT_ID__:
+                authScheme: oauth2
+                tokenUrl: "__KNOWLEDGE_TOKEN_URL__"
+                clientIdEnv: KNOWLEDGE_CLIENT_ID
+                clientSecretEnv: KNOWLEDGE_CLIENT_SECRET
+              # A retrieval answer is larger than a price row: four passages
+              # measured 15.7 KB against the live corpus.
+              maxResponseBytes: 1048576
 
       # Declaring a provider step above is not enough: this list is what runs.
-      # Both provider steps sit in the pipeline in order, and each recognises
-      # its own binding key and passes through anything else -- so which one
-      # answers is decided by the payload, not by this order.
+      # All three provider steps sit in the pipeline in order, and each
+      # recognises its own binding key and passes through anything else -- so
+      # which one answers is decided by the payload, not by this order.
       steps:
         - validateSign   # the sender's key, from the registry
         - validateSchema # the pinned Beckn v2 spec
         - WeatherObservation  # its binding key, or pass through
         - MandiPrice          # its binding key, or pass through
+        - KnowledgeAdvisory   # its binding key, or pass through
         - signAck        # signs whatever the step answered with
 
   # The outbound leg: the provider's own catalogue system publishing to the
@@ -277,7 +316,7 @@ modules:
             extendedSchema_enabled: "true"
             # The host the packs' @context resolves to. An @context on any
             # other host is refused before anything is fetched.
-            extendedSchema_allowedDomains: "raw.githubusercontent.com"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"

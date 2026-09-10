@@ -96,7 +96,7 @@ Three tiers, in the only order that works: registry and discovery, then
 `bin/setup.py`, then the mocks and the three adapters. Allow up to five minutes
 the first time — Keycloak on a cold volume.
 
-`setup.py` generates a keypair per adapter, registers five participants and two
+`setup.py` generates a keypair per adapter, registers six participants and three
 capability bindings, and renders the three adapter configs. Nothing needs
 creating by hand. → Appendix C for why the order matters, Appendix D for what
 it wrote.
@@ -487,7 +487,7 @@ loopback. A registry route would depend on that silently.
 
 ```
 1. registry and discovery        (also registry-db, keycloak, discovery-db)
-2. bin/setup.py                  keys, five participants, two bindings, three configs
+2. bin/setup.py                  keys, six participants, three bindings, three configs
 3. mock upstreams, then the three adapters
 4. nginx-proxy-manager           the public edge — 80 and 443, all interfaces
 5. hyperdx                       ClickStack
@@ -968,7 +968,7 @@ for v in registry-data discovery-data npm-data npm-letsencrypt hyperdx-data; do
 done
 ```
 
-Then `make up`, and confirm the five participants and your proxy hosts before
+Then `make up`, and confirm the six participants and your proxy hosts before
 deleting anything. Keycloak shares `registry-data`, so its realm travels with
 that volume — and equally does not survive if you skip it.
 

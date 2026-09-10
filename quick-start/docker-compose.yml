@@ -209,7 +209,7 @@ services:
     # silently depend on it.
     #
     # What this costs: nothing outside the VM can write a registry row, which
-    # is why bin/setup.py seeds all five participants and both bindings from
+    # is why bin/setup.py seeds all six participants and all three bindings from
     # inside. It is also why the Postman collection has no registry request --
     # there is no way for one to work.
     #
@@ -516,6 +516,15 @@ services:
       # The mandi upstream's credential. Named here and read at call time, so
       # it is never in a config file or in the registry.
       MANDI_TOKEN: ${MANDI_TOKEN}
+      # The knowledge provider's OAuth2 client credentials, exchanged for a
+      # token at call time. Here for the same reason: the adapter config names
+      # these two VARIABLES and never their values, so nothing secret is in a
+      # config file or in a registry row.
+      #
+      # The step fails fast and permanently when either is unset -- it is a
+      # configuration fault, not a transient one, so it is not retried.
+      KNOWLEDGE_CLIENT_ID: ${KNOWLEDGE_CLIENT_ID}
+      KNOWLEDGE_CLIENT_SECRET: ${KNOWLEDGE_CLIENT_SECRET}
     volumes:
       - ./config/adapters/provider.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/routing-provider.yaml:/app/config/routing-provider.yaml:ro

@@ -8,15 +8,16 @@ the adapter configs.
 it renders are bind-mounted files, and an adapter started before they exist
 leaves a directory in their place.
 
-WHAT IT WRITES. Five participants and two capability bindings:
+WHAT IT WRITES. Six participants and three capability bindings:
 
     3 x node      one per adapter -- exp, network, provider -- each with the
                   public halves of a keypair. The private halves stay in
                   keys/keys.json and never reach the registry.
-    2 x upstream  the two APIs this deployment calls, addressed by compose
-                  service name. An upstream signs nothing, so it needs no role
-                  and no keys.
-    2 x binding   a ProviderSchema row per capability: which upstream answers
+    3 x upstream  the APIs this deployment calls. Two are mocks addressed by
+                  compose service name; the knowledge provider is a real
+                  external host, so its base URL comes from .env. An upstream
+                  signs nothing, so it needs no role and no keys.
+    3 x binding   a ProviderSchema row per capability: which upstream answers
                   it, the method and path, timeouts, and the mapping URL.
 
 This is all of it. Nothing has to be created by hand afterwards, and nothing
@@ -246,7 +247,8 @@ def upstream(participant_id, name, base_url):
             "status": "active", "baseUrl": base_url}
 
 
-def ensure_binding(bearer, participant_id, capability, path, mapping_url):
+def ensure_binding(bearer, participant_id, capability, path, mapping_url,
+                   method="GET"):
     """Create a capability binding only when absent.
 
     actions is a list, not a map: the registry treats every nested object as an
@@ -254,7 +256,12 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url):
     what lets one action be retired without touching the others.
 
     mappings is one reference carrying both directions, because the response
-    mapping reads what the request mapping resolved."""
+    mapping reads what the request mapping resolved.
+
+    method is a parameter because it is the provider's contract, not a network
+    convention: the two mock upstreams answer a GET whose query the mapping
+    builds, while the knowledge provider takes a POST with a JSON body. The
+    adapter reads it from this row, so nothing about it is compiled in."""
     binding = f"{participant_id}|{capability}"
     if search("ProviderSchema", {"bindingKey": {"eq": binding}}):
         print(f"  {binding}: already present")
@@ -262,7 +269,7 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url):
     result = post("ProviderSchema", {
         "bindingKey": binding, "participantId": participant_id,
         "capabilityCode": capability, "status": "active",
-        "actions": [{"action": "select", "method": "GET", "path": path,
+        "actions": [{"action": "select", "method": method, "path": path,
                      "mappings": mapping_url,
                      "timeoutMs": 15000, "retryMax": 2,
                      "status": "active"}]}, bearer)
@@ -285,7 +292,7 @@ def seed(identities):
     wait_for_registry()
     bearer = token()
 
-    # Five participants and two capability bindings, all of it from here.
+    # Six participants and three capability bindings, all of it from here.
     #
     # The registry is not reachable from outside this stack -- no published
     # port beyond loopback and no proxy host in front of it -- so there is no
@@ -301,9 +308,9 @@ def seed(identities):
                            node(identity["participantId"], name, network_role,
                                 identity["signingPublic"]))
 
-    # The two upstreams, addressed by compose service name: they are called from
-    # inside this network and nowhere else.
-    print("registry: two upstream providers")
+    # The two mock upstreams, addressed by compose service name: they are
+    # called from inside this network and nowhere else.
+    print("registry: three upstream providers")
     weather = env("PROVIDER_PARTICIPANT_ID")
     ensure_participant(bearer, weather,
                        upstream(weather, "IMD Mausamgram NWP (mock)",
@@ -313,16 +320,28 @@ def seed(identities):
                        upstream(mandi, "Agmarknet Vistaar (mock)",
                                 env("MANDI_BASE_URL", "http://mockagmarknet:9101")))
 
+    # The knowledge capability. Unlike the two above this is a REAL external
+    # provider rather than a mock in this compose network -- so the stack needs
+    # egress to it, and its base URL comes from .env rather than a service
+    # name. It is also the only one whose action is a POST.
+    knowledge = env("KNOWLEDGE_PARTICIPANT_ID")
+    ensure_participant(bearer, knowledge,
+                       upstream(knowledge, "Bharat Vistaar knowledge retrieval",
+                                env("KNOWLEDGE_BASE_URL")))
+
     # And what each of them answers. The binding key is participantId piped to
     # capabilityCode, and it has to match what the provider adapter was
     # rendered with -- both come from the same .env, which is what keeps them
     # from disagreeing.
-    print("registry: two capability bindings")
+    print("registry: three capability bindings")
     ensure_binding(bearer, weather, env("PROVIDER_CAPABILITY"),
                    env("MAUSAMGRAM_PATH", "/get-daily"), env("MAPPING_URL"))
     ensure_binding(bearer, mandi, env("MANDI_CAPABILITY"),
                    env("MANDI_PATH", "/v1/fetch-agmarknet-vistaar"),
                    env("MANDI_MAPPING_URL"))
+    ensure_binding(bearer, knowledge, env("KNOWLEDGE_CAPABILITY"),
+                   env("KNOWLEDGE_PATH"), env("KNOWLEDGE_MAPPING_URL"),
+                   method="POST")
 
 
 def key_osids(identities):
@@ -379,6 +398,8 @@ def render(identities):
     print("configs:")
     binding = f"{env('PROVIDER_PARTICIPANT_ID')}|{env('PROVIDER_CAPABILITY')}"
     mandi_binding = f"{env('MANDI_PARTICIPANT_ID')}|{env('MANDI_CAPABILITY')}"
+    knowledge_binding = (f"{env('KNOWLEDGE_PARTICIPANT_ID')}"
+                         f"|{env('KNOWLEDGE_CAPABILITY')}")
     for role in ("exp", "network", "provider"):
         identity = identities[role]
         stem = CONFIG_STEM[role]
@@ -393,6 +414,13 @@ def render(identities):
                 (f"__{prefix}_ENCR_PUBLIC__", identity["encrPublic"]),
                 ("__PROVIDER_BINDING_KEY__", binding),
                 ("__MANDI_BINDING_KEY__", mandi_binding),
+                ("__KNOWLEDGE_BINDING_KEY__", knowledge_binding),
+                ("__KNOWLEDGE_TOKEN_URL__", env("KNOWLEDGE_TOKEN_URL")),
+                # Auth is per provider, so the participant id is a YAML KEY in
+                # the adapter config, not only half of a binding key.
+                ("__PROVIDER_PARTICIPANT_ID__", env("PROVIDER_PARTICIPANT_ID")),
+                ("__MANDI_PARTICIPANT_ID__", env("MANDI_PARTICIPANT_ID")),
+                ("__KNOWLEDGE_PARTICIPANT_ID__", env("KNOWLEDGE_PARTICIPANT_ID")),
                 # Telemetry. One switch drives all three signals: with every
                 # one false the plugin builds no exporter and never dials, so
                 # a stack running without the observability profile stays
@@ -429,11 +457,12 @@ if __name__ == "__main__":
     KEYS.write_text(json.dumps(identities, indent=2))
     render(identities)
     print(f"""
-ready. The registry holds five participants and two capability bindings, and
+ready. The registry holds six participants and three capability bindings, and
 the adapter configs are rendered, so nothing further has to be created by hand.
 
   {env('PROVIDER_PARTICIPANT_ID')}|{env('PROVIDER_CAPABILITY')}
   {env('MANDI_PARTICIPANT_ID')}|{env('MANDI_CAPABILITY')}
+  {env('KNOWLEDGE_PARTICIPANT_ID')}|{env('KNOWLEDGE_CAPABILITY')}
 
 Those are the binding keys the provider adapter answers to. They were rendered
 into its config from the same .env this seeded the registry from, which is what
