@@ -13,11 +13,10 @@ WHAT IT WRITES. Seven participants and four capability bindings:
     3 x node      one per adapter -- exp, network, provider -- each with the
                   public halves of a keypair. The private halves stay in
                   keys/keys.json and never reach the registry.
-    4 x upstream  the APIs this deployment calls. ONE is a mock addressed by
-                  compose service name -- mausamgram; mandi, knowledge and
-                  pocra are real external hosts whose base URLs come from
-                  .env. An upstream signs nothing, so it needs no role and no
-                  keys.
+    4 x upstream  the APIs this deployment calls. ALL FOUR are real external
+                  hosts now, whose base URLs come from .env -- no mock is in
+                  use by any capability. An upstream signs nothing, so it needs
+                  no role and no keys.
     4 x binding   a ProviderSchema row per capability: which upstream answers
                   it, the method and path, timeouts, and the mapping URL.
 
@@ -309,13 +308,18 @@ def seed(identities):
                            node(identity["participantId"], name, network_role,
                                 identity["signingPublic"]))
 
-    # Weather is the only mock left, addressed by compose service name: it is
-    # called from inside this network and nowhere else.
+    # All four upstreams are real external providers now -- no mock is in use
+    # by any capability, so every base URL comes from .env and the stack needs
+    # egress to all of them.
+    #
+    # No default base URL for weather any more: falling back to the mock's
+    # service name would seed a row that cannot serve the basic auth the
+    # capability is configured with, and the registry cannot update it after.
     print("registry: four upstream providers")
     weather = env("PROVIDER_PARTICIPANT_ID")
     ensure_participant(bearer, weather,
-                       upstream(weather, "IMD Mausamgram NWP (mock)",
-                                env("MAUSAMGRAM_BASE_URL", "http://mockimd:9100")))
+                       upstream(weather, "IMD Mausamgram NWP",
+                                env("MAUSAMGRAM_BASE_URL")))
 
     # Mandi is the REAL Agmarknet now, because authScheme tokenQuery needs a
     # token endpoint and mockagmarknet has none. No default base URL for the

@@ -193,16 +193,19 @@ modules:
           - id: WeatherObservation
             config:
               bindingKeys: "__PROVIDER_BINDING_KEY__"
-              # none matches what the registry publishes for this upstream --
-              # a mock inside this compose network, which is what lets its
-              # baseUrl be plaintext http. Against a real provider this is
-              # basic, and the two variables are named rather than valued:
+              # basic, because IMD Mausamgram takes an Authorization: Basic
+              # header. The two variables are NAMED here and read at call time,
+              # so neither value is in this file or in the registry -- and the
+              # adapter redacts the header from anything it logs.
               #
-              #   authScheme: basic
-              #   usernameEnv: MAUSAMGRAM_USER
-              #   passwordEnv: MAUSAMGRAM_X_API_KEY
+              # NO MOCK SERVES ANY CAPABILITY NOW. mockimd does accept -user
+              # and -pass, so pointing back at it means this same scheme with
+              # MAUSAMGRAM_BASE_URL set to its service name -- not a return to
+              # authScheme none.
               __PROVIDER_PARTICIPANT_ID__:
-                authScheme: none
+                authScheme: basic
+                usernameEnv: MAUSAMGRAM_USER
+                passwordEnv: MAUSAMGRAM_X_API_KEY
 
           # A second capability in the same pipeline, from a different domain
           # package. Each step recognises its own binding key and passes

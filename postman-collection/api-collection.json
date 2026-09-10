@@ -628,7 +628,7 @@
     },
     {
       "key": "providerId",
-      "value": "mausamgram-mock",
+      "value": "mausamgram",
       "description": "The weather upstream. Half of its binding key."
     },
     {

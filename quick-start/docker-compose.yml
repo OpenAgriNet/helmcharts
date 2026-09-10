@@ -513,6 +513,11 @@ services:
     environment:
       <<: *adapter-env
       OTEL_SERVICE_NAME: provider-adapter
+      # The weather upstream's basic-auth pair. IMD Mausamgram takes an
+      # Authorization: Basic header; the adapter builds it at call time from
+      # these, so neither value is in a config file or in the registry.
+      MAUSAMGRAM_USER: ${MAUSAMGRAM_USER}
+      MAUSAMGRAM_X_API_KEY: ${MAUSAMGRAM_X_API_KEY}
       # The mandi upstream's credentials. Agmarknet issues its own token, so
       # these two are exchanged for one at call time. Named here and read then,
       # so neither is in a config file or in the registry.
