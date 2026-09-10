@@ -24,7 +24,7 @@
         },
         "isActive": true,
         "provider": {
-          "id": "knowledge-provider",
+          "id": "bharat-vistaar",
           "descriptor": {
             "code": "KNOWLEDGE_PROVIDER",
             "name": "Knowledge retrieval provider",

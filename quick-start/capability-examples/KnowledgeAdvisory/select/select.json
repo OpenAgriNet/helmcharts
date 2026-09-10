@@ -4,7 +4,7 @@
     "action": "select",
     "version": "2.0.0",
     "networkId": "oan-dev",
-    "senderId": "exp.oan.dev",
+    "senderId": "consumer.oan.dev",
     "receiverId": "provider.oan.dev",
     "transactionId": "a4000000-0000-4000-8000-000000000003",
     "messageId": "b4000000-0000-4000-8000-000000000003",
@@ -57,7 +57,7 @@
               "resource:knowledge-advisory:knowledge:retrieval"
             ],
             "provider": {
-              "id": "knowledge-provider",
+              "id": "bharat-vistaar",
               "descriptor": {
                 "code": "KNOWLEDGE_PROVIDER",
                 "name": "Knowledge retrieval provider"

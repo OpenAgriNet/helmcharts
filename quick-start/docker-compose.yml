@@ -5,7 +5,7 @@
 #
 #   registry        registry-db, keycloak, registry
 #   discovery       discovery-db, discovery
-#   adapters        provider, network, exp
+#   adapters        provider, network, consumer
 #   observability   hyperdx                      profile: observability
 #   edge            nginx-proxy-manager          profile: reverse-proxy
 #
@@ -143,16 +143,16 @@ services:
     restart: unless-stopped
     networks: [oan-internal]
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${REGISTRY_DB_NAME}
+      POSTGRES_USER: ${REGISTRY_DB_USER}
+      POSTGRES_PASSWORD: ${REGISTRY_DB_PASSWORD}
     volumes:
       - registry-data:/var/lib/postgresql/data
     # No published port at all, not even on loopback: psql runs through
     # `docker compose exec registry-db`, so publishing one would only widen
     # the surface without adding a way in.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${REGISTRY_DB_USER}"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -168,9 +168,9 @@ services:
       - DB_VENDOR=postgres
       - DB_ADDR=registry-db
       - DB_PORT=5432
-      - DB_DATABASE=${POSTGRES_DB}
-      - DB_USER=${POSTGRES_USER}
-      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_DATABASE=${REGISTRY_DB_NAME}
+      - DB_USER=${REGISTRY_DB_USER}
+      - DB_PASSWORD=${REGISTRY_DB_PASSWORD}
       - KEYCLOAK_USER=${KEYCLOAK_ADMIN_USER}
       - KEYCLOAK_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
       - KEYCLOAK_IMPORT=/opt/jboss/keycloak/imports/realm-export.json
@@ -190,7 +190,7 @@ services:
       retries: 30
 
   registry:
-    image: ghcr.io/sunbird-rc/sunbird-rc-core:${REGISTRY_VERSION}
+    image: ghcr.io/sunbird-rc/sunbird-rc-core:${REGISTRY_IMAGE_TAG}
     container_name: registry
     restart: unless-stopped
     # oan-internal ONLY, and that is the decision, not an omission. NPM sits
@@ -220,9 +220,9 @@ services:
       # restarted before the registry will honour it.
       - ./config/registry/schemas:/home/sunbirdrc/config/public/_schemas
     environment:
-      - connectionInfo_uri=jdbc:postgresql://registry-db:5432/${POSTGRES_DB}
-      - connectionInfo_username=${POSTGRES_USER}
-      - connectionInfo_password=${POSTGRES_PASSWORD}
+      - connectionInfo_uri=jdbc:postgresql://registry-db:5432/${REGISTRY_DB_NAME}
+      - connectionInfo_username=${REGISTRY_DB_USER}
+      - connectionInfo_password=${REGISTRY_DB_PASSWORD}
       - search_providerName=dev.sunbirdrc.registry.service.NativeSearchService
       - authentication_enabled=true
       - sunbird_sso_realm=${KEYCLOAK_REALM}
@@ -235,9 +235,9 @@ services:
       - identity_provider=dev.sunbirdrc.auth.keycloak.KeycloakProviderImpl
       - sunbird_sso_admin_client_id=${KEYCLOAK_ADMIN_CLIENT_ID}
       - sunbird_sso_client_id=${KEYCLOAK_CLIENT_ID}
-      - sunbird_sso_admin_client_secret=${KEYCLOAK_SECRET}
+      - sunbird_sso_admin_client_secret=${KEYCLOAK_ADMIN_CLIENT_SECRET}
       - sunbird_keycloak_user_set_password=true
-      - sunbird_keycloak_user_password=${REGISTRY_DEFAULT_USER_PASSWORD}
+      - sunbird_keycloak_user_password=${KEYCLOAK_DEFAULT_USER_PASSWORD}
       - encryption_enabled=false
       - event_enabled=false
       - idgen_enabled=false
@@ -365,7 +365,7 @@ services:
     environment:
       DATABASE_URL: postgres://discovery:discovery@discovery-db:5432/discovery?sslmode=disable
       DATABASE_AUTO_MIGRATE: "true"
-      APP_NETWORK_ID: ${APP_NETWORK_ID}
+      BECKN_NETWORK_ID: ${BECKN_NETWORK_ID}
       SERVER_PORT: 8080
       VALIDATION_SPEC_URL: ${BECKN_SPEC_URL}
 
@@ -401,7 +401,7 @@ services:
       # arrive, everything looks healthy, and those five are simply absent.
       # That is a quick-start simplification, not the deployment shape -- see
       # Appendix H.
-      OTEL_EXPORTER: ${OTEL_EXPORTER:-otlp}
+      OTEL_EXPORTER: ${DISCOVERY_OTEL_EXPORTER:-otlp}
 
       # NO SCHEME, and that is the opposite of the adapters two screens up --
       # worth reading beside the note on the x-adapter anchor, because the same
@@ -422,7 +422,7 @@ services:
       # BOTH ARE REQUIRED once the exporter is otlp, and their absence fails
       # the boot rather than degrading -- the service refuses to export a
       # stream it cannot attribute. That refusal is why they are here: before
-      # this, flipping OTEL_EXPORTER=otlp would have stopped the container
+      # this, flipping DISCOVERY_OTEL_EXPORTER=otlp would have stopped the container
       # starting, naming a variable this file never set.
       #
       # APP_SUBSCRIBER_ID is the Resource's `producer` and every span's
@@ -462,7 +462,7 @@ services:
         condition: service_healthy
 
   # ==========================================================================
-  # adapters -- experience, network and provider. Same image, three configs.
+  # adapters -- consumer, network and provider. Same image, three configs.
   #
   # Their configs are bind-mounted FILES that do not exist until bin/setup.py
   # renders them from the .tmpl beside them, which is what the step ordering
@@ -508,7 +508,7 @@ services:
       - "-addr=:9101"
       # It answers 401 without this token, which is what proves the adapter
       # sent one rather than the call happening to work anyway.
-      - "-token=${MANDI_TOKEN}"
+      - "-token=${MOCKAGMARKNET_TOKEN}"
       - "-days=${MOCKAGMARKNET_DAYS:-2}"
     ports:
       - "127.0.0.1:${MOCKAGMARKNET_PORT}:9101"
@@ -541,11 +541,11 @@ services:
       # The mandi upstream's credentials. Agmarknet issues its own token, so
       # these two are exchanged for one at call time. Named here and read then,
       # so neither is in a config file or in the registry.
-      MANDI_ACCESS_NAME: ${MANDI_ACCESS_NAME}
-      MANDI_PASSWORD: ${MANDI_PASSWORD}
+      AGMARKNET_ACCESS_NAME: ${AGMARKNET_ACCESS_NAME}
+      AGMARKNET_PASSWORD: ${AGMARKNET_PASSWORD}
       # Read only when MandiPrice is pointed back at mockagmarknet, which takes
       # a static token instead of issuing one.
-      MANDI_TOKEN: ${MANDI_TOKEN}
+      MOCKAGMARKNET_TOKEN: ${MOCKAGMARKNET_TOKEN}
       # The knowledge provider's OAuth2 client credentials, exchanged for a
       # token at call time. Here for the same reason: the adapter config names
       # these two VARIABLES and never their values, so nothing secret is in a
@@ -553,8 +553,8 @@ services:
       #
       # The step fails fast and permanently when either is unset -- it is a
       # configuration fault, not a transient one, so it is not retried.
-      KNOWLEDGE_CLIENT_ID: ${KNOWLEDGE_CLIENT_ID}
-      KNOWLEDGE_CLIENT_SECRET: ${KNOWLEDGE_CLIENT_SECRET}
+      VISTAAR_CLIENT_ID: ${VISTAAR_CLIENT_ID}
+      VISTAAR_CLIENT_SECRET: ${VISTAAR_CLIENT_SECRET}
     volumes:
       - ./config/adapters/provider.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/routing-provider.yaml:/app/config/routing-provider.yaml:ro
@@ -579,7 +579,7 @@ services:
     ports:
       - "127.0.0.1:${NETWORK_ADAPTER_PORT}:9201"
 
-  # The caller, and the only one that takes unsigned requests: the experience
+  # The caller, and the only one that takes unsigned requests: the consumer
   # app is inside the trust boundary, so there is no network signature to
   # check. This is what makes the stack testable with a plain curl -- and it
   # is also why the edge rate-limits this host and nothing else.
@@ -595,10 +595,10 @@ services:
       <<: *adapter-env
       OTEL_SERVICE_NAME: consumer-adapter
     volumes:
-      - ./config/adapters/experience.yaml:/app/config/adapter.yaml:ro
-      - ./config/adapters/routing-experience.yaml:/app/config/routing-experience.yaml:ro
+      - ./config/adapters/consumer.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/routing-consumer.yaml:/app/config/routing-consumer.yaml:ro
     ports:
-      - "127.0.0.1:${EXP_ADAPTER_PORT}:9202"
+      - "127.0.0.1:${CONSUMER_ADAPTER_PORT}:9202"
 
   # ==========================================================================
   # observability -- HyperDX / ClickStack: OTLP ingest, ClickHouse, and the UI
@@ -662,13 +662,13 @@ services:
       # unavoidable. Rebinding this to 0.0.0.0 would open a second door on the
       # same UI with no credential on it, and the security group is the only
       # thing that would be holding it shut.
-      - "127.0.0.1:${HYPERDX_PORT:-8085}:8080"
+      - "127.0.0.1:${HYPERDX_UI_PORT:-8085}:8080"
       # OTLP. Published on loopback only so a reverse tunnel can carry
       # telemetry from a provider API running on someone's laptop; the
       # in-stack senders reach hyperdx:4317/4318 over oan-internal and do not
       # need these at all.
-      - "127.0.0.1:${OTLP_GRPC_PORT:-4317}:4317"
-      - "127.0.0.1:${OTLP_HTTP_PORT:-4318}:4318"
+      - "127.0.0.1:${HYPERDX_OTLP_GRPC_PORT:-4317}:4317"
+      - "127.0.0.1:${HYPERDX_OTLP_HTTP_PORT:-4318}:4318"
 
       # ClickHouse's HTTP interface, and it is published for one specific
       # reason: clickstack-local is LOCAL mode, where the UI queries ClickHouse
@@ -768,8 +768,8 @@ services:
       # those come from addresses you do not get to enumerate. An SG rule
       # scoped to your IP will make certificate issuance fail with a challenge
       # timeout. Use DNS-01 instead if 80 must stay closed -- see README.
-      - "0.0.0.0:${GATEWAY_HTTP_PORT:-80}:80"
-      - "0.0.0.0:${GATEWAY_HTTPS_PORT:-443}:443"
+      - "0.0.0.0:${REVERSE_PROXY_HTTP_PORT:-80}:80"
+      - "0.0.0.0:${REVERSE_PROXY_HTTPS_PORT:-443}:443"
 
       # The admin UI, on loopback -- deliberately not the "publish it and
       # restrict it in the firewall" arrangement. Two reasons. It ships with

@@ -48,7 +48,7 @@ Name everything up front; adding one later means regenerating and re-uploading.
 
 The sslip.io forms are worth having over the `.test` ones: sslip.io resolves
 `<anything>.127.0.0.1.sslip.io` to `127.0.0.1` on its own, so those names need
-no /etc/hosts entry. X.509 wildcards match one level only -- `exp.127.0.0.1.sslip.io`
+no /etc/hosts entry. X.509 wildcards match one level only -- `consumer.127.0.0.1.sslip.io`
 is covered, `a.b.127.0.0.1.sslip.io` is not.
 
 ### 3. Upload, attach, restart

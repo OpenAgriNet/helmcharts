@@ -10,7 +10,7 @@ leaves a directory in their place.
 
 WHAT IT WRITES. Seven participants and four capability bindings:
 
-    3 x node      one per adapter -- exp, network, provider -- each with the
+    3 x node      one per adapter -- consumer, network, provider -- each with the
                   public halves of a keypair. The private halves stay in
                   keys/keys.json and never reach the registry.
     4 x upstream  the APIs this deployment calls. ALL FOUR are real external
@@ -105,19 +105,20 @@ PLACEHOLDER_WHY = """\
 # Everything that has to be a real value before the first registry write.
 #
 # Checked together, up front, for two reasons. seed() runs BEFORE render(), so a
-# placeholder in a render-only key like KNOWLEDGE_TOKEN_URL would otherwise be
+# placeholder in a render-only key like VISTAAR_TOKEN_URL would otherwise be
 # found only after seven rows already existed -- unfixable, per the note above.
 # And one list beats being sent back to .env ten times in a row.
 REQUIRED = [
-    "EXP_SUBSCRIBER_ID", "NETWORK_SUBSCRIBER_ID", "PROVIDER_SUBSCRIBER_ID",
-    "PROVIDER_PARTICIPANT_ID", "PROVIDER_CAPABILITY", "MAUSAMGRAM_BASE_URL",
-    "MAUSAMGRAM_AUTH", "MAPPING_URL",
-    "MANDI_PARTICIPANT_ID", "MANDI_CAPABILITY", "MANDI_BASE_URL",
-    "MANDI_TOKEN_URL", "MANDI_ACCESS_NAME", "MANDI_PASSWORD",
-    "MANDI_MAPPING_URL",
-    "KNOWLEDGE_PARTICIPANT_ID", "KNOWLEDGE_CAPABILITY", "KNOWLEDGE_BASE_URL",
-    "KNOWLEDGE_PATH", "KNOWLEDGE_TOKEN_URL", "KNOWLEDGE_CLIENT_ID",
-    "KNOWLEDGE_CLIENT_SECRET", "KNOWLEDGE_MAPPING_URL",
+    "CONSUMER_SUBSCRIBER_ID", "NETWORK_SUBSCRIBER_ID", "PROVIDER_SUBSCRIBER_ID",
+    "CONSUMER_BASE_URL", "NETWORK_BASE_URL", "PROVIDER_BASE_URL",
+    "MAUSAMGRAM_PARTICIPANT_ID", "MAUSAMGRAM_CAPABILITY", "MAUSAMGRAM_BASE_URL",
+    "MAUSAMGRAM_AUTH", "MAUSAMGRAM_MAPPING_URL",
+    "AGMARKNET_PARTICIPANT_ID", "AGMARKNET_CAPABILITY", "AGMARKNET_BASE_URL",
+    "AGMARKNET_TOKEN_URL", "AGMARKNET_ACCESS_NAME", "AGMARKNET_PASSWORD",
+    "AGMARKNET_MAPPING_URL",
+    "VISTAAR_PARTICIPANT_ID", "VISTAAR_CAPABILITY", "VISTAAR_BASE_URL",
+    "VISTAAR_PATH", "VISTAAR_TOKEN_URL", "VISTAAR_CLIENT_ID",
+    "VISTAAR_CLIENT_SECRET", "VISTAAR_MAPPING_URL",
     "POCRA_PARTICIPANT_ID", "POCRA_CAPABILITY", "POCRA_BASE_URL",
     "POCRA_PATH", "POCRA_MAPPING_URL",
 ]
@@ -162,7 +163,7 @@ def x25519_pair():
 
 def load_or_generate_keys():
     """Keys persist across runs: the registry already holds the public halves."""
-    roles = (("exp", env("EXP_SUBSCRIBER_ID")),
+    roles = (("consumer", env("CONSUMER_SUBSCRIBER_ID")),
              ("network", env("NETWORK_SUBSCRIBER_ID")),
              ("provider", env("PROVIDER_SUBSCRIBER_ID")))
 
@@ -204,8 +205,8 @@ def token():
     body = urllib.parse.urlencode({
         "client_id": env("KEYCLOAK_CLIENT_ID", "registry-frontend"),
         "grant_type": "password",
-        "username": env("REGISTRY_USER", "no-user"),
-        "password": env("REGISTRY_PASSWORD", "no-user-password"),
+        "username": env("REGISTRY_ADMIN_USER", "no-user"),
+        "password": env("REGISTRY_ADMIN_PASSWORD", "no-user-password"),
     }).encode()
     # Keycloak sits behind PROXY_ADDRESS_FORWARDING, so it builds the token's
     # issuer from these headers. Without them it answers with an empty body.
@@ -285,16 +286,22 @@ def signing_key_block(public_key):
              "validFrom": "2026-01-01T00:00:00Z", "validUntil": "2030-01-01T00:00:00Z"}]
 
 
-def node(participant_id, name, role, public_key):
+def node(participant_id, name, role, base_url, public_key):
     """A participant that speaks Beckn.
 
     One level, no wrapper object: type decides which fields apply. baseUrl must
     be https for a node, and the id must be hostname-shaped -- it is the
-    identity a signature is checked against. Neither is
-    resolved here: routing between the adapters is the router plugin's config,
-    which uses the compose service names."""
+    identity a signature is checked against.
+
+    baseUrl IS PUBLISHED FOR PEERS, and is the one field here that a real
+    network reads rather than this stack. Nothing inside this stack resolves it
+    -- routing between the adapters is the router plugin's config, which uses
+    the compose service names -- so a wrong value costs nothing locally and
+    everything on a shared network, where it is the address a peer POSTs to.
+    That is why it comes from .env rather than being built from the id: this
+    registry cannot update a record, so a fabricated URL is permanent."""
     return {"participantId": participant_id, "name": name, "type": "node",
-            "status": "active", "baseUrl": f"https://{participant_id}",
+            "status": "active", "baseUrl": base_url,
             "role": role, "keys": signing_key_block(public_key)}
 
 
@@ -364,12 +371,13 @@ def seed(identities):
     # request has to exist by the time this returns.
     print("registry: three adapter identities")
     for role, name, network_role in (
-            ("exp", "OAN experience layer adapter", "consumer"),
+            ("consumer", "OAN consumer layer adapter", "consumer"),
             ("network", "OAN network layer adapter", "network"),
             ("provider", "OAN provider layer adapter", "provider")):
         identity = identities[role]
         ensure_participant(bearer, identity["participantId"],
                            node(identity["participantId"], name, network_role,
+                                env(f"{role.upper()}_BASE_URL"),
                                 identity["signingPublic"]))
 
     # All four upstreams are real external providers now -- no mock is in use
@@ -380,7 +388,7 @@ def seed(identities):
     # service name would seed a row that cannot serve the basic auth the
     # capability is configured with, and the registry cannot update it after.
     print("registry: four upstream providers")
-    weather = env("PROVIDER_PARTICIPANT_ID")
+    weather = env("MAUSAMGRAM_PARTICIPANT_ID")
     ensure_participant(bearer, weather,
                        upstream(weather, "IMD Mausamgram NWP",
                                 env("MAUSAMGRAM_BASE_URL")))
@@ -390,18 +398,18 @@ def seed(identities):
     # same reason: falling back to the mock's service name would seed a row
     # that cannot serve the configured scheme, and the registry cannot update
     # it afterwards.
-    mandi = env("MANDI_PARTICIPANT_ID")
+    mandi = env("AGMARKNET_PARTICIPANT_ID")
     ensure_participant(bearer, mandi,
                        upstream(mandi, "Agmarknet Vistaar",
-                                env("MANDI_BASE_URL")))
+                                env("AGMARKNET_BASE_URL")))
 
     # The knowledge capability. Also a REAL external provider, so the stack
     # needs egress to it and its base URL comes from .env rather than a service
     # name. It is the only one whose action is a POST.
-    knowledge = env("KNOWLEDGE_PARTICIPANT_ID")
+    knowledge = env("VISTAAR_PARTICIPANT_ID")
     ensure_participant(bearer, knowledge,
                        upstream(knowledge, "Bharat Vistaar knowledge retrieval",
-                                env("KNOWLEDGE_BASE_URL")))
+                                env("VISTAAR_BASE_URL")))
 
     # POCRA, serving AgricultureFacility. A real external provider too, and the
     # only one needing no credential at all.
@@ -415,13 +423,13 @@ def seed(identities):
     # rendered with -- both come from the same .env, which is what keeps them
     # from disagreeing.
     print("registry: four capability bindings")
-    ensure_binding(bearer, weather, env("PROVIDER_CAPABILITY"),
-                   env("MAUSAMGRAM_PATH", "/get-daily"), env("MAPPING_URL"))
-    ensure_binding(bearer, mandi, env("MANDI_CAPABILITY"),
-                   env("MANDI_PATH", "/v1/fetch-agmarknet-vistaar"),
-                   env("MANDI_MAPPING_URL"))
-    ensure_binding(bearer, knowledge, env("KNOWLEDGE_CAPABILITY"),
-                   env("KNOWLEDGE_PATH"), env("KNOWLEDGE_MAPPING_URL"),
+    ensure_binding(bearer, weather, env("MAUSAMGRAM_CAPABILITY"),
+                   env("MAUSAMGRAM_PATH", "/get-daily"), env("MAUSAMGRAM_MAPPING_URL"))
+    ensure_binding(bearer, mandi, env("AGMARKNET_CAPABILITY"),
+                   env("AGMARKNET_PATH", "/v1/fetch-agmarknet-vistaar"),
+                   env("AGMARKNET_MAPPING_URL"))
+    ensure_binding(bearer, knowledge, env("VISTAAR_CAPABILITY"),
+                   env("VISTAAR_PATH"), env("VISTAAR_MAPPING_URL"),
                    method="POST")
     ensure_binding(bearer, pocra, env("POCRA_CAPABILITY"),
                    env("POCRA_PATH"), env("POCRA_MAPPING_URL"),
@@ -463,32 +471,32 @@ def key_osids(identities):
 
 # ------------------------------------------------------------------ configs
 
-# The config filename for each role.
+# The role key is three things at once: the entry in keys/keys.json, the
+# __ROLE_* placeholder prefix, and the config filename. They were spelled
+# differently once -- role "exp" writing experience.yaml -- and a lookup table
+# kept them apart. They are the same word now, so the table is gone.
 #
-# Deliberately separate from the role key. That key is also the entry in
-# keys/keys.json and the __EXP_* placeholder prefix, and changing it would make
-# this script generate a FRESH keypair for a participant the registry has
-# already published a public key for -- which it cannot update and whose delete
-# is soft, so the id could not be reused either. The adapter would then sign
-# with a key nobody can verify, and it would surface much later as an
-# authentication error with no obvious cause.
-#
-# So the file can be spelled out in full without touching the thing that has to
-# stay stable.
-CONFIG_STEM = {"exp": "experience", "network": "network", "provider": "provider"}
+# CHANGING A ROLE KEY IS NOT A RENAME. It makes this script generate a FRESH
+# keypair for a participant the registry has already published a public key
+# for, which it cannot update and whose delete is soft -- so the id cannot be
+# reused either. The adapter then signs with a key nobody can verify, and it
+# surfaces much later as an authentication error with no obvious cause. Renaming
+# exp -> consumer therefore came with `make destroy` and a new keys.json.
+ROLES = ("consumer", "network", "provider")
 
 
 def render(identities):
     print("configs:")
-    binding = f"{env('PROVIDER_PARTICIPANT_ID')}|{env('PROVIDER_CAPABILITY')}"
-    mandi_binding = f"{env('MANDI_PARTICIPANT_ID')}|{env('MANDI_CAPABILITY')}"
-    knowledge_binding = (f"{env('KNOWLEDGE_PARTICIPANT_ID')}"
-                         f"|{env('KNOWLEDGE_CAPABILITY')}")
+    mausamgram_binding = (f"{env('MAUSAMGRAM_PARTICIPANT_ID')}"
+                          f"|{env('MAUSAMGRAM_CAPABILITY')}")
+    agmarknet_binding = (f"{env('AGMARKNET_PARTICIPANT_ID')}"
+                         f"|{env('AGMARKNET_CAPABILITY')}")
+    vistaar_binding = (f"{env('VISTAAR_PARTICIPANT_ID')}"
+                       f"|{env('VISTAAR_CAPABILITY')}")
     pocra_binding = f"{env('POCRA_PARTICIPANT_ID')}|{env('POCRA_CAPABILITY')}"
-    for role in ("exp", "network", "provider"):
+    for role in ROLES:
         identity = identities[role]
-        stem = CONFIG_STEM[role]
-        template = (ADAPTERS / f"{stem}.yaml.tmpl").read_text()
+        template = (ADAPTERS / f"{role}.yaml.tmpl").read_text()
         prefix = role.upper()
         for placeholder, value in (
                 (f"__{prefix}_SUBSCRIBER_ID__", identity["participantId"]),
@@ -497,33 +505,33 @@ def render(identities):
                 (f"__{prefix}_SIGNING_PUBLIC__", identity["signingPublic"]),
                 (f"__{prefix}_ENCR_PRIVATE__", identity["encrPrivate"]),
                 (f"__{prefix}_ENCR_PUBLIC__", identity["encrPublic"]),
-                ("__PROVIDER_BINDING_KEY__", binding),
-                ("__MANDI_BINDING_KEY__", mandi_binding),
-                ("__KNOWLEDGE_BINDING_KEY__", knowledge_binding),
-                ("__KNOWLEDGE_TOKEN_URL__", env("KNOWLEDGE_TOKEN_URL")),
+                ("__MAUSAMGRAM_BINDING_KEY__", mausamgram_binding),
+                ("__AGMARKNET_BINDING_KEY__", agmarknet_binding),
+                ("__VISTAAR_BINDING_KEY__", vistaar_binding),
+                ("__VISTAAR_TOKEN_URL__", env("VISTAAR_TOKEN_URL")),
                 # Agmarknet's own token endpoint. A deployment fact, not a
                 # credential, so it is rendered directly -- the access name and
                 # password stay as variable NAMES in the config and reach the
                 # adapter through its environment.
-                ("__MANDI_TOKEN_URL__", env("MANDI_TOKEN_URL")),
+                ("__AGMARKNET_TOKEN_URL__", env("AGMARKNET_TOKEN_URL")),
                 # Auth is per provider, so the participant id is a YAML KEY in
                 # the adapter config, not only half of a binding key.
                 ("__POCRA_BINDING_KEY__", pocra_binding),
-                ("__PROVIDER_PARTICIPANT_ID__", env("PROVIDER_PARTICIPANT_ID")),
-                ("__MANDI_PARTICIPANT_ID__", env("MANDI_PARTICIPANT_ID")),
-                ("__KNOWLEDGE_PARTICIPANT_ID__", env("KNOWLEDGE_PARTICIPANT_ID")),
+                ("__MAUSAMGRAM_PARTICIPANT_ID__", env("MAUSAMGRAM_PARTICIPANT_ID")),
+                ("__AGMARKNET_PARTICIPANT_ID__", env("AGMARKNET_PARTICIPANT_ID")),
+                ("__VISTAAR_PARTICIPANT_ID__", env("VISTAAR_PARTICIPANT_ID")),
                 ("__POCRA_PARTICIPANT_ID__", env("POCRA_PARTICIPANT_ID")),
                 # Telemetry. One switch drives all three signals: with every
                 # one false the plugin builds no exporter and never dials, so
                 # a stack running without the observability profile stays
                 # quiet instead of logging a refused connection on a loop.
-                ("__OTEL_ENABLED__", env("OTEL_ENABLED", "true")),
+                ("__OTEL_ENABLED__", env("ADAPTER_OTEL_ENABLED", "true")),
                 ("__OTLP_ENDPOINT__", env("OTLP_ENDPOINT", "hyperdx:4317")),
                 ("__OTEL_ENVIRONMENT__", env("OTEL_ENVIRONMENT", "dev"))):
             template = template.replace(placeholder, value)
         if "__" in template:
-            sys.exit(f"setup: {stem}.yaml still has unrendered placeholders")
-        out = ADAPTERS / f"{stem}.yaml"
+            sys.exit(f"setup: {role}.yaml still has unrendered placeholders")
+        out = ADAPTERS / f"{role}.yaml"
         # A bare `docker compose up -d` before this script runs starts the
         # adapters too, and Docker creates a DIRECTORY at a bind-mount source
         # that does not exist. Writing would then fail with a bare
@@ -538,7 +546,7 @@ def render(identities):
                 f"    make up")
         out.write_text(template)
         out.chmod(0o600)  # holds a private key
-        print(f"  config/adapters/{stem}.yaml")
+        print(f"  config/adapters/{role}.yaml")
 
 
 if __name__ == "__main__":
@@ -553,9 +561,9 @@ if __name__ == "__main__":
 ready. The registry holds seven participants and four capability bindings, and
 the adapter configs are rendered, so nothing further has to be created by hand.
 
-  {env('PROVIDER_PARTICIPANT_ID')}|{env('PROVIDER_CAPABILITY')}
-  {env('MANDI_PARTICIPANT_ID')}|{env('MANDI_CAPABILITY')}
-  {env('KNOWLEDGE_PARTICIPANT_ID')}|{env('KNOWLEDGE_CAPABILITY')}
+  {env('MAUSAMGRAM_PARTICIPANT_ID')}|{env('MAUSAMGRAM_CAPABILITY')}
+  {env('AGMARKNET_PARTICIPANT_ID')}|{env('AGMARKNET_CAPABILITY')}
+  {env('VISTAAR_PARTICIPANT_ID')}|{env('VISTAAR_CAPABILITY')}
   {env('POCRA_PARTICIPANT_ID')}|{env('POCRA_CAPABILITY')}
 
 Those are the binding keys the provider adapter answers to. They were rendered

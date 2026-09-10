@@ -34,7 +34,7 @@ pluginManager:
 # WHICH IS WHY THE ENABLE FLAGS ARE A SWITCH. With all three false the plugin
 # builds no exporter at all and returns a no-op provider -- it does not dial,
 # so it cannot log a connection failure every few seconds. Point a stack with
-# no collector at one and that is exactly what you get, so OTEL_ENABLED=false
+# no collector at one and that is exactly what you get, so ADAPTER_OTEL_ENABLED=false
 # is the right setting for `make up-core`.
 #
 # serviceVersion is deliberately absent: left empty the plugin fills in the
@@ -192,7 +192,7 @@ modules:
         providerSteps:
           - id: WeatherObservation
             config:
-              bindingKeys: "__PROVIDER_BINDING_KEY__"
+              bindingKeys: "__MAUSAMGRAM_BINDING_KEY__"
               # header, NOT basic, and the difference matters.
               #
               # IMD Mausamgram is called with one ready-made credential:
@@ -219,7 +219,7 @@ modules:
               # NO MOCK SERVES ANY CAPABILITY NOW. mockimd takes -user and
               # -pass, so pointing back at it is the one case that DOES want
               # authScheme basic with a username and password pair.
-              __PROVIDER_PARTICIPANT_ID__:
+              __MAUSAMGRAM_PARTICIPANT_ID__:
                 authScheme: header
                 headerName: Authorization
                 headerValueEnv: MAUSAMGRAM_AUTH
@@ -248,18 +248,18 @@ modules:
           # THE MOCK CANNOT SERVE THIS. mockagmarknet has no token endpoint, so
           # this scheme means the real API and the stack needs egress to it. To
           # go back to the mock, set authScheme query with queryName token and
-          # queryValueEnv MANDI_TOKEN, and point MANDI_BASE_URL back -- but see
+          # queryValueEnv MOCKAGMARKNET_TOKEN, and point AGMARKNET_BASE_URL back -- but see
           # the note in .env.example about the registry being append-only.
           - id: MandiPrice
             config:
-              bindingKeys: "__MANDI_BINDING_KEY__"
-              __MANDI_PARTICIPANT_ID__:
+              bindingKeys: "__AGMARKNET_BINDING_KEY__"
+              __AGMARKNET_PARTICIPANT_ID__:
                 authScheme: tokenQuery
-                tokenUrl: "__MANDI_TOKEN_URL__"
+                tokenUrl: "__AGMARKNET_TOKEN_URL__"
                 tokenUserField: access_name
-                tokenUserEnv: MANDI_ACCESS_NAME
+                tokenUserEnv: AGMARKNET_ACCESS_NAME
                 tokenSecretField: password
-                tokenSecretEnv: MANDI_PASSWORD
+                tokenSecretEnv: AGMARKNET_PASSWORD
                 tokenResponseField: token
                 queryName: token
                 tokenTtl: 10m
@@ -277,12 +277,12 @@ modules:
           # this file or in the registry.
           - id: KnowledgeAdvisory
             config:
-              bindingKeys: "__KNOWLEDGE_BINDING_KEY__"
-              __KNOWLEDGE_PARTICIPANT_ID__:
+              bindingKeys: "__VISTAAR_BINDING_KEY__"
+              __VISTAAR_PARTICIPANT_ID__:
                 authScheme: oauth2
-                tokenUrl: "__KNOWLEDGE_TOKEN_URL__"
-                clientIdEnv: KNOWLEDGE_CLIENT_ID
-                clientSecretEnv: KNOWLEDGE_CLIENT_SECRET
+                tokenUrl: "__VISTAAR_TOKEN_URL__"
+                clientIdEnv: VISTAAR_CLIENT_ID
+                clientSecretEnv: VISTAAR_CLIENT_SECRET
               # A retrieval answer is larger than a price row: four passages
               # measured 15.7 KB against the live corpus.
               maxResponseBytes: 1048576
@@ -346,7 +346,7 @@ modules:
   # it here, which is the one thing that module does.
   #
   # No validateSign: the caller is this provider's own catalogue system,
-  # inside its trust boundary, exactly as the experience adapter takes
+  # inside its trust boundary, exactly as the consumer adapter takes
   # unsigned calls from the app in front of it. This adapter then signs the
   # forwarded request as itself, which is what the network layer verifies.
   #

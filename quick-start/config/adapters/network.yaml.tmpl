@@ -32,7 +32,7 @@ pluginManager:
 # WHICH IS WHY THE ENABLE FLAGS ARE A SWITCH. With all three false the plugin
 # builds no exporter at all and returns a no-op provider -- it does not dial,
 # so it cannot log a connection failure every few seconds. Point a stack with
-# no collector at one and that is exactly what you get, so OTEL_ENABLED=false
+# no collector at one and that is exactly what you get, so ADAPTER_OTEL_ENABLED=false
 # is the right setting for `make up-core`.
 #
 # serviceVersion is deliberately absent: left empty the plugin fills in the

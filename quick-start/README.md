@@ -14,7 +14,7 @@ where the reason lives.
   consumer
      │
      ▼
-  experience adapter                     the only one a consumer calls
+  consumer adapter                     the only one a consumer calls
      │
      ├── discover ──►  network adapter  ──►  discovery service
      │
@@ -30,7 +30,7 @@ capability's provider lives.
 
 A `select` answers in the same HTTP round trip — there is no callback.
 
-That is the request order. **Startup order is the reverse**: the experience
+That is the request order. **Startup order is the reverse**: the consumer
 adapter depends on the other two, so Compose brings them up first. The steps
 below follow startup order, so they work top to bottom.
 
@@ -78,7 +78,7 @@ Locally, nothing in it needs changing. It publishes these on `localhost`:
 ```
 8081  registry        9200  provider adapter     9100  mockimd
 8080  keycloak        9201  network adapter      9101  mockagmarknet
-9990  keycloak admin  9202  experience adapter
+9990  keycloak admin  9202  consumer adapter
 8090  discovery
 ```
 
@@ -111,12 +111,12 @@ Answers `select`, and the only layer that calls an upstream. Serves all four
 capabilities from one adapter.
 
 `.env` keys: `PROVIDER_SUBSCRIBER_ID`, and the four pairs that become binding
-keys — `PROVIDER_PARTICIPANT_ID` + `PROVIDER_CAPABILITY`,
-`MANDI_PARTICIPANT_ID` + `MANDI_CAPABILITY`, `KNOWLEDGE_PARTICIPANT_ID` +
-`KNOWLEDGE_CAPABILITY`, `POCRA_PARTICIPANT_ID` + `POCRA_CAPABILITY`.
+keys — `MAUSAMGRAM_PARTICIPANT_ID` + `MAUSAMGRAM_CAPABILITY`,
+`AGMARKNET_PARTICIPANT_ID` + `AGMARKNET_CAPABILITY`, `VISTAAR_PARTICIPANT_ID` +
+`VISTAAR_CAPABILITY`, `POCRA_PARTICIPANT_ID` + `POCRA_CAPABILITY`.
 
-Plus the credentials each upstream needs: `MANDI_ACCESS_NAME` +
-`MANDI_PASSWORD`, and `KNOWLEDGE_CLIENT_ID` + `KNOWLEDGE_CLIENT_SECRET`. POCRA
+Plus the credentials each upstream needs: `AGMARKNET_ACCESS_NAME` +
+`AGMARKNET_PASSWORD`, and `VISTAAR_CLIENT_ID` + `VISTAAR_CLIENT_SECRET`. POCRA
 needs none at all.
 
 **Only mausamgram is a mock now.** Mandi, knowledge and POCRA are real
@@ -136,19 +136,19 @@ All four capability steps should be listed by name.
 Fronts discovery: verifies the caller, passes `discover` and `publish` on, and
 re-signs as itself.
 
-`.env` keys: `NETWORK_SUBSCRIBER_ID`. `APP_NETWORK_ID` belongs to the discovery
+`.env` keys: `NETWORK_SUBSCRIBER_ID`. `BECKN_NETWORK_ID` belongs to the discovery
 service behind it — a `discover` naming a different network finds nothing.
 
 ```sh
 docker compose logs network-adapter | grep 'Server listening'
 ```
 
-## Step 7 — Experience layer
+## Step 7 — Consumer layer
 
 The consumer's edge. Sends `discover` to the network layer and `select`
-straight to the provider layer, per `config/adapters/routing-experience.yaml`.
+straight to the provider layer, per `config/adapters/routing-consumer.yaml`.
 
-`.env` keys: `EXP_SUBSCRIBER_ID`.
+`.env` keys: `CONSUMER_SUBSCRIBER_ID`.
 
 ```sh
 docker compose logs consumer-adapter | grep 'Server listening'
@@ -214,8 +214,8 @@ Then Part 1 Steps 2 and 3 as written.
 `.env.example` ships working defaults, which means they are public:
 
 ```
-POSTGRES_PASSWORD    KEYCLOAK_ADMIN_PASSWORD    KEYCLOAK_SECRET
-REGISTRY_DEFAULT_USER_PASSWORD
+POSTGRES_PASSWORD    KEYCLOAK_ADMIN_PASSWORD    KEYCLOAK_ADMIN_CLIENT_SECRET
+KEYCLOAK_DEFAULT_USER_PASSWORD
 ```
 
 Change all four before the VM is reachable by anyone but you. Adapter keypairs
@@ -345,7 +345,7 @@ It logs in with `admin@example.com` / `changeme`, live from first boot.
 
 | Domain | Forward Hostname | Port | Then |
 |---|---|---|---|
-| `exp.oan.example.com` | `consumer-adapter` | 9202 | paste `config/reverse-proxy/npm-advanced/exp.conf` into **Advanced** |
+| `consumer.oan.example.com` | `consumer-adapter` | 9202 | paste `config/reverse-proxy/npm-advanced/consumer.conf` into **Advanced** |
 | `network.oan.example.com` | `network-adapter` | 9201 | — |
 | `provider.oan.example.com` | `provider-adapter` | 9200 | — |
 
@@ -455,9 +455,9 @@ an `allow`.
 
 | File | How it applies |
 |---|---|
-| `npm-custom/http_top.conf` | **Automatic**, top of the `http` block. The `exp` rate-limit zone and `limit_req_status 429`. |
+| `npm-custom/http_top.conf` | **Automatic**, top of the `http` block. The `consumer` rate-limit zone and `limit_req_status 429`. |
 | `npm-custom/server_proxy.conf` | **Automatic**, every server block. The `/publish` deny. |
-| `npm-advanced/exp.conf` | **Manual** — paste into the experience host's Advanced tab. `limit_req` for that host only; a 10 r/s ceiling on signed peer traffic would throttle for no gain. |
+| `npm-advanced/consumer.conf` | **Manual** — paste into the consumer host's Advanced tab. `limit_req` for that host only; a 10 r/s ceiling on signed peer traffic would throttle for no gain. |
 | `npm-advanced/hyperdx.conf` | **Manual** — paste into the HyperDX host's Advanced tab. 300s timeouts for ClickHouse scans, buffering off for live tail. Carries no credential; the Access List does. |
 
 The manual one is in a file anyway because NPM's Advanced field is a textarea
@@ -563,7 +563,7 @@ mapping URL. Its `bindingKey` is `participantId|capabilityCode`:
 ```
 mausamgram|openagrinet:WeatherObservation
 agmarknet|openagrinet:MandiPrice
-knowledge-provider|openagrinet:KnowledgeAdvisory
+bharat-vistaar|openagrinet:KnowledgeAdvisory
 pocra|openagrinet:AgricultureFacility
 ```
 
@@ -608,8 +608,8 @@ unauthenticated `/publish` it otherwise has to expose.
 ## Appendix E — How a request flows
 
 ```
-discover   you -> exp -> network -> discovery service
-select     you -> exp -> provider -> the upstream that owns that capability
+discover   you -> consumer -> network -> discovery service
+select     you -> consumer -> provider -> the upstream that owns that capability
 publish    a catalogue system -> provider -> network -> discovery service
 ```
 
@@ -704,7 +704,7 @@ does not match → the `X-Forwarded-*` headers in Appendix D.
 an IPv6 address the host cannot route.
 
 **NPM's default page, a 502 that worked yesterday, a failed certificate, or 429
-on the experience host** → Appendix B.
+on the consumer host** → Appendix B.
 
 ## Appendix G — Updating a deployment that is already running
 
@@ -772,7 +772,7 @@ which is the only authentication that exists on it — see Appendix B, including
 why OTLP's 4317/4318 do not get the same treatment.
 
 **Discovery now exports.** It used to read the OTLP variables and consume
-nothing; that changed when its telemetry package landed, so `OTEL_EXPORTER`
+nothing; that changed when its telemetry package landed, so `DISCOVERY_OTEL_EXPORTER`
 defaults to `otlp` and its spans and two `pgxpool` instruments go to HyperDX
 over OTLP/gRPC — the same hop the adapters make.
 
@@ -780,7 +780,7 @@ Two `.env` keys come with that, and they are not optional:
 `DISCOVERY_SUBSCRIBER_ID` and `DISCOVERY_DOMAIN`. Discovery **refuses to boot**
 with the exporter on and either one missing, rather than emitting a stream that
 cannot be attributed to a participant. On `make up-core`, where nothing is
-listening, set `OTEL_EXPORTER=none` to stop the periodic export failures in the
+listening, set `DISCOVERY_OTEL_EXPORTER=none` to stop the periodic export failures in the
 log.
 
 ### The published image may not have any of this in it
@@ -925,8 +925,8 @@ Three things that bite when writing a payload:
 
 ## Appendix J — About the mapping files
 
-`config/mappings/` holds the two this deployment uses, and `MAPPING_URL` /
-`MANDI_MAPPING_URL` point at **this repo's own copies** over GitHub's raw CDN —
+`config/mappings/` holds the two this deployment uses, and `MAUSAMGRAM_MAPPING_URL` /
+`AGMARKNET_MAPPING_URL` point at **this repo's own copies** over GitHub's raw CDN —
 so the file a reader reviews and the file the adapter fetches are one file.
 
 Each has two halves: the request half turns the Beckn payload into what the
@@ -965,14 +965,14 @@ config/
       http_top.conf           on its own -- rate-limit zone, and the /publish
       server_proxy.conf       deny every proxy host gets
     npm-advanced/           NOT loaded. Paste into a host's Advanced tab; kept
-      exp.conf                here because a textarea in a database is not
-      hyperdx.conf            reviewable. exp = rate limit; hyperdx = ClickHouse
+      consumer.conf                here because a textarea in a database is not
+      hyperdx.conf            reviewable. consumer = rate limit; hyperdx = ClickHouse
                               timeouts (its login is an NPM Access List)
   adapters/
-    experience.yaml.tmpl    templates. setup.py renders these to .yaml,
+    consumer.yaml.tmpl    templates. setup.py renders these to .yaml,
     network.yaml.tmpl       filling in the keys it generated. The rendered
     provider.yaml.tmpl      files hold private keys and are gitignored
-    routing-experience.yaml which action goes where: experience sends discover
+    routing-consumer.yaml which action goes where: consumer sends discover
     routing-network.yaml    to the network layer and select to the provider;
     routing-provider.yaml   provider sends publish to the network layer
   registry/
@@ -1015,7 +1015,7 @@ that volume — and equally does not survive if you skip it.
 
 ```sh
 docker compose down -v
-rm -rf keys config/adapters/experience.yaml config/adapters/network.yaml \
+rm -rf keys config/adapters/consumer.yaml config/adapters/network.yaml \
        config/adapters/provider.yaml
 ```
 
@@ -1036,7 +1036,7 @@ and passes through anything else. Nothing routes by URL, path or domain. That
 is the whole dispatch mechanism, and these two requests are what show it.
 
 **`networkAdapterUrl` is a variable no request uses, on purpose.** `discover`
-reaches the network adapter through the experience adapter and `publish`
+reaches the network adapter through the consumer adapter and `publish`
 through the provider adapter, so nothing in the collection calls it directly.
 It is listed because it is the other adapter a deployment exposes publicly —
 its `/publish` and `/discover` both verify signatures, so a network peer calls

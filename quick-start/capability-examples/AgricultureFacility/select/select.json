@@ -4,7 +4,7 @@
     "action": "select",
     "version": "2.0.0",
     "networkId": "oan-dev",
-    "senderId": "exp.oan.dev",
+    "senderId": "consumer.oan.dev",
     "receiverId": "provider.oan.dev",
     "transactionId": "a3000000-0000-4000-8000-000000000003",
     "messageId": "b3000000-0000-4000-8000-00000000f003",

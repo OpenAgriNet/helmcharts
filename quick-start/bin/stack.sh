@@ -125,7 +125,7 @@ up_registry_tier() {
 }
 
 # Generates the adapter keypairs, registers the three adapter identities, and
-# renders config/adapters/{provider,network,exp}.yaml from the .tmpl files
+# renders config/adapters/{provider,network,consumer}.yaml from the .tmpl files
 # beside them. Safe to re-run: keys come from keys/keys.json once it exists,
 # and participants already registered are left alone.
 up_setup() {
@@ -142,7 +142,7 @@ up_adapters() {
     # debugging a mapping without the real credentials -- but that also needs a
     # new participant id and base URL in .env plus a setup.py re-run, because
     # the registry cannot repoint an existing row.
-    step 3 "$1" "adapters (provider, network, exp)"
+    step 3 "$1" "adapters (provider, network, consumer)"
     docker compose up -d provider-adapter network-adapter consumer-adapter
 }
 

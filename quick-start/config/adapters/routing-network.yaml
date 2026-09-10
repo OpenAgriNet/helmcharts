@@ -8,7 +8,7 @@
 # given, so the base is the bare host and port.
 #
 # Both actions are one rule because they share a target. publish arrives from
-# the provider adapter, discover from the experience adapter, and neither is
+# the provider adapter, discover from the consumer adapter, and neither is
 # answered here -- this adapter verifies the caller, forwards, and re-signs.
 routingRules:
   - version: "2.0.0"
