@@ -858,10 +858,17 @@ fetched    .../network-specs/schema-packs-v0.1/schema/MandiPrice/v0.1/attributes
 
 So a payload names the revision it is judged against, and no copy here can
 drift. Cached 24h, so only the first payload after a restart pays. Two
-consequences: the adapter needs egress to `raw.githubusercontent.com`, and a
-**failed fetch rejects the payload** rather than skipping validation. An
+consequences: the adapter needs egress to **every host on the allowlist**, and
+a **failed fetch rejects the payload** rather than skipping validation. An
 `@context` on any other host is refused before any fetch —
 `extendedSchema_allowedDomains` is the list.
+
+Every entry on it is load-bearing. Loading one capability pack pulls 13–16
+documents: the pack itself from the raw CDN, then `Descriptor`,
+`GeoJSONGeometry`, `Location` and `Address`, which in turn `$ref` a further
+host. `openagrinet.github.io` is where OAN's own packs are published. Drop any
+one entry and no pack loads at all — the failure is
+`SCH_SCHEMA_ADAPTATION_FAILED` on every payload, not a partial validation.
 
 **What it does not check: `if`/`then`/`else`.** The validator library parses
 those keywords and never evaluates them, so every pack rule predicated on

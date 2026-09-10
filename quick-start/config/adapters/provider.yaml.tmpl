@@ -137,9 +137,27 @@ modules:
             location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "true"
-            # The host the packs' @context resolves to. An @context on any
-            # other host is refused before anything is fetched.
-            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global"
+            # THE HOSTS THE PACKS' @context AND ITS $refs RESOLVE TO, and the
+            # whole trust boundary: the entry @context and every $ref under it
+            # is checked, because the document a payload names comes from a URL
+            # the payload chose. Without the check its $refs could point this
+            # process at an internal service or a metadata endpoint.
+            #
+            # EVERY HOST HERE IS LOAD-BEARING. Loading one capability pack
+            # pulls 13-16 documents: the pack itself from the raw CDN, then
+            # Descriptor/GeoJSONGeometry/Location/Address, which in turn $ref a
+            # fourth host. Drop any one and no pack loads at all -- the failure
+            # is SCH_SCHEMA_ADAPTATION_FAILED on every payload, not a partial
+            # validation.
+            #
+            # openagrinet.github.io is where OAN's own packs are published.
+            #
+            # Keep it as tight as the packs allow. raw.githubusercontent.com is
+            # world-writable, so this trusts every GitHub account for schema
+            # content; narrowing it to a path prefix, or serving every pack
+            # from the host above, is the real fix and is not a one-line
+            # change.
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
@@ -314,9 +332,27 @@ modules:
             # keeping the ones a schema declares, which is what makes a
             # catalogue's resource attributes checkable at all.
             extendedSchema_enabled: "true"
-            # The host the packs' @context resolves to. An @context on any
-            # other host is refused before anything is fetched.
-            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global"
+            # THE HOSTS THE PACKS' @context AND ITS $refs RESOLVE TO, and the
+            # whole trust boundary: the entry @context and every $ref under it
+            # is checked, because the document a payload names comes from a URL
+            # the payload chose. Without the check its $refs could point this
+            # process at an internal service or a metadata endpoint.
+            #
+            # EVERY HOST HERE IS LOAD-BEARING. Loading one capability pack
+            # pulls 13-16 documents: the pack itself from the raw CDN, then
+            # Descriptor/GeoJSONGeometry/Location/Address, which in turn $ref a
+            # fourth host. Drop any one and no pack loads at all -- the failure
+            # is SCH_SCHEMA_ADAPTATION_FAILED on every payload, not a partial
+            # validation.
+            #
+            # openagrinet.github.io is where OAN's own packs are published.
+            #
+            # Keep it as tight as the packs allow. raw.githubusercontent.com is
+            # world-writable, so this trusts every GitHub account for schema
+            # content; narrowing it to a path prefix, or serving every pack
+            # from the host above, is the real fix and is not a one-line
+            # change.
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
