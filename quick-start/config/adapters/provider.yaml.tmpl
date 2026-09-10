@@ -87,7 +87,7 @@ modules:
         registry:
           id: sunbirdRegistry
           config:
-            url: http://registry:8081/api/v1
+            url: http://sunbird-registry-service:8081/api/v1
             entity: Participant
             providerEntity: ProviderSchema
 
@@ -216,7 +216,7 @@ modules:
               # file nor the registry, and the adapter redacts Authorization
               # from anything it logs.
               #
-              # NO MOCK SERVES ANY CAPABILITY NOW. mockimd takes -user and
+              # NO MOCK SERVES ANY CAPABILITY NOW. mock-imd takes -user and
               # -pass, so pointing back at it is the one case that DOES want
               # authScheme basic with a username and password pair.
               __MAUSAMGRAM_PARTICIPANT_ID__:
@@ -245,7 +245,7 @@ modules:
           # provider drops the held token and the next call exchanges a fresh
           # one -- but it does cost one failed request when the guess is wrong.
           #
-          # THE MOCK CANNOT SERVE THIS. mockagmarknet has no token endpoint, so
+          # THE MOCK CANNOT SERVE THIS. mock-agmarknet has no token endpoint, so
           # this scheme means the real API and the stack needs egress to it. To
           # go back to the mock, set authScheme query with queryName token and
           # queryValueEnv MOCKAGMARKNET_TOKEN, and point AGMARKNET_BASE_URL back -- but see
@@ -365,7 +365,7 @@ modules:
         registry:
           id: sunbirdRegistry
           config:
-            url: http://registry:8081/api/v1
+            url: http://sunbird-registry-service:8081/api/v1
             entity: Participant
             providerEntity: ProviderSchema
 

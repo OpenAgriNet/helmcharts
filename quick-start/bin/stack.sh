@@ -108,20 +108,20 @@ up_core() {
 #
 # Each takes the step total so the numbering reads correctly in both.
 
-# Naming registry and discovery also starts registry-db, keycloak and
-# discovery-db: all are depends_on with condition: service_healthy, so compose
+# Naming registry and discovery also starts sunbird-registry-postgres, sunbird-registry-keycloak and
+# discovery-postgres: all are depends_on with condition: service_healthy, so compose
 # blocks here until they pass their healthchecks rather than racing ahead.
 #
 # discovery belongs in this step and not in step 3. It would be dragged in
-# anyway by network-adapter's depends_on, but then a discovery-db that failed
+# anyway by network-adapter's depends_on, but then a discovery-postgres that failed
 # to come up would surface as an adapter problem three steps later.
 #
 # No --wait. It would only add a second wait on the registry's own healthcheck,
 # and setup.py already polls with an error message that says what to check.
 up_registry_tier() {
-    step 1 "$1" "registry and discovery (also starts registry-db, keycloak, discovery-db)"
-    info "keycloak's healthcheck allows up to 5 minutes on a cold volume"
-    docker compose up -d registry discovery
+    step 1 "$1" "registry and discovery (also starts sunbird-registry-postgres, sunbird-registry-keycloak, discovery-postgres)"
+    info "sunbird-registry-keycloak's healthcheck allows up to 5 minutes on a cold volume"
+    docker compose up -d sunbird-registry-service discovery-service
 }
 
 # Generates the adapter keypairs, registers the three adapter identities, and
@@ -138,7 +138,7 @@ up_adapters() {
     # The mocks are NOT started. All four capabilities point at real external
     # upstreams, so starting them would pull two images and run two containers
     # nothing calls. They are still defined in docker-compose.yml, so
-    # `docker compose up -d mockimd mockagmarknet` brings them up for anyone
+    # `docker compose up -d mock-imd mock-agmarknet` brings them up for anyone
     # debugging a mapping without the real credentials -- but that also needs a
     # new participant id and base URL in .env plus a setup.py re-run, because
     # the registry cannot repoint an existing row.
@@ -168,7 +168,7 @@ NEXT
 # ----------------------------------------------------------------- down
 
 # Containers and networks go; named volumes stay. So the registry's Postgres
-# data, discovery's data, and -- the one that would actually hurt -- npm-data,
+# data, discovery's data, and -- the one that would actually hurt -- nginx-proxy-manager-data,
 # which is the ONLY copy of every proxy host and Let's Encrypt certificate,
 # all survive. `up` after this is fast and lands where you left off.
 down() {
@@ -185,14 +185,14 @@ destroy() {
     cat <<'WARN'
 This deletes every named volume in the project:
 
-  npm-data         every NPM proxy host and Let's Encrypt certificate. NPM
+  nginx-proxy-manager-data         every NPM proxy host and Let's Encrypt certificate. NPM
                    keeps its routing table in a SQLite database in this
                    volume and nowhere else -- there is no export, and the
                    admin account has no reset flow. If you have not backed
                    it up, the click-through starts over.
-  registry-data    the registry's Postgres: participants, keys, schemas.
-  discovery-data   the discovery catalogue.
-  hyperdx-data     collected telemetry.
+  sunbird-registry-postgres-data    the registry's Postgres: participants, keys, schemas.
+  discovery-postgres-data   the discovery catalogue.
+  hyperdx-clickhouse-data     collected telemetry.
 
 keys/keys.json is NOT deleted, and should not be -- it is what lets setup.py
 re-register the adapters under their existing identities on the next `up`.

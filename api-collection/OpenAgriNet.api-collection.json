@@ -3,7 +3,7 @@
     "name": "OpenAgriNet",
     "_postman_id": "0a4e1c00-0000-4000-8000-00000000oan1",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "The four OAN capabilities, one folder each, requests numbered in the order you run them.\n\nImport postman-collection/local.postman_environment.json alongside this and select it, or every {{...-host}} resolves to nothing.\n\nBodies are generated from quick-start/capability-examples/ and are otherwise unedited, so what passes here is what a peer would send. transactionId, messageId and timestamp are filled fresh on every send by the collection pre-request script.\n\nPublish enters the PROVIDER adapter; discover and select enter the CONSUMER adapter, which takes unsigned requests because an app sits inside the trust boundary. The network adapter verifies signatures on both its endpoints, so Postman cannot call it -- it is here for its health check only."
+    "description": "The four OAN capabilities, one folder each, requests numbered in the order you run them.\n\nImport api-collection/OpenAgriNet.local-environment.json alongside this and select it, or every {{...-host}} resolves to nothing.\n\nBodies are generated from quick-start/capability-examples/ and are otherwise unedited, so what passes here is what a peer would send. transactionId, messageId and timestamp are filled fresh on every send by the collection pre-request script.\n\nPublish enters the PROVIDER adapter; discover and select enter the CONSUMER adapter, which takes unsigned requests because an app sits inside the trust boundary. The network adapter verifies signatures on both its endpoints, so Postman cannot call it -- it is here for its health check only."
   },
   "event": [
     {

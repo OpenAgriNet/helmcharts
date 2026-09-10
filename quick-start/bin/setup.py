@@ -211,7 +211,7 @@ def token():
     # Keycloak sits behind PROXY_ADDRESS_FORWARDING, so it builds the token's
     # issuer from these headers. Without them it answers with an empty body.
     #
-    # keycloak:8080 is the CONTAINER-INTERNAL address, and is deliberately not
+    # sunbird-registry-keycloak:8080 is the CONTAINER-INTERNAL address, and is deliberately not
     # KEYCLOAK_PORT. The registry validates the issuer against
     # OAUTH2_RESOURCES_0_URI, which names that internal address -- so a token
     # minted with the host port in its issuer is rejected with a 401 and an
@@ -219,7 +219,7 @@ def token():
     req = urllib.request.Request(
         f"http://localhost:{env('KEYCLOAK_PORT', '8080')}/auth/realms/"
         f"{env('KEYCLOAK_REALM', 'sunbird-rc')}/protocol/openid-connect/token",
-        data=body, headers={"X-Forwarded-Host": "keycloak:8080",
+        data=body, headers={"X-Forwarded-Host": "sunbird-registry-keycloak:8080",
                             "X-Forwarded-Proto": "http"})
     with urllib.request.urlopen(req, timeout=30) as r:
         payload = json.load(r)
@@ -394,7 +394,7 @@ def seed(identities):
                                 env("MAUSAMGRAM_BASE_URL")))
 
     # Mandi is the REAL Agmarknet now, because authScheme tokenQuery needs a
-    # token endpoint and mockagmarknet has none. No default base URL for the
+    # token endpoint and mock-agmarknet has none. No default base URL for the
     # same reason: falling back to the mock's service name would seed a row
     # that cannot serve the configured scheme, and the registry cannot update
     # it afterwards.
@@ -592,6 +592,6 @@ on its own, the adapters need recreating to pick up the rendered configs:
 
   docker compose up -d --force-recreate provider-adapter network-adapter consumer-adapter
 
-Then import ../postman-collection/ -- both files, the collection and the
+Then import ../api-collection/ -- both files, the collection and the
 environment -- and run it. Eighteen requests across the four capabilities,
 publish then discover then select in each, with nothing to fill in.""")

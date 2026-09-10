@@ -18,8 +18,8 @@ where the reason lives.
      │
      ├── discover ──►  network adapter  ──►  discovery service
      │
-     └── select   ──►  provider adapter ──►  mockimd
-                                        └─►  mockagmarknet
+     └── select   ──►  provider adapter ──►  mock-imd
+                                        └─►  mock-agmarknet
 ```
 
 `publish` runs the other way: the provider adapter sends it to the network
@@ -76,8 +76,8 @@ cp .env.example .env
 Locally, nothing in it needs changing. It publishes these on `localhost`:
 
 ```
-8081  registry        9200  provider adapter     9100  mockimd
-8080  keycloak        9201  network adapter      9101  mockagmarknet
+8081  registry        9200  provider adapter     9100  mock-imd
+8080  keycloak        9201  network adapter      9101  mock-agmarknet
 9990  keycloak admin  9202  consumer adapter
 8090  discovery
 ```
@@ -160,13 +160,13 @@ keys. Change `.env`, re-run `make up`.
 
 ## Step 8 — Verify end to end
 
-Import both files from `../postman-collection/` into Postman —
-`OpenAgriNet.postman_collection.json` and `local.postman_environment.json`.
+Import both files from `../api-collection/` into Postman —
+`OpenAgriNet.api-collection.json` and `OpenAgriNet.local-environment.json`.
 Select the environment, or every `{{...-host}}` resolves to nothing. Or:
 
 ```sh
-newman run ../postman-collection/OpenAgriNet.postman_collection.json \
-  -e ../postman-collection/local.postman_environment.json
+newman run ../api-collection/OpenAgriNet.api-collection.json \
+  -e ../api-collection/OpenAgriNet.local-environment.json
 ```
 
 **18 requests, 32 assertions**, one folder per capability plus a health folder.
@@ -330,7 +330,7 @@ Deliberately absent:
 ### The adapters, through Nginx Proxy Manager
 
 NPM owns 80 and 443 and is the whole public surface. Its routing table is
-**rows in a SQLite database** in the `npm-data` volume, not a config file — so
+**rows in a SQLite database** in the `nginx-proxy-manager-data` volume, not a config file — so
 setup is a one-time click-through and that volume is the only copy. Back it up.
 
 **First boot.** Tunnel to the admin UI and change the shipped login before
@@ -508,7 +508,7 @@ loopback. A registry route would depend on that silently.
 ## Appendix C — Startup order, and why it is that order
 
 ```
-1. registry and discovery        (also registry-db, keycloak, discovery-db)
+1. registry and discovery        (also sunbird-registry-postgres, sunbird-registry-keycloak, discovery-postgres)
 2. bin/setup.py                  keys, seven participants, four bindings, three configs
 3. mock upstreams, then the three adapters
 4. nginx-proxy-manager           the public edge — 80 and 443, all interfaces
@@ -588,13 +588,13 @@ and the token request has a trap:
 ```sh
 TOKEN=$(curl -s -X POST \
   "http://127.0.0.1:8080/auth/realms/sunbird-rc/protocol/openid-connect/token" \
-  -H 'X-Forwarded-Host: keycloak:8080' -H 'X-Forwarded-Proto: http' \
+  -H 'X-Forwarded-Host: sunbird-registry-keycloak:8080' -H 'X-Forwarded-Proto: http' \
   -d 'client_id=registry-frontend' -d 'grant_type=password' \
   -d 'username=no-user' -d 'password=no-user-password' \
   | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
 ```
 
-Those `X-Forwarded-*` headers are not optional and `keycloak:8080` is the
+Those `X-Forwarded-*` headers are not optional and `sunbird-registry-keycloak:8080` is the
 **container-internal** address on purpose. Keycloak builds the token's issuer
 from them and the registry validates it against the internal address; get it
 wrong and you get a 401 with an empty body.
@@ -804,8 +804,8 @@ reads as healthy throughout — which is the worst shape a stale tag can take, a
 the reason discovery is the one service here with a `build:` section:
 
 ```
-DISCOVERY_IMAGE=discovery-service:local docker compose build discovery
-DISCOVERY_IMAGE=discovery-service:local docker compose up -d discovery
+DISCOVERY_IMAGE=discovery-service:local docker compose build discovery-service
+DISCOVERY_IMAGE=discovery-service:local docker compose up -d discovery-service
 ```
 
 `make up` never builds. `image:` still decides what runs; the build happens only
@@ -982,7 +982,7 @@ config/
     imports/                the Keycloak realm
   discovery/                optional instance override
   mappings/                 one file per binding-action, served over the raw CDN
-../postman-collection/      the collection and its environment file
+../api-collection/      the collection and its environment file
 ```
 
 ## Appendix L — Renaming this directory
@@ -993,7 +993,7 @@ all five volumes, and **Docker does not move the data**: a plain `make up`
 afterwards starts on an empty registry, an empty catalogue, and an NPM with no
 proxy hosts and no certificates. The old volumes are orphaned, not gone.
 
-`npm-letsencrypt` is the one to care about — re-issuing runs into Let's
+`nginx-proxy-manager-letsencrypt` is the one to care about — re-issuing runs into Let's
 Encrypt's duplicate limit, five per week for the same names.
 
 Copy the data across before starting. Stop the stack first, from whichever
@@ -1001,15 +1001,15 @@ name it is running under:
 
 ```sh
 make down
-for v in registry-data discovery-data npm-data npm-letsencrypt hyperdx-data; do
-  docker volume create "quick-start_$v" >/dev/null
-  docker run --rm -v "old-name_$v:/from" -v "quick-start_$v:/to" alpine \
+for v in sunbird-registry-postgres-data discovery-postgres-data nginx-proxy-manager-data nginx-proxy-manager-letsencrypt hyperdx-clickhouse-data; do
+  docker volume create "openagrinet_$v" >/dev/null
+  docker run --rm -v "old-name_$v:/from" -v "openagrinet_$v:/to" alpine \
     sh -c 'cd /from && tar cf - . | (cd /to && tar xf -)'
 done
 ```
 
 Then `make up`, and confirm the seven participants and your proxy hosts before
-deleting anything. Keycloak shares `registry-data`, so its realm travels with
+deleting anything. Keycloak shares `sunbird-registry-postgres-data`, so its realm travels with
 that volume — and equally does not survive if you skip it.
 
 ## Appendix M — Starting over
@@ -1024,9 +1024,9 @@ New keys mean new identities, so the provider rows must be created again and
 **the old participant ids cannot be reused** — the registry's delete is soft
 and keeps the unique index.
 
-`-v` deletes **every** volume, including `npm-letsencrypt` and `npm-data` —
+`-v` deletes **every** volume, including `nginx-proxy-manager-letsencrypt` and `nginx-proxy-manager-data` —
 your certificates and your whole routing table. To clear only catalogues, drop
-`quick-start_discovery-data` alone and leave the rest.
+`openagrinet_discovery-data` alone and leave the rest.
 
 ## Appendix N — What the collection demonstrates
 
