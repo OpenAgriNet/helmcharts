@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "7458e3b4-dd16-4ec1-84ce-006f2e423183",
     "name": "OAN API \u2014 publish, discover, select",
-    "description": "The whole stack from Postman: the registry writes that set it up, updates for the fields that change, the reads that show what is there, and the three flows that use it.\n\nONE FOLDER PER CAPABILITY. Inside each, Publish seeds the catalogue Discover looks for, so run a folder top to bottom the first time; after that any request works on its own.\n\nTHERE ARE NO REGISTRY REQUESTS HERE, deliberately. The registry has no route through the gateway and publishes on loopback only, so nothing in a shared collection could reach it. bin/setup.py seeds all of it -- five participants and both capability bindings -- from the same .env the adapter configs are rendered from, which is what keeps the two from disagreeing.\n\nNOTHING HERE CHANGES THE STACK ON A DEFAULT RUN. The creates report \"already present\" once setup.py has run, because the registry is append-only. The updates write back the same values the variables already hold -- edit a variable to actually change a row.\n\nTHE UPDATES NEED A SCHEMA THAT PERMITS THEM. The registry re-validates the merged document on update, and that document carries its own osid and osUpdatedAt, so additionalProperties: false rejects the registry's own fields. Participant and ProviderSchema in config/registry/schemas/ must allow additional properties, and the registry reads schemas only at startup.\n\nEvery URL here is loopback, because the deployment publishes these ports on the VM's loopback only and nothing else is routable. Open a tunnel first and the defaults work unchanged:\n\n    ssh -L 9202:127.0.0.1:9202 -L 9200:127.0.0.1:9200 \\\n        -L 8081:127.0.0.1:8081 -L 8080:127.0.0.1:8080 -N you@the-vm\n\nNo VM hostname or address appears in this file.",
+    "description": "The whole stack from Postman: the registry writes that set it up, updates for the fields that change, the reads that show what is there, and the three flows that use it.\n\nONE FOLDER PER CAPABILITY. Inside each, Publish seeds the catalogue Discover looks for, so run a folder top to bottom the first time; after that any request works on its own.\n\nTHERE ARE NO REGISTRY REQUESTS HERE, deliberately. The registry has no route through the gateway and publishes on loopback only, so nothing in a shared collection could reach it. bin/setup.py seeds all of it -- six participants and all three capability bindings -- from the same .env the adapter configs are rendered from, which is what keeps the two from disagreeing.\n\nNOTHING HERE CHANGES THE STACK ON A DEFAULT RUN. The creates report \"already present\" once setup.py has run, because the registry is append-only. The updates write back the same values the variables already hold -- edit a variable to actually change a row.\n\nTHE UPDATES NEED A SCHEMA THAT PERMITS THEM. The registry re-validates the merged document on update, and that document carries its own osid and osUpdatedAt, so additionalProperties: false rejects the registry's own fields. Participant and ProviderSchema in config/registry/schemas/ must allow additional properties, and the registry reads schemas only at startup.\n\nEvery URL here is loopback, because the deployment publishes these ports on the VM's loopback only and nothing else is routable. Open a tunnel first and the defaults work unchanged:\n\n    ssh -L 9202:127.0.0.1:9202 -L 9200:127.0.0.1:9200 \\\n        -L 8081:127.0.0.1:8081 -L 8080:127.0.0.1:8080 -N you@the-vm\n\nNo VM hostname or address appears in this file.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "42114807"
   },
@@ -383,6 +383,118 @@
         }
       ],
       "description": "The mandi capability end to end: publish its catalogue, find it, then ask for prices.\n\nRUN IN ORDER the first time -- Publish seeds the catalogue Discover looks for.\n\nNothing here is shared with Weather except the adapter, the registry client and the mapper. A different upstream, a different mapping, a different binding key. The mapping is doing more work than weather's: it converts ISO dates to the dd-MM-yyyy Agmarknet wants, sends marketcode only when the request carried one, turns price strings into numbers, and omits a price that was not reported rather than sending a zero."
+    },
+    {
+      "name": "3. KnowledgeAdvisory",
+      "item": [
+        {
+          "name": "1. Select \u2014 advisory passages on demand",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 404) {",
+                  "  console.log(\"404: no step matched. offer.provider.id and resourceAttributes.@type must\",",
+                  "              \"equal a configured binding key -- check KNOWLEDGE_PARTICIPANT_ID in .env and\",",
+                  "              \"that KnowledgeAdvisory is in the provider adapter's steps: list, not just\",",
+                  "              \"providerSteps\");",
+                  "}",
+                  "if (pm.response.code === 401 || pm.response.code === 502) {",
+                  "  console.log(\"the provider refused the adapter. This capability authenticates with OAuth2\",",
+                  "              \"client credentials, so KNOWLEDGE_CLIENT_ID and KNOWLEDGE_CLIENT_SECRET must be\",",
+                  "              \"set in the environment the adapter reads, and KNOWLEDGE_TOKEN_URL must be\",",
+                  "              \"reachable from the container\");",
+                  "}",
+                  "",
+                  "pm.test(\"200\", () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test(\"on_select\", () => pm.expect(b.context.action).to.eql(\"on_select\"));",
+                  "const c = b.message.contract.commitments[0];",
+                  "",
+                  "// One advisory per retrieved passage, each sourced from its own document.",
+                  "pm.test(\"a resource per passage\", () => pm.expect(c.resources.length).to.be.above(0));",
+                  "",
+                  "const first = c.resources[0].resourceAttributes;",
+                  "pm.test(\"KnowledgeAdvisory answered in Direct mode\", () => {",
+                  "  pm.expect(first[\"@type\"]).to.eql(\"openagrinet:KnowledgeAdvisory\");",
+                  "  pm.expect(first.informationMode).to.eql(\"Direct\");",
+                  "});",
+                  "",
+                  "// The passage text itself. Empty here means the mapping read the wrong field,",
+                  "// which a length check catches and a presence check does not.",
+                  "pm.test(\"each advisory carries its passage\", () => {",
+                  "  c.resources.forEach((r) => {",
+                  "    const rec = r.resourceAttributes.recommendations;",
+                  "    pm.expect(rec, \"recommendations\").to.be.an(\"array\").that.is.not.empty;",
+                  "    pm.expect(rec[0].message, \"recommendations[0].message\").to.be.a(\"string\")",
+                  "      .and.to.have.length.above(0);",
+                  "  });",
+                  "});",
+                  "",
+                  "// Provenance, and the reason one advisory per passage matters: each names the",
+                  "// document it came from, so none can borrow another's.",
+                  "pm.test(\"each advisory names its own source document\", () => {",
+                  "  const ids = c.resources.map((r) => r.resourceAttributes.source.sourceId);",
+                  "  ids.forEach((id) => pm.expect(id).to.be.a(\"string\").and.to.have.length.above(0));",
+                  "  c.resources.forEach((r) => {",
+                  "    pm.expect(r.resourceAttributes.source.sourceName).to.be.a(\"string\");",
+                  "  });",
+                  "});",
+                  "",
+                  "// shortDesc is the passage's section heading from the provider, not a summary",
+                  "// this adapter invents.",
+                  "pm.test(\"each advisory carries its section as shortDesc\", () => {",
+                  "  c.resources.forEach((r) => {",
+                  "    pm.expect(r.resourceAttributes.descriptor.shortDesc).to.be.a(\"string\");",
+                  "  });",
+                  "});",
+                  "",
+                  "// The offer lists what was ANSWERED, not what was asked for. The request's own",
+                  "// resource id must not reappear: it names no passage, so a caller resolving",
+                  "// the offer would find one id with nothing behind it.",
+                  "pm.test(\"the offer lists the answered passages only\", () => {",
+                  "  const answered = c.resources.map((r) => r.id).sort();",
+                  "  pm.expect(c.offer.resourceIds.slice().sort()).to.eql(answered);",
+                  "  pm.expect(c.offer.resourceIds).to.not.include(\"res:knowledge-advisory:schemes:ondemand\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context\": {\n    \"version\": \"2.0.0\",\n    \"action\": \"select\",\n    \"networkId\": \"{{networkId}}\",\n    \"transactionId\": \"3c7d5e12-9a84-4b61-8f20-5d1c6e0a7b93\",\n    \"messageId\": \"a41f8c02-6d19-4e73-b58a-2f9e4c1d0b67\",\n    \"timestamp\": \"2026-09-09T06:12:01.330Z\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\",\n              \"name\": \"Draft\"\n            }\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:knowledge-advisory:schemes:ondemand\",\n              \"quantity\": 1,\n              \"resourceAttributes\": {\n                \"@context\": \"https://raw.githubusercontent.com/OpenAgriNet/network-specs/schema-packs-v0.1/schema/KnowledgeAdvisory/v0.1/context.jsonld\",\n                \"@type\": \"openagrinet:KnowledgeAdvisory\",\n                \"informationMode\": \"OnDemand\",\n                \"subjectCategories\": [\n                  \"Scheme\"\n                ],\n                \"topics\": [\n                  \"gruha jyoti scheme eligibility\"\n                ],\n                \"languages\": [\n                  \"en\"\n                ]\n              }\n            }\n          ],\n          \"offer\": {\n            \"id\": \"offer:knowledge-advisory:schemes\",\n            \"resourceIds\": [\n              \"res:knowledge-advisory:schemes:ondemand\"\n            ],\n            \"provider\": {\n              \"id\": \"{{knowledgeProviderId}}\",\n              \"descriptor\": {\n                \"code\": \"KNOWLEDGE-01\",\n                \"name\": \"Bharat Vistaar knowledge retrieval\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{expAdapterUrl}}/select",
+              "host": [
+                "{{expAdapterUrl}}"
+              ],
+              "path": [
+                "select"
+              ]
+            },
+            "description": "The same endpoint and the same adapter as the two folders above, a third capability. Nothing routes it: the payload's provider id and resourceAttributes @type form a binding key, the KnowledgeAdvisory step recognises it and the other two pass it through.\n\nTHERE IS NO PUBLISH OR DISCOVER HERE, unlike the folders above, and that is the point of informationMode OnDemand. Weather and mandi publish a catalogue that discover then searches. An advisory is retrieved when asked for -- there is no catalogue to seed and nothing to discover, so select is the whole flow.\n\nWHAT COMES BACK. One Direct openagrinet:KnowledgeAdvisory per retrieved passage, each carrying its own text, the section heading it sits under, and the document it came from. One resource per passage rather than one per query is what keeps a passage from being attributed to another document's source.\n\nThe request half sends the topic as the provider's query. Everything in the answer is read from what the provider returned -- a field it leaves empty comes back empty rather than filled in from the request.\n\nTHIS IS THE ONLY CAPABILITY HERE THAT CALLS A REAL EXTERNAL PROVIDER. The other two are mocks inside the compose network. So this one needs egress from the stack, and it is the only one that can fail because a credential is missing: it authenticates with OAuth2 client credentials, named in the adapter config as environment variables and never held as values in a config file or in the registry."
+          },
+          "response": []
+        }
+      ],
+      "description": "The knowledge capability: retrieval from a real external provider, answered on demand. One request, because OnDemand has no catalogue to publish and nothing to discover."
     }
   ],
   "variable": [
@@ -414,6 +526,11 @@
     {
       "key": "networkId",
       "value": "oan-dev"
+    },
+    {
+      "key": "knowledgeProviderId",
+      "value": "knowledge-provider",
+      "type": "string"
     }
   ]
 }
