@@ -1,0 +1,20 @@
+# Network layer adapter routing.
+#
+# One job: hand the catalogue actions to the discovery service, which is a
+# service in this same compose and so reachable by name.
+#
+# The service serves /discover and /publish at its root, and so does this
+# adapter now: targetType "url" appends the action to whatever base is
+# given, so the base is the bare host and port.
+#
+# Both actions are one rule because they share a target. publish arrives from
+# the provider adapter, discover from the experience adapter, and neither is
+# answered here -- this adapter verifies the caller, forwards, and re-signs.
+routingRules:
+  - version: "2.0.0"
+    targetType: "url"
+    target:
+      url: "http://discovery:8080"
+    endpoints:
+      - discover
+      - publish

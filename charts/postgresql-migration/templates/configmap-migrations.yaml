@@ -1,0 +1,29 @@
+{{- $targets := include "postgresql-migration.enabledTargets" . | fromJsonArray }}
+{{- range $targets }}
+{{- $files := include "postgresql-migration.targetFiles" (dict "ctx" $ "name" .name) | trim }}
+---
+{{/*
+Migration files for one target. Rendered even when empty, so the mount exists and
+the Job can report "no .sql files" rather than "not mounted".
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "postgresql-migration.targetConfigMapName" (dict "ctx" $ "name" .name) }}
+  labels:
+    {{- include "postgresql-migration.labels" $ | nindent 4 }}
+    oan.in/migration-target: {{ .name | quote }}
+  annotations:
+    {{- include "postgresql-migration.hookAnnotations" $ | nindent 4 }}
+    {{- with $.Values.commonAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- if $files }}
+data:
+  {{- $files | nindent 2 }}
+{{- else }}
+# No .sql or .conf files in files/migrations/{{ .name }} - this database's schema
+# is managed outside Flyway. The Job skips this target.
+data: {}
+{{- end }}
+{{- end }}

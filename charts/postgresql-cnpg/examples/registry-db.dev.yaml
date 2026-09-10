@@ -1,0 +1,100 @@
+# Example: the registry service's database, dev environment.
+#
+#   helm install registry-db charts/postgresql-cnpg \
+#     -n oan-registry -f charts/postgresql-cnpg/examples/registry-db.dev.yaml
+#
+# Other workloads then connect to:
+#   registry-db-rw.oan-registry.svc.cluster.local:5432
+
+fullnameOverride: registry-db
+
+# Sunbird RC's registry is verified against PostgreSQL 14. Pin it rather than
+# inheriting the operator default, so an operator upgrade cannot move the major.
+image:
+  registry: ghcr.io
+  repository: cloudnative-pg/postgresql
+  tag: "14.13"
+
+# Dev: single instance. Use 2+ where an outage matters.
+instances: 1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+storage:
+  size: 10Gi
+  # Empty uses the cluster default (gp3, reclaimPolicy Delete). Point this at a
+  # Retain class before this database holds anything worth keeping.
+  storageClass: ""
+
+walStorage:
+  enabled: true
+  size: 2Gi
+
+# The registry's database, created by initdb when the cluster is bootstrapped.
+# A cluster gets exactly one of these; everything else goes under `databases`.
+bootstrap:
+  database: registry
+  owner: registry
+  # Secret carrying `username` and `password` for the owner role.
+  #   kubectl -n oan-registry create secret generic registry-db-app \
+  #     --from-literal=username=registry --from-literal=password='<password>'
+  # Or drop ownerSecret and let CNPG generate the password itself.
+  ownerSecret: registry-db-app
+
+# Keycloak's own role. The operator creates and reconciles it, so Keycloak never
+# needs superuser rights.
+#   kubectl -n oan-registry create secret generic keycloak-db \
+#     --from-literal=username=keycloak --from-literal=password='<password>'
+managed:
+  roles:
+    - name: keycloak
+      passwordSecret:
+        name: keycloak-db
+
+# Keycloak's own database, owned by that role. Keeping its realm tables out of
+# the registry's database is the one place this deliberately improves on the
+# compose stack, which shares a single `registry` database between both services.
+#
+# REQUIRES CNPG >= 1.25 for the Database CRD.
+databases:
+  - name: keycloak
+    owner: keycloak
+
+# Left at the CNPG default (false). Each service connects as the owner of its own
+# database, so nothing here needs superuser rights.
+#
+# The migration chart is the exception: it wants rights across every database it
+# migrates. Set this true if you enable migration targets that actually have SQL.
+enableSuperuserAccess: false
+
+# Off until the Barman Cloud Plugin is installed and the IRSA role for
+# oan-dev-pg-backup exists (see infra-automation: buckets.pg_backup).
+backup:
+  enabled: false
+  retentionPolicy: "14d"
+  objectStore:
+    bucket: oan-dev-pg-backup
+    path: /registry
+    credentials:
+      inheritFromIAMRole: true
+
+# The IRSA role the cluster pods assume in order to write those backups.
+serviceAccount:
+  annotations: {}
+    # eks.amazonaws.com/role-arn: arn:aws:iam::<account>:role/oan-dev-pg-backup
+
+# The owner Secret above is created out of band. Until a secrets manager is
+# wired up, either create it by hand:
+#   kubectl -n oan-registry create secret generic registry-db-app \
+#     --from-literal=username=registry --from-literal=password='<password>'
+# or drop bootstrap.ownerSecret entirely and let CNPG generate the password into
+# Secret/registry-db-app itself, which is simpler for dev.
+
+commonLabels:
+  oan.in/environment: dev

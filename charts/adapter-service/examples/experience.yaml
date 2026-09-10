@@ -1,0 +1,64 @@
+# ===========================================================================
+# experience role -- the experience adapter, and the caller.
+#
+# The only adapter that takes UNSIGNED requests: the experience app is inside
+# the trust boundary, so there is no network signature to check. That is what
+# makes the stack testable with a plain curl, and it is why this role has no
+# validateSign in its steps and runs as bap rather than bpp.
+#
+# It is also why the edge should rate-limit this host and nothing else.
+#
+#   helm install experience-adapter . -f examples/experience.yaml
+#
+# routing.rules points at the network adapter by RELEASE name. Rename that
+# release and this must change with it.
+# ===========================================================================
+role: experience
+
+# The Service name, and therefore the in-cluster DNS name other adapters use.
+# Set explicitly because fullname is otherwise "<release>-<chart>" -- release
+# experience-adapter plus chart adapter-service would render
+# experience-adapter-adapter-service, which is not what anything routes to.
+fullnameOverride: experience-adapter
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/network-adapter
+  tag: "latest"
+
+keys:
+  existingSecret:
+    name: experience-adapter-keys
+
+registry:
+  url: http://registry:8081/api/v1
+
+service:
+  port: 9202
+  targetPort: 9202
+
+# No validateSign: nothing that reaches this adapter carries a network
+# signature. Set explicitly rather than left to the role default so the
+# omission reads as deliberate.
+handler:
+  role: bap
+  steps:
+    - addRoute
+    - sign
+
+routing:
+  rules:
+    - version: "2.0.0"
+      targetType: url
+      target:
+        url: http://network-adapter:9201
+      endpoints:
+        - discover
+        - publish
+
+waitFor:
+  enabled: false
+
+otel:
+  enabled: false
+  endpoint: ""

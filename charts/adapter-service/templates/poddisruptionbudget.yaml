@@ -1,0 +1,26 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+{{/*
+Both set is a config error rather than a preference: the API server rejects a
+PDB carrying minAvailable and maxUnavailable together, and it does so at apply
+time, which is later and less legible than here.
+*/}}
+{{- if and .Values.podDisruptionBudget.minAvailable .Values.podDisruptionBudget.maxUnavailable }}
+{{- fail (printf "%s: set podDisruptionBudget.minAvailable or maxUnavailable, not both." .Chart.Name) }}
+{{- end }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "adapter-service.fullname" . }}
+  labels:
+    {{- include "adapter-service.labels" . | nindent 4 }}
+spec:
+  {{- with .Values.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ . }}
+  {{- end }}
+  {{- with .Values.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ . }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "adapter-service.selectorLabels" . | nindent 6 }}
+{{- end }}

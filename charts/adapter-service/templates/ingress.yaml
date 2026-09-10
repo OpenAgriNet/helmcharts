@@ -1,0 +1,44 @@
+{{- if .Values.ingress.enabled }}
+{{/*
+Off by default, and worth a thought before turning on.
+
+This adapter takes SIGNED requests -- validateSign is its first step -- so
+publishing it is not the same risk as publishing an adapter that does not. But
+it is still a Beckn peer endpoint, and the thing that makes it safe is that
+every caller must hold a key the registry publishes. That is a property of the
+registry's contents, not of this Ingress.
+*/}}
+apiVersion: {{ include "common.ingress.apiVersion" . }}
+kind: Ingress
+metadata:
+  name: {{ include "adapter-service.fullname" . }}
+  labels:
+    {{- include "adapter-service.labels" . | nindent 4 }}
+  {{- with (merge (dict) .Values.ingress.annotations (.Values.commonAnnotations | default dict)) }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ include "adapter-service.fullname" $ }}
+                port:
+                  number: {{ $.Values.service.port }}
+          {{- end }}
+    {{- end }}
+{{- end }}

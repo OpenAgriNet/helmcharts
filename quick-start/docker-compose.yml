@@ -1,0 +1,799 @@
+# The whole OAN stack in one file: registry, discovery, the three adapters, the
+# telemetry stack and the public edge.
+#
+# Read it in tiers -- the banner comments below are the structure:
+#
+#   registry        registry-db, keycloak, registry
+#   discovery       discovery-db, discovery
+#   adapters        provider, network, exp
+#   observability   hyperdx                      profile: observability
+#   edge            nginx-proxy-manager          profile: reverse-proxy
+#
+# The last two are behind profiles because neither is needed to exercise the
+# stack, and HyperDX is the heaviest thing here.
+#
+# ---------------------------------------------------------------- bringing up
+#
+#   1. cp .env.example .env               change every credential -- they are
+#                                         shipped defaults
+#   2. docker compose up -d registry discovery
+#                                         everything EXCEPT the adapters
+#   3. python3 bin/setup.py               keys, the three adapter entries, and
+#                                         the adapter configs they mount
+#   4. docker compose up -d               now the adapters
+#   5. docker compose --profile reverse-proxy --profile observability up -d
+#                                         the edge and the telemetry stack
+#
+# Naming registry and discovery in step 2 is not tidiness. An adapter config
+# is a bind-mounted FILE, and Docker creates a DIRECTORY at any bind-mount
+# source that does not exist yet -- so starting an adapter before step 3 both
+# wedges that container on a directory it cannot parse and leaves a directory
+# where step 3 needs to write a file.
+#
+# Nothing is built here. Every image is pulled from the tags named in .env.
+#
+# ------------------------------------------------------------- what is public
+#
+# Exactly one container publishes on a routable interface: Nginx Proxy
+# Manager, on 80 and 443. Everything else -- both Postgres instances,
+# Keycloak, the registry, discovery, the HyperDX UI, and NPM's own admin UI on
+# 81 -- publishes on 127.0.0.1 and is reachable only through an SSH tunnel:
+#
+# The HyperDX UI is the one item on that list with a second way in: it also has
+# a proxy host, so it is readable at https://<your hyperdx name>/ with the
+# Access List's username and password. Its loopback publish is unchanged --
+# routing it did not open a port here.
+#
+#   ssh -L 81:127.0.0.1:81   -L 8080:127.0.0.1:8080 \
+#       -L 8081:127.0.0.1:8081 -L 8085:127.0.0.1:8085 -N you@the-vm
+#
+# The loopback binds are written literally rather than taken from a BIND_ADDR
+# variable, which is what they used to be. One variable that moves the whole
+# stack onto a public interface is a footgun once an edge exists to do that
+# job deliberately for the one tier that should be reachable: behind those
+# ports are a Keycloak whose admin password ships as a default and a registry
+# whose write token anyone who has read .env.example can mint.
+#
+# ------------------------------------------------------------------- networks
+#
+# Two, and with a UI-configured proxy at the edge the split stops being
+# decoration and becomes the actual control. NPM's "Forward Hostname" is a
+# free-text field, so anyone with the admin password can point a public route
+# at `registry` or `keycloak`. NPM sits only on oan-edge, where neither name
+# resolves and neither address is routable -- the three adapters and hyperdx
+# are the only containers it shares a network with. Those four straddle both
+# networks; everything else is internal-only.
+#
+# Neither is `internal: true`: the adapters and discovery fetch the Beckn spec
+# from raw.githubusercontent.com at boot, the provider adapter calls an
+# upstream API that lives outside this VM, and NPM has to reach Let's Encrypt.
+# Cutting egress would break all three.
+
+networks:
+  oan-internal:
+    name: oan-internal
+  oan-edge:
+    name: oan-edge
+
+volumes:
+  registry-data:
+  discovery-data:
+  hyperdx-data:
+  npm-data:
+  npm-letsencrypt:
+
+x-adapter: &adapter
+  # Pulled, never built. Set ADAPTER_IMAGE in .env to the tag published for
+  # this environment -- `docker compose up -d` is the whole deployment step.
+  image: ${ADAPTER_IMAGE}
+  pull_policy: missing
+  restart: unless-stopped
+  # The adapters are the only services on oan-edge, and therefore the only
+  # ones NPM can reach. They still need oan-internal to read the registry and
+  # to call discovery, so they sit on both.
+  networks: [oan-internal, oan-edge]
+
+x-adapter-env: &adapter-env
+  CONFIG_FILE: /app/config/adapter.yaml
+  # OpenTelemetry. These ARE read: the otelsetup plugin builds gRPC exporters
+  # and the SDK applies its OTEL_EXPORTER_OTLP_* environment config before any
+  # option the plugin passes.
+  #
+  # OTEL_EXPORTER_OTLP_INSECURE IS LOAD-BEARING, and the reason is worth
+  # knowing because the symptom names TLS and the cause does not.
+  #
+  # The SDK derives transport security from the endpoint's SCHEME:
+  #
+  #     switch u.Scheme { case "http", "unix": WithInsecure(); default: WithSecure() }
+  #
+  # "default" includes an EMPTY scheme. OTLP_ENDPOINT is a bare host:port,
+  # because that is what the plugin's own otlpEndpoint config field takes --
+  # so without the scheme prefix below, or this flag, the exporter dials TLS
+  # at hyperdx's plaintext 4317 and logs, once per export interval:
+  #
+  #     failed to upload metrics: ... authentication handshake failed:
+  #     tls: first record does not look like a TLS handshake
+  #
+  # The flag is set explicitly rather than left to the scheme, so a future
+  # edit to the URL cannot silently turn TLS back on.
+  #
+  # This does not weaken anything that was encrypted: the collector is on
+  # oan-internal, reachable from nowhere else, and serves plaintext OTLP.
+  #
+  # There is also a bug underneath, in the plugin rather than here: it passes
+  # insecure credentials via WithDialOption, and NewGRPCConfig appends its own
+  # default TLS credentials AFTER user options, so gRPC takes the TLS ones and
+  # the plugin's setting is silently discarded. The env var is what actually
+  # controls this until that is fixed upstream.
+  #
+  # OTEL_EXPORTER_OTLP_PROTOCOL is deliberately absent. The plugin constructs
+  # gRPC exporters in code, so a protocol preference here is ignored and only
+  # suggests the transport is configurable from this file.
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://${OTLP_ENDPOINT:-hyperdx:4317}
+  OTEL_EXPORTER_OTLP_INSECURE: "true"
+
+services:
+  # ==========================================================================
+  # registry -- who is on the network, their public keys, and which upstream
+  # API answers which capability.
+  # ==========================================================================
+  registry-db:
+    image: postgres:14
+    container_name: registry-db
+    restart: unless-stopped
+    networks: [oan-internal]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - registry-data:/var/lib/postgresql/data
+    # No published port at all, not even on loopback: psql runs through
+    # `docker compose exec registry-db`, so publishing one would only widen
+    # the surface without adding a way in.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  keycloak:
+    image: ghcr.io/sunbird-rc/sunbird-rc-keycloak:latest
+    container_name: keycloak
+    restart: unless-stopped
+    networks: [oan-internal]
+    volumes:
+      - ./config/registry/imports:/opt/jboss/keycloak/imports
+    environment:
+      - DB_VENDOR=postgres
+      - DB_ADDR=registry-db
+      - DB_PORT=5432
+      - DB_DATABASE=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - KEYCLOAK_USER=${KEYCLOAK_ADMIN_USER}
+      - KEYCLOAK_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+      - KEYCLOAK_IMPORT=/opt/jboss/keycloak/imports/realm-export.json
+      - PROXY_ADDRESS_FORWARDING=true
+    ports:
+      # Loopback only. This is an admin console with an imported realm, and
+      # the tunnel is how you reach it.
+      - "127.0.0.1:${KEYCLOAK_PORT}:8080"
+      - "127.0.0.1:${KEYCLOAK_ADMIN_PORT}:9990"
+    depends_on:
+      registry-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9990/ || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
+  registry:
+    image: ghcr.io/sunbird-rc/sunbird-rc-core:${REGISTRY_VERSION}
+    container_name: registry
+    restart: unless-stopped
+    # oan-internal ONLY, and that is the decision, not an omission. NPM sits
+    # on oan-edge alone, so it cannot resolve the name `registry` -- a proxy
+    # host pointed here fails to start rather than quietly working. Attaching
+    # oan-edge is the one edit that would make the registry publishable, so it
+    # is the one edit to refuse.
+    #
+    # Why not route it. POST /api/v1/Participant/search takes NO token, which
+    # makes it tempting: it is the one call a network peer needs. But
+    # SunbirdRC uses POST for both reads and writes -- /Participant/search
+    # reads, /Participant creates -- so no method rule separates them, and a
+    # route publishes the write surface the moment anything can mint a token.
+    # Today nothing can, for one reason only: Keycloak publishes on
+    # 127.0.0.1. That is a decision forty lines up, and a route here would
+    # silently depend on it.
+    #
+    # What this costs: nothing outside the VM can write a registry row, which
+    # is why bin/setup.py seeds all five participants and both bindings from
+    # inside. It is also why the Postman collection has no registry request --
+    # there is no way for one to work.
+    #
+    # Reaching it for debugging is an SSH tunnel to ${REGISTRY_PORT}.
+    networks: [oan-internal]
+    volumes:
+      # Schemas are read at startup, so a change here needs this service
+      # restarted before the registry will honour it.
+      - ./config/registry/schemas:/home/sunbirdrc/config/public/_schemas
+    environment:
+      - connectionInfo_uri=jdbc:postgresql://registry-db:5432/${POSTGRES_DB}
+      - connectionInfo_username=${POSTGRES_USER}
+      - connectionInfo_password=${POSTGRES_PASSWORD}
+      - search_providerName=dev.sunbirdrc.registry.service.NativeSearchService
+      - authentication_enabled=true
+      - sunbird_sso_realm=${KEYCLOAK_REALM}
+      - sunbird_sso_url=http://keycloak:8080/auth
+      # Without this the service resolves its issuer to localhost -- which
+      # inside the container is itself -- and the security filter chain fails
+      # to build, so the whole registry never starts.
+      - OAUTH2_RESOURCES_0_URI=http://keycloak:8080/auth/realms/${KEYCLOAK_REALM}
+      - OAUTH2_RESOURCES_0_PROPERTIES_ROLES_PATH=realm_access.roles
+      - identity_provider=dev.sunbirdrc.auth.keycloak.KeycloakProviderImpl
+      - sunbird_sso_admin_client_id=${KEYCLOAK_ADMIN_CLIENT_ID}
+      - sunbird_sso_client_id=${KEYCLOAK_CLIENT_ID}
+      - sunbird_sso_admin_client_secret=${KEYCLOAK_SECRET}
+      - sunbird_keycloak_user_set_password=true
+      - sunbird_keycloak_user_password=${REGISTRY_DEFAULT_USER_PASSWORD}
+      - encryption_enabled=false
+      - event_enabled=false
+      - idgen_enabled=false
+      - claims_enabled=false
+      - did_enabled=false
+      - signature_enabled=false
+      - certificate_enabled=false
+      - filestorage_enabled=false
+      - notification_enabled=false
+      - notification_async_enabled=false
+      - async_enabled=false
+      - webhook_enabled=false
+      - registry_base_apis_enable=false
+      - manager_type=DefinitionsManager
+      - expand_reference=false
+      - swagger_title=OAN Registry
+      - logging.level.root=INFO
+    ports:
+      # Loopback only, and bin/setup.py talks to exactly this: it derives
+      # http://localhost:${REGISTRY_PORT} and runs on the VM.
+      - "127.0.0.1:${REGISTRY_PORT}:8081"
+    depends_on:
+      registry-db:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      # This image ships no curl, wget, nc or bash, so the check reads the
+      # kernel's own table instead: 1F91 is 8081 in hex, and the service binds
+      # v6, hence tcp6. It proves the port is accepting connections, which is
+      # what everything downstream waits for.
+      test: ["CMD-SHELL", "grep -q ':1F91' /proc/net/tcp6"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 40s
+
+  # ==========================================================================
+  # discovery -- catalogue search, and its own Postgres.
+  # ==========================================================================
+  discovery-db:
+    # pgvector rather than plain postgres: the discovery service's HNSW index
+    # options arrived in 0.8.
+    image: pgvector/pgvector:0.8.0-pg16
+    container_name: discovery-db
+    restart: unless-stopped
+    networks: [oan-internal]
+    environment:
+      # Not read from .env, unlike the registry's pair, and so not covered by
+      # the credential rotation .env.example asks for. That is tolerable only
+      # because this database publishes no port and sits on an internal
+      # network; if it ever needs to be reachable, these move to .env first.
+      POSTGRES_USER: discovery
+      POSTGRES_PASSWORD: discovery
+      POSTGRES_DB: discovery
+    volumes:
+      - discovery-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U discovery -d discovery"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  discovery:
+    image: ${DISCOVERY_IMAGE}
+    pull_policy: missing
+
+    # THE ONLY SERVICE HERE THAT CAN BE BUILT, and the exception is earned. It
+    # is never built by `make up` -- `image:` above still decides what runs, and
+    # a build only happens when you ask for one:
+    #
+    #   DISCOVERY_IMAGE=discovery-service:local docker compose build discovery
+    #
+    # Why this one and not the adapters or the mocks: the published tag went
+    # stale in a way no error reports. Measured on 2026-09-10,
+    # ghcr.io/nisargabd/discovery-service:latest was built before the telemetry
+    # package existed -- its embedded build info lists no go.opentelemetry.io
+    # dependency at all. Against that image every OTEL_* setting below is
+    # accepted, nothing is exported, and the stack looks entirely healthy. A
+    # build you can run locally is what makes that falsifiable.
+    #
+    # The context defaults to a sibling checkout because that is where it sits
+    # for anyone who has both repos; point DISCOVERY_CONTEXT elsewhere if yours
+    # differs. Without that checkout the build fails on a missing directory,
+    # which is the correct failure -- there is no source to build.
+    build:
+      context: ${DISCOVERY_CONTEXT:-../../discovery-service}
+
+      # PUBLIC BASE IMAGES, deliberately overriding the Dockerfile's own
+      # defaults. It defaults to dhi.io/* -- Docker Hardened Images, what CI
+      # and every shipped image use -- and those 401 on an anonymous pull. A
+      # quick-start reader is precisely the person without that subscription,
+      # so the public equivalents the Dockerfile documents are the right
+      # default HERE and the wrong one there. INSTALL_BUILD_TOOLS comes with
+      # them and is not optional: h3-go is a cgo binding around Uber's C
+      # library, DHI's -dev variant bundles a C toolchain and golang:alpine
+      # does not.
+      args:
+        BUILD_IMAGE: ${DISCOVERY_BUILD_IMAGE:-golang:1.27-alpine}
+        RUNTIME_IMAGE: ${DISCOVERY_RUNTIME_IMAGE:-gcr.io/distroless/static-debian12:nonroot}
+        INSTALL_BUILD_TOOLS: "true"
+
+        # Bare names, so each is passed through from the environment if set and
+        # left to the Dockerfile's own default if not. No values invented here:
+        # compose cannot run `git describe`, and a stamp this file made up would
+        # be worse than an absent one.
+        #
+        # Unset, the binary reports `dev unknown 1970-01-01T00:00:00Z unknown`
+        # and its telemetry Resource carries that verbatim in build.commit,
+        # build.date and build.tree_state. Honest for a local build. To stamp
+        # one, build it in the discovery-service repo instead -- `make docker`
+        # is what derives all four -- or set them in the environment first.
+        #
+        # A key with NO VALUE is compose's pass-through form. It is not the same
+        # as `VERSION: ""`, which would pass an empty string and defeat the
+        # Dockerfile's default.
+        VERSION:
+        COMMIT:
+        BUILD_DATE:
+        TREE_STATE:
+
+    container_name: discovery
+    restart: unless-stopped
+    networks: [oan-internal]
+    environment:
+      DATABASE_URL: postgres://discovery:discovery@discovery-db:5432/discovery?sslmode=disable
+      DATABASE_AUTO_MIGRATE: "true"
+      APP_NETWORK_ID: ${APP_NETWORK_ID}
+      SERVER_PORT: 8080
+      VALIDATION_SPEC_URL: ${BECKN_SPEC_URL}
+
+      # ---- telemetry --------------------------------------------------------
+      #
+      # This block used to say the exporter was parsed and unread, and that
+      # `none` was therefore the honest default. That stopped being true when
+      # the telemetry package landed: the service exports spans and two pgxpool
+      # instruments over OTLP/gRPC, straight to hyperdx like the adapters.
+      #
+      # WHAT DOES NOT ARRIVE, so nobody goes looking for it: the five OAN
+      # `metric.code` streams -- the two *_total_count and the three *_percent.
+      # They are not instrumented in the service at all; they are derived from
+      # the exported span stream by a collector running the discovery-service
+      # repo's otel/collector.yaml, and this stack does not run one. Traces
+      # arrive, everything looks healthy, and those five are simply absent.
+      # That is a quick-start simplification, not the deployment shape -- see
+      # Appendix H.
+      OTEL_EXPORTER: ${OTEL_EXPORTER:-otlp}
+
+      # NO SCHEME, and that is the opposite of the adapters two screens up --
+      # worth reading beside the note on the x-adapter anchor, because the same
+      # bare host:port means opposite things on either side.
+      #
+      # This service does not consult the SDK's env lookup; it passes the
+      # endpoint in explicitly, having branched on whether it has a scheme:
+      #
+      #     if hasScheme(endpoint) { WithEndpointURL(endpoint) }
+      #     else                   { WithEndpoint(endpoint), WithInsecure() }
+      #
+      # So a bare host:port is plaintext HERE, where on the adapters a bare
+      # host:port is what silently selects TLS. Adding http:// to this line
+      # would not make it more explicit; it would route through the URL branch.
+      # OTEL_EXPORTER_OTLP_INSECURE is absent for the same reason: unread.
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTLP_ENDPOINT:-hyperdx:4317}
+
+      # BOTH ARE REQUIRED once the exporter is otlp, and their absence fails
+      # the boot rather than degrading -- the service refuses to export a
+      # stream it cannot attribute. That refusal is why they are here: before
+      # this, flipping OTEL_EXPORTER=otlp would have stopped the container
+      # starting, naming a variable this file never set.
+      #
+      # APP_SUBSCRIBER_ID is the Resource's `producer` and every span's
+      # recipient.id. Empty means the whole stream lands under no participant,
+      # which is worse than no stream: an empty grouping key reads as data
+      # rather than as an absence.
+      #
+      # APP_DOMAIN is checked against the sector list the build declares, so a
+      # typo fails the boot instead of splitting this deployment's telemetry
+      # into a group of one.
+      APP_SUBSCRIBER_ID: ${DISCOVERY_SUBSCRIBER_ID}
+      APP_DOMAIN: ${DISCOVERY_DOMAIN:-Agriculture}
+
+      # OTEL_SERVICE_NAME is deliberately absent, and it WAS SET HERE on both
+      # sides of this merge -- to `oan-discovery` before the container rename
+      # and to `discovery` after it. The service reads neither: `service.name`
+      # is a compile-time constant, `discovery-service`, because it says what
+      # SOFTWARE this is and so must not vary by deployment. Confirmed against
+      # a live stack on 2026-09-10 -- spans arrived as `discovery-service` with
+      # nothing set. The variable was worse than inert: it named a value you
+      # would then go hunting for in HyperDX and never find, and the rename
+      # gave it a second wrong value to hunt for. What varies per deployment is
+      # `producer`, from APP_SUBSCRIBER_ID above.
+    # config/common.yaml is baked into the image and is the reviewed default.
+    # To override a setting, copy config/discovery/instance.yaml.example to
+    # config/discovery/instance.yaml and uncomment the mount below -- compose
+    # creates a DIRECTORY if you mount a file that does not exist, which the
+    # service then fails to parse, so the file has to be there first.
+    # volumes:
+    #   - ./config/discovery/instance.yaml:/app/config/instance.yaml:ro
+    ports:
+      # Loopback only. Discovery is reached by the network adapter over
+      # oan-internal; this publish exists for curl through the tunnel.
+      - "127.0.0.1:${DISCOVERY_PORT}:8080"
+    depends_on:
+      discovery-db:
+        condition: service_healthy
+
+  # ==========================================================================
+  # adapters -- experience, network and provider. Same image, three configs.
+  #
+  # Their configs are bind-mounted FILES that do not exist until bin/setup.py
+  # renders them from the .tmpl beside them, which is what the step ordering
+  # above is about.
+  # ==========================================================================
+
+  # ==========================================================================
+  # mock upstreams -- stand-ins for the real provider APIs, so the stack can be
+  # exercised without their credentials.
+  #
+  # Pulled like everything else. The sources are in mock-server/ to be built and
+  # published once, not built here -- see mock-server/README.md.
+  #
+  # oan-internal only: an upstream is called BY the provider adapter and is
+  # never reached from outside, so NPM has no business seeing it. The published
+  # ports are for looking at the mock directly while debugging.
+  #
+  # Both reproduce the awkward parts of the services they stand in for on
+  # purpose. A tidy mock would let a mapping pass here and fail in the real
+  # deployment.
+  # ==========================================================================
+  mockimd:
+    image: ${MOCKIMD_IMAGE}
+    pull_policy: missing
+    container_name: mockimd
+    restart: unless-stopped
+    networks: [oan-internal]
+    command:
+      - "-addr=:9100"
+      # How many forecast days it answers with. The mapping reads however many
+      # arrive, so this is the knob for checking that it does.
+      - "-days=${MOCKIMD_DAYS:-3}"
+    ports:
+      - "127.0.0.1:${MOCKIMD_PORT}:9100"
+
+  mockagmarknet:
+    image: ${MOCKAGMARKNET_IMAGE}
+    pull_policy: missing
+    container_name: mockagmarknet
+    restart: unless-stopped
+    networks: [oan-internal]
+    command:
+      - "-addr=:9101"
+      # It answers 401 without this token, which is what proves the adapter
+      # sent one rather than the call happening to work anyway.
+      - "-token=${MANDI_TOKEN}"
+      - "-days=${MOCKAGMARKNET_DAYS:-2}"
+    ports:
+      - "127.0.0.1:${MOCKAGMARKNET_PORT}:9101"
+
+  # Verifies the caller, calls the upstream provider, answers synchronously.
+  # It has no provider address of its own: it reads the ProviderSchema row,
+  # so repointing it at a different upstream is a registry write, not a
+  # change here or a restart.
+  provider-adapter:
+    <<: *adapter
+    container_name: provider-adapter
+    depends_on:
+      registry:
+        condition: service_healthy
+      mockimd:
+        condition: service_started
+      mockagmarknet:
+        condition: service_started
+    environment:
+      <<: *adapter-env
+      OTEL_SERVICE_NAME: provider-adapter
+      # The mandi upstream's credential. Named here and read at call time, so
+      # it is never in a config file or in the registry.
+      MANDI_TOKEN: ${MANDI_TOKEN}
+    volumes:
+      - ./config/adapters/provider.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/routing-provider.yaml:/app/config/routing-provider.yaml:ro
+    ports:
+      - "127.0.0.1:${PROVIDER_ADAPTER_PORT}:9200"
+
+  # Verifies the caller, hands discovery on, re-signs as itself.
+  network-adapter:
+    <<: *adapter
+    container_name: network-adapter
+    depends_on:
+      registry:
+        condition: service_healthy
+      discovery:
+        condition: service_started
+    environment:
+      <<: *adapter-env
+      OTEL_SERVICE_NAME: network-adapter
+    volumes:
+      - ./config/adapters/network.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/routing-network.yaml:/app/config/routing-network.yaml:ro
+    ports:
+      - "127.0.0.1:${NETWORK_ADAPTER_PORT}:9201"
+
+  # The caller, and the only one that takes unsigned requests: the experience
+  # app is inside the trust boundary, so there is no network signature to
+  # check. This is what makes the stack testable with a plain curl -- and it
+  # is also why the edge rate-limits this host and nothing else.
+  exp-adapter:
+    <<: *adapter
+    container_name: exp-adapter
+    depends_on:
+      network-adapter:
+        condition: service_started
+      provider-adapter:
+        condition: service_started
+    environment:
+      <<: *adapter-env
+      OTEL_SERVICE_NAME: exp-adapter
+    volumes:
+      - ./config/adapters/experience.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/routing-experience.yaml:/app/config/routing-experience.yaml:ro
+    ports:
+      - "127.0.0.1:${EXP_ADAPTER_PORT}:9202"
+
+  # ==========================================================================
+  # observability -- HyperDX / ClickStack: OTLP ingest, ClickHouse, and the UI
+  # over it.
+  #
+  #   docker compose --profile observability up -d
+  #
+  # Sizing: ClickHouse alone wants 2-4 GB. With this profile on, the VM needs
+  # 16 GB (t3.xlarge or m6i.xlarge); without it, 8 GB is workable.
+  # ==========================================================================
+  hyperdx:
+    # clickstack-local, not clickstack-all-in-one: local runs single-user with
+    # no team to create and no ingestion API key to mint, which is what makes
+    # `up -d` the whole setup step. It is also why it has NO login of its own
+    # -- so once this is routed (see networks, below) the Access List on the
+    # proxy host is the only authentication in front of every trace, log and
+    # metric the stack has emitted. It is not an optional hardening step.
+    image: clickhouse/clickstack-local:latest
+    container_name: hyperdx
+    restart: unless-stopped
+    profiles: ["observability"]
+
+    # oan-edge in addition to oan-internal, so NPM can resolve `hyperdx` and
+    # serve the UI on a hostname instead of an `ssh -L`. oan-internal stays,
+    # because that is the network the in-stack senders reach 4317/4318 on.
+    #
+    # This widens what a wrong click in NPM can reach, and the widening is
+    # worth stating rather than discovering: this container is also ClickHouse,
+    # so `hyperdx` is now a resolvable Forward Hostname for port 8123 -- an
+    # HTTP interface clickstack-local leaves open, over the same volume. The
+    # proxy host for the UI pins 8080 and is fine; nothing in NPM stops someone
+    # typing 8123 into a second one. Registry and Keycloak remain off oan-edge,
+    # so that bound is unchanged -- this is a deliberate trade of one name for
+    # not having to tunnel to read telemetry.
+    networks: [oan-internal, oan-edge]
+    env_file:
+      # Optional. Present so an existing .env.docker keeps working; compose
+      # errors on a missing env_file unless it is declared this way.
+      - path: .env.docker
+        required: false
+    environment:
+      # Self-instrumentation off: the telemetry stack reporting on itself is
+      # noise in the same tables the stack under test writes to, and at debug
+      # level it is most of the volume.
+      OTEL_SDK_DISABLED: "true"
+      HYPERDX_LOG_LEVEL: error
+      HYPERDX_USAGE_STATS_ENABLED: "false"
+      HYPERDX_USAGE_STATS_COLLECTION_ENABLED: "false"
+      OTEL_LOG_LEVEL: none
+      OTEL_TRACES_EXPORTER: none
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+      USAGE_STATS_ENABLED: "false"
+    ports:
+      # 8085, not the 8080 this image serves the UI on and not the 8081 it is
+      # usually published as: 8081 is REGISTRY_PORT here, and two services
+      # cannot claim one host port.
+      #
+      # Still 127.0.0.1 now that there is a route: the public path is NPM ->
+      # hyperdx:8080 across oan-edge, which is what makes the Access List
+      # unavoidable. Rebinding this to 0.0.0.0 would open a second door on the
+      # same UI with no credential on it, and the security group is the only
+      # thing that would be holding it shut.
+      - "127.0.0.1:${HYPERDX_PORT:-8085}:8080"
+      # OTLP. Published on loopback only so a reverse tunnel can carry
+      # telemetry from a provider API running on someone's laptop; the
+      # in-stack senders reach hyperdx:4317/4318 over oan-internal and do not
+      # need these at all.
+      - "127.0.0.1:${OTLP_GRPC_PORT:-4317}:4317"
+      - "127.0.0.1:${OTLP_HTTP_PORT:-4318}:4318"
+
+      # ClickHouse's HTTP interface, and it is published for one specific
+      # reason: clickstack-local is LOCAL mode, where the UI queries ClickHouse
+      # straight from the BROWSER with no API server in between. So the Host
+      # field in Team Settings is dialled by your laptop, not by the container
+      # -- its `http://localhost:8123` default means *your* machine, so with
+      # nothing listening there it fails with "Error connecting to ClickHouse
+      # server" however the proxy is set up. The route and the Access List are
+      # not implicated; the query never leaves the browser's own stack.
+      #
+      # A tunnel to 8123 is all it needs, and the UI can still be the public
+      # host -- the origin serving the UI and the address it queries are
+      # independent:
+      #
+      #   ssh -L 8123:127.0.0.1:8123 -N you@the-vm
+      #   then https://hyperdx.<your host>/ with connection Host
+      #   http://localhost:8123     (add -L 8085 if you want the UI local too)
+      #
+      # The catch is that this is PER VIEWER: a teammate who opens the public
+      # host without that tunnel gets the same error, and connections live in
+      # browser local storage, so each origin needs its own set up by hand.
+      #
+      # 127.0.0.1 and NOT negotiable, unlike the UI on 8085. This interface
+      # executes arbitrary SQL and clickstack-local leaves it open, so a
+      # 0.0.0.0 bind or an NPM route publishes the whole telemetry store --
+      # and its own auth uses the same `Authorization: Basic` header an NPM
+      # Access List needs, so the two cannot be stacked.
+      #
+      # The real fix is clickstack-all-in-one: a server-side API queries
+      # ClickHouse, connections stop being browser state, and this publish and
+      # the tunnel both become unnecessary. See README Appendix H.
+      - "127.0.0.1:${CLICKHOUSE_HTTP_PORT:-8123}:8123"
+    volumes:
+      - hyperdx-data:/var/lib/clickhouse
+    healthcheck:
+      # wget, not curl: this image has busybox. And a GET, not `--spider`,
+      # which sends HEAD -- Next.js answers HEAD / with a 404 while serving
+      # GET / perfectly, so the probe failed against a UI that was working.
+      #
+      # 127.0.0.1 rather than localhost, because busybox resolves localhost to
+      # ::1 first and these listeners are v4.
+      #
+      # Two checks, because this container is two things. 8080 is the Next.js
+      # UI -- what 8085 publishes and what you actually open. 13133 is the
+      # collector's health_check extension, and the collector is what receives
+      # telemetry on 4317/4318: it can die while the UI keeps serving, which
+      # loses data silently and is the failure worth catching.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ && wget -q -O /dev/null http://127.0.0.1:13133/"]
+      interval: 10s
+      timeout: 5s
+      # ClickHouse creates its system tables on a cold volume, which takes
+      # minutes rather than the 80s the previous 5/30s pair allowed. Docker
+      # does not re-evaluate once a container has failed past `retries`, so a
+      # window that is merely tight leaves a permanent wrong label.
+      retries: 10
+      start_period: 180s
+
+  # ==========================================================================
+  # edge -- Nginx Proxy Manager.
+  #
+  #   docker compose --profile reverse-proxy up -d
+  #
+  # NPM rather than a hand-written nginx.conf because it owns the part that is
+  # genuinely tedious to do by hand -- ACME. It requests, installs and renews
+  # Let's Encrypt certificates from a UI rather than from a certbot invocation
+  # someone has to remember. In exchange, the routing table stops being a file
+  # in this repo and becomes rows in NPM's SQLite database under the npm-data
+  # volume: reviewable only by opening the UI, and restorable only from that
+  # volume. See README for the proxy hosts to create.
+  # ==========================================================================
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: npm
+    restart: unless-stopped
+    profiles: ["reverse-proxy"]
+
+    # oan-edge ONLY, and this is the whole security argument for putting a
+    # UI-configured proxy in front of this stack.
+    #
+    # NPM's "Forward Hostname" is a free-text field. Anyone with the admin
+    # password can type `registry`, `keycloak` or `discovery-db` into it. On
+    # this network none of those names resolve and none of those addresses are
+    # routable from here -- the three adapters, and hyperdx when the
+    # observability profile is up, are the only containers NPM shares a network
+    # with. So the blast radius of a wrong click, or of the admin UI being
+    # reached by someone who should not have it, is bounded to that set.
+    #
+    # Putting NPM on oan-internal to "make things easier" would remove that
+    # bound entirely and put the registry's write API one form field away from
+    # the internet. Do not.
+    networks: [oan-edge]
+
+    ports:
+      # Public. Both of these must be reachable from anywhere, not just from
+      # your address: Let's Encrypt validates HTTP-01 by fetching
+      # http://<name>/.well-known/acme-challenge/... from its own servers, and
+      # those come from addresses you do not get to enumerate. An SG rule
+      # scoped to your IP will make certificate issuance fail with a challenge
+      # timeout. Use DNS-01 instead if 80 must stay closed -- see README.
+      - "0.0.0.0:${GATEWAY_HTTP_PORT:-80}:80"
+      - "0.0.0.0:${GATEWAY_HTTPS_PORT:-443}:443"
+
+      # The admin UI, on loopback -- deliberately not the "publish it and
+      # restrict it in the firewall" arrangement. Two reasons. It ships with
+      # a known default login (admin@example.com / changeme) that is live from
+      # first boot until someone changes it, and it is the one surface here
+      # that can mint certificates and re-point every public route. A security
+      # group is a second system to keep in step with that; a loopback bind is
+      # not. Reach it over the tunnel:
+      #
+      #   ssh -L 81:127.0.0.1:81 -N you@the-vm   then http://127.0.0.1:81
+      - "127.0.0.1:${NPM_ADMIN_PORT:-81}:81"
+
+    volumes:
+      - npm-data:/data
+      - npm-letsencrypt:/etc/letsencrypt
+
+      # Version-controlled nginx that NPM includes on its own. /data is a
+      # named volume and this bind mounts over one directory inside it, which
+      # works because the more specific mount wins.
+      #
+      # Only what is genuinely context-wide belongs here -- see the README for
+      # which of these NPM loads automatically and which is a paste job.
+      #
+      # NOT :ro, however much it wants to be. NPM's s6 init runs 50-ipv6.sh
+      # over everything under /data/nginx, which writes a .tmp beside each file
+      # and then chowns it. On a read-only mount both fail, the `prepare`
+      # service exits 1, s6 aborts the rest of the chain, and nginx never
+      # starts -- the container still reports Up, because s6 itself is alive,
+      # so the symptom is an empty reply on 81 and a healthcheck that never
+      # passes rather than anything that says "permissions".
+      #
+      # What NPM actually rewrites is `listen` directives, and neither file
+      # here has one, so the pass is a no-op on content. It does take
+      # ownership of the files, which is cosmetic and not tracked by git.
+      - ./config/reverse-proxy/npm-custom:/data/nginx/custom
+
+    depends_on:
+      # Ordering only; the adapter image has no healthcheck.
+      #
+      # And ordering is not the whole problem. NPM writes a literal
+      # proxy_pass hostname per proxy host, which nginx resolves at reload and
+      # then caches -- so if you RECREATE an adapter (not merely restart it;
+      # a restart keeps the address) NPM keeps proxying to an address nothing
+      # answers on. The fix is one command, and it is worth knowing before you
+      # spend an afternoon on a 502:
+      #
+      #   docker compose restart nginx-proxy-manager
+      #
+      # hyperdx is deliberately absent even though it is routed: it is behind
+      # the `observability` profile, and a depends_on would make it start
+      # whenever NPM does. That means the restart above is not optional after
+      # `make observability` -- NPM was started before the name existed, so the
+      # HyperDX host 502s until it re-resolves.
+      exp-adapter:
+        condition: service_started
+      network-adapter:
+        condition: service_started
+      provider-adapter:
+        condition: service_started
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:81/api/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
