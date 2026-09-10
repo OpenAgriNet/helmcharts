@@ -235,8 +235,13 @@ loopback.
 make observability
 ```
 
-HyperDX on `127.0.0.1:8085`, OTLP on 4317/4318. → Appendix H, which is honest
-about how much actually arrives.
+HyperDX on `127.0.0.1:8085`, OTLP on 4317/4318 — and, once you add its proxy
+host, on a public hostname behind an NPM Access List, which is how you read it
+without a tunnel. Route + credential → **Appendix B**. → Appendix H, which is
+honest about how much actually arrives.
+
+`docker compose restart nginx-proxy-manager` after this command, the first
+time: NPM only resolves `hyperdx` on reload.
 
 ---
 
@@ -330,6 +335,68 @@ Three hosts rather than one with path prefixes, so a rate limit or a block
 attaches to a hostname instead of a regex in a textarea, and each gets its own
 certificate. An unknown `Host` gets NPM's default page, not an adapter.
 
+**A fourth host for HyperDX**, if the `observability` profile is up — this is
+what replaces `ssh -L 8085` for reading telemetry:
+
+| Domain | Forward Hostname | Port | Then |
+|---|---|---|---|
+| `hyperdx.oan.example.com` | `hyperdx` | 8080 | **Access List**, then paste `config/reverse-proxy/npm-advanced/hyperdx.conf` into **Advanced** |
+
+`8080`, the container port — not the `8085` loopback publishes it as. Turn on
+**Websockets Support** (the UI's live tail needs it) and **Block Common
+Exploits**; scheme stays `http`.
+
+**The Access List is not optional, and it is the whole login.** `clickstack-local`
+runs single-user: no team, no user, no ingestion key — which is what makes
+`make observability` one command, and also means a proxy host without an Access
+List publishes every trace, log and metric the stack has emitted, to anyone who
+resolves the name.
+
+Access Lists → Add → name it → **Authorization** tab → username + password →
+leave **Satisfy Any off**, and leave the **Rules** tab empty. Then the proxy
+host → Details → Access List — a list that exists but is not attached does
+nothing.
+
+**Rules takes IP addresses, not hostnames.** It is the address of whoever is
+*browsing*, not the domain being protected. Putting the hostname there fails
+schema validation with a wall of IPv6 regex and `must match pattern "^all$"`,
+and — the part that costs you an hour — **the Save fails with it**, so Satisfy
+Any and the Authorizations you set in the same dialog are never written either.
+An empty Rules tab is correct for this host.
+
+**Satisfy Any is the trap.** It maps to nginx's `satisfy any` — access is
+granted when *any* access-phase module is satisfied rather than all of them, so
+combined with an empty Access tab it can hand out the UI without ever asking
+for the password. Unchecked (`satisfy all`) means basic auth must pass. Only
+check it if you have IP rules and want address *or* password to be enough.
+
+Check both directions, because a detached list fails open and a 200 looks like
+success either way:
+
+```sh
+curl -s -o /dev/null -w '%{http_code}\n' https://hyperdx.oan.example.com/ -u user:pass   # 200
+curl -s -o /dev/null -w '%{http_code}\n' https://hyperdx.oan.example.com/                # 401
+```
+
+`hyperdx` resolves for NPM because the service is on `oan-edge` as well as
+`oan-internal`. Two consequences worth holding onto:
+
+- **NPM was started before that name existed**, so the host 502s until
+  `docker compose restart nginx-proxy-manager`. HyperDX is behind a profile and
+  cannot be a `depends_on`, so nothing does this for you.
+- **The container is also ClickHouse**, so `hyperdx:8123` is now a Forward
+  Hostname that resolves, pointing at an HTTP interface `clickstack-local`
+  leaves open on the same volume. The host above pins 8080; nothing in the UI
+  stops a second one on 8123. Registry and Keycloak are still off `oan-edge` —
+  that bound did not move — but this one name did.
+
+**OTLP stays off the edge.** Do not add 4317/4318 to this host or any other:
+they accept telemetry with no credential, and an Access List in front of them
+would break every in-stack sender (gRPC, not HTTP Basic) while an open route
+would let anyone write into the tables you are reading. Inside the stack,
+senders use `hyperdx:4317` over `oan-internal`; outside it, a reverse tunnel to
+the loopback publish.
+
 **Certificates.** SSL tab → Request a new certificate → Force SSL → HTTP
 validation. Two things must be true, and both are easy to miss:
 
@@ -370,6 +437,7 @@ an `allow`.
 | `npm-custom/http_top.conf` | **Automatic**, top of the `http` block. The `exp` rate-limit zone and `limit_req_status 429`. |
 | `npm-custom/server_proxy.conf` | **Automatic**, every server block. The `/publish` deny. |
 | `npm-advanced/exp.conf` | **Manual** — paste into the experience host's Advanced tab. `limit_req` for that host only; a 10 r/s ceiling on signed peer traffic would throttle for no gain. |
+| `npm-advanced/hyperdx.conf` | **Manual** — paste into the HyperDX host's Advanced tab. 300s timeouts for ClickHouse scans, buffering off for live tail. Carries no credential; the Access List does. |
 
 The manual one is in a file anyway because NPM's Advanced field is a textarea
 in a database row — nothing diffs it and nothing reviews it.
@@ -377,18 +445,19 @@ in a database row — nothing diffs it and nothing reviews it.
 ### Adding a route for another service
 
 Two steps, and the first is in git rather than the UI. NPM sits on `oan-edge`,
-where only the three adapters resolve, so a proxy host pointed at `registry` or
-`hyperdx` 502s rather than quietly working. **The UI alone cannot widen what is
-public** — that is the property worth keeping.
+where only the three adapters and `hyperdx` resolve, so a proxy host pointed at
+`registry` or `keycloak` 502s rather than quietly working. **The UI alone
+cannot widen what is public** — that is the property worth keeping.
 
 1. **Put the service on `oan-edge`** in `docker-compose.yml`
    (`networks: [oan-internal, oan-edge]`), then
    `docker compose up -d some-service nginx-proxy-manager`. NPM needs the
    restart to resolve a name it could not see before.
-2. **Add the proxy host.** Forward Hostname is the **Compose service name**
-   (`discovery`, not `oan-discovery`, not an IP); Forward Port is the
-   **container** port, not what loopback publishes it as. Then SSL, and a DNS
-   record before requesting the certificate.
+2. **Add the proxy host.** Forward Hostname is the **Compose service name** —
+   `discovery`, never an IP. Each `container_name` is now the same string as its
+   service name, so there is no longer a wrong-but-plausible second spelling to
+   pick. Forward Port is the **container** port, not what loopback publishes it
+   as. Then SSL, and a DNS record before requesting the certificate.
 
 A service **not** in this Compose file needs no step 1 — NPM has egress, so put
 its address straight into Forward Hostname. A **second path on an existing
@@ -661,8 +730,14 @@ need to undo.
 
 `make observability` brings up HyperDX on `127.0.0.1:8085` with OTLP on
 4317/4318. It is `clickstack-local`: single-user, no team to create and no
-ingestion key to mint, which is what makes it one command — and also why it
-must stay on loopback, since there is no login in front of it.
+ingestion key to mint, which is what makes it one command — and also why it has
+**no login of its own**.
+
+So the UI is reachable two ways, and only one of them has a credential. The
+loopback publish is still there for `ssh -L 8085:127.0.0.1:8085`. The public
+path is a proxy host on `hyperdx:8080` with an **NPM Access List** in front,
+which is the only authentication that exists on it — see Appendix B, including
+why OTLP's 4317/4318 do not get the same treatment.
 
 **Discovery now exports.** It used to read the OTLP variables and consume
 nothing; that changed when its telemetry package landed, so `OTEL_EXPORTER`
@@ -747,9 +822,9 @@ someone tries. Despite a `/otelcontribcol` binary and an `/etc/otelcol-contrib`
 directory, it is a trimmed custom build:
 
 ```
-$ docker exec oan-hyperdx /otelcontribcol --version
+$ docker exec hyperdx /otelcontribcol --version
 otelcol-hyperdx version 0.155.0
-$ docker exec oan-hyperdx /otelcontribcol components   # connectors:
+$ docker exec hyperdx /otelcontribcol components   # connectors:
 forward, routing
 ```
 
@@ -850,8 +925,10 @@ config/
     npm-custom/             mounted to /data/nginx/custom; NPM includes these
       http_top.conf           on its own -- rate-limit zone, and the /publish
       server_proxy.conf       deny every proxy host gets
-    npm-advanced/exp.conf   NOT loaded. Paste into the Advanced tab; kept here
-                            because a textarea in a database is not reviewable
+    npm-advanced/           NOT loaded. Paste into a host's Advanced tab; kept
+      exp.conf                here because a textarea in a database is not
+      hyperdx.conf            reviewable. exp = rate limit; hyperdx = ClickHouse
+                              timeouts (its login is an NPM Access List)
   adapters/
     experience.yaml.tmpl    templates. setup.py renders these to .yaml,
     network.yaml.tmpl       filling in the keys it generated. The rendered

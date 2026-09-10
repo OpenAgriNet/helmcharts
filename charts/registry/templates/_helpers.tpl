@@ -2,37 +2,37 @@
 # ============================================================================
 # REGISTRY (SUNBIRD RC) CHART HELPERS
 # Owner: OpenAgriNet Engineering Team
-# Purpose: chart-local helpers delegating to oan-common, plus the database,
+# Purpose: chart-local helpers delegating to common, plus the database,
 #          Keycloak and schema wiring the registry needs.
 # ============================================================================
 */}}
 
 {{- define "registry.name" -}}
-{{- include "oan-common.name" . -}}
+{{- include "common.name" . -}}
 {{- end }}
 
 {{- define "registry.fullname" -}}
-{{- include "oan-common.fullname" . -}}
+{{- include "common.fullname" . -}}
 {{- end }}
 
 {{- define "registry.labels" -}}
-{{- include "oan-common.labels" . -}}
+{{- include "common.labels" . -}}
 {{- end }}
 
 {{- define "registry.selectorLabels" -}}
-{{- include "oan-common.selectorLabels" . -}}
+{{- include "common.selectorLabels" . -}}
 {{- end }}
 
 {{- define "registry.serviceAccountName" -}}
-{{- include "oan-common.serviceAccount.name" . -}}
+{{- include "common.serviceAccount.name" . -}}
 {{- end }}
 
 {{- define "registry.image" -}}
-{{- include "oan-common.image" . -}}
+{{- include "common.image" . -}}
 {{- end }}
 
 {{- define "registry.envConfigMapName" -}}
-{{- include "oan-common.envConfigMapName" . -}}
+{{- include "common.envConfigMapName" . -}}
 {{- end }}
 
 {{/*
@@ -150,7 +150,7 @@ is rejected as unauthorised.
       name: {{ . }}
       key: {{ $.Values.defaultUserPasswordSecret.key }}
 {{- end }}
-{{- with (include "oan-common.env" . | trim) }}
+{{- with (include "common.env" . | trim) }}
 {{ . }}
 {{- end }}
 {{- end }}
@@ -177,5 +177,5 @@ usable token.
 {{- end -}}
 {{- $tcp = concat $tcp (.Values.waitFor.extraTcp | default list) -}}
 {{- $http = concat $http (.Values.waitFor.extraHttp | default list) -}}
-{{- include "oan-common.waitFor" (dict "ctx" . "tcp" $tcp "http" $http) -}}
+{{- include "common.waitFor" (dict "ctx" . "tcp" $tcp "http" $http) -}}
 {{- end }}

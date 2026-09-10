@@ -27,6 +27,6 @@ sources:
   - https://github.com/OpenAgriNet/helmcharts
   - https://github.com/OpenAgriNet/network-adapter
 dependencies:
-  - name: oan-common
+  - name: common
     version: "0.2.x"
-    repository: "file://../oan-common"
+    repository: "file://../common"

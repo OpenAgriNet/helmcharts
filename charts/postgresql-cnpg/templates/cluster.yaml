@@ -54,7 +54,7 @@ spec:
   {{- end }}
 
   resources:
-    {{- include "oan-common.resources" . | nindent 4 }}
+    {{- include "common.resources" . | nindent 4 }}
 
   {{- $affinity := omit .Values.affinity "nodeSelector" "tolerations" }}
   {{- with .Values.affinity.nodeSelector }}

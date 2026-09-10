@@ -70,7 +70,7 @@ configurable.
 ### Added
 - CNPG `Cluster`, plus optional Barman Cloud `ObjectStore` and
   `ScheduledBackup`, and an optional ESO `ExternalSecret` for owner credentials.
-- Depends on the `oan-common` library chart for names, labels and the mandatory
+- Depends on the `common` library chart for names, labels and the mandatory
   `resources` contract.
 - Object store provider is selectable — `s3` (default), `gcs` or `azure` — with
   the URI scheme derived from the provider and credentials passed through
@@ -98,7 +98,7 @@ configurable.
 
 ### Changed
 - `cluster.resources` moved to top-level `resources`, so the shared
-  `oan-common.resources` helper and its "requests and limits are mandatory"
+  `common.resources` helper and its "requests and limits are mandatory"
   guardrail apply.
 - `cluster.instances`, `cluster.storage`, `cluster.walStorage`,
   `cluster.postgresql`, `cluster.affinity`, `cluster.monitoring` and
@@ -122,4 +122,4 @@ configurable.
   generic migration from any existing PostgreSQL, and the `TODO-CONFIRM` markers
   left in the original.
 - `app.kubernetes.io/part-of: cloudnative-pg` label, replaced by the standard OAN
-  labels from `oan-common`.
+  labels from `common`.

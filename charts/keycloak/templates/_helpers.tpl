@@ -2,37 +2,37 @@
 # ============================================================================
 # KEYCLOAK (SUNBIRD RC) CHART HELPERS
 # Owner: OpenAgriNet Engineering Team
-# Purpose: chart-local helpers delegating to oan-common, plus the realm-import
+# Purpose: chart-local helpers delegating to common, plus the realm-import
 #          and legacy-Keycloak database wiring this chart needs.
 # ============================================================================
 */}}
 
 {{- define "keycloak.name" -}}
-{{- include "oan-common.name" . -}}
+{{- include "common.name" . -}}
 {{- end }}
 
 {{- define "keycloak.fullname" -}}
-{{- include "oan-common.fullname" . -}}
+{{- include "common.fullname" . -}}
 {{- end }}
 
 {{- define "keycloak.labels" -}}
-{{- include "oan-common.labels" . -}}
+{{- include "common.labels" . -}}
 {{- end }}
 
 {{- define "keycloak.selectorLabels" -}}
-{{- include "oan-common.selectorLabels" . -}}
+{{- include "common.selectorLabels" . -}}
 {{- end }}
 
 {{- define "keycloak.serviceAccountName" -}}
-{{- include "oan-common.serviceAccount.name" . -}}
+{{- include "common.serviceAccount.name" . -}}
 {{- end }}
 
 {{- define "keycloak.image" -}}
-{{- include "oan-common.image" . -}}
+{{- include "common.image" . -}}
 {{- end }}
 
 {{- define "keycloak.envConfigMapName" -}}
-{{- include "oan-common.envConfigMapName" . -}}
+{{- include "common.envConfigMapName" . -}}
 {{- end }}
 
 {{/*
@@ -139,7 +139,7 @@ mirror the compose stack.
 - name: KEYCLOAK_IMPORT
   value: {{ include "keycloak.realmImportPath" . | quote }}
 {{- end }}
-{{- with (include "oan-common.env" . | trim) }}
+{{- with (include "common.env" . | trim) }}
 {{ . }}
 {{- end }}
 {{- end }}
@@ -155,5 +155,5 @@ container connects to.
 {{- $tcp = append $tcp (dict "name" "database" "host" .Values.database.host "port" .Values.database.port) -}}
 {{- end -}}
 {{- $tcp = concat $tcp (.Values.waitFor.extraTcp | default list) -}}
-{{- include "oan-common.waitFor" (dict "ctx" . "tcp" $tcp "http" (.Values.waitFor.extraHttp | default list)) -}}
+{{- include "common.waitFor" (dict "ctx" . "tcp" $tcp "http" (.Values.waitFor.extraHttp | default list)) -}}
 {{- end }}

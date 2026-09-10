@@ -8,13 +8,13 @@ produced it.
 
 | Thing | Rule | Example |
 |---|---|---|
-| Chart directory and `name` | `oan-<service>`, kebab-case, matching the service's repo/deployment name | `oan-registry-service` |
-| Library chart | `oan-common` — the only library chart; every service chart depends on it | `oan-common` |
-| Reference chart | `oan-template` — copied to start a new chart, never deployed as-is | `oan-template` |
-| A deployed component | Named after the **role it plays in OAN**, no `oan-` prefix — the prefix is for the shared library and the starter chart | `registry`, `keycloak` |
+| Chart directory and `name` | The role the component plays, kebab-case, no prefix | `registry`, `discovery` |
+| Library chart | `common` — the only library chart; every service chart depends on it | `common` |
+| Reference chart | `template` — copied to start a new chart, never deployed as-is | `template` |
+| A deployed component | Named after the **role it plays in OAN** | `registry`, `keycloak` |
 | Two charts for the same role | Add the distinguishing implementation as a suffix, only when there is something to distinguish | `postgresql-cnpg` |
-| Release name | The service name without the `oan-` prefix, so resources read `registry-service-...` not `oan-registry-service-oan-registry-service` | `helm install registry-service charts/oan-registry-service` |
-| Template helpers | Chart-local helpers are namespaced by chart name: `<chart>.<helper>` | `oan-registry-service.fullname` |
+| Release name | Matches the chart name, so resources read `registry-...` and not `registry-registry-...` | `helm install registry charts/registry` |
+| Template helpers | Chart-local helpers are namespaced by chart name: `<chart>.<helper>` | `registry.fullname` |
 | Value keys | camelCase, matching Kubernetes field names where one exists | `podSecurityContext`, `envFromSecrets` |
 | Env var keys in `envConfig` | SCREAMING_SNAKE_CASE | `LOG_LEVEL` |
 | Custom labels/annotations | Prefixed with a domain we own | `oan.in/environment: dev` |
@@ -29,10 +29,9 @@ Add an implementation suffix only when it actually distinguishes something —
 reasonably mean several different operators, and which one is in use changes how
 the chart is configured and operated.
 
-The `oan-` prefix is reserved for the shared library (`oan-common`) and the
-starter chart (`oan-template`). Every chart, prefixed or not, depends on
-`oan-common` and carries the standard OAN labels, including
-`app.kubernetes.io/part-of: oan`.
+No chart carries an `oan-` prefix. The organisation is expressed in labels, not
+in names: every chart depends on `common` and carries the standard OAN labels,
+including `app.kubernetes.io/part-of: oan`.
 
 Chart directory name, `name` in `Chart.yaml`, and the prefix of the chart-local
 helpers must all agree. A mismatch is the most common cause of a chart that
@@ -58,9 +57,9 @@ Two independent version fields, both required in every `Chart.yaml`:
 | Bug fix in a template; doc/comment change; `appVersion` bump | PATCH |
 | Removing or renaming a value key or helper; changing a default that alters live behaviour; changing an immutable field such as a selector label | MAJOR |
 
-For `oan-common` specifically: consumers pin `version: "0.1.x"`, so helper
+For `common` specifically: consumers pin `version: "0.1.x"`, so helper
 additions ship as PATCH/MINOR and MAJOR is reserved for renaming or changing the
-behaviour of an existing helper. A MAJOR bump of `oan-common` means every
+behaviour of an existing helper. A MAJOR bump of `common` means every
 consuming chart's pin has to be updated deliberately.
 
 Pre-1.0.0 charts are still in flux; once a chart is deployed to production it
@@ -75,19 +74,19 @@ entry. This is what makes "which chart version introduced this?" answerable.
 
 ## Required in every service chart
 
-The deployment epic requires these on every component, and `oan-common`
+The deployment epic requires these on every component, and `common`
 enforces the first two at render time rather than leaving them to review:
 
-1. **Resource requests and limits** — `oan-common.resources` fails the render
+1. **Resource requests and limits** — `common.resources` fails the render
    when `.Values.resources` is empty. This applies to data stores too, where the
    requests land on the operator-managed pods.
-2. **Liveness and readiness probes** — enabled by default in `oan-template`.
-   `oan-common.probeSpec` fails the render when an enabled probe declares no
+2. **Liveness and readiness probes** — enabled by default in `template`.
+   `common.probeSpec` fails the render when an enabled probe declares no
    handler, or declares more than one (which the API server would otherwise
    reject at apply time, long after the render looked fine).
 3. **A ServiceAccount per service** — never the namespace `default`. Attach IRSA
    role ARNs via `serviceAccount.annotations`.
-4. **Standard labels** — from `oan-common.labels`, giving every resource
+4. **Standard labels** — from `common.labels`, giving every resource
    `app.kubernetes.io/*` plus `app.kubernetes.io/part-of: oan`.
 
 ## Secrets
@@ -110,9 +109,9 @@ in a per-environment values file.
 requests and on pushes to `main` and `development`, so a chart that fails
 locally fails the same way in CI.
 
-Because service charts depend on `oan-common` through
-`file://../oan-common`, and the packaged dependency is not committed, an edit to
-`oan-common` is only visible to a consuming chart after
+Because service charts depend on `common` through
+`file://../common`, and the packaged dependency is not committed, an edit to
+`common` is only visible to a consuming chart after
 `helm dependency update charts/<chart>` (or a run of the lint script).
 
 ## Traceability

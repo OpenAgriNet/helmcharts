@@ -1,4 +1,4 @@
-apiVersion: {{ include "oan-common.deployment.apiVersion" . }}
+apiVersion: {{ include "common.deployment.apiVersion" . }}
 kind: Deployment
 metadata:
   name: {{ include "registry.fullname" . }}
@@ -23,7 +23,7 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
       annotations:
-        checksum/env-config: {{ include "oan-common.checksumAnnotation" . }}
+        checksum/env-config: {{ include "common.checksumAnnotation" . }}
         checksum/schemas: {{ include "registry.schemasData" . | sha256sum }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
@@ -33,10 +33,10 @@ spec:
       serviceAccountName: {{ include "registry.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
       {{- end }}
-      {{- with (include "oan-common.imagePullSecrets" . | trim) }}
+      {{- with (include "common.imagePullSecrets" . | trim) }}
       {{- . | nindent 6 }}
       {{- end }}
-      {{- with (include "oan-common.podSecurityContext" .) }}
+      {{- with (include "common.podSecurityContext" .) }}
       securityContext:
         {{- . | nindent 8 }}
       {{- end }}
@@ -58,7 +58,7 @@ spec:
         - name: {{ .Chart.Name }}
           image: {{ include "registry.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- with (include "oan-common.securityContext" .) }}
+          {{- with (include "common.securityContext" .) }}
           securityContext:
             {{- . | nindent 12 }}
           {{- end }}
@@ -75,11 +75,11 @@ spec:
             - secretRef:
                 name: {{ . }}
             {{- end }}
-          {{- with (include "oan-common.probes" . | trim) }}
+          {{- with (include "common.probes" . | trim) }}
           {{- . | nindent 10 }}
           {{- end }}
           resources:
-            {{- include "oan-common.resources" . | nindent 12 }}
+            {{- include "common.resources" . | nindent 12 }}
           volumeMounts:
             - name: schemas
               mountPath: {{ .Values.schemas.mountPath }}

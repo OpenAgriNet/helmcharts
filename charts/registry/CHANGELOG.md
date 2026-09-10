@@ -33,7 +33,7 @@ Sunbird's own Helm charts (`deploy-as-code/helm/v2`).
 
 ### Added
 - Deployment, Service, env ConfigMap, schemas ConfigMap, ServiceAccount, and
-  optional Ingress and ESO ExternalSecret, built on the `oan-common` library.
+  optional Ingress and ESO ExternalSecret, built on the `common` library.
 - All 32 registry environment variables from the compose stack, verified at
   parity. Database and Keycloak variables are derived from structured values
   rather than restated, so `OAUTH2_RESOURCES_0_URI` cannot drift from

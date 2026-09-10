@@ -2,37 +2,37 @@
 # ============================================================================
 # DISCOVERY SERVICE CHART HELPERS
 # Owner: OpenAgriNet Engineering Team
-# Purpose: chart-local helpers delegating to oan-common, plus the database,
+# Purpose: chart-local helpers delegating to common, plus the database,
 #          Beckn specification and environment wiring this service needs.
 # ============================================================================
 */}}
 
 {{- define "discovery.name" -}}
-{{- include "oan-common.name" . -}}
+{{- include "common.name" . -}}
 {{- end }}
 
 {{- define "discovery.fullname" -}}
-{{- include "oan-common.fullname" . -}}
+{{- include "common.fullname" . -}}
 {{- end }}
 
 {{- define "discovery.labels" -}}
-{{- include "oan-common.labels" . -}}
+{{- include "common.labels" . -}}
 {{- end }}
 
 {{- define "discovery.selectorLabels" -}}
-{{- include "oan-common.selectorLabels" . -}}
+{{- include "common.selectorLabels" . -}}
 {{- end }}
 
 {{- define "discovery.serviceAccountName" -}}
-{{- include "oan-common.serviceAccount.name" . -}}
+{{- include "common.serviceAccount.name" . -}}
 {{- end }}
 
 {{- define "discovery.image" -}}
-{{- include "oan-common.image" . -}}
+{{- include "common.image" . -}}
 {{- end }}
 
 {{- define "discovery.envConfigMapName" -}}
-{{- include "oan-common.envConfigMapName" . -}}
+{{- include "common.envConfigMapName" . -}}
 {{- end }}
 
 {{/*
@@ -172,7 +172,7 @@ names the value and happens before anything is applied to the cluster.
 - name: REPLICATION_TARGETS
   value: {{ join "," . | quote }}
 {{- end }}
-{{- with (include "oan-common.env" . | trim) }}
+{{- with (include "common.env" . | trim) }}
 {{ . }}
 {{- end }}
 {{- end }}

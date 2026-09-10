@@ -315,6 +315,6 @@ Render-time guardrails, all of which name the value and the reason:
 - neither `becknSpec.url` nor `becknSpec.existingConfigMap`
 - `embeddings.provider` other than `noop` with no `embeddings.endpoint`
 - `otel.exporter` other than `none` with no `otel.endpoint`
-- `resources` empty (`oan-common`)
-- a probe with no handler or with two (`oan-common`)
+- `resources` empty (`common`)
+- a probe with no handler or with two (`common`)
 - a PodDisruptionBudget alongside a single replica
