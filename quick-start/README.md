@@ -550,21 +550,32 @@ something does not match.
 `keys/keys.json` and are never in the registry. Keys are published as bare
 base64, no encoding label.
 
-**Two `upstream` rows, one per mock** — an ordinary HTTP API this deployment
-calls. It signs nothing, so it needs no role and no keys. Holds a `baseUrl`,
-here a Compose service name. No upstream credential lives in the registry
-either: the adapter config names *environment variables*, not values.
+**Four `upstream` rows, one per provider** — an ordinary HTTP API this
+deployment calls. It signs nothing, so it needs no role and no keys. Holds a
+`baseUrl`, now a real external host for every one of them: no capability points
+at a mock. No upstream credential lives in the registry either: the adapter
+config names *environment variables*, not values.
 
-**Two `ProviderSchema` rows, one per capability** — which upstream answers
+**Four `ProviderSchema` rows, one per capability** — which upstream answers
 which capability and how to call it: method, path, timeout, retries, and the
 mapping URL. Its `bindingKey` is `participantId|capabilityCode`:
 
 ```
-mausamgram-mock|openagrinet:WeatherObservation
-agmarknet-mock|openagrinet:MandiPrice
+mausamgram|openagrinet:WeatherObservation
+agmarknet|openagrinet:MandiPrice
+knowledge-provider|openagrinet:KnowledgeAdvisory
+pocra|openagrinet:AgricultureFacility
 ```
 
-Those two strings are the hinge. The provider adapter builds the same key from
+The left half is the PARTICIPANT ID and it names the entity — never the
+capability, which is already the right half, and never the deployment. That is
+why these read `mausamgram` rather than `mausamgram-mock`: repointing a
+capability from a mock to the live upstream is a `baseUrl`, not a different
+participant. It is also the string a catalog publishes as `offer.provider.id`,
+which is what lets `capability-examples/` be exercised against this stack
+unedited.
+
+Those four strings are the hinge. The provider adapter builds the same key from
 each payload — the provider id and the capability `@type` it carries — and a
 step answers only when the key matches its own. `setup.py` renders those keys
 into `provider.yaml` from the same `.env` it seeds the registry from, which is

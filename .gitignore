@@ -21,3 +21,19 @@ rendered/
 # committed once by a `git add -A` and must not be again.
 registry/
 
+# Live credentials, ANYWHERE in the repo.
+#
+# quick-start/.gitignore already covers its own .env and every .env.* copy of
+# it. This is the same rule repo-wide, so a directory added later cannot
+# reintroduce the mistake that put registry/.env in history once -- the ignore
+# arrives with the directory instead of having to be remembered.
+#
+# .env.* catches the backup a `cp .env .env.bak` before an edit produces, which
+# is the natural thing to do and yields a file holding every live credential.
+# The negations keep the placeholder-only templates tracked, since those are the
+# documentation of what has to be filled in.
+.env
+.env.*
+!.env.example
+!.env.*.example
+

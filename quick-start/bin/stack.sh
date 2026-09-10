@@ -129,17 +129,20 @@ up_registry_tier() {
 # beside them. Safe to re-run: keys come from keys/keys.json once it exists,
 # and participants already registered are left alone.
 up_setup() {
-    step 2 "$1" "bin/setup.py -- keys, five registry participants, adapter configs"
+    step 2 "$1" "bin/setup.py -- keys, seven registry participants, adapter configs"
     python3 bin/setup.py
 }
 
 # Only now do the bind-mounted config files exist.
 up_adapters() {
-    # The mocks are named here rather than left to provider-adapter's
-    # depends_on, so a failure to pull one is reported as its own step instead
-    # of as an adapter that will not start.
-    step 3 "$1" "mock upstreams and adapters (provider, network, exp)"
-    docker compose up -d mockimd mockagmarknet
+    # The mocks are NOT started. All four capabilities point at real external
+    # upstreams, so starting them would pull two images and run two containers
+    # nothing calls. They are still defined in docker-compose.yml, so
+    # `docker compose up -d mockimd mockagmarknet` brings them up for anyone
+    # debugging a mapping without the real credentials -- but that also needs a
+    # new participant id and base URL in .env plus a setup.py re-run, because
+    # the registry cannot repoint an existing row.
+    step 3 "$1" "adapters (provider, network, exp)"
     docker compose up -d provider-adapter network-adapter consumer-adapter
 }
 

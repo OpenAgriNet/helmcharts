@@ -193,19 +193,36 @@ modules:
           - id: WeatherObservation
             config:
               bindingKeys: "__PROVIDER_BINDING_KEY__"
-              # basic, because IMD Mausamgram takes an Authorization: Basic
-              # header. The two variables are NAMED here and read at call time,
-              # so neither value is in this file or in the registry -- and the
-              # adapter redacts the header from anything it logs.
+              # header, NOT basic, and the difference matters.
               #
-              # NO MOCK SERVES ANY CAPABILITY NOW. mockimd does accept -user
-              # and -pass, so pointing back at it means this same scheme with
-              # MAUSAMGRAM_BASE_URL set to its service name -- not a return to
-              # authScheme none.
+              # IMD Mausamgram is called with one ready-made credential:
+              #
+              #   curl 'https://mausamgram.imd.gov.in/nwpapi/get-daily?lat=..&lon=..' \
+              #        --header 'Authorization: Basic <token>'
+              #
+              # authScheme basic would BUILD that header itself, as
+              # Basic base64(usernameEnv + ":" + passwordEnv) -- so it needs the
+              # credential split into two halves. IMD issues a single opaque
+              # token instead, and there is no username to put on the left of a
+              # colon. Splitting one on a guess would send a header the upstream
+              # rejects, which surfaces as 401 and looks like a wrong password.
+              #
+              # So the whole header VALUE lives in MAUSAMGRAM_AUTH, prefix
+              # included ("Basic eyJ..."), and is sent verbatim. That is exactly
+              # what the curl above sends, and it stays correct whether the
+              # token happens to be base64 of user:key or entirely opaque.
+              #
+              # Still only a NAME here, so the credential is in neither this
+              # file nor the registry, and the adapter redacts Authorization
+              # from anything it logs.
+              #
+              # NO MOCK SERVES ANY CAPABILITY NOW. mockimd takes -user and
+              # -pass, so pointing back at it is the one case that DOES want
+              # authScheme basic with a username and password pair.
               __PROVIDER_PARTICIPANT_ID__:
-                authScheme: basic
-                usernameEnv: MAUSAMGRAM_USER
-                passwordEnv: MAUSAMGRAM_X_API_KEY
+                authScheme: header
+                headerName: Authorization
+                headerValueEnv: MAUSAMGRAM_AUTH
 
           # A second capability in the same pipeline, from a different domain
           # package. Each step recognises its own binding key and passes

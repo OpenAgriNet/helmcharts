@@ -520,21 +520,24 @@ services:
   provider-adapter:
     <<: *adapter
     container_name: provider-adapter
+    # Registry only. The mocks are deliberately NOT dependencies: every
+    # capability points at a real external upstream, and depends_on would start
+    # both containers on any `docker compose up -d provider-adapter` even though
+    # nothing calls them. They stay defined below so they can still be started
+    # by name for debugging.
     depends_on:
       registry:
         condition: service_healthy
-      mockimd:
-        condition: service_started
-      mockagmarknet:
-        condition: service_started
     environment:
       <<: *adapter-env
       OTEL_SERVICE_NAME: provider-adapter
-      # The weather upstream's basic-auth pair. IMD Mausamgram takes an
-      # Authorization: Basic header; the adapter builds it at call time from
-      # these, so neither value is in a config file or in the registry.
-      MAUSAMGRAM_USER: ${MAUSAMGRAM_USER}
-      MAUSAMGRAM_X_API_KEY: ${MAUSAMGRAM_X_API_KEY}
+      # The weather upstream's credential, as ONE ready-made header value --
+      # "Basic <token>", prefix included. IMD Mausamgram issues a single opaque
+      # token rather than a user/password pair, so the adapter sends this
+      # verbatim (authScheme header) instead of building the header from two
+      # halves. Named here and read at call time, so the value is in neither a
+      # config file nor the registry.
+      MAUSAMGRAM_AUTH: ${MAUSAMGRAM_AUTH}
       # The mandi upstream's credentials. Agmarknet issues its own token, so
       # these two are exchanged for one at call time. Named here and read then,
       # so neither is in a config file or in the registry.

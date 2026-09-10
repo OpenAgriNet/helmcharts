@@ -75,7 +75,71 @@ def env(name, default=None):
     v = os.environ.get(name, default)
     if v is None:
         sys.exit(f"setup: {name} is not set -- is it missing from .env?")
+    if is_placeholder(v):
+        sys.exit(f"setup: {name} is still the .env.example placeholder {v!r}.\n"
+                 f"{PLACEHOLDER_WHY}")
     return v
+
+
+def is_placeholder(value):
+    """True for a value still in .env.example's `<describe it here>` form.
+
+    Every placeholder in the template is angle-bracketed, and no real base URL,
+    path, credential or id can be -- so this is an exact test rather than a
+    guess."""
+    v = value.strip()
+    return v.startswith("<") and v.endswith(">")
+
+
+PLACEHOLDER_WHY = """\
+  Fill it in in .env, then re-run. Nothing has been written yet.
+
+  This is refused rather than passed through because the registry is
+  APPEND-ONLY: it cannot update a record, and its delete is soft and keeps the
+  unique index, so an id is never reusable. Seeding a participant with a
+  placeholder base URL would burn that id permanently -- the capability could
+  only be recovered under a NEW id, which is the one thing the settled naming
+  was meant to avoid."""
+
+
+# Everything that has to be a real value before the first registry write.
+#
+# Checked together, up front, for two reasons. seed() runs BEFORE render(), so a
+# placeholder in a render-only key like KNOWLEDGE_TOKEN_URL would otherwise be
+# found only after seven rows already existed -- unfixable, per the note above.
+# And one list beats being sent back to .env ten times in a row.
+REQUIRED = [
+    "EXP_SUBSCRIBER_ID", "NETWORK_SUBSCRIBER_ID", "PROVIDER_SUBSCRIBER_ID",
+    "PROVIDER_PARTICIPANT_ID", "PROVIDER_CAPABILITY", "MAUSAMGRAM_BASE_URL",
+    "MAUSAMGRAM_AUTH", "MAPPING_URL",
+    "MANDI_PARTICIPANT_ID", "MANDI_CAPABILITY", "MANDI_BASE_URL",
+    "MANDI_TOKEN_URL", "MANDI_ACCESS_NAME", "MANDI_PASSWORD",
+    "MANDI_MAPPING_URL",
+    "KNOWLEDGE_PARTICIPANT_ID", "KNOWLEDGE_CAPABILITY", "KNOWLEDGE_BASE_URL",
+    "KNOWLEDGE_PATH", "KNOWLEDGE_TOKEN_URL", "KNOWLEDGE_CLIENT_ID",
+    "KNOWLEDGE_CLIENT_SECRET", "KNOWLEDGE_MAPPING_URL",
+    "POCRA_PARTICIPANT_ID", "POCRA_CAPABILITY", "POCRA_BASE_URL",
+    "POCRA_PATH", "POCRA_MAPPING_URL",
+]
+
+
+def preflight():
+    """Refuse to touch the registry while any required value is unfilled."""
+    missing = [k for k in REQUIRED if os.environ.get(k) is None]
+    unfilled = [k for k in REQUIRED
+                if os.environ.get(k) is not None
+                and is_placeholder(os.environ[k])]
+    if not missing and not unfilled:
+        return
+    lines = ["setup: .env is not ready, so nothing was written.\n"]
+    if unfilled:
+        lines.append("  Still the .env.example placeholder:")
+        lines += [f"    {k}={os.environ[k]}" for k in unfilled]
+    if missing:
+        lines.append("  Absent from .env entirely:")
+        lines += [f"    {k}" for k in missing]
+    lines.append(PLACEHOLDER_WHY)
+    sys.exit("\n".join(lines))
 
 
 # --------------------------------------------------------------------- keys
@@ -259,9 +323,9 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url,
     mapping reads what the request mapping resolved.
 
     method is a parameter because it is the provider's contract, not a network
-    convention: the two mock upstreams answer a GET whose query the mapping
-    builds, while the knowledge provider takes a POST with a JSON body. The
-    adapter reads it from this row, so nothing about it is compiled in."""
+    convention: Mausamgram and Agmarknet answer a GET whose query the mapping
+    builds, while the knowledge provider and POCRA take a POST with a JSON body.
+    The adapter reads it from this row, so nothing about it is compiled in."""
     binding = f"{participant_id}|{capability}"
     if search("ProviderSchema", {"bindingKey": {"eq": binding}}):
         print(f"  {binding}: already present")
@@ -479,6 +543,7 @@ def render(identities):
 
 if __name__ == "__main__":
     load_dotenv()
+    preflight()
     identities = load_or_generate_keys()
     seed(identities)
     identities = key_osids(identities)
@@ -491,18 +556,27 @@ the adapter configs are rendered, so nothing further has to be created by hand.
   {env('PROVIDER_PARTICIPANT_ID')}|{env('PROVIDER_CAPABILITY')}
   {env('MANDI_PARTICIPANT_ID')}|{env('MANDI_CAPABILITY')}
   {env('KNOWLEDGE_PARTICIPANT_ID')}|{env('KNOWLEDGE_CAPABILITY')}
+  {env('POCRA_PARTICIPANT_ID')}|{env('POCRA_CAPABILITY')}
 
 Those are the binding keys the provider adapter answers to. They were rendered
 into its config from the same .env this seeded the registry from, which is what
 keeps the two from disagreeing. A payload naming anything else is answered 404
 "this module serves no capability matching the request" -- explicit, but it
-names the request rather than the mismatch, so compare it against these two.
+names the request rather than the mismatch, so compare it against these four.
 
-Both providers are mocks reached by compose service name. Pointing a capability
-at a real upstream is an .env edit and a re-run of this: a new participant id
-and base URL under PROVIDER_* or MANDI_*, which seeds a new Participant and
-ProviderSchema row and re-renders the provider config so its binding key
-matches. The registry is not reachable from outside this stack, so that write
+The left half of each key is the participant id, and it names the ENTITY that
+operates the upstream -- not the capability, which is already the right half,
+and not the deployment, which is only a base URL. It is also the string a
+catalog publishes as offer.provider.id, so capability-examples/ can be run
+against this stack unedited.
+
+All four upstreams are real external providers reached over the internet, so
+this stack needs egress to each of them and no capability depends on a mock.
+Repointing one is an .env edit and a re-run of this, but it takes a NEW
+participant id: the registry cannot update a row and its delete is soft and
+keeps the unique index, so an id seeded against one base URL keeps that base
+URL for good. A re-run with the same id prints "already present" and changes
+nothing. The registry is not reachable from outside this stack, so that write
 happens from here.
 
 Next: `make up` continues to step 3 and starts the adapters. If you ran this
@@ -510,5 +584,5 @@ on its own, the adapters need recreating to pick up the rendered configs:
 
   docker compose up -d --force-recreate provider-adapter network-adapter consumer-adapter
 
-Then import postman-collection/ and run it -- six requests, nothing to fill
-in.""")
+Then import ../postman-collection/ and run it -- eight requests across the four
+capabilities, nothing to fill in.""")
