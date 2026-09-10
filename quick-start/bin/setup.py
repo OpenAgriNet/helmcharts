@@ -592,5 +592,6 @@ on its own, the adapters need recreating to pick up the rendered configs:
 
   docker compose up -d --force-recreate provider-adapter network-adapter consumer-adapter
 
-Then import ../postman-collection/ and run it -- eight requests across the four
-capabilities, nothing to fill in.""")
+Then import ../postman-collection/ -- both files, the collection and the
+environment -- and run it. Eighteen requests across the four capabilities,
+publish then discover then select in each, with nothing to fill in.""")

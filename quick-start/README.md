@@ -161,18 +161,19 @@ keys. Change `.env`, re-run `make up`.
 ## Step 8 — Verify end to end
 
 Import both files from `../postman-collection/` into Postman —
-`api-collection.json` and `local_postman_environment.json`, which already
-points at localhost. Or:
+`OpenAgriNet.postman_collection.json` and `local.postman_environment.json`.
+Select the environment, or every `{{...-host}}` resolves to nothing. Or:
 
 ```sh
-newman run ../postman-collection/api-collection.json
+newman run ../postman-collection/OpenAgriNet.postman_collection.json \
+  -e ../postman-collection/local.postman_environment.json
 ```
 
-**8 requests, 49 assertions**, one folder per capability. The weather and mandi
-folders publish, discover, then select, so run publish before discover the
-first time. Knowledge and POCRA are a single select each: their
-`informationMode` is `OnDemand`, so there is no catalogue to publish and
-nothing to discover.
+**18 requests, 32 assertions**, one folder per capability plus a health folder.
+Each capability folder is publish, then discover, then select, in that order —
+so run publish first. Every request's `transactionId`, `messageId` and
+`timestamp` are filled fresh by the collection's pre-request script; the rest
+of each body comes from `capability-examples/`, unedited.
 
 Green means the registry is seeded, signatures verify both ways, all four
 mappings work and discovery is indexing.
