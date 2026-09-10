@@ -209,16 +209,40 @@ modules:
           # through anything else, so adding one is an entry here rather than a
           # change to a routing table.
           #
-          # Agmarknet takes its token as a QUERY parameter. The adapter holds
-          # the parameter's name and the name of the variable carrying the
-          # value, never the value -- and it redacts it from the URL it logs.
+          # Agmarknet ISSUES ITS OWN short-lived tokens rather than accepting a
+          # static one, which is what tokenQuery is for: the credentials are
+          # POSTed as JSON to the endpoint below, and the token that comes back
+          # travels in the query string. The adapter redacts it from the URL it
+          # logs, escaped form included.
+          #
+          # The JSON keys are named here because access_name and password are
+          # this provider's spelling, not a standard. The VALUES are
+          # environment variables, as everywhere else.
+          #
+          # tokenTtl is required and it is an ESTIMATE: the token response
+          # carries no expiry at all, so there is nothing to read. Ten minutes
+          # is conservative. Too long is not an outage -- a 401 or 403 from the
+          # provider drops the held token and the next call exchanges a fresh
+          # one -- but it does cost one failed request when the guess is wrong.
+          #
+          # THE MOCK CANNOT SERVE THIS. mockagmarknet has no token endpoint, so
+          # this scheme means the real API and the stack needs egress to it. To
+          # go back to the mock, set authScheme query with queryName token and
+          # queryValueEnv MANDI_TOKEN, and point MANDI_BASE_URL back -- but see
+          # the note in .env.example about the registry being append-only.
           - id: MandiPrice
             config:
               bindingKeys: "__MANDI_BINDING_KEY__"
               __MANDI_PARTICIPANT_ID__:
-                authScheme: query
+                authScheme: tokenQuery
+                tokenUrl: "__MANDI_TOKEN_URL__"
+                tokenUserField: access_name
+                tokenUserEnv: MANDI_ACCESS_NAME
+                tokenSecretField: password
+                tokenSecretEnv: MANDI_PASSWORD
+                tokenResponseField: token
                 queryName: token
-                queryValueEnv: MANDI_TOKEN
+                tokenTtl: 10m
 
           # KnowledgeAdvisory. The first capability here that calls a REAL
           # external provider rather than a mock in this network, so the stack

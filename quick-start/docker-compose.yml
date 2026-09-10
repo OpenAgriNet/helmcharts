@@ -513,8 +513,13 @@ services:
     environment:
       <<: *adapter-env
       OTEL_SERVICE_NAME: provider-adapter
-      # The mandi upstream's credential. Named here and read at call time, so
-      # it is never in a config file or in the registry.
+      # The mandi upstream's credentials. Agmarknet issues its own token, so
+      # these two are exchanged for one at call time. Named here and read then,
+      # so neither is in a config file or in the registry.
+      MANDI_ACCESS_NAME: ${MANDI_ACCESS_NAME}
+      MANDI_PASSWORD: ${MANDI_PASSWORD}
+      # Read only when MandiPrice is pointed back at mockagmarknet, which takes
+      # a static token instead of issuing one.
       MANDI_TOKEN: ${MANDI_TOKEN}
       # The knowledge provider's OAuth2 client credentials, exchanged for a
       # token at call time. Here for the same reason: the adapter config names

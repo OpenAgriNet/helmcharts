@@ -308,22 +308,27 @@ def seed(identities):
                            node(identity["participantId"], name, network_role,
                                 identity["signingPublic"]))
 
-    # The two mock upstreams, addressed by compose service name: they are
+    # Weather is the only mock left, addressed by compose service name: it is
     # called from inside this network and nowhere else.
     print("registry: three upstream providers")
     weather = env("PROVIDER_PARTICIPANT_ID")
     ensure_participant(bearer, weather,
                        upstream(weather, "IMD Mausamgram NWP (mock)",
                                 env("MAUSAMGRAM_BASE_URL", "http://mockimd:9100")))
+
+    # Mandi is the REAL Agmarknet now, because authScheme tokenQuery needs a
+    # token endpoint and mockagmarknet has none. No default base URL for the
+    # same reason: falling back to the mock's service name would seed a row
+    # that cannot serve the configured scheme, and the registry cannot update
+    # it afterwards.
     mandi = env("MANDI_PARTICIPANT_ID")
     ensure_participant(bearer, mandi,
-                       upstream(mandi, "Agmarknet Vistaar (mock)",
-                                env("MANDI_BASE_URL", "http://mockagmarknet:9101")))
+                       upstream(mandi, "Agmarknet Vistaar",
+                                env("MANDI_BASE_URL")))
 
-    # The knowledge capability. Unlike the two above this is a REAL external
-    # provider rather than a mock in this compose network -- so the stack needs
-    # egress to it, and its base URL comes from .env rather than a service
-    # name. It is also the only one whose action is a POST.
+    # The knowledge capability. Also a REAL external provider, so the stack
+    # needs egress to it and its base URL comes from .env rather than a service
+    # name. It is the only one whose action is a POST.
     knowledge = env("KNOWLEDGE_PARTICIPANT_ID")
     ensure_participant(bearer, knowledge,
                        upstream(knowledge, "Bharat Vistaar knowledge retrieval",
@@ -416,6 +421,11 @@ def render(identities):
                 ("__MANDI_BINDING_KEY__", mandi_binding),
                 ("__KNOWLEDGE_BINDING_KEY__", knowledge_binding),
                 ("__KNOWLEDGE_TOKEN_URL__", env("KNOWLEDGE_TOKEN_URL")),
+                # Agmarknet's own token endpoint. A deployment fact, not a
+                # credential, so it is rendered directly -- the access name and
+                # password stay as variable NAMES in the config and reach the
+                # adapter through its environment.
+                ("__MANDI_TOKEN_URL__", env("MANDI_TOKEN_URL")),
                 # Auth is per provider, so the participant id is a YAML KEY in
                 # the adapter config, not only half of a binding key.
                 ("__PROVIDER_PARTICIPANT_ID__", env("PROVIDER_PARTICIPANT_ID")),
