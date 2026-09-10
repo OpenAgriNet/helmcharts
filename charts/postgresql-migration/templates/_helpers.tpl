@@ -2,37 +2,37 @@
 # ============================================================================
 # POSTGRESQL-MIGRATION CHART HELPERS
 # Owner: OpenAgriNet Engineering Team
-# Purpose: chart-local helpers delegating to oan-common, plus the Flyway target
+# Purpose: chart-local helpers delegating to common, plus the Flyway target
 #          and JDBC wiring this chart needs.
 # ============================================================================
 */}}
 
 {{- define "postgresql-migration.name" -}}
-{{- include "oan-common.name" . -}}
+{{- include "common.name" . -}}
 {{- end }}
 
 {{- define "postgresql-migration.fullname" -}}
-{{- include "oan-common.fullname" . -}}
+{{- include "common.fullname" . -}}
 {{- end }}
 
 {{- define "postgresql-migration.labels" -}}
-{{- include "oan-common.labels" . -}}
+{{- include "common.labels" . -}}
 {{- end }}
 
 {{- define "postgresql-migration.selectorLabels" -}}
-{{- include "oan-common.selectorLabels" . -}}
+{{- include "common.selectorLabels" . -}}
 {{- end }}
 
 {{- define "postgresql-migration.serviceAccountName" -}}
-{{- include "oan-common.serviceAccount.name" . -}}
+{{- include "common.serviceAccount.name" . -}}
 {{- end }}
 
 {{- define "postgresql-migration.image" -}}
-{{- include "oan-common.image" . -}}
+{{- include "common.image" . -}}
 {{- end }}
 
 {{- define "postgresql-migration.envConfigMapName" -}}
-{{- include "oan-common.envConfigMapName" . -}}
+{{- include "common.envConfigMapName" . -}}
 {{- end }}
 
 {{/*

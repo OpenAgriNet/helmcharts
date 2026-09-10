@@ -2,7 +2,7 @@
 # ============================================================================
 # ADAPTER SERVICE CHART HELPERS
 # Owner: OpenAgriNet Engineering Team
-# Purpose: chart-local helpers delegating to oan-common, plus the role,
+# Purpose: chart-local helpers delegating to common, plus the role,
 #          identity, upstream and config-rendering wiring an adapter needs.
 #
 # One chart, three roles. provider, network and experience are the same image and the
@@ -116,27 +116,27 @@ action -- so that is caught here rather than at request time.
 {{- end }}
 
 {{- define "adapter-service.name" -}}
-{{- include "oan-common.name" . -}}
+{{- include "common.name" . -}}
 {{- end }}
 
 {{- define "adapter-service.fullname" -}}
-{{- include "oan-common.fullname" . -}}
+{{- include "common.fullname" . -}}
 {{- end }}
 
 {{- define "adapter-service.labels" -}}
-{{- include "oan-common.labels" . -}}
+{{- include "common.labels" . -}}
 {{- end }}
 
 {{- define "adapter-service.selectorLabels" -}}
-{{- include "oan-common.selectorLabels" . -}}
+{{- include "common.selectorLabels" . -}}
 {{- end }}
 
 {{- define "adapter-service.serviceAccountName" -}}
-{{- include "oan-common.serviceAccount.name" . -}}
+{{- include "common.serviceAccount.name" . -}}
 {{- end }}
 
 {{- define "adapter-service.image" -}}
-{{- include "oan-common.image" . -}}
+{{- include "common.image" . -}}
 {{- end }}
 
 {{/*

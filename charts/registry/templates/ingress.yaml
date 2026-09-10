@@ -1,5 +1,5 @@
 {{- if .Values.ingress.enabled -}}
-apiVersion: {{ include "oan-common.ingress.apiVersion" . }}
+apiVersion: {{ include "common.ingress.apiVersion" . }}
 kind: Ingress
 metadata:
   name: {{ include "registry.fullname" . }}

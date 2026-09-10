@@ -7,7 +7,7 @@
 #   discovery       discovery-db, discovery
 #   adapters        provider, network, exp
 #   observability   hyperdx                      profile: observability
-#   edge            nginx-proxy-manager          profile: gateway
+#   edge            nginx-proxy-manager          profile: reverse-proxy
 #
 # The last two are behind profiles because neither is needed to exercise the
 # stack, and HyperDX is the heaviest thing here.
@@ -39,6 +39,11 @@
 # Keycloak, the registry, discovery, the HyperDX UI, and NPM's own admin UI on
 # 81 -- publishes on 127.0.0.1 and is reachable only through an SSH tunnel:
 #
+# The HyperDX UI is the one item on that list with a second way in: it also has
+# a proxy host, so it is readable at https://<your hyperdx name>/ with the
+# Access List's username and password. Its loopback publish is unchanged --
+# routing it did not open a port here.
+#
 #   ssh -L 81:127.0.0.1:81   -L 8080:127.0.0.1:8080 \
 #       -L 8081:127.0.0.1:8081 -L 8085:127.0.0.1:8085 -N you@the-vm
 #
@@ -55,9 +60,9 @@
 # decoration and becomes the actual control. NPM's "Forward Hostname" is a
 # free-text field, so anyone with the admin password can point a public route
 # at `registry` or `keycloak`. NPM sits only on oan-edge, where neither name
-# resolves and neither address is routable -- the three adapters are the only
-# containers it shares a network with. The adapters straddle both networks;
-# everything else is internal-only.
+# resolves and neither address is routable -- the three adapters and hyperdx
+# are the only containers it shares a network with. Those four straddle both
+# networks; everything else is internal-only.
 #
 # Neither is `internal: true`: the adapters and discovery fetch the Beckn spec
 # from raw.githubusercontent.com at boot, the provider adapter calls an
@@ -134,7 +139,7 @@ services:
   # ==========================================================================
   registry-db:
     image: postgres:14
-    container_name: oan-registry-db
+    container_name: registry-db
     restart: unless-stopped
     networks: [oan-internal]
     environment:
@@ -154,7 +159,7 @@ services:
 
   keycloak:
     image: ghcr.io/sunbird-rc/sunbird-rc-keycloak:latest
-    container_name: oan-keycloak
+    container_name: keycloak
     restart: unless-stopped
     networks: [oan-internal]
     volumes:
@@ -186,7 +191,7 @@ services:
 
   registry:
     image: ghcr.io/sunbird-rc/sunbird-rc-core:${REGISTRY_VERSION}
-    container_name: oan-registry
+    container_name: registry
     restart: unless-stopped
     # oan-internal ONLY, and that is the decision, not an omission. NPM sits
     # on oan-edge alone, so it cannot resolve the name `registry` -- a proxy
@@ -277,7 +282,7 @@ services:
     # pgvector rather than plain postgres: the discovery service's HNSW index
     # options arrived in 0.8.
     image: pgvector/pgvector:0.8.0-pg16
-    container_name: oan-discovery-db
+    container_name: discovery-db
     restart: unless-stopped
     networks: [oan-internal]
     environment:
@@ -299,7 +304,7 @@ services:
   discovery:
     image: ${DISCOVERY_IMAGE}
     pull_policy: missing
-    container_name: oan-discovery
+    container_name: discovery
     restart: unless-stopped
     networks: [oan-internal]
     environment:
@@ -323,7 +328,7 @@ services:
       # in a way that would only surface when someone turns it on.
       OTEL_EXPORTER_OTLP_ENDPOINT: http://${OTLP_ENDPOINT:-hyperdx:4317}
       OTEL_EXPORTER_OTLP_INSECURE: "true"
-      OTEL_SERVICE_NAME: oan-discovery
+      OTEL_SERVICE_NAME: discovery
     # config/common.yaml is baked into the image and is the reviewed default.
     # To override a setting, copy config/discovery/instance.yaml.example to
     # config/discovery/instance.yaml and uncomment the mount below -- compose
@@ -365,7 +370,7 @@ services:
   mockimd:
     image: ${MOCKIMD_IMAGE}
     pull_policy: missing
-    container_name: oan-mockimd
+    container_name: mockimd
     restart: unless-stopped
     networks: [oan-internal]
     command:
@@ -379,7 +384,7 @@ services:
   mockagmarknet:
     image: ${MOCKAGMARKNET_IMAGE}
     pull_policy: missing
-    container_name: oan-mockagmarknet
+    container_name: mockagmarknet
     restart: unless-stopped
     networks: [oan-internal]
     command:
@@ -397,7 +402,7 @@ services:
   # change here or a restart.
   provider-adapter:
     <<: *adapter
-    container_name: oan-provider-adapter
+    container_name: provider-adapter
     depends_on:
       registry:
         condition: service_healthy
@@ -407,7 +412,7 @@ services:
         condition: service_started
     environment:
       <<: *adapter-env
-      OTEL_SERVICE_NAME: oan-provider-adapter
+      OTEL_SERVICE_NAME: provider-adapter
       # The mandi upstream's credential. Named here and read at call time, so
       # it is never in a config file or in the registry.
       MANDI_TOKEN: ${MANDI_TOKEN}
@@ -420,7 +425,7 @@ services:
   # Verifies the caller, hands discovery on, re-signs as itself.
   network-adapter:
     <<: *adapter
-    container_name: oan-network-adapter
+    container_name: network-adapter
     depends_on:
       registry:
         condition: service_healthy
@@ -428,7 +433,7 @@ services:
         condition: service_started
     environment:
       <<: *adapter-env
-      OTEL_SERVICE_NAME: oan-network-adapter
+      OTEL_SERVICE_NAME: network-adapter
     volumes:
       - ./config/adapters/network.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/routing-network.yaml:/app/config/routing-network.yaml:ro
@@ -441,7 +446,7 @@ services:
   # is also why the edge rate-limits this host and nothing else.
   exp-adapter:
     <<: *adapter
-    container_name: oan-exp-adapter
+    container_name: exp-adapter
     depends_on:
       network-adapter:
         condition: service_started
@@ -449,7 +454,7 @@ services:
         condition: service_started
     environment:
       <<: *adapter-env
-      OTEL_SERVICE_NAME: oan-exp-adapter
+      OTEL_SERVICE_NAME: exp-adapter
     volumes:
       - ./config/adapters/experience.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/routing-experience.yaml:/app/config/routing-experience.yaml:ro
@@ -468,13 +473,28 @@ services:
   hyperdx:
     # clickstack-local, not clickstack-all-in-one: local runs single-user with
     # no team to create and no ingestion API key to mint, which is what makes
-    # `up -d` the whole setup step. It is also why this must stay on loopback
-    # -- there is no login in front of it.
+    # `up -d` the whole setup step. It is also why it has NO login of its own
+    # -- so once this is routed (see networks, below) the Access List on the
+    # proxy host is the only authentication in front of every trace, log and
+    # metric the stack has emitted. It is not an optional hardening step.
     image: clickhouse/clickstack-local:latest
-    container_name: oan-hyperdx
+    container_name: hyperdx
     restart: unless-stopped
     profiles: ["observability"]
-    networks: [oan-internal]
+
+    # oan-edge in addition to oan-internal, so NPM can resolve `hyperdx` and
+    # serve the UI on a hostname instead of an `ssh -L`. oan-internal stays,
+    # because that is the network the in-stack senders reach 4317/4318 on.
+    #
+    # This widens what a wrong click in NPM can reach, and the widening is
+    # worth stating rather than discovering: this container is also ClickHouse,
+    # so `hyperdx` is now a resolvable Forward Hostname for port 8123 -- an
+    # HTTP interface clickstack-local leaves open, over the same volume. The
+    # proxy host for the UI pins 8080 and is fine; nothing in NPM stops someone
+    # typing 8123 into a second one. Registry and Keycloak remain off oan-edge,
+    # so that bound is unchanged -- this is a deliberate trade of one name for
+    # not having to tunnel to read telemetry.
+    networks: [oan-internal, oan-edge]
     env_file:
       # Optional. Present so an existing .env.docker keeps working; compose
       # errors on a missing env_file unless it is declared this way.
@@ -497,6 +517,12 @@ services:
       # 8085, not the 8080 this image serves the UI on and not the 8081 it is
       # usually published as: 8081 is REGISTRY_PORT here, and two services
       # cannot claim one host port.
+      #
+      # Still 127.0.0.1 now that there is a route: the public path is NPM ->
+      # hyperdx:8080 across oan-edge, which is what makes the Access List
+      # unavoidable. Rebinding this to 0.0.0.0 would open a second door on the
+      # same UI with no credential on it, and the security group is the only
+      # thing that would be holding it shut.
       - "127.0.0.1:${HYPERDX_PORT:-8085}:8080"
       # OTLP. Published on loopback only so a reverse tunnel can carry
       # telemetry from a provider API running on someone's laptop; the
@@ -504,6 +530,38 @@ services:
       # need these at all.
       - "127.0.0.1:${OTLP_GRPC_PORT:-4317}:4317"
       - "127.0.0.1:${OTLP_HTTP_PORT:-4318}:4318"
+
+      # ClickHouse's HTTP interface, and it is published for one specific
+      # reason: clickstack-local is LOCAL mode, where the UI queries ClickHouse
+      # straight from the BROWSER with no API server in between. So the Host
+      # field in Team Settings is dialled by your laptop, not by the container
+      # -- its `http://localhost:8123` default means *your* machine, so with
+      # nothing listening there it fails with "Error connecting to ClickHouse
+      # server" however the proxy is set up. The route and the Access List are
+      # not implicated; the query never leaves the browser's own stack.
+      #
+      # A tunnel to 8123 is all it needs, and the UI can still be the public
+      # host -- the origin serving the UI and the address it queries are
+      # independent:
+      #
+      #   ssh -L 8123:127.0.0.1:8123 -N you@the-vm
+      #   then https://hyperdx.<your host>/ with connection Host
+      #   http://localhost:8123     (add -L 8085 if you want the UI local too)
+      #
+      # The catch is that this is PER VIEWER: a teammate who opens the public
+      # host without that tunnel gets the same error, and connections live in
+      # browser local storage, so each origin needs its own set up by hand.
+      #
+      # 127.0.0.1 and NOT negotiable, unlike the UI on 8085. This interface
+      # executes arbitrary SQL and clickstack-local leaves it open, so a
+      # 0.0.0.0 bind or an NPM route publishes the whole telemetry store --
+      # and its own auth uses the same `Authorization: Basic` header an NPM
+      # Access List needs, so the two cannot be stacked.
+      #
+      # The real fix is clickstack-all-in-one: a server-side API queries
+      # ClickHouse, connections stop being browser state, and this publish and
+      # the tunnel both become unnecessary. See README Appendix H.
+      - "127.0.0.1:${CLICKHOUSE_HTTP_PORT:-8123}:8123"
     volumes:
       - hyperdx-data:/var/lib/clickhouse
     healthcheck:
@@ -544,7 +602,7 @@ services:
   # ==========================================================================
   nginx-proxy-manager:
     image: jc21/nginx-proxy-manager:latest
-    container_name: oan-npm
+    container_name: npm
     restart: unless-stopped
     profiles: ["reverse-proxy"]
 
@@ -554,10 +612,10 @@ services:
     # NPM's "Forward Hostname" is a free-text field. Anyone with the admin
     # password can type `registry`, `keycloak` or `discovery-db` into it. On
     # this network none of those names resolve and none of those addresses are
-    # routable from here -- the three adapters are the only containers NPM
-    # shares a network with. So the blast radius of a wrong click, or of the
-    # admin UI being reached by someone who should not have it, is bounded to
-    # the tier that is meant to be public anyway.
+    # routable from here -- the three adapters, and hyperdx when the
+    # observability profile is up, are the only containers NPM shares a network
+    # with. So the blast radius of a wrong click, or of the admin UI being
+    # reached by someone who should not have it, is bounded to that set.
     #
     # Putting NPM on oan-internal to "make things easier" would remove that
     # bound entirely and put the registry's write API one form field away from
@@ -620,6 +678,12 @@ services:
       # spend an afternoon on a 502:
       #
       #   docker compose restart nginx-proxy-manager
+      #
+      # hyperdx is deliberately absent even though it is routed: it is behind
+      # the `observability` profile, and a depends_on would make it start
+      # whenever NPM does. That means the restart above is not optional after
+      # `make observability` -- NPM was started before the name existed, so the
+      # HyperDX host 502s until it re-resolves.
       exp-adapter:
         condition: service_started
       network-adapter:

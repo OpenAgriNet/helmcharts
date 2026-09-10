@@ -14,7 +14,7 @@ renaming this release means updating the adapter that points at it.
 
 Check it is serving:
 
-  kubectl -n {{ include "oan-common.namespace" . }} port-forward svc/{{ include "adapter-service.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+  kubectl -n {{ include "common.namespace" . }} port-forward svc/{{ include "adapter-service.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
   curl localhost:{{ .Values.service.port }}/health
 
 /health reports the build actually running, which is worth more than this
@@ -32,7 +32,7 @@ TWO THINGS THIS CHART CANNOT CHECK FOR YOU
    which this chart does not render and therefore cannot include in the config
    checksum. Changing that Secret does not restart anything:
 
-     kubectl -n {{ include "oan-common.namespace" . }} rollout restart deploy/{{ include "adapter-service.fullname" . }}
+     kubectl -n {{ include "common.namespace" . }} rollout restart deploy/{{ include "adapter-service.fullname" . }}
 
 {{- if not .Values.otel.enabled }}
 

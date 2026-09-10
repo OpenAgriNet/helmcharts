@@ -2,7 +2,7 @@
 # ============================================================================
 # OAN POSTGRESQL CHART HELPERS
 # Owner: OpenAgriNet Engineering Team
-# Purpose: chart-local helpers delegating to oan-common, plus the CNPG-specific
+# Purpose: chart-local helpers delegating to common, plus the CNPG-specific
 #          naming and object-store logic this chart needs.
 # ============================================================================
 */}}
@@ -13,22 +13,22 @@ which other charts connect to, so it should be short and stable - set
 fullnameOverride (e.g. "registry-db") rather than relying on <release>-<chart>.
 */}}
 {{- define "postgresql-cnpg.fullname" -}}
-{{- include "oan-common.fullname" . -}}
+{{- include "common.fullname" . -}}
 {{- end }}
 
 {{- define "postgresql-cnpg.name" -}}
-{{- include "oan-common.name" . -}}
+{{- include "common.name" . -}}
 {{- end }}
 
 {{- define "postgresql-cnpg.labels" -}}
-{{- include "oan-common.labels" . -}}
+{{- include "common.labels" . -}}
 {{- end }}
 
 {{/*
 Namespace for the CNPG resources. Defaults to the release namespace.
 */}}
 {{- define "postgresql-cnpg.namespace" -}}
-{{- default (include "oan-common.namespace" .) .Values.namespace -}}
+{{- default (include "common.namespace" .) .Values.namespace -}}
 {{- end }}
 
 {{/*
@@ -37,7 +37,7 @@ Cluster omits imageName and the operator uses its own default image.
 */}}
 {{- define "postgresql-cnpg.image" -}}
 {{- if .Values.image.repository -}}
-{{- include "oan-common.image" . -}}
+{{- include "common.image" . -}}
 {{- end -}}
 {{- end }}
 

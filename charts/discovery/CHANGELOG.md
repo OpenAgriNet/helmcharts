@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-09-01
 
 Initial release. Configuration ported from the verified
-`discovery-service/docker-compose.yml` stack, built on the `oan-common` library.
+`discovery-service/docker-compose.yml` stack, built on the `common` library.
 
 ### Added
 - Deployment, Service, env ConfigMap, ServiceAccount, and optional Ingress,

@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-08-31
 
 Initial release. Adapted from an existing Flyway migration chart, rebuilt on
-`oan-common` with the previous deployment's specifics removed.
+`common` with the previous deployment's specifics removed.
 
 ### Added
 - Flyway migration Job, env ConfigMap, generated-script ConfigMap, one ConfigMap
@@ -78,14 +78,14 @@ Initial release. Adapted from an existing Flyway migration chart, rebuilt on
   numeric prefixes.
 
 ### Changed
-- Built on `oan-common`, replacing the external `common` library chart pulled
+- Built on `common`, replacing the external `common` library chart pulled
   from a third-party Helm repository.
 - The migration script is generated from `targets` rather than shipped as a
   static file that parsed a directory listing, so each target gets its own JDBC
   URL and one Job can migrate several databases.
 - Script is POSIX `sh`, not `bash`, so it runs on the Alpine-based Flyway image.
 - Image tag pinned (`11.10.0-alpine`) rather than defaulting to `latest`.
-- Resource requests and limits are now mandatory, via `oan-common.resources`.
+- Resource requests and limits are now mandatory, via `common.resources`.
 
 ### Removed
 - `Service`, `Ingress`, `autoscaling`/HPA, `serviceMonitor`, and liveness and
