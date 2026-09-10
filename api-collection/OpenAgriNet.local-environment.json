@@ -136,11 +136,25 @@
       "description": "What the binding row publishes and the provider adapter fetches. A branch ref, so a push to release-0.0.1 changes what a running stack reads. MAUSAMGRAM_MAPPING_URL in .env."
     },
     {
-      "key": "weather-observation-schema-url",
-      "value": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/main/schema/WeatherObservation/v0.1/attributes.yaml",
+      "key": "capability-code",
+      "value": "openagrinet:WeatherObservation",
       "enabled": true,
       "type": "default",
-      "description": "The schema pack a SchemaRegistry row points at -- what openagrinet:WeatherObservation MEANS, as against the mapping URL above, which says how one upstream serves it. IN NO .env FILE: nothing in the stack reads this, because nothing seeds SchemaRegistry. MAIN IS A 404 TODAY -- only the schema-packs-v0.1 branch serves this path. The registry pattern-checks the URL's shape and never fetches it, so a row stores either way; main is the ref that becomes correct once the packs merge."
+      "description": "WHICH CAPABILITY THE 4. Capability Schemas FOLDER OPERATES ON -- the one variable to change to work on another, because the schemaUrl and the display name are derived from it rather than written down. The four this deployment serves are openagrinet:WeatherObservation, openagrinet:MandiPrice, openagrinet:KnowledgeAdvisory and openagrinet:AgricultureFacility; network-specs carries four more packs no capability uses yet."
+    },
+    {
+      "key": "schema-pack-ref",
+      "value": "main",
+      "enabled": true,
+      "type": "default",
+      "description": "The ref in OpenAgriNet/network-specs that a derived schemaUrl points at. SCHEMA_PACK_REF in .env, which is what bin/setup.py seeds the rows from -- keep the two the same or a create here disagrees with a seeded row. MAIN IS A 404 FOR THESE PATHS TODAY; only schema-packs-v0.1 serves them. The registry checks the URL's shape and never fetches it, so a row stores either way, and main is the ref that becomes correct once the packs merge."
+    },
+    {
+      "key": "schema-pack-version",
+      "value": "v0.1",
+      "enabled": true,
+      "type": "default",
+      "description": "The pack version, and the row's version field. All eight packs are v0.1 today. Per capability in setup.py rather than one setting for all four, because a capability can move to v0.2 while the others stay -- so if you point capability-code at one that has, change this too."
     }
   ],
   "_postman_variable_scope": "environment",
