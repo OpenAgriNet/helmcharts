@@ -4,7 +4,9 @@ The whole OAN stack in Docker Compose: a registry, a discovery service, three
 adapters, and two mock upstreams standing in for real provider APIs.
 
 Nothing is built here — the images are pulled. Locally that is about ten
-minutes, most of it waiting for Keycloak.
+minutes, most of it waiting for Keycloak. Discovery is the one exception, and
+only if you ask for it: see [Appendix H](#appendix-h--telemetry), which is also
+where the reason lives.
 
 ## The stack in one picture
 
@@ -673,6 +675,50 @@ with the exporter on and either one missing, rather than emitting a stream that
 cannot be attributed to a participant. On `make up-core`, where nothing is
 listening, set `OTEL_EXPORTER=none` to stop the periodic export failures in the
 log.
+
+### The published image may not have any of this in it
+
+Measured on 2026-09-10, `ghcr.io/nisargabd/discovery-service:latest` — the
+default `DISCOVERY_IMAGE` — was built before the telemetry package existed. Its
+embedded build info lists no `go.opentelemetry.io` dependency at all:
+
+```
+$ go version -m ./discovery-service      # extracted from the image
+discovery-service: go1.25.14
+	mod	github.com/OpenAgriNet/discovery-service	(devel)
+	dep	golang.org/x/crypto	v0.54.0
+	# ... and no go.opentelemetry.io/* line anywhere
+```
+
+Against that image every `OTEL_*` setting above is accepted and none of it does
+anything. Nothing errors. Nothing warns. Traces do not arrive and the stack
+reads as healthy throughout — which is the worst shape a stale tag can take, and
+the reason discovery is the one service here with a `build:` section:
+
+```
+DISCOVERY_IMAGE=discovery-service:local docker compose build discovery
+DISCOVERY_IMAGE=discovery-service:local docker compose up -d discovery
+```
+
+`make up` never builds. `image:` still decides what runs; the build happens only
+when you ask for one. The context is `DISCOVERY_CONTEXT`, defaulting to a
+sibling `../../discovery-service` checkout, and the base images default to the
+**public** `golang:1.27-alpine` and `gcr.io/distroless/static-debian12` rather
+than the Dockerfile's own `dhi.io/*`, which 401 without a Docker Hardened Images
+subscription.
+
+A build here is unstamped unless you pass the four stamps through:
+
+```
+$ docker run --rm discovery-service:local --version
+github.com/OpenAgriNet/discovery-service dev unknown 1970-01-01T00:00:00Z unknown
+```
+
+That `dev`/`unknown` reaches HyperDX verbatim as `build.commit`, `build.date` and
+`build.tree_state`. Honest for a local build. `VERSION`, `COMMIT`, `BUILD_DATE`
+and `TREE_STATE` are passed through from the environment when set, so exporting
+them before the build — or building in the discovery-service repo with
+`make docker`, which derives all four — gives a Resource you can trace back.
 
 ### What does not arrive, and why
 

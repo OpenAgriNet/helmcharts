@@ -299,6 +299,61 @@ services:
   discovery:
     image: ${DISCOVERY_IMAGE}
     pull_policy: missing
+
+    # THE ONLY SERVICE HERE THAT CAN BE BUILT, and the exception is earned. It
+    # is never built by `make up` -- `image:` above still decides what runs, and
+    # a build only happens when you ask for one:
+    #
+    #   DISCOVERY_IMAGE=discovery-service:local docker compose build discovery
+    #
+    # Why this one and not the adapters or the mocks: the published tag went
+    # stale in a way no error reports. Measured on 2026-09-10,
+    # ghcr.io/nisargabd/discovery-service:latest was built before the telemetry
+    # package existed -- its embedded build info lists no go.opentelemetry.io
+    # dependency at all. Against that image every OTEL_* setting below is
+    # accepted, nothing is exported, and the stack looks entirely healthy. A
+    # build you can run locally is what makes that falsifiable.
+    #
+    # The context defaults to a sibling checkout because that is where it sits
+    # for anyone who has both repos; point DISCOVERY_CONTEXT elsewhere if yours
+    # differs. Without that checkout the build fails on a missing directory,
+    # which is the correct failure -- there is no source to build.
+    build:
+      context: ${DISCOVERY_CONTEXT:-../../discovery-service}
+
+      # PUBLIC BASE IMAGES, deliberately overriding the Dockerfile's own
+      # defaults. It defaults to dhi.io/* -- Docker Hardened Images, what CI
+      # and every shipped image use -- and those 401 on an anonymous pull. A
+      # quick-start reader is precisely the person without that subscription,
+      # so the public equivalents the Dockerfile documents are the right
+      # default HERE and the wrong one there. INSTALL_BUILD_TOOLS comes with
+      # them and is not optional: h3-go is a cgo binding around Uber's C
+      # library, DHI's -dev variant bundles a C toolchain and golang:alpine
+      # does not.
+      args:
+        BUILD_IMAGE: ${DISCOVERY_BUILD_IMAGE:-golang:1.27-alpine}
+        RUNTIME_IMAGE: ${DISCOVERY_RUNTIME_IMAGE:-gcr.io/distroless/static-debian12:nonroot}
+        INSTALL_BUILD_TOOLS: "true"
+
+        # Bare names, so each is passed through from the environment if set and
+        # left to the Dockerfile's own default if not. No values invented here:
+        # compose cannot run `git describe`, and a stamp this file made up would
+        # be worse than an absent one.
+        #
+        # Unset, the binary reports `dev unknown 1970-01-01T00:00:00Z unknown`
+        # and its telemetry Resource carries that verbatim in build.commit,
+        # build.date and build.tree_state. Honest for a local build. To stamp
+        # one, build it in the discovery-service repo instead -- `make docker`
+        # is what derives all four -- or set them in the environment first.
+        #
+        # A key with NO VALUE is compose's pass-through form. It is not the same
+        # as `VERSION: ""`, which would pass an empty string and defeat the
+        # Dockerfile's default.
+        VERSION:
+        COMMIT:
+        BUILD_DATE:
+        TREE_STATE:
+
     container_name: oan-discovery
     restart: unless-stopped
     networks: [oan-internal]
