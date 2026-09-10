@@ -633,7 +633,7 @@
     },
     {
       "key": "mandiProviderId",
-      "value": "agmarknet-mock",
+      "value": "agmarknet",
       "description": "The mandi upstream. Half of its binding key."
     },
     {
