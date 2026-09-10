@@ -1,4 +1,4 @@
-# Experience layer adapter routing.
+# Consumer layer adapter routing.
 #
 # Branches by action: discovery goes to the network layer, everything
 # transactional goes straight to the provider adapter. For v2.x the router

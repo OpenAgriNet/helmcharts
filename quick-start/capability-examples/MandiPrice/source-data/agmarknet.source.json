@@ -1,0 +1,58 @@
+[
+  {
+    "Grade": "Local",
+    "Group": "Vegetables",
+    "State": "Maharashtra",
+    "Market": "Newasa APMC",
+    "Variety": "Unhali",
+    "District": "Ahmednagar",
+    "Commodity": "Onion",
+    "Max Price": "5100",
+    "Min Price": "1500",
+    "Price Unit": "Rs./Qtl",
+    "Modal Price": "4200",
+    "Arrival Date": "06-09-2026"
+  },
+  {
+    "Grade": "Local",
+    "Group": "Vegetables",
+    "State": "Maharashtra",
+    "Market": "Parner APMC",
+    "Variety": "Unhali",
+    "District": "Ahmednagar",
+    "Commodity": "Onion",
+    "Max Price": "5600",
+    "Min Price": "1000",
+    "Price Unit": "Rs./Qtl",
+    "Modal Price": "4000",
+    "Arrival Date": "06-09-2026"
+  },
+  {
+    "Grade": "Local",
+    "Group": "Vegetables",
+    "State": "Maharashtra",
+    "Market": "Pathardi APMC",
+    "Variety": "Red",
+    "District": "Ahmednagar",
+    "Commodity": "Onion",
+    "Max Price": "5200",
+    "Min Price": "1000",
+    "Price Unit": "Rs./Qtl",
+    "Modal Price": "3100",
+    "Arrival Date": "06-09-2026"
+  },
+  {
+    "Grade": "Local",
+    "Group": "Vegetables",
+    "State": "Maharashtra",
+    "Market": "Rahuri APMC",
+    "Variety": "Other",
+    "District": "Ahmednagar",
+    "Commodity": "Onion",
+    "Max Price": "6100",
+    "Min Price": "1000",
+    "Price Unit": "Rs./Qtl",
+    "Modal Price": "3100",
+    "Arrival Date": "06-09-2026"
+  }
+]

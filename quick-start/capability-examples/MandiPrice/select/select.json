@@ -1,0 +1,87 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "select",
+    "version": "2.0.0",
+    "networkId": "oan-dev",
+    "senderId": "consumer.oan.dev",
+    "receiverId": "provider.oan.dev",
+    "transactionId": "a1b2c3d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+    "messageId": "c3d4e5f6-7a8b-4c9d-8e0f-2a3b4c5d6e7f",
+    "timestamp": "2026-09-10T09:30:12Z",
+    "schemaContext": [
+      "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld#openagrinet:MandiPrice"
+    ]
+  },
+  "message": {
+    "contract": {
+      "status": {
+        "code": "DRAFT",
+        "name": "Draft"
+      },
+      "commitments": [
+        {
+          "status": {
+            "descriptor": {
+              "code": "DRAFT",
+              "name": "Draft"
+            }
+          },
+          "resources": [
+            {
+              "id": "resource:mandi-price:market:1634",
+              "quantity": {
+                "count": 1
+              },
+              "resourceAttributes": {
+                "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+                "@type": "openagrinet:MandiPrice",
+                "informationMode": "OnDemand",
+                "subjectCategories": [
+                  "Market"
+                ],
+                "supportedCommodities": [
+                  {
+                    "code": "23",
+                    "name": "Onion"
+                  }
+                ],
+                "supportedPriceFields": [
+                  "Minimum",
+                  "Maximum",
+                  "Modal"
+                ],
+                "market": {
+                  "marketName": "Rahuri APMC",
+                  "district": "338",
+                  "state": "MH"
+                },
+                "commodity": {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                "validity": {
+                  "startsAt": "2026-09-01T00:00:00+05:30",
+                  "endsAt": "2026-09-09T23:59:59+05:30"
+                }
+              }
+            }
+          ],
+          "offer": {
+            "id": "offer:mandi-price:open-data",
+            "resourceIds": [
+              "resource:mandi-price:market:1634"
+            ],
+            "provider": {
+              "id": "agmarknet",
+              "descriptor": {
+                "code": "AGMARKNET",
+                "name": "Agmarknet Vistaar"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "id": "oan-local-environment",
+  "name": "OpenAgriNet local",
+  "values": [
+    {
+      "key": "consumer-adapter-host",
+      "value": "http://127.0.0.1:9202",
+      "enabled": true,
+      "type": "default",
+      "description": "Where discover and select enter. Takes unsigned requests: an app is inside the trust boundary. CONSUMER_ADAPTER_PORT in .env."
+    },
+    {
+      "key": "provider-adapter-host",
+      "value": "http://127.0.0.1:9200",
+      "enabled": true,
+      "type": "default",
+      "description": "Where publish enters, and what calls the four upstreams. PROVIDER_ADAPTER_PORT in .env."
+    },
+    {
+      "key": "network-adapter-host",
+      "value": "http://127.0.0.1:9201",
+      "enabled": true,
+      "type": "default",
+      "description": "Called by no request but the health check, on purpose: both its endpoints verify signatures and Postman does not sign. NETWORK_ADAPTER_PORT in .env."
+    },
+    {
+      "key": "discovery-host",
+      "value": "http://127.0.0.1:8090",
+      "enabled": true,
+      "type": "default",
+      "description": "The catalogue index. Reached through an adapter, not directly, so only its health check is here. DISCOVERY_PORT in .env."
+    },
+    {
+      "key": "registry-host",
+      "value": "http://127.0.0.1:8081",
+      "enabled": true,
+      "type": "default",
+      "description": "Participants and capability bindings, seeded by bin/setup.py. HOST ONLY: the API base is /api/v1, so a request spells it out. REGISTRY_PORT in .env."
+    },
+    {
+      "key": "keycloak-host",
+      "value": "http://127.0.0.1:8080",
+      "enabled": true,
+      "type": "default",
+      "description": "Issues the registry write token, and authenticates nothing else -- it is Sunbird RC's, not the network's. KEYCLOAK_PORT in .env."
+    },
+    {
+      "key": "keycloak-realm",
+      "value": "sunbird-rc",
+      "enabled": true,
+      "type": "default",
+      "description": "KEYCLOAK_REALM in .env."
+    },
+    {
+      "key": "keycloak-client-id",
+      "value": "registry-frontend",
+      "enabled": true,
+      "type": "default",
+      "description": "The client that logs a user in. admin-api is the one that mints tokens and is not used from here. KEYCLOAK_CLIENT_ID in .env."
+    },
+    {
+      "key": "registry-user",
+      "value": "no-user",
+      "enabled": true,
+      "type": "default",
+      "description": "REGISTRY_ADMIN_USER in .env. A shipped default, so it is public until changed."
+    },
+    {
+      "key": "registry-password",
+      "value": "no-user-password",
+      "enabled": true,
+      "type": "default",
+      "description": "REGISTRY_ADMIN_PASSWORD in .env. A shipped default, so it is public until changed."
+    },
+    {
+      "key": "consumer-participant-id",
+      "value": "consumer.oan.dev",
+      "enabled": true,
+      "type": "default",
+      "description": "The consumer adapter's network identity, and what its signatures verify against. CONSUMER_SUBSCRIBER_ID in .env."
+    },
+    {
+      "key": "consumer-base-url",
+      "value": "https://consumer.oan.dev",
+      "enabled": true,
+      "type": "default",
+      "description": "The address PEERS are told to POST to, published in the registry row. Nothing in this stack resolves it, so a wrong value costs nothing locally and everything on a shared network -- and the registry cannot correct it. CONSUMER_BASE_URL in .env."
+    },
+    {
+      "key": "consumer-participant-key",
+      "value": "",
+      "enabled": true,
+      "type": "default",
+      "description": "EMPTY ON PURPOSE. The public half lives in quick-start/keys/keys.json, which bin/setup.py generates; paste it in before registering. setup.py has already registered this participant, so it is normally not needed."
+    },
+    {
+      "key": "mausamgram-participant-id",
+      "value": "mausamgram",
+      "enabled": true,
+      "type": "default",
+      "description": "IMD Mausamgram, the weather upstream. Half of its binding key. MAUSAMGRAM_PARTICIPANT_ID in .env."
+    },
+    {
+      "key": "mausamgram-capability",
+      "value": "openagrinet:WeatherObservation",
+      "enabled": true,
+      "type": "default",
+      "description": "MAUSAMGRAM_CAPABILITY in .env."
+    },
+    {
+      "key": "mausamgram-binding-key",
+      "value": "mausamgram|openagrinet:WeatherObservation",
+      "enabled": true,
+      "type": "default",
+      "description": "<participant-id>|<capability>. Used to look up the binding's osid. The provider adapter builds this from the incoming payload, so it must match the registry row exactly -- a mismatch is a 404."
+    },
+    {
+      "key": "mausamgram-base-url",
+      "value": "https://mausamgram.imd.gov.in",
+      "enabled": true,
+      "type": "default",
+      "description": "MAUSAMGRAM_BASE_URL in .env."
+    },
+    {
+      "key": "mausamgram-path",
+      "value": "/nwpapi/get-daily",
+      "enabled": true,
+      "type": "default",
+      "description": "MAUSAMGRAM_PATH in .env."
+    },
+    {
+      "key": "mausamgram-mapping-url",
+      "value": "https://raw.githubusercontent.com/OpenAgriNet/helmcharts/release-0.0.1/quick-start/config/mappings/mausamgram/weather-observation.select.yaml",
+      "enabled": true,
+      "type": "default",
+      "description": "What the binding row publishes and the provider adapter fetches. A branch ref, so a push to release-0.0.1 changes what a running stack reads. MAUSAMGRAM_MAPPING_URL in .env."
+    },
+    {
+      "key": "weather-observation-schema-url",
+      "value": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/main/schema/WeatherObservation/v0.1/attributes.yaml",
+      "enabled": true,
+      "type": "default",
+      "description": "The schema pack a SchemaRegistry row points at -- what openagrinet:WeatherObservation MEANS, as against the mapping URL above, which says how one upstream serves it. IN NO .env FILE: nothing in the stack reads this, because nothing seeds SchemaRegistry. MAIN IS A 404 TODAY -- only the schema-packs-v0.1 branch serves this path. The registry pattern-checks the URL's shape and never fetches it, so a row stores either way; main is the ref that becomes correct once the packs merge."
+    }
+  ],
+  "_postman_variable_scope": "environment",
+  "_postman_exported_using": "hand-written, tracked in this repo"
+}

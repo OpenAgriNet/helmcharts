@@ -1,0 +1,71 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "select",
+    "version": "2.0.0",
+    "networkId": "oan-dev",
+    "senderId": "consumer.oan.dev",
+    "receiverId": "provider.oan.dev",
+    "transactionId": "a4000000-0000-4000-8000-000000000003",
+    "messageId": "b4000000-0000-4000-8000-000000000003",
+    "timestamp": "2026-09-10T09:31:00Z",
+    "schemaContext": [
+      "https://openagrinet.github.io/network-specs/schema/KnowledgeAdvisory/v0.1/context.jsonld#openagrinet:KnowledgeAdvisory"
+    ]
+  },
+  "message": {
+    "contract": {
+      "status": {
+        "code": "DRAFT",
+        "name": "Draft"
+      },
+      "commitments": [
+        {
+          "status": {
+            "descriptor": {
+              "code": "DRAFT",
+              "name": "Draft"
+            }
+          },
+          "resources": [
+            {
+              "id": "resource:knowledge-advisory:knowledge:retrieval",
+              "quantity": {
+                "count": 1
+              },
+              "resourceAttributes": {
+                "@context": "https://openagrinet.github.io/network-specs/schema/KnowledgeAdvisory/v0.1/context.jsonld",
+                "@type": "openagrinet:KnowledgeAdvisory",
+                "informationMode": "OnDemand",
+                "subjectCategories": [
+                  "Crop"
+                ],
+                "languages": [
+                  "en"
+                ],
+                "topics": [
+                  "cotton",
+                  "pink bollworm",
+                  "pest management"
+                ]
+              }
+            }
+          ],
+          "offer": {
+            "id": "offer:knowledge-advisory:knowledge:open-data",
+            "resourceIds": [
+              "resource:knowledge-advisory:knowledge:retrieval"
+            ],
+            "provider": {
+              "id": "bharat-vistaar",
+              "descriptor": {
+                "code": "KNOWLEDGE_PROVIDER",
+                "name": "Knowledge retrieval provider"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

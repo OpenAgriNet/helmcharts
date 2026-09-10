@@ -1,0 +1,106 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "catalog/publish",
+    "version": "2.0.0",
+    "senderId": "provider.oan.dev",
+    "receiverId": "discovery.oan.dev",
+    "transactionId": "a3000000-0000-4000-8000-000000000001",
+    "messageId": "b3000000-0000-4000-8000-000000000001",
+    "timestamp": "2026-09-10T09:15:00Z",
+    "schemaContext": [
+      "https://openagrinet.github.io/network-specs/schema/AgricultureFacility/v0.1/context.jsonld#openagrinet:AgricultureFacility"
+    ]
+  },
+  "message": {
+    "catalogs": [
+      {
+        "id": "catalog:agriculture-facility:pocra",
+        "descriptor": {
+          "code": "AGRI_FACILITY_POCRA",
+          "name": "PoCRA agriculture facility locator",
+          "shortDesc": "On-demand search for custom hiring centres, Krishi Vigyan Kendras, warehouses and soil testing laboratories across Maharashtra.",
+          "longDesc": "One Resource, not one per facility. PoCRA aggregates facility registries from several Maharashtra departments and answers a search around a point, ranking results by distance, so there is no enumerable list of facilities to publish. Consumers discover this Resource by falling inside its coverage area and then invoke the Provider with a search origin and the facility types they want, receiving one Direct AgricultureFacility Resource per facility found."
+        },
+        "isActive": true,
+        "provider": {
+          "id": "pocra",
+          "descriptor": {
+            "code": "POCRA",
+            "name": "PoCRA, Government of Maharashtra",
+            "shortDesc": "Maharashtra state aggregator for agricultural facility registries."
+          }
+        },
+        "resources": [
+          {
+            "id": "resource:agriculture-facility:pocra:facility-search",
+            "descriptor": {
+              "code": "AGRI_FACILITY_POCRA_SEARCH",
+              "name": "Nearby agriculture facility search",
+              "shortDesc": "Find custom hiring centres, Krishi Vigyan Kendras, warehouses and soil testing laboratories near a point.",
+              "longDesc": "Invoke this Resource with a fulfillment stop carrying a Point location and the facility types wanted to obtain one Direct AgricultureFacility Resource per facility, each carrying its address, contact and, for warehouses, its reported storage capacity. Results are ranked by the Provider's own distance from the search origin; that distance is not carried on the Resource, because it is a property of the query rather than of the facility."
+            },
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/AgricultureFacility/v0.1/context.jsonld",
+              "@type": "openagrinet:AgricultureFacility",
+              "informationMode": "OnDemand",
+              "subjectCategories": [
+                "Facility"
+              ],
+              "languages": [
+                "en",
+                "mr"
+              ],
+              "source": {
+                "sourceId": "pocra",
+                "sourceName": "PoCRA, Government of Maharashtra",
+                "sourceUri": "https://mahapocra.gov.in/"
+              },
+              "supportedFacilityTypes": [
+                "CustomHiringCentre",
+                "KrishiVigyanKendra",
+                "Warehouse",
+                "SoilTestingFacility"
+              ],
+              "coverageAreas": [
+                {
+                  "codeScheme": "ISO-3166-2",
+                  "areaCode": "IN-MH",
+                  "areaLevel": "State",
+                  "areaName": "Maharashtra"
+                },
+                {
+                  "type": "Polygon",
+                  "coordinates": [
+                    [
+                      [
+                        72.6,
+                        15.6
+                      ],
+                      [
+                        80.9,
+                        15.6
+                      ],
+                      [
+                        80.9,
+                        22.1
+                      ],
+                      [
+                        72.6,
+                        22.1
+                      ],
+                      [
+                        72.6,
+                        15.6
+                      ]
+                    ]
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -14,12 +14,12 @@ where the reason lives.
   consumer
      │
      ▼
-  experience adapter                     the only one a consumer calls
+  consumer adapter                     the only one a consumer calls
      │
      ├── discover ──►  network adapter  ──►  discovery service
      │
-     └── select   ──►  provider adapter ──►  mockimd
-                                        └─►  mockagmarknet
+     └── select   ──►  provider adapter ──►  mock-imd
+                                        └─►  mock-agmarknet
 ```
 
 `publish` runs the other way: the provider adapter sends it to the network
@@ -30,7 +30,7 @@ capability's provider lives.
 
 A `select` answers in the same HTTP round trip — there is no callback.
 
-That is the request order. **Startup order is the reverse**: the experience
+That is the request order. **Startup order is the reverse**: the consumer
 adapter depends on the other two, so Compose brings them up first. The steps
 below follow startup order, so they work top to bottom.
 
@@ -76,9 +76,9 @@ cp .env.example .env
 Locally, nothing in it needs changing. It publishes these on `localhost`:
 
 ```
-8081  registry        9200  provider adapter     9100  mockimd
-8080  keycloak        9201  network adapter      9101  mockagmarknet
-9990  keycloak admin  9202  experience adapter
+8081  registry        9200  provider adapter     9100  mock-imd
+8080  keycloak        9201  network adapter      9101  mock-agmarknet
+9990  keycloak admin  9202  consumer adapter
 8090  discovery
 ```
 
@@ -111,12 +111,12 @@ Answers `select`, and the only layer that calls an upstream. Serves all four
 capabilities from one adapter.
 
 `.env` keys: `PROVIDER_SUBSCRIBER_ID`, and the four pairs that become binding
-keys — `PROVIDER_PARTICIPANT_ID` + `PROVIDER_CAPABILITY`,
-`MANDI_PARTICIPANT_ID` + `MANDI_CAPABILITY`, `KNOWLEDGE_PARTICIPANT_ID` +
-`KNOWLEDGE_CAPABILITY`, `POCRA_PARTICIPANT_ID` + `POCRA_CAPABILITY`.
+keys — `MAUSAMGRAM_PARTICIPANT_ID` + `MAUSAMGRAM_CAPABILITY`,
+`AGMARKNET_PARTICIPANT_ID` + `AGMARKNET_CAPABILITY`, `VISTAAR_PARTICIPANT_ID` +
+`VISTAAR_CAPABILITY`, `POCRA_PARTICIPANT_ID` + `POCRA_CAPABILITY`.
 
-Plus the credentials each upstream needs: `MANDI_ACCESS_NAME` +
-`MANDI_PASSWORD`, and `KNOWLEDGE_CLIENT_ID` + `KNOWLEDGE_CLIENT_SECRET`. POCRA
+Plus the credentials each upstream needs: `AGMARKNET_ACCESS_NAME` +
+`AGMARKNET_PASSWORD`, and `VISTAAR_CLIENT_ID` + `VISTAAR_CLIENT_SECRET`. POCRA
 needs none at all.
 
 **Only mausamgram is a mock now.** Mandi, knowledge and POCRA are real
@@ -136,19 +136,19 @@ All four capability steps should be listed by name.
 Fronts discovery: verifies the caller, passes `discover` and `publish` on, and
 re-signs as itself.
 
-`.env` keys: `NETWORK_SUBSCRIBER_ID`. `APP_NETWORK_ID` belongs to the discovery
+`.env` keys: `NETWORK_SUBSCRIBER_ID`. `BECKN_NETWORK_ID` belongs to the discovery
 service behind it — a `discover` naming a different network finds nothing.
 
 ```sh
 docker compose logs network-adapter | grep 'Server listening'
 ```
 
-## Step 7 — Experience layer
+## Step 7 — Consumer layer
 
 The consumer's edge. Sends `discover` to the network layer and `select`
-straight to the provider layer, per `config/adapters/routing-experience.yaml`.
+straight to the provider layer, per `config/adapters/routing-consumer.yaml`.
 
-`.env` keys: `EXP_SUBSCRIBER_ID`.
+`.env` keys: `CONSUMER_SUBSCRIBER_ID`.
 
 ```sh
 docker compose logs consumer-adapter | grep 'Server listening'
@@ -160,19 +160,20 @@ keys. Change `.env`, re-run `make up`.
 
 ## Step 8 — Verify end to end
 
-Import both files from `../postman-collection/` into Postman —
-`api-collection.json` and `local_postman_environment.json`, which already
-points at localhost. Or:
+Import both files from `../api-collection/` into Postman —
+`OpenAgriNet.api-collection.json` and `OpenAgriNet.local-environment.json`.
+Select the environment, or every `{{...-host}}` resolves to nothing. Or:
 
 ```sh
-newman run ../postman-collection/api-collection.json
+newman run ../api-collection/OpenAgriNet.api-collection.json \
+  -e ../api-collection/OpenAgriNet.local-environment.json
 ```
 
-**8 requests, 49 assertions**, one folder per capability. The weather and mandi
-folders publish, discover, then select, so run publish before discover the
-first time. Knowledge and POCRA are a single select each: their
-`informationMode` is `OnDemand`, so there is no catalogue to publish and
-nothing to discover.
+**18 requests, 32 assertions**, one folder per capability plus a health folder.
+Each capability folder is publish, then discover, then select, in that order —
+so run publish first. Every request's `transactionId`, `messageId` and
+`timestamp` are filled fresh by the collection's pre-request script; the rest
+of each body comes from `capability-examples/`, unedited.
 
 Green means the registry is seeded, signatures verify both ways, all four
 mappings work and discovery is indexing.
@@ -214,8 +215,8 @@ Then Part 1 Steps 2 and 3 as written.
 `.env.example` ships working defaults, which means they are public:
 
 ```
-POSTGRES_PASSWORD    KEYCLOAK_ADMIN_PASSWORD    KEYCLOAK_SECRET
-REGISTRY_DEFAULT_USER_PASSWORD
+POSTGRES_PASSWORD    KEYCLOAK_ADMIN_PASSWORD    KEYCLOAK_ADMIN_CLIENT_SECRET
+KEYCLOAK_DEFAULT_USER_PASSWORD
 ```
 
 Change all four before the VM is reachable by anyone but you. Adapter keypairs
@@ -329,7 +330,7 @@ Deliberately absent:
 ### The adapters, through Nginx Proxy Manager
 
 NPM owns 80 and 443 and is the whole public surface. Its routing table is
-**rows in a SQLite database** in the `npm-data` volume, not a config file — so
+**rows in a SQLite database** in the `nginx-proxy-manager-data` volume, not a config file — so
 setup is a one-time click-through and that volume is the only copy. Back it up.
 
 **First boot.** Tunnel to the admin UI and change the shipped login before
@@ -345,7 +346,7 @@ It logs in with `admin@example.com` / `changeme`, live from first boot.
 
 | Domain | Forward Hostname | Port | Then |
 |---|---|---|---|
-| `exp.oan.example.com` | `consumer-adapter` | 9202 | paste `config/reverse-proxy/npm-advanced/exp.conf` into **Advanced** |
+| `consumer.oan.example.com` | `consumer-adapter` | 9202 | paste `config/reverse-proxy/npm-advanced/consumer.conf` into **Advanced** |
 | `network.oan.example.com` | `network-adapter` | 9201 | — |
 | `provider.oan.example.com` | `provider-adapter` | 9200 | — |
 
@@ -455,9 +456,9 @@ an `allow`.
 
 | File | How it applies |
 |---|---|
-| `npm-custom/http_top.conf` | **Automatic**, top of the `http` block. The `exp` rate-limit zone and `limit_req_status 429`. |
+| `npm-custom/http_top.conf` | **Automatic**, top of the `http` block. The `consumer` rate-limit zone and `limit_req_status 429`. |
 | `npm-custom/server_proxy.conf` | **Automatic**, every server block. The `/publish` deny. |
-| `npm-advanced/exp.conf` | **Manual** — paste into the experience host's Advanced tab. `limit_req` for that host only; a 10 r/s ceiling on signed peer traffic would throttle for no gain. |
+| `npm-advanced/consumer.conf` | **Manual** — paste into the consumer host's Advanced tab. `limit_req` for that host only; a 10 r/s ceiling on signed peer traffic would throttle for no gain. |
 | `npm-advanced/hyperdx.conf` | **Manual** — paste into the HyperDX host's Advanced tab. 300s timeouts for ClickHouse scans, buffering off for live tail. Carries no credential; the Access List does. |
 
 The manual one is in a file anyway because NPM's Advanced field is a textarea
@@ -507,7 +508,7 @@ loopback. A registry route would depend on that silently.
 ## Appendix C — Startup order, and why it is that order
 
 ```
-1. registry and discovery        (also registry-db, keycloak, discovery-db)
+1. registry and discovery        (also sunbird-registry-postgres, sunbird-registry-keycloak, discovery-postgres)
 2. bin/setup.py                  keys, seven participants, four bindings, three configs
 3. mock upstreams, then the three adapters
 4. nginx-proxy-manager           the public edge — 80 and 443, all interfaces
@@ -550,21 +551,32 @@ something does not match.
 `keys/keys.json` and are never in the registry. Keys are published as bare
 base64, no encoding label.
 
-**Two `upstream` rows, one per mock** — an ordinary HTTP API this deployment
-calls. It signs nothing, so it needs no role and no keys. Holds a `baseUrl`,
-here a Compose service name. No upstream credential lives in the registry
-either: the adapter config names *environment variables*, not values.
+**Four `upstream` rows, one per provider** — an ordinary HTTP API this
+deployment calls. It signs nothing, so it needs no role and no keys. Holds a
+`baseUrl`, now a real external host for every one of them: no capability points
+at a mock. No upstream credential lives in the registry either: the adapter
+config names *environment variables*, not values.
 
-**Two `ProviderSchema` rows, one per capability** — which upstream answers
+**Four `ProviderSchema` rows, one per capability** — which upstream answers
 which capability and how to call it: method, path, timeout, retries, and the
 mapping URL. Its `bindingKey` is `participantId|capabilityCode`:
 
 ```
-mausamgram-mock|openagrinet:WeatherObservation
-agmarknet-mock|openagrinet:MandiPrice
+mausamgram|openagrinet:WeatherObservation
+agmarknet|openagrinet:MandiPrice
+bharat-vistaar|openagrinet:KnowledgeAdvisory
+pocra|openagrinet:AgricultureFacility
 ```
 
-Those two strings are the hinge. The provider adapter builds the same key from
+The left half is the PARTICIPANT ID and it names the entity — never the
+capability, which is already the right half, and never the deployment. That is
+why these read `mausamgram` rather than `mausamgram-mock`: repointing a
+capability from a mock to the live upstream is a `baseUrl`, not a different
+participant. It is also the string a catalog publishes as `offer.provider.id`,
+which is what lets `capability-examples/` be exercised against this stack
+unedited.
+
+Those four strings are the hinge. The provider adapter builds the same key from
 each payload — the provider id and the capability `@type` it carries — and a
 step answers only when the key matches its own. `setup.py` renders those keys
 into `provider.yaml` from the same `.env` it seeds the registry from, which is
@@ -576,13 +588,13 @@ and the token request has a trap:
 ```sh
 TOKEN=$(curl -s -X POST \
   "http://127.0.0.1:8080/auth/realms/sunbird-rc/protocol/openid-connect/token" \
-  -H 'X-Forwarded-Host: keycloak:8080' -H 'X-Forwarded-Proto: http' \
+  -H 'X-Forwarded-Host: sunbird-registry-keycloak:8080' -H 'X-Forwarded-Proto: http' \
   -d 'client_id=registry-frontend' -d 'grant_type=password' \
   -d 'username=no-user' -d 'password=no-user-password' \
   | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
 ```
 
-Those `X-Forwarded-*` headers are not optional and `keycloak:8080` is the
+Those `X-Forwarded-*` headers are not optional and `sunbird-registry-keycloak:8080` is the
 **container-internal** address on purpose. Keycloak builds the token's issuer
 from them and the registry validates it against the internal address; get it
 wrong and you get a 401 with an empty body.
@@ -597,8 +609,8 @@ unauthenticated `/publish` it otherwise has to expose.
 ## Appendix E — How a request flows
 
 ```
-discover   you -> exp -> network -> discovery service
-select     you -> exp -> provider -> the upstream that owns that capability
+discover   you -> consumer -> network -> discovery service
+select     you -> consumer -> provider -> the upstream that owns that capability
 publish    a catalogue system -> provider -> network -> discovery service
 ```
 
@@ -693,7 +705,7 @@ does not match → the `X-Forwarded-*` headers in Appendix D.
 an IPv6 address the host cannot route.
 
 **NPM's default page, a 502 that worked yesterday, a failed certificate, or 429
-on the experience host** → Appendix B.
+on the consumer host** → Appendix B.
 
 ## Appendix G — Updating a deployment that is already running
 
@@ -761,7 +773,7 @@ which is the only authentication that exists on it — see Appendix B, including
 why OTLP's 4317/4318 do not get the same treatment.
 
 **Discovery now exports.** It used to read the OTLP variables and consume
-nothing; that changed when its telemetry package landed, so `OTEL_EXPORTER`
+nothing; that changed when its telemetry package landed, so `DISCOVERY_OTEL_EXPORTER`
 defaults to `otlp` and its spans and two `pgxpool` instruments go to HyperDX
 over OTLP/gRPC — the same hop the adapters make.
 
@@ -769,7 +781,7 @@ Two `.env` keys come with that, and they are not optional:
 `DISCOVERY_SUBSCRIBER_ID` and `DISCOVERY_DOMAIN`. Discovery **refuses to boot**
 with the exporter on and either one missing, rather than emitting a stream that
 cannot be attributed to a participant. On `make up-core`, where nothing is
-listening, set `OTEL_EXPORTER=none` to stop the periodic export failures in the
+listening, set `DISCOVERY_OTEL_EXPORTER=none` to stop the periodic export failures in the
 log.
 
 ### The published image may not have any of this in it
@@ -792,8 +804,8 @@ reads as healthy throughout — which is the worst shape a stale tag can take, a
 the reason discovery is the one service here with a `build:` section:
 
 ```
-DISCOVERY_IMAGE=discovery-service:local docker compose build discovery
-DISCOVERY_IMAGE=discovery-service:local docker compose up -d discovery
+DISCOVERY_IMAGE=discovery-service:local docker compose build discovery-service
+DISCOVERY_IMAGE=discovery-service:local docker compose up -d discovery-service
 ```
 
 `make up` never builds. `image:` still decides what runs; the build happens only
@@ -914,8 +926,8 @@ Three things that bite when writing a payload:
 
 ## Appendix J — About the mapping files
 
-`config/mappings/` holds the two this deployment uses, and `MAPPING_URL` /
-`MANDI_MAPPING_URL` point at **this repo's own copies** over GitHub's raw CDN —
+`config/mappings/` holds the two this deployment uses, and `MAUSAMGRAM_MAPPING_URL` /
+`AGMARKNET_MAPPING_URL` point at **this repo's own copies** over GitHub's raw CDN —
 so the file a reader reviews and the file the adapter fetches are one file.
 
 Each has two halves: the request half turns the Beckn payload into what the
@@ -954,14 +966,14 @@ config/
       http_top.conf           on its own -- rate-limit zone, and the /publish
       server_proxy.conf       deny every proxy host gets
     npm-advanced/           NOT loaded. Paste into a host's Advanced tab; kept
-      exp.conf                here because a textarea in a database is not
-      hyperdx.conf            reviewable. exp = rate limit; hyperdx = ClickHouse
+      consumer.conf                here because a textarea in a database is not
+      hyperdx.conf            reviewable. consumer = rate limit; hyperdx = ClickHouse
                               timeouts (its login is an NPM Access List)
   adapters/
-    experience.yaml.tmpl    templates. setup.py renders these to .yaml,
+    consumer.yaml.tmpl    templates. setup.py renders these to .yaml,
     network.yaml.tmpl       filling in the keys it generated. The rendered
     provider.yaml.tmpl      files hold private keys and are gitignored
-    routing-experience.yaml which action goes where: experience sends discover
+    routing-consumer.yaml which action goes where: consumer sends discover
     routing-network.yaml    to the network layer and select to the provider;
     routing-provider.yaml   provider sends publish to the network layer
   registry/
@@ -970,7 +982,7 @@ config/
     imports/                the Keycloak realm
   discovery/                optional instance override
   mappings/                 one file per binding-action, served over the raw CDN
-../postman-collection/      the collection and its environment file
+../api-collection/      the collection and its environment file
 ```
 
 ## Appendix L — Renaming this directory
@@ -981,7 +993,7 @@ all five volumes, and **Docker does not move the data**: a plain `make up`
 afterwards starts on an empty registry, an empty catalogue, and an NPM with no
 proxy hosts and no certificates. The old volumes are orphaned, not gone.
 
-`npm-letsencrypt` is the one to care about — re-issuing runs into Let's
+`nginx-proxy-manager-letsencrypt` is the one to care about — re-issuing runs into Let's
 Encrypt's duplicate limit, five per week for the same names.
 
 Copy the data across before starting. Stop the stack first, from whichever
@@ -989,22 +1001,22 @@ name it is running under:
 
 ```sh
 make down
-for v in registry-data discovery-data npm-data npm-letsencrypt hyperdx-data; do
-  docker volume create "quick-start_$v" >/dev/null
-  docker run --rm -v "old-name_$v:/from" -v "quick-start_$v:/to" alpine \
+for v in sunbird-registry-postgres-data discovery-postgres-data nginx-proxy-manager-data nginx-proxy-manager-letsencrypt hyperdx-clickhouse-data; do
+  docker volume create "openagrinet_$v" >/dev/null
+  docker run --rm -v "old-name_$v:/from" -v "openagrinet_$v:/to" alpine \
     sh -c 'cd /from && tar cf - . | (cd /to && tar xf -)'
 done
 ```
 
 Then `make up`, and confirm the seven participants and your proxy hosts before
-deleting anything. Keycloak shares `registry-data`, so its realm travels with
+deleting anything. Keycloak shares `sunbird-registry-postgres-data`, so its realm travels with
 that volume — and equally does not survive if you skip it.
 
 ## Appendix M — Starting over
 
 ```sh
 docker compose down -v
-rm -rf keys config/adapters/experience.yaml config/adapters/network.yaml \
+rm -rf keys config/adapters/consumer.yaml config/adapters/network.yaml \
        config/adapters/provider.yaml
 ```
 
@@ -1012,9 +1024,9 @@ New keys mean new identities, so the provider rows must be created again and
 **the old participant ids cannot be reused** — the registry's delete is soft
 and keeps the unique index.
 
-`-v` deletes **every** volume, including `npm-letsencrypt` and `npm-data` —
+`-v` deletes **every** volume, including `nginx-proxy-manager-letsencrypt` and `nginx-proxy-manager-data` —
 your certificates and your whole routing table. To clear only catalogues, drop
-`quick-start_discovery-data` alone and leave the rest.
+`openagrinet_discovery-data` alone and leave the rest.
 
 ## Appendix N — What the collection demonstrates
 
@@ -1025,7 +1037,7 @@ and passes through anything else. Nothing routes by URL, path or domain. That
 is the whole dispatch mechanism, and these two requests are what show it.
 
 **`networkAdapterUrl` is a variable no request uses, on purpose.** `discover`
-reaches the network adapter through the experience adapter and `publish`
+reaches the network adapter through the consumer adapter and `publish`
 through the provider adapter, so nothing in the collection calls it directly.
 It is listed because it is the other adapter a deployment exposes publicly —
 its `/publish` and `/discover` both verify signatures, so a network peer calls

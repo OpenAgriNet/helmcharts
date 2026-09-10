@@ -108,38 +108,41 @@ up_core() {
 #
 # Each takes the step total so the numbering reads correctly in both.
 
-# Naming registry and discovery also starts registry-db, keycloak and
-# discovery-db: all are depends_on with condition: service_healthy, so compose
+# Naming registry and discovery also starts sunbird-registry-postgres, sunbird-registry-keycloak and
+# discovery-postgres: all are depends_on with condition: service_healthy, so compose
 # blocks here until they pass their healthchecks rather than racing ahead.
 #
 # discovery belongs in this step and not in step 3. It would be dragged in
-# anyway by network-adapter's depends_on, but then a discovery-db that failed
+# anyway by network-adapter's depends_on, but then a discovery-postgres that failed
 # to come up would surface as an adapter problem three steps later.
 #
 # No --wait. It would only add a second wait on the registry's own healthcheck,
 # and setup.py already polls with an error message that says what to check.
 up_registry_tier() {
-    step 1 "$1" "registry and discovery (also starts registry-db, keycloak, discovery-db)"
-    info "keycloak's healthcheck allows up to 5 minutes on a cold volume"
-    docker compose up -d registry discovery
+    step 1 "$1" "registry and discovery (also starts sunbird-registry-postgres, sunbird-registry-keycloak, discovery-postgres)"
+    info "sunbird-registry-keycloak's healthcheck allows up to 5 minutes on a cold volume"
+    docker compose up -d sunbird-registry-service discovery-service
 }
 
 # Generates the adapter keypairs, registers the three adapter identities, and
-# renders config/adapters/{provider,network,exp}.yaml from the .tmpl files
+# renders config/adapters/{provider,network,consumer}.yaml from the .tmpl files
 # beside them. Safe to re-run: keys come from keys/keys.json once it exists,
 # and participants already registered are left alone.
 up_setup() {
-    step 2 "$1" "bin/setup.py -- keys, five registry participants, adapter configs"
+    step 2 "$1" "bin/setup.py -- keys, seven registry participants, adapter configs"
     python3 bin/setup.py
 }
 
 # Only now do the bind-mounted config files exist.
 up_adapters() {
-    # The mocks are named here rather than left to provider-adapter's
-    # depends_on, so a failure to pull one is reported as its own step instead
-    # of as an adapter that will not start.
-    step 3 "$1" "mock upstreams and adapters (provider, network, exp)"
-    docker compose up -d mockimd mockagmarknet
+    # The mocks are NOT started. All four capabilities point at real external
+    # upstreams, so starting them would pull two images and run two containers
+    # nothing calls. They are still defined in docker-compose.yml, so
+    # `docker compose up -d mock-imd mock-agmarknet` brings them up for anyone
+    # debugging a mapping without the real credentials -- but that also needs a
+    # new participant id and base URL in .env plus a setup.py re-run, because
+    # the registry cannot repoint an existing row.
+    step 3 "$1" "adapters (provider, network, consumer)"
     docker compose up -d provider-adapter network-adapter consumer-adapter
 }
 
@@ -165,7 +168,7 @@ NEXT
 # ----------------------------------------------------------------- down
 
 # Containers and networks go; named volumes stay. So the registry's Postgres
-# data, discovery's data, and -- the one that would actually hurt -- npm-data,
+# data, discovery's data, and -- the one that would actually hurt -- nginx-proxy-manager-data,
 # which is the ONLY copy of every proxy host and Let's Encrypt certificate,
 # all survive. `up` after this is fast and lands where you left off.
 down() {
@@ -182,14 +185,14 @@ destroy() {
     cat <<'WARN'
 This deletes every named volume in the project:
 
-  npm-data         every NPM proxy host and Let's Encrypt certificate. NPM
+  nginx-proxy-manager-data         every NPM proxy host and Let's Encrypt certificate. NPM
                    keeps its routing table in a SQLite database in this
                    volume and nowhere else -- there is no export, and the
                    admin account has no reset flow. If you have not backed
                    it up, the click-through starts over.
-  registry-data    the registry's Postgres: participants, keys, schemas.
-  discovery-data   the discovery catalogue.
-  hyperdx-data     collected telemetry.
+  sunbird-registry-postgres-data    the registry's Postgres: participants, keys, schemas.
+  discovery-postgres-data   the discovery catalogue.
+  hyperdx-clickhouse-data     collected telemetry.
 
 keys/keys.json is NOT deleted, and should not be -- it is what lets setup.py
 re-register the adapters under their existing identities on the next `up`.

@@ -34,7 +34,7 @@ pluginManager:
 # WHICH IS WHY THE ENABLE FLAGS ARE A SWITCH. With all three false the plugin
 # builds no exporter at all and returns a no-op provider -- it does not dial,
 # so it cannot log a connection failure every few seconds. Point a stack with
-# no collector at one and that is exactly what you get, so OTEL_ENABLED=false
+# no collector at one and that is exactly what you get, so ADAPTER_OTEL_ENABLED=false
 # is the right setting for `make up-core`.
 #
 # serviceVersion is deliberately absent: left empty the plugin fills in the
@@ -65,27 +65,27 @@ modules:
     handler:
       type: std
       role: bap
-      subscriberId: __EXP_SUBSCRIBER_ID__
+      subscriberId: __CONSUMER_SUBSCRIBER_ID__
 
       plugins:
         registry:
           id: sunbirdRegistry
           config:
-            url: http://registry:8081/api/v1
+            url: http://sunbird-registry-service:8081/api/v1
             entity: Participant
             providerEntity: ProviderSchema
 
         keyManager:
           id: simplekeymanager
           config:
-            subscriberId: __EXP_SUBSCRIBER_ID__
+            subscriberId: __CONSUMER_SUBSCRIBER_ID__
             # The KEY's osid, not a friendly name: that is what the registry
             # indexes keys by, and what a verifier looks up.
-            keyId: __EXP_KEY_ID__
-            signingPrivateKey: "__EXP_SIGNING_PRIVATE__"
-            signingPublicKey: "__EXP_SIGNING_PUBLIC__"
-            encrPrivateKey: "__EXP_ENCR_PRIVATE__"
-            encrPublicKey: "__EXP_ENCR_PUBLIC__"
+            keyId: __CONSUMER_KEY_ID__
+            signingPrivateKey: "__CONSUMER_SIGNING_PRIVATE__"
+            signingPublicKey: "__CONSUMER_SIGNING_PUBLIC__"
+            encrPrivateKey: "__CONSUMER_ENCR_PRIVATE__"
+            encrPublicKey: "__CONSUMER_ENCR_PUBLIC__"
 
         signer:
           id: signer
@@ -112,7 +112,7 @@ modules:
         router:
           id: router
           config:
-            routingConfig: /app/config/routing-experience.yaml
+            routingConfig: /app/config/routing-consumer.yaml
 
       steps:
         - validateSchema

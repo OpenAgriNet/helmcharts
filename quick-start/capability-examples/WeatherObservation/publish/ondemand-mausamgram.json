@@ -1,0 +1,115 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "catalog/publish",
+    "version": "2.0.0",
+    "senderId": "provider.oan.dev",
+    "receiverId": "discovery.oan.dev",
+    "transactionId": "a2000000-0000-4000-8000-000000000001",
+    "messageId": "b2000000-0000-4000-8000-000000000001",
+    "timestamp": "2026-09-10T09:15:00Z",
+    "schemaContext": [
+      "https://openagrinet.github.io/network-specs/schema/WeatherObservation/v0.1/context.jsonld#openagrinet:WeatherObservation"
+    ]
+  },
+  "message": {
+    "catalogs": [
+      {
+        "id": "catalog:weather-observation:mausamgram",
+        "descriptor": {
+          "code": "WEATHER_MAUSAMGRAM",
+          "name": "IMD Mausamgram daily weather forecast",
+          "shortDesc": "On-demand five-day daily weather forecast for any point in the IMD numerical weather prediction domain.",
+          "longDesc": "One Resource, not one per place. The Provider forecasts on a 0.25 degree grid and accepts any coordinate inside its domain, snapping it to the nearest grid centre, so there is no enumerable list of locations to publish. Consumers discover this Resource by falling inside its coverage area and then invoke the Provider with the point they care about to obtain a Direct WeatherObservation Resource per forecast day."
+        },
+        "isActive": true,
+        "provider": {
+          "id": "mausamgram",
+          "descriptor": {
+            "code": "MAUSAMGRAM",
+            "name": "IMD Mausamgram",
+            "shortDesc": "Provider of IMD numerical weather prediction point forecasts."
+          }
+        },
+        "resources": [
+          {
+            "id": "resource:weather-observation:mausamgram:daily-forecast",
+            "descriptor": {
+              "code": "WEATHER_MAUSAMGRAM_DAILY_FORECAST",
+              "name": "Five-day daily point weather forecast",
+              "shortDesc": "Daily rainfall, temperature, humidity, wind and warning forecast for a requested coordinate.",
+              "longDesc": "Invoke this Resource with a Point location to obtain one Direct WeatherObservation Resource per forecast day, each carrying that day's parameters. Values are bias-corrected model output, not station observations."
+            },
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/WeatherObservation/v0.1/context.jsonld",
+              "@type": "openagrinet:WeatherObservation",
+              "informationMode": "OnDemand",
+              "subjectCategories": [
+                "Weather"
+              ],
+              "languages": [
+                "en"
+              ],
+              "source": {
+                "sourceId": "mausamgram",
+                "sourceName": "IMD Mausamgram NWP",
+                "sourceUri": "https://mausamgram.imd.gov.in/"
+              },
+              "supportedObservationTypes": [
+                "Forecast"
+              ],
+              "supportedParameters": [
+                "Rainfall",
+                "Temperature",
+                "Humidity",
+                "WindSpeed",
+                "WindDirection",
+                "Alert"
+              ],
+              "geographicGranularities": [
+                "Point"
+              ],
+              "forecastHorizon": "P5D",
+              "updateFrequency": "P1D",
+              "coverageAreas": [
+                {
+                  "codeScheme": "ISO-3166-1",
+                  "areaCode": "IN",
+                  "areaLevel": "Country",
+                  "areaName": "India"
+                },
+                {
+                  "type": "Polygon",
+                  "coordinates": [
+                    [
+                      [
+                        68.0,
+                        6.5
+                      ],
+                      [
+                        97.5,
+                        6.5
+                      ],
+                      [
+                        97.5,
+                        37.5
+                      ],
+                      [
+                        68.0,
+                        37.5
+                      ],
+                      [
+                        68.0,
+                        6.5
+                      ]
+                    ]
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

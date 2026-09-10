@@ -1,11 +1,17 @@
 # The whole OAN stack in one file: registry, discovery, the three adapters, the
 # telemetry stack and the public edge.
 #
+# Every service name is <tier>-<role>, and every container_name matches it, so
+# what `docker ps` shows is what `docker logs` and the in-stack DNS name take.
+# The sunbird-registry-* three are Sunbird RC's, not OAN's; the keycloak among
+# them authenticates nothing but that registry, and shares its postgres.
+#
 # Read it in tiers -- the banner comments below are the structure:
 #
-#   registry        registry-db, keycloak, registry
-#   discovery       discovery-db, discovery
-#   adapters        provider, network, exp
+#   registry        sunbird-registry-postgres, sunbird-registry-keycloak,
+#                   sunbird-registry-service
+#   discovery       discovery-postgres, discovery-service
+#   adapters        provider, network, consumer
 #   observability   hyperdx                      profile: observability
 #   edge            nginx-proxy-manager          profile: reverse-proxy
 #
@@ -16,7 +22,7 @@
 #
 #   1. cp .env.example .env               change every credential -- they are
 #                                         shipped defaults
-#   2. docker compose up -d registry discovery
+#   2. docker compose up -d sunbird-registry-service discovery-service
 #                                         everything EXCEPT the adapters
 #   3. python3 bin/setup.py               keys, the three adapter entries, and
 #                                         the adapter configs they mount
@@ -59,8 +65,8 @@
 # Two, and with a UI-configured proxy at the edge the split stops being
 # decoration and becomes the actual control. NPM's "Forward Hostname" is a
 # free-text field, so anyone with the admin password can point a public route
-# at `registry` or `keycloak`. NPM sits only on oan-edge, where neither name
-# resolves and neither address is routable -- the three adapters and hyperdx
+# at `sunbird-registry-service` or `sunbird-registry-keycloak`. NPM sits only on
+# oan-edge, where neither name resolves and neither address is routable -- the three adapters and hyperdx
 # are the only containers it shares a network with. Those four straddle both
 # networks; everything else is internal-only.
 #
@@ -69,6 +75,13 @@
 # upstream API that lives outside this VM, and NPM has to reach Let's Encrypt.
 # Cutting egress would break all three.
 
+# The stack's name, pinned rather than derived from the directory. Compose
+# labels every container with it and prefixes every volume with it, so without
+# this line the deployment is named after whatever the checkout is called:
+# `quick-start_registry-data` names a directory, not a network. Pinning it also
+# means the directory can be renamed without orphaning the registry's data.
+name: openagrinet
+
 networks:
   oan-internal:
     name: oan-internal
@@ -76,11 +89,11 @@ networks:
     name: oan-edge
 
 volumes:
-  registry-data:
-  discovery-data:
-  hyperdx-data:
-  npm-data:
-  npm-letsencrypt:
+  sunbird-registry-postgres-data:
+  discovery-postgres-data:
+  hyperdx-clickhouse-data:
+  nginx-proxy-manager-data:
+  nginx-proxy-manager-letsencrypt:
 
 x-adapter: &adapter
   # Pulled, never built. Set ADAPTER_IMAGE in .env to the tag published for
@@ -137,40 +150,40 @@ services:
   # registry -- who is on the network, their public keys, and which upstream
   # API answers which capability.
   # ==========================================================================
-  registry-db:
+  sunbird-registry-postgres:
     image: postgres:14
-    container_name: registry-db
+    container_name: sunbird-registry-postgres
     restart: unless-stopped
     networks: [oan-internal]
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${REGISTRY_DB_NAME}
+      POSTGRES_USER: ${REGISTRY_DB_USER}
+      POSTGRES_PASSWORD: ${REGISTRY_DB_PASSWORD}
     volumes:
-      - registry-data:/var/lib/postgresql/data
+      - sunbird-registry-postgres-data:/var/lib/postgresql/data
     # No published port at all, not even on loopback: psql runs through
-    # `docker compose exec registry-db`, so publishing one would only widen
+    # `docker compose exec sunbird-registry-postgres`, so publishing one would only widen
     # the surface without adding a way in.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${REGISTRY_DB_USER}"]
       interval: 5s
       timeout: 5s
       retries: 20
 
-  keycloak:
+  sunbird-registry-keycloak:
     image: ghcr.io/sunbird-rc/sunbird-rc-keycloak:latest
-    container_name: keycloak
+    container_name: sunbird-registry-keycloak
     restart: unless-stopped
     networks: [oan-internal]
     volumes:
       - ./config/registry/imports:/opt/jboss/keycloak/imports
     environment:
       - DB_VENDOR=postgres
-      - DB_ADDR=registry-db
+      - DB_ADDR=sunbird-registry-postgres
       - DB_PORT=5432
-      - DB_DATABASE=${POSTGRES_DB}
-      - DB_USER=${POSTGRES_USER}
-      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_DATABASE=${REGISTRY_DB_NAME}
+      - DB_USER=${REGISTRY_DB_USER}
+      - DB_PASSWORD=${REGISTRY_DB_PASSWORD}
       - KEYCLOAK_USER=${KEYCLOAK_ADMIN_USER}
       - KEYCLOAK_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
       - KEYCLOAK_IMPORT=/opt/jboss/keycloak/imports/realm-export.json
@@ -181,7 +194,7 @@ services:
       - "127.0.0.1:${KEYCLOAK_PORT}:8080"
       - "127.0.0.1:${KEYCLOAK_ADMIN_PORT}:9990"
     depends_on:
-      registry-db:
+      sunbird-registry-postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9990/ || exit 1"]
@@ -189,9 +202,9 @@ services:
       timeout: 10s
       retries: 30
 
-  registry:
-    image: ghcr.io/sunbird-rc/sunbird-rc-core:${REGISTRY_VERSION}
-    container_name: registry
+  sunbird-registry-service:
+    image: ghcr.io/sunbird-rc/sunbird-rc-core:${REGISTRY_IMAGE_TAG}
+    container_name: sunbird-registry-service
     restart: unless-stopped
     # oan-internal ONLY, and that is the decision, not an omission. NPM sits
     # on oan-edge alone, so it cannot resolve the name `registry` -- a proxy
@@ -220,24 +233,24 @@ services:
       # restarted before the registry will honour it.
       - ./config/registry/schemas:/home/sunbirdrc/config/public/_schemas
     environment:
-      - connectionInfo_uri=jdbc:postgresql://registry-db:5432/${POSTGRES_DB}
-      - connectionInfo_username=${POSTGRES_USER}
-      - connectionInfo_password=${POSTGRES_PASSWORD}
+      - connectionInfo_uri=jdbc:postgresql://sunbird-registry-postgres:5432/${REGISTRY_DB_NAME}
+      - connectionInfo_username=${REGISTRY_DB_USER}
+      - connectionInfo_password=${REGISTRY_DB_PASSWORD}
       - search_providerName=dev.sunbirdrc.registry.service.NativeSearchService
       - authentication_enabled=true
       - sunbird_sso_realm=${KEYCLOAK_REALM}
-      - sunbird_sso_url=http://keycloak:8080/auth
+      - sunbird_sso_url=http://sunbird-registry-keycloak:8080/auth
       # Without this the service resolves its issuer to localhost -- which
       # inside the container is itself -- and the security filter chain fails
       # to build, so the whole registry never starts.
-      - OAUTH2_RESOURCES_0_URI=http://keycloak:8080/auth/realms/${KEYCLOAK_REALM}
+      - OAUTH2_RESOURCES_0_URI=http://sunbird-registry-keycloak:8080/auth/realms/${KEYCLOAK_REALM}
       - OAUTH2_RESOURCES_0_PROPERTIES_ROLES_PATH=realm_access.roles
       - identity_provider=dev.sunbirdrc.auth.keycloak.KeycloakProviderImpl
       - sunbird_sso_admin_client_id=${KEYCLOAK_ADMIN_CLIENT_ID}
       - sunbird_sso_client_id=${KEYCLOAK_CLIENT_ID}
-      - sunbird_sso_admin_client_secret=${KEYCLOAK_SECRET}
+      - sunbird_sso_admin_client_secret=${KEYCLOAK_ADMIN_CLIENT_SECRET}
       - sunbird_keycloak_user_set_password=true
-      - sunbird_keycloak_user_password=${REGISTRY_DEFAULT_USER_PASSWORD}
+      - sunbird_keycloak_user_password=${KEYCLOAK_DEFAULT_USER_PASSWORD}
       - encryption_enabled=false
       - event_enabled=false
       - idgen_enabled=false
@@ -260,9 +273,9 @@ services:
       # http://localhost:${REGISTRY_PORT} and runs on the VM.
       - "127.0.0.1:${REGISTRY_PORT}:8081"
     depends_on:
-      registry-db:
+      sunbird-registry-postgres:
         condition: service_healthy
-      keycloak:
+      sunbird-registry-keycloak:
         condition: service_healthy
     healthcheck:
       # This image ships no curl, wget, nc or bash, so the check reads the
@@ -278,11 +291,11 @@ services:
   # ==========================================================================
   # discovery -- catalogue search, and its own Postgres.
   # ==========================================================================
-  discovery-db:
+  discovery-postgres:
     # pgvector rather than plain postgres: the discovery service's HNSW index
     # options arrived in 0.8.
     image: pgvector/pgvector:0.8.0-pg16
-    container_name: discovery-db
+    container_name: discovery-postgres
     restart: unless-stopped
     networks: [oan-internal]
     environment:
@@ -294,14 +307,14 @@ services:
       POSTGRES_PASSWORD: discovery
       POSTGRES_DB: discovery
     volumes:
-      - discovery-data:/var/lib/postgresql/data
+      - discovery-postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U discovery -d discovery"]
       interval: 5s
       timeout: 5s
       retries: 20
 
-  discovery:
+  discovery-service:
     image: ${DISCOVERY_IMAGE}
     pull_policy: missing
 
@@ -309,7 +322,7 @@ services:
     # is never built by `make up` -- `image:` above still decides what runs, and
     # a build only happens when you ask for one:
     #
-    #   DISCOVERY_IMAGE=discovery-service:local docker compose build discovery
+    #   DISCOVERY_IMAGE=discovery-service:local docker compose build discovery-service
     #
     # Why this one and not the adapters or the mocks: the published tag went
     # stale in a way no error reports. Measured on 2026-09-10,
@@ -359,13 +372,15 @@ services:
         BUILD_DATE:
         TREE_STATE:
 
-    container_name: discovery
+    container_name: discovery-service
     restart: unless-stopped
     networks: [oan-internal]
     environment:
-      DATABASE_URL: postgres://discovery:discovery@discovery-db:5432/discovery?sslmode=disable
+      DATABASE_URL: postgres://discovery:discovery@discovery-postgres:5432/discovery?sslmode=disable
       DATABASE_AUTO_MIGRATE: "true"
-      APP_NETWORK_ID: ${APP_NETWORK_ID}
+      # APP_NETWORK_ID is the discovery image's own variable, so the left side
+      # cannot be renamed with the rest -- only the .env name it reads from.
+      APP_NETWORK_ID: ${BECKN_NETWORK_ID}
       SERVER_PORT: 8080
       VALIDATION_SPEC_URL: ${BECKN_SPEC_URL}
 
@@ -386,6 +401,15 @@ services:
       # first 128 markets are findable by place.
       GEO_MAX_GEOMETRIES_PER_CATALOG: ${DISCOVERY_MAX_GEOMETRIES_PER_CATALOG:-256}
 
+      # ---- search -----------------------------------------------------------
+      #
+      # OFF, against the image's own default of true. With it off a search
+      # matches on the structured index alone -- domain, capability and
+      # geometry -- and free-text terms stop contributing to what comes back.
+      # SEARCH_ENABLE_TEXT_SEARCH is the image's variable name, so the left
+      # side is its contract and only the value here is ours.
+      SEARCH_ENABLE_TEXT_SEARCH: "false"
+
       # ---- telemetry --------------------------------------------------------
       #
       # This block used to say the exporter was parsed and unread, and that
@@ -401,7 +425,7 @@ services:
       # arrive, everything looks healthy, and those five are simply absent.
       # That is a quick-start simplification, not the deployment shape -- see
       # Appendix H.
-      OTEL_EXPORTER: ${OTEL_EXPORTER:-otlp}
+      OTEL_EXPORTER: ${DISCOVERY_OTEL_EXPORTER:-otlp}
 
       # NO SCHEME, and that is the opposite of the adapters two screens up --
       # worth reading beside the note on the x-adapter anchor, because the same
@@ -422,7 +446,7 @@ services:
       # BOTH ARE REQUIRED once the exporter is otlp, and their absence fails
       # the boot rather than degrading -- the service refuses to export a
       # stream it cannot attribute. That refusal is why they are here: before
-      # this, flipping OTEL_EXPORTER=otlp would have stopped the container
+      # this, flipping DISCOVERY_OTEL_EXPORTER=otlp would have stopped the container
       # starting, naming a variable this file never set.
       #
       # APP_SUBSCRIBER_ID is the Resource's `producer` and every span's
@@ -458,11 +482,11 @@ services:
       # oan-internal; this publish exists for curl through the tunnel.
       - "127.0.0.1:${DISCOVERY_PORT}:8080"
     depends_on:
-      discovery-db:
+      discovery-postgres:
         condition: service_healthy
 
   # ==========================================================================
-  # adapters -- experience, network and provider. Same image, three configs.
+  # adapters -- consumer, network and provider. Same image, three configs.
   #
   # Their configs are bind-mounted FILES that do not exist until bin/setup.py
   # renders them from the .tmpl beside them, which is what the step ordering
@@ -484,10 +508,10 @@ services:
   # purpose. A tidy mock would let a mapping pass here and fail in the real
   # deployment.
   # ==========================================================================
-  mockimd:
+  mock-imd:
     image: ${MOCKIMD_IMAGE}
     pull_policy: missing
-    container_name: mockimd
+    container_name: mock-imd
     restart: unless-stopped
     networks: [oan-internal]
     command:
@@ -498,17 +522,17 @@ services:
     ports:
       - "127.0.0.1:${MOCKIMD_PORT}:9100"
 
-  mockagmarknet:
+  mock-agmarknet:
     image: ${MOCKAGMARKNET_IMAGE}
     pull_policy: missing
-    container_name: mockagmarknet
+    container_name: mock-agmarknet
     restart: unless-stopped
     networks: [oan-internal]
     command:
       - "-addr=:9101"
       # It answers 401 without this token, which is what proves the adapter
       # sent one rather than the call happening to work anyway.
-      - "-token=${MANDI_TOKEN}"
+      - "-token=${MOCKAGMARKNET_TOKEN:-local-mandi-token}"
       - "-days=${MOCKAGMARKNET_DAYS:-2}"
     ports:
       - "127.0.0.1:${MOCKAGMARKNET_PORT}:9101"
@@ -520,29 +544,32 @@ services:
   provider-adapter:
     <<: *adapter
     container_name: provider-adapter
+    # Registry only. The mocks are deliberately NOT dependencies: every
+    # capability points at a real external upstream, and depends_on would start
+    # both containers on any `docker compose up -d provider-adapter` even though
+    # nothing calls them. They stay defined below so they can still be started
+    # by name for debugging.
     depends_on:
-      registry:
+      sunbird-registry-service:
         condition: service_healthy
-      mockimd:
-        condition: service_started
-      mockagmarknet:
-        condition: service_started
     environment:
       <<: *adapter-env
       OTEL_SERVICE_NAME: provider-adapter
-      # The weather upstream's basic-auth pair. IMD Mausamgram takes an
-      # Authorization: Basic header; the adapter builds it at call time from
-      # these, so neither value is in a config file or in the registry.
-      MAUSAMGRAM_USER: ${MAUSAMGRAM_USER}
-      MAUSAMGRAM_X_API_KEY: ${MAUSAMGRAM_X_API_KEY}
+      # The weather upstream's credential, as ONE ready-made header value --
+      # "Basic <token>", prefix included. IMD Mausamgram issues a single opaque
+      # token rather than a user/password pair, so the adapter sends this
+      # verbatim (authScheme header) instead of building the header from two
+      # halves. Named here and read at call time, so the value is in neither a
+      # config file nor the registry.
+      MAUSAMGRAM_AUTH: ${MAUSAMGRAM_AUTH}
       # The mandi upstream's credentials. Agmarknet issues its own token, so
       # these two are exchanged for one at call time. Named here and read then,
       # so neither is in a config file or in the registry.
-      MANDI_ACCESS_NAME: ${MANDI_ACCESS_NAME}
-      MANDI_PASSWORD: ${MANDI_PASSWORD}
-      # Read only when MandiPrice is pointed back at mockagmarknet, which takes
+      AGMARKNET_ACCESS_NAME: ${AGMARKNET_ACCESS_NAME}
+      AGMARKNET_PASSWORD: ${AGMARKNET_PASSWORD}
+      # Read only when MandiPrice is pointed back at mock-agmarknet, which takes
       # a static token instead of issuing one.
-      MANDI_TOKEN: ${MANDI_TOKEN}
+      MOCKAGMARKNET_TOKEN: ${MOCKAGMARKNET_TOKEN:-local-mandi-token}
       # The knowledge provider's OAuth2 client credentials, exchanged for a
       # token at call time. Here for the same reason: the adapter config names
       # these two VARIABLES and never their values, so nothing secret is in a
@@ -550,8 +577,8 @@ services:
       #
       # The step fails fast and permanently when either is unset -- it is a
       # configuration fault, not a transient one, so it is not retried.
-      KNOWLEDGE_CLIENT_ID: ${KNOWLEDGE_CLIENT_ID}
-      KNOWLEDGE_CLIENT_SECRET: ${KNOWLEDGE_CLIENT_SECRET}
+      VISTAAR_CLIENT_ID: ${VISTAAR_CLIENT_ID}
+      VISTAAR_CLIENT_SECRET: ${VISTAAR_CLIENT_SECRET}
     volumes:
       - ./config/adapters/provider.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/routing-provider.yaml:/app/config/routing-provider.yaml:ro
@@ -563,9 +590,9 @@ services:
     <<: *adapter
     container_name: network-adapter
     depends_on:
-      registry:
+      sunbird-registry-service:
         condition: service_healthy
-      discovery:
+      discovery-service:
         condition: service_started
     environment:
       <<: *adapter-env
@@ -576,7 +603,7 @@ services:
     ports:
       - "127.0.0.1:${NETWORK_ADAPTER_PORT}:9201"
 
-  # The caller, and the only one that takes unsigned requests: the experience
+  # The caller, and the only one that takes unsigned requests: the consumer
   # app is inside the trust boundary, so there is no network signature to
   # check. This is what makes the stack testable with a plain curl -- and it
   # is also why the edge rate-limits this host and nothing else.
@@ -592,10 +619,10 @@ services:
       <<: *adapter-env
       OTEL_SERVICE_NAME: consumer-adapter
     volumes:
-      - ./config/adapters/experience.yaml:/app/config/adapter.yaml:ro
-      - ./config/adapters/routing-experience.yaml:/app/config/routing-experience.yaml:ro
+      - ./config/adapters/consumer.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/routing-consumer.yaml:/app/config/routing-consumer.yaml:ro
     ports:
-      - "127.0.0.1:${EXP_ADAPTER_PORT}:9202"
+      - "127.0.0.1:${CONSUMER_ADAPTER_PORT}:9202"
 
   # ==========================================================================
   # observability -- HyperDX / ClickStack: OTLP ingest, ClickHouse, and the UI
@@ -659,13 +686,13 @@ services:
       # unavoidable. Rebinding this to 0.0.0.0 would open a second door on the
       # same UI with no credential on it, and the security group is the only
       # thing that would be holding it shut.
-      - "127.0.0.1:${HYPERDX_PORT:-8085}:8080"
+      - "127.0.0.1:${HYPERDX_UI_PORT:-8085}:8080"
       # OTLP. Published on loopback only so a reverse tunnel can carry
       # telemetry from a provider API running on someone's laptop; the
       # in-stack senders reach hyperdx:4317/4318 over oan-internal and do not
       # need these at all.
-      - "127.0.0.1:${OTLP_GRPC_PORT:-4317}:4317"
-      - "127.0.0.1:${OTLP_HTTP_PORT:-4318}:4318"
+      - "127.0.0.1:${HYPERDX_OTLP_GRPC_PORT:-4317}:4317"
+      - "127.0.0.1:${HYPERDX_OTLP_HTTP_PORT:-4318}:4318"
 
       # ClickHouse's HTTP interface, and it is published for one specific
       # reason: clickstack-local is LOCAL mode, where the UI queries ClickHouse
@@ -699,7 +726,7 @@ services:
       # the tunnel both become unnecessary. See README Appendix H.
       - "127.0.0.1:${CLICKHOUSE_HTTP_PORT:-8123}:8123"
     volumes:
-      - hyperdx-data:/var/lib/clickhouse
+      - hyperdx-clickhouse-data:/var/lib/clickhouse
     healthcheck:
       # wget, not curl: this image has busybox. And a GET, not `--spider`,
       # which sends HEAD -- Next.js answers HEAD / with a 404 while serving
@@ -732,13 +759,13 @@ services:
   # genuinely tedious to do by hand -- ACME. It requests, installs and renews
   # Let's Encrypt certificates from a UI rather than from a certbot invocation
   # someone has to remember. In exchange, the routing table stops being a file
-  # in this repo and becomes rows in NPM's SQLite database under the npm-data
+  # in this repo and becomes rows in NPM's SQLite database under the nginx-proxy-manager-data
   # volume: reviewable only by opening the UI, and restorable only from that
   # volume. See README for the proxy hosts to create.
   # ==========================================================================
   nginx-proxy-manager:
     image: jc21/nginx-proxy-manager:latest
-    container_name: npm
+    container_name: nginx-proxy-manager
     restart: unless-stopped
     profiles: ["reverse-proxy"]
 
@@ -746,7 +773,7 @@ services:
     # UI-configured proxy in front of this stack.
     #
     # NPM's "Forward Hostname" is a free-text field. Anyone with the admin
-    # password can type `registry`, `keycloak` or `discovery-db` into it. On
+    # password can type `sunbird-registry-service`, `sunbird-registry-keycloak` or `discovery-postgres` into it. On
     # this network none of those names resolve and none of those addresses are
     # routable from here -- the three adapters, and hyperdx when the
     # observability profile is up, are the only containers NPM shares a network
@@ -765,8 +792,8 @@ services:
       # those come from addresses you do not get to enumerate. An SG rule
       # scoped to your IP will make certificate issuance fail with a challenge
       # timeout. Use DNS-01 instead if 80 must stay closed -- see README.
-      - "0.0.0.0:${GATEWAY_HTTP_PORT:-80}:80"
-      - "0.0.0.0:${GATEWAY_HTTPS_PORT:-443}:443"
+      - "0.0.0.0:${REVERSE_PROXY_HTTP_PORT:-80}:80"
+      - "0.0.0.0:${REVERSE_PROXY_HTTPS_PORT:-443}:443"
 
       # The admin UI, on loopback -- deliberately not the "publish it and
       # restrict it in the firewall" arrangement. Two reasons. It ships with
@@ -780,8 +807,8 @@ services:
       - "127.0.0.1:${NPM_ADMIN_PORT:-81}:81"
 
     volumes:
-      - npm-data:/data
-      - npm-letsencrypt:/etc/letsencrypt
+      - nginx-proxy-manager-data:/data
+      - nginx-proxy-manager-letsencrypt:/etc/letsencrypt
 
       # Version-controlled nginx that NPM includes on its own. /data is a
       # named volume and this bind mounts over one directory inside it, which
