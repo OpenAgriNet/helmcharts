@@ -8,7 +8,7 @@ the adapter configs.
 it renders are bind-mounted files, and an adapter started before they exist
 leaves a directory in their place.
 
-WHAT IT WRITES. Seven participants and four capability bindings:
+WHAT IT WRITES. Seven participants, four capability bindings, four schemas:
 
     3 x node      one per adapter -- consumer, network, provider -- each with the
                   public halves of a keypair. The private halves stay in
@@ -19,6 +19,10 @@ WHAT IT WRITES. Seven participants and four capability bindings:
                   no role and no keys.
     4 x binding   a ProviderSchema row per capability: which upstream answers
                   it, the method and path, timeouts, and the mapping URL.
+    4 x schema    a SchemaRegistry row per capability, saying what the
+                  capability MEANS rather than who serves it: the pack in
+                  network-specs that defines its attributes. One per
+                  capability, so two providers of one capability share a row.
 
 This is all of it. Nothing has to be created by hand afterwards, and nothing
 can be from outside the VM -- the registry has no route through the gateway and
@@ -348,6 +352,58 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url,
           f"{result['params'].get('errmsg', '')[:160]}")
 
 
+# The four capability schemas, keyed by the .env variable each capability code
+# comes from so the code itself is never written twice.
+#
+# The display name mirrors the pack's own info.title, minus its "OpenAgriNet -"
+# and "Attributes" framing. The version is per capability rather than one
+# setting for all four, because a capability can move to v0.2 while the others
+# stay -- that is the point of versioning the packs separately.
+CAPABILITY_SCHEMAS = (
+    ("MAUSAMGRAM_CAPABILITY", "Weather Observation", "v0.1"),
+    ("AGMARKNET_CAPABILITY", "Mandi Price", "v0.1"),
+    ("VISTAAR_CAPABILITY", "Knowledge Advisory", "v0.1"),
+    ("POCRA_CAPABILITY", "Agriculture Facility", "v0.1"),
+)
+
+
+def schema_url(capability, version, ref):
+    """Build a pack URL from the capability code, which already contains the
+    pack directory's name: openagrinet:WeatherObservation is served out of
+    schema/WeatherObservation. Deriving it means the two cannot drift.
+
+    The registry pattern-checks the result against exactly this shape, so a
+    capability whose pack is laid out differently is refused rather than
+    stored -- which is the behaviour to want, since all eight packs in
+    network-specs are <Capability>/<version>/attributes.yaml today."""
+    return ("https://raw.githubusercontent.com/OpenAgriNet/network-specs/"
+            f"{ref}/schema/{capability.partition(':')[2]}/{version}"
+            "/attributes.yaml")
+
+
+def ensure_capability_schema(bearer, capability, name, version, ref):
+    """Create a capability's schema row only when absent.
+
+    THE REGISTRY NEVER FETCHES schemaUrl -- it only checks its shape. So a row
+    pointing at a ref that does not serve the pack stores perfectly happily and
+    fails later, at whoever resolves it. Getting SCHEMA_PACK_REF right matters
+    more than the write succeeding.
+
+    And it cannot be corrected afterwards: SchemaRegistry.json sets
+    additionalProperties false, so an update is rejected over the system fields
+    the registry itself merges in, while delete is soft and keeps the unique
+    index on capabilityCode. A wrong URL here is permanent for that code."""
+    if search("SchemaRegistry", {"capabilityCode": {"eq": capability}}):
+        print(f"  {capability}: already present")
+        return
+    result = post("SchemaRegistry", {
+        "capabilityCode": capability, "name": name, "version": version,
+        "schemaUrl": schema_url(capability, version, ref),
+        "status": "active"}, bearer)
+    print(f"  {capability}: {result['params']['status']} "
+          f"{result['params'].get('errmsg', '')[:160]}")
+
+
 def ensure_participant(bearer, participant_id, payload):
     """Create only when absent. Delete here is soft and keeps the unique index,
     so a recreate would fail on a duplicate key rather than replacing."""
@@ -434,6 +490,21 @@ def seed(identities):
     ensure_binding(bearer, pocra, env("POCRA_CAPABILITY"),
                    env("POCRA_PATH"), env("POCRA_MAPPING_URL"),
                    method="POST")
+
+    # And what each capability MEANS, which is a different question from who
+    # serves it. A binding above says mausamgram answers WeatherObservation
+    # over this path with this mapping; a row here says what a
+    # WeatherObservation is, by pointing at the schema pack that defines its
+    # attributes. One row per capability, not per binding -- a second provider
+    # for the same capability shares this row rather than adding one.
+    #
+    # SEPARATE FROM THE MAPPING URLS ABOVE, which live in helmcharts and
+    # describe one upstream's wire format. These are network-specs and describe
+    # the network's own vocabulary, so they move on their own ref.
+    print("registry: four capability schemas")
+    ref = env("SCHEMA_PACK_REF", "main")
+    for var, name, version in CAPABILITY_SCHEMAS:
+        ensure_capability_schema(bearer, env(var), name, version, ref)
 
 
 def key_osids(identities):
