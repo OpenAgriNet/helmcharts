@@ -304,6 +304,61 @@ services:
   discovery:
     image: ${DISCOVERY_IMAGE}
     pull_policy: missing
+
+    # THE ONLY SERVICE HERE THAT CAN BE BUILT, and the exception is earned. It
+    # is never built by `make up` -- `image:` above still decides what runs, and
+    # a build only happens when you ask for one:
+    #
+    #   DISCOVERY_IMAGE=discovery-service:local docker compose build discovery
+    #
+    # Why this one and not the adapters or the mocks: the published tag went
+    # stale in a way no error reports. Measured on 2026-09-10,
+    # ghcr.io/nisargabd/discovery-service:latest was built before the telemetry
+    # package existed -- its embedded build info lists no go.opentelemetry.io
+    # dependency at all. Against that image every OTEL_* setting below is
+    # accepted, nothing is exported, and the stack looks entirely healthy. A
+    # build you can run locally is what makes that falsifiable.
+    #
+    # The context defaults to a sibling checkout because that is where it sits
+    # for anyone who has both repos; point DISCOVERY_CONTEXT elsewhere if yours
+    # differs. Without that checkout the build fails on a missing directory,
+    # which is the correct failure -- there is no source to build.
+    build:
+      context: ${DISCOVERY_CONTEXT:-../../discovery-service}
+
+      # PUBLIC BASE IMAGES, deliberately overriding the Dockerfile's own
+      # defaults. It defaults to dhi.io/* -- Docker Hardened Images, what CI
+      # and every shipped image use -- and those 401 on an anonymous pull. A
+      # quick-start reader is precisely the person without that subscription,
+      # so the public equivalents the Dockerfile documents are the right
+      # default HERE and the wrong one there. INSTALL_BUILD_TOOLS comes with
+      # them and is not optional: h3-go is a cgo binding around Uber's C
+      # library, DHI's -dev variant bundles a C toolchain and golang:alpine
+      # does not.
+      args:
+        BUILD_IMAGE: ${DISCOVERY_BUILD_IMAGE:-golang:1.27-alpine}
+        RUNTIME_IMAGE: ${DISCOVERY_RUNTIME_IMAGE:-gcr.io/distroless/static-debian12:nonroot}
+        INSTALL_BUILD_TOOLS: "true"
+
+        # Bare names, so each is passed through from the environment if set and
+        # left to the Dockerfile's own default if not. No values invented here:
+        # compose cannot run `git describe`, and a stamp this file made up would
+        # be worse than an absent one.
+        #
+        # Unset, the binary reports `dev unknown 1970-01-01T00:00:00Z unknown`
+        # and its telemetry Resource carries that verbatim in build.commit,
+        # build.date and build.tree_state. Honest for a local build. To stamp
+        # one, build it in the discovery-service repo instead -- `make docker`
+        # is what derives all four -- or set them in the environment first.
+        #
+        # A key with NO VALUE is compose's pass-through form. It is not the same
+        # as `VERSION: ""`, which would pass an empty string and defeat the
+        # Dockerfile's default.
+        VERSION:
+        COMMIT:
+        BUILD_DATE:
+        TREE_STATE:
+
     container_name: discovery
     restart: unless-stopped
     networks: [oan-internal]
@@ -314,21 +369,66 @@ services:
       SERVER_PORT: 8080
       VALIDATION_SPEC_URL: ${BECKN_SPEC_URL}
 
-      # Telemetry. The endpoint is the SDK's own variable, which is what this
-      # service reads (src/platform/config/config.go), so it needs no
-      # translation -- but the exporter stays `none` by default on purpose:
-      # in the current build OTEL_EXPORTER is parsed into config and nothing
-      # consumes it, and the only OpenTelemetry packages in go.mod are
-      # indirect. Setting it to otlp today emits nothing rather than failing;
-      # flip OTEL_EXPORTER=otlp in .env once the exporter is wired and the
-      # traces land in HyperDX with no other change here.
-      OTEL_EXPORTER: ${OTEL_EXPORTER:-none}
-      # Same scheme requirement as the adapters -- see the note on the
-      # x-adapter anchor. Inert while OTEL_EXPORTER is none, but wrong
-      # in a way that would only surface when someone turns it on.
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://${OTLP_ENDPOINT:-hyperdx:4317}
-      OTEL_EXPORTER_OTLP_INSECURE: "true"
-      OTEL_SERVICE_NAME: discovery
+      # ---- telemetry --------------------------------------------------------
+      #
+      # This block used to say the exporter was parsed and unread, and that
+      # `none` was therefore the honest default. That stopped being true when
+      # the telemetry package landed: the service exports spans and two pgxpool
+      # instruments over OTLP/gRPC, straight to hyperdx like the adapters.
+      #
+      # WHAT DOES NOT ARRIVE, so nobody goes looking for it: the five OAN
+      # `metric.code` streams -- the two *_total_count and the three *_percent.
+      # They are not instrumented in the service at all; they are derived from
+      # the exported span stream by a collector running the discovery-service
+      # repo's otel/collector.yaml, and this stack does not run one. Traces
+      # arrive, everything looks healthy, and those five are simply absent.
+      # That is a quick-start simplification, not the deployment shape -- see
+      # Appendix H.
+      OTEL_EXPORTER: ${OTEL_EXPORTER:-otlp}
+
+      # NO SCHEME, and that is the opposite of the adapters two screens up --
+      # worth reading beside the note on the x-adapter anchor, because the same
+      # bare host:port means opposite things on either side.
+      #
+      # This service does not consult the SDK's env lookup; it passes the
+      # endpoint in explicitly, having branched on whether it has a scheme:
+      #
+      #     if hasScheme(endpoint) { WithEndpointURL(endpoint) }
+      #     else                   { WithEndpoint(endpoint), WithInsecure() }
+      #
+      # So a bare host:port is plaintext HERE, where on the adapters a bare
+      # host:port is what silently selects TLS. Adding http:// to this line
+      # would not make it more explicit; it would route through the URL branch.
+      # OTEL_EXPORTER_OTLP_INSECURE is absent for the same reason: unread.
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTLP_ENDPOINT:-hyperdx:4317}
+
+      # BOTH ARE REQUIRED once the exporter is otlp, and their absence fails
+      # the boot rather than degrading -- the service refuses to export a
+      # stream it cannot attribute. That refusal is why they are here: before
+      # this, flipping OTEL_EXPORTER=otlp would have stopped the container
+      # starting, naming a variable this file never set.
+      #
+      # APP_SUBSCRIBER_ID is the Resource's `producer` and every span's
+      # recipient.id. Empty means the whole stream lands under no participant,
+      # which is worse than no stream: an empty grouping key reads as data
+      # rather than as an absence.
+      #
+      # APP_DOMAIN is checked against the sector list the build declares, so a
+      # typo fails the boot instead of splitting this deployment's telemetry
+      # into a group of one.
+      APP_SUBSCRIBER_ID: ${DISCOVERY_SUBSCRIBER_ID}
+      APP_DOMAIN: ${DISCOVERY_DOMAIN:-Agriculture}
+
+      # OTEL_SERVICE_NAME is deliberately absent, and it WAS SET HERE on both
+      # sides of this merge -- to `oan-discovery` before the container rename
+      # and to `discovery` after it. The service reads neither: `service.name`
+      # is a compile-time constant, `discovery-service`, because it says what
+      # SOFTWARE this is and so must not vary by deployment. Confirmed against
+      # a live stack on 2026-09-10 -- spans arrived as `discovery-service` with
+      # nothing set. The variable was worse than inert: it named a value you
+      # would then go hunting for in HyperDX and never find, and the rename
+      # gave it a second wrong value to hunt for. What varies per deployment is
+      # `producer`, from APP_SUBSCRIBER_ID above.
     # config/common.yaml is baked into the image and is the reviewed default.
     # To override a setting, copy config/discovery/instance.yaml.example to
     # config/discovery/instance.yaml and uncomment the mount below -- compose
