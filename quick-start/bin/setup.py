@@ -504,7 +504,7 @@ happens from here.
 Next: `make up` continues to step 3 and starts the adapters. If you ran this
 on its own, the adapters need recreating to pick up the rendered configs:
 
-  docker compose up -d --force-recreate provider-adapter network-adapter exp-adapter
+  docker compose up -d --force-recreate provider-adapter network-adapter consumer-adapter
 
 Then import postman-collection/ and run it -- six requests, nothing to fill
 in.""")

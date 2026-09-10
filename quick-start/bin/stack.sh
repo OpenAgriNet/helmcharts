@@ -140,7 +140,7 @@ up_adapters() {
     # of as an adapter that will not start.
     step 3 "$1" "mock upstreams and adapters (provider, network, exp)"
     docker compose up -d mockimd mockagmarknet
-    docker compose up -d provider-adapter network-adapter exp-adapter
+    docker compose up -d provider-adapter network-adapter consumer-adapter
 }
 
 done_banner() {
@@ -279,7 +279,7 @@ NEXT
 # It also excludes nginx-proxy-manager, whose routing table lives in a SQLite
 # database rather than in anything a restart would re-read. `restart-edge` is
 # the separate target for the one case that does need it.
-APP_SERVICES=(registry discovery provider-adapter network-adapter exp-adapter)
+APP_SERVICES=(registry discovery provider-adapter network-adapter consumer-adapter)
 
 # `restart`, not `up -d --force-recreate`. A restart keeps the container and
 # therefore its address, so NPM's cached proxy_pass targets stay valid -- a

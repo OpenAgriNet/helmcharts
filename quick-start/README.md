@@ -151,7 +151,7 @@ straight to the provider layer, per `config/adapters/routing-experience.yaml`.
 `.env` keys: `EXP_SUBSCRIBER_ID`.
 
 ```sh
-docker compose logs exp-adapter | grep 'Server listening'
+docker compose logs consumer-adapter | grep 'Server listening'
 ```
 
 `setup.py` renders all three configs from these keys. **Do not edit the
@@ -345,7 +345,7 @@ It logs in with `admin@example.com` / `changeme`, live from first boot.
 
 | Domain | Forward Hostname | Port | Then |
 |---|---|---|---|
-| `exp.oan.example.com` | `exp-adapter` | 9202 | paste `config/reverse-proxy/npm-advanced/exp.conf` into **Advanced** |
+| `exp.oan.example.com` | `consumer-adapter` | 9202 | paste `config/reverse-proxy/npm-advanced/exp.conf` into **Advanced** |
 | `network.oan.example.com` | `network-adapter` | 9201 | — |
 | `provider.oan.example.com` | `provider-adapter` | 9200 | — |
 
@@ -714,7 +714,7 @@ an id is a `.so` basename. If `ADAPTER_IMAGE` names a **new tag**, set it before
 nothing in `stack.sh` pulls, so the stack quietly comes back on the old image:
 
 ```sh
-docker compose pull provider-adapter network-adapter exp-adapter
+docker compose pull provider-adapter network-adapter consumer-adapter
 ```
 
 Build from the adapter repo at the commit the config expects, and check the

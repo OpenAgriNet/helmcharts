@@ -1,10 +1,10 @@
-# exp-adapter
+# consumer-adapter
 #
 # The caller. Signs outbound requests as oan-caller and routes them by action:
 # discovery to the network layer, transactions straight to the provider adapter.
 # No validateSign -- the experience app calling it is inside the trust boundary,
 # so there is no network signature to check on the way in.
-appName: "exp-adapter"
+appName: "consumer-adapter"
 
 log:
   level: debug
@@ -51,7 +51,7 @@ plugins:
   otelsetup:
     id: otelsetup
     config:
-      serviceName: "exp-adapter"
+      serviceName: "consumer-adapter"
       environment: "__OTEL_ENVIRONMENT__"
       otlpEndpoint: "__OTLP_ENDPOINT__"
       enableMetrics: "__OTEL_ENABLED__"
@@ -59,7 +59,7 @@ plugins:
       enableLogs: "__OTEL_ENABLED__"
 
 modules:
-  - name: exp-adapter
+  - name: consumer-adapter
     # A subtree: every action lands here and the payload says which one it is.
     path: /
     handler:

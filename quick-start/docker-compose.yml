@@ -558,9 +558,9 @@ services:
   # app is inside the trust boundary, so there is no network signature to
   # check. This is what makes the stack testable with a plain curl -- and it
   # is also why the edge rate-limits this host and nothing else.
-  exp-adapter:
+  consumer-adapter:
     <<: *adapter
-    container_name: exp-adapter
+    container_name: consumer-adapter
     depends_on:
       network-adapter:
         condition: service_started
@@ -568,7 +568,7 @@ services:
         condition: service_started
     environment:
       <<: *adapter-env
-      OTEL_SERVICE_NAME: exp-adapter
+      OTEL_SERVICE_NAME: consumer-adapter
     volumes:
       - ./config/adapters/experience.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/routing-experience.yaml:/app/config/routing-experience.yaml:ro
@@ -798,7 +798,7 @@ services:
       # whenever NPM does. That means the restart above is not optional after
       # `make observability` -- NPM was started before the name existed, so the
       # HyperDX host 502s until it re-resolves.
-      exp-adapter:
+      consumer-adapter:
         condition: service_started
       network-adapter:
         condition: service_started
