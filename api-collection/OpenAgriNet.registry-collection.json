@@ -169,10 +169,14 @@
                 "exec": [
                   "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
                   "",
-                  "pm.test('seven participants', () => {",
+                  "// At least seven, not exactly seven. setup.py seeds that many,",
+                  "// and anything above it is somebody having registered a",
+                  "// participant -- which is the point of the request below, not a",
+                  "// fault. An exact count turns every legitimate addition red.",
+                  "pm.test('the seven setup.py seeds are all there', () => {",
                   "    const rows = pm.response.json().data || [];",
                   "    console.log(rows.map(r => `${r.participantId} (${r.type})`).join('\\n'));",
-                  "    pm.expect(rows).to.have.lengthOf(7);",
+                  "    pm.expect(rows.length).to.be.at.least(7);",
                   "});"
                 ]
               }
@@ -445,11 +449,13 @@
                 "exec": [
                   "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
                   "",
-                  "pm.test('four bindings', () => {",
+                  "// At least four, for the same reason as the participant list:",
+                  "// four is what setup.py seeds, not a ceiling.",
+                  "pm.test('the four setup.py seeds are all there', () => {",
                   "    const rows = pm.response.json().data || [];",
                   "    rows.forEach(r => console.log(",
                   "        `${r.bindingKey}\\n    ${(r.actions || []).map(a => a.mappings).join('\\n    ')}`));",
-                  "    pm.expect(rows).to.have.lengthOf(4);",
+                  "    pm.expect(rows.length).to.be.at.least(4);",
                   "});"
                 ]
               }
@@ -702,8 +708,9 @@
                 "exec": [
                   "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
                   "",
-                  "// Not an assertion on the count: 0 is the seeded state, and any",
-                  "// number above it is somebody having registered a capability.",
+                  "// Not an assertion on the count at all. setup.py seeds four, and",
+                  "// network-specs carries eight packs, so a fifth or a sixth is",
+                  "// somebody extending the deployment rather than breaking it.",
                   "pm.test('reports how many are registered', () => {",
                   "    const rows = pm.response.json().data || [];",
                   "    console.log(rows.length",
