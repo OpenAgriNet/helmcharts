@@ -34,7 +34,7 @@ pluginManager:
 # WHICH IS WHY THE ENABLE FLAGS ARE A SWITCH. With all three false the plugin
 # builds no exporter at all and returns a no-op provider -- it does not dial,
 # so it cannot log a connection failure every few seconds. Point a stack with
-# no collector at one and that is exactly what you get, so ADAPTER_OTEL_ENABLED=false
+# no collector at one and that is exactly what you get, so OTEL_ENABLED=false
 # is the right setting for `make up-core`.
 #
 # serviceVersion is deliberately absent: left empty the plugin fills in the
@@ -52,11 +52,11 @@ plugins:
     id: otelsetup
     config:
       serviceName: "consumer-adapter"
-      environment: "__OTEL_ENVIRONMENT__"
-      otlpEndpoint: "__OTLP_ENDPOINT__"
-      enableMetrics: "__OTEL_ENABLED__"
-      enableTracing: "__OTEL_ENABLED__"
-      enableLogs: "__OTEL_ENABLED__"
+      environment: "dev"
+      otlpEndpoint: "hyperdx:4317"
+      enableMetrics: "true"
+      enableTracing: "true"
+      enableLogs: "true"
 
 modules:
   - name: consumer-adapter
@@ -65,27 +65,27 @@ modules:
     handler:
       type: std
       role: bap
-      subscriberId: __CONSUMER_SUBSCRIBER_ID__
+      subscriberId: exp.oan.dev
 
       plugins:
         registry:
           id: sunbirdRegistry
           config:
-            url: http://sunbird-registry-service:8081/api/v1
+            url: http://registry:8081/api/v1
             entity: Participant
             providerEntity: ProviderSchema
 
         keyManager:
           id: simplekeymanager
           config:
-            subscriberId: __CONSUMER_SUBSCRIBER_ID__
+            subscriberId: exp.oan.dev
             # The KEY's osid, not a friendly name: that is what the registry
             # indexes keys by, and what a verifier looks up.
-            keyId: __CONSUMER_KEY_ID__
-            signingPrivateKey: "__CONSUMER_SIGNING_PRIVATE__"
-            signingPublicKey: "__CONSUMER_SIGNING_PUBLIC__"
-            encrPrivateKey: "__CONSUMER_ENCR_PRIVATE__"
-            encrPublicKey: "__CONSUMER_ENCR_PUBLIC__"
+            keyId: 1-57ff3e99-a058-45fc-acce-fe74d3c66a8b
+            signingPrivateKey: "CitM7Fp5QIjYMW8Or16dq0LDmIL/5l1wyBL6i/zRVXo="
+            signingPublicKey: "gKRU8m8hlML81PSufCN1DMHKt49ebyuLnFUhI7YNo6g="
+            encrPrivateKey: "EGoRQK5+ApKGNhpj80NKD4GFOn8U/WVMTgs7Oh3LhVM="
+            encrPublicKey: "DU4yC1jYDPGL/U3KL0sQP4EDXvgzi7uUlFeuiQ2AkWg="
 
         signer:
           id: signer
@@ -112,24 +112,9 @@ modules:
         router:
           id: router
           config:
-            routingConfig: /app/config/routing-consumer.yaml
+            routingConfig: /app/config/routing-experience.yaml
 
-      # SIGNING AND SIGNATURE VALIDATION ARE OFF in this deployment.
-      #
-      # validateSign and sign/signAck are absent from the list below. Nothing
-      # verifies who a caller is, and nothing this answers or forwards carries
-      # a signature -- so every tier accepts unsigned traffic and anything that
-      # can reach the port is served.
-      #
-      # validateSchema STAYS. Payload shape is still enforced; only identity is
-      # not.
-      #
-      # The signer, signValidator and keyManager plugins above are still
-      # declared. A plugin no steps: list names is loaded and never runs, so
-      # turning this back on is adding the step names back here -- and it has
-      # to be done on BOTH SIDES of a hop at once: a signed request into a tier
-      # that no longer validates is fine, but an unsigned one into a tier that
-      # does is rejected.
       steps:
         - validateSchema
         - addRoute
+        - sign

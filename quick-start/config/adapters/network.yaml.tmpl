@@ -117,7 +117,21 @@ modules:
           config:
             routingConfig: /app/config/routing-network.yaml
 
+      # SIGNING AND SIGNATURE VALIDATION ARE OFF in this deployment.
+      #
+      # validateSign and sign/signAck are absent from the list below. Nothing
+      # verifies who a caller is, and nothing this answers or forwards carries
+      # a signature -- so every tier accepts unsigned traffic and anything that
+      # can reach the port is served.
+      #
+      # validateSchema STAYS. Payload shape is still enforced; only identity is
+      # not.
+      #
+      # The signer, signValidator and keyManager plugins above are still
+      # declared. A plugin no steps: list names is loaded and never runs, so
+      # turning this back on is adding the step names back here -- and it has
+      # to be done on BOTH SIDES of a hop at once: a signed request into a tier
+      # that no longer validates is fine, but an unsigned one into a tier that
+      # does is rejected.
       steps:
-        - validateSign
         - addRoute
-        - sign

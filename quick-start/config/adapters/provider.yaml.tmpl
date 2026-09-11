@@ -314,14 +314,28 @@ modules:
       # All four provider steps sit in the pipeline in order, and each
       # recognises its own binding key and passes through anything else -- so
       # which one answers is decided by the payload, not by this order.
+      # SIGNING AND SIGNATURE VALIDATION ARE OFF in this deployment.
+      #
+      # validateSign and sign/signAck are absent from the list below. Nothing
+      # verifies who a caller is, and nothing this answers or forwards carries
+      # a signature -- so every tier accepts unsigned traffic and anything that
+      # can reach the port is served.
+      #
+      # validateSchema STAYS. Payload shape is still enforced; only identity is
+      # not.
+      #
+      # The signer, signValidator and keyManager plugins above are still
+      # declared. A plugin no steps: list names is loaded and never runs, so
+      # turning this back on is adding the step names back here -- and it has
+      # to be done on BOTH SIDES of a hop at once: a signed request into a tier
+      # that no longer validates is fine, but an unsigned one into a tier that
+      # does is rejected.
       steps:
-        - validateSign   # the sender's key, from the registry
         - validateSchema # the pinned Beckn v2 spec
         - WeatherObservation  # its binding key, or pass through
         - MandiPrice          # its binding key, or pass through
         - KnowledgeAdvisory   # its binding key, or pass through
         - AgricultureFacility # its binding key, or pass through
-        - signAck        # signs whatever the step answered with
 
   # The outbound leg: the provider's own catalogue system publishing to the
   # network layer. POST /publish.
@@ -435,6 +449,5 @@ modules:
         # list never runs, which is why publish went unvalidated until now.
         - validateSchema # the Beckn v2 spec, plus each resource's own @context
         - addRoute       # publish -> the network layer
-        - sign           # as this provider, so the network layer can verify
 
 
