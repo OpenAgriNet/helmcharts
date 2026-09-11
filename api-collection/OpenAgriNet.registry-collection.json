@@ -357,7 +357,7 @@
                 "Participant"
               ]
             },
-            "description": "upstream(), setup.py:308. No role, no keys, no credential. Both role and keys are permitted by the schema but neither is read -- a signature is checked against the node identity that signed it.\n\nAgainst a seeded registry the pre-request script finds the row and skips the write, logging 'mausamgram: already present'. Without it the answer is 200 with status UNSUCCESSFUL and a duplicate-key errmsg naming public_V_Participant_participantId_sqlgIdx -- correct, but it reads as a fault when it is not one."
+            "description": "upstream(), setup.py:308. No role, no keys, no credential. Both role and keys are permitted by the schema but neither is read -- a signature is checked against the node identity that signed it.\n\nAgainst a seeded registry the pre-request script finds the row and skips the write, logging 'mausamgram: already present'. Without it the answer is HTTP 500, status UNSUCCESSFUL, and a duplicate-key errmsg naming public_V_Participant_participantId_sqlgIdx. Note the 500: Sunbird RC reports a refused write as a server error, not a 409, so an HTTP-status assertion here would be wrong. That is why the test reports instead of asserting."
           },
           "event": [
             {
