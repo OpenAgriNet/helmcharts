@@ -30,6 +30,16 @@
       "key": "capability-osid",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "schema-url",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "schema-name",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -116,7 +126,7 @@
     },
     {
       "name": "2. Participants",
-      "description": "Seven rows once bin/setup.py has run: three adapter nodes and four upstreams.\n\nBOTH CREATES ARE SAFE TO RE-RUN, and only because they fail. A second row for an id that exists is refused by a unique index -- public_V_Participant_participantId_sqlgIdx, by name, in the errmsg -- so a duplicate participant cannot be made from here.\n\nWHAT IS NOT RECOVERABLE IS THE FIRST WRITE. Delete is soft and leaves that index in place, so a participantId is never reusable: a row seeded with a wrong baseUrl or a stale public key is permanent, and the only fix is a new id in .env plus a re-run.",
+      "description": "Seven rows once bin/setup.py has run: three adapter nodes and four upstreams.\n\nBOTH CREATES CHECK BEFORE WRITING, the way ensure_participant() does in setup.py: a pre-request script searches for the id and skips the write when it is already there, so a run against a seeded stack reads as skipped rather than failed.\n\nTWO GUARDS SIT UNDER THAT ANYWAY. A second row for an id that exists is refused by a unique index -- public_V_Participant_participantId_sqlgIdx, by name, in the errmsg -- and the node create is refused on its key pattern while consumer-participant-key is empty. The script only stops you seeing errors that say nothing new; remove it and nothing becomes possible that was not before.\n\nWHAT IS NOT RECOVERABLE IS THE FIRST WRITE. Delete is soft and leaves that index in place, so a participantId is never reusable: a row seeded with a wrong baseUrl or a stale public key is permanent, and the only fix is a new id in .env plus a re-run.",
       "item": [
         {
           "name": "List all participants",
@@ -159,10 +169,14 @@
                 "exec": [
                   "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
                   "",
-                  "pm.test('seven participants', () => {",
+                  "// At least seven, not exactly seven. setup.py seeds that many,",
+                  "// and anything above it is somebody having registered a",
+                  "// participant -- which is the point of the request below, not a",
+                  "// fault. An exact count turns every legitimate addition red.",
+                  "pm.test('the seven setup.py seeds are all there', () => {",
                   "    const rows = pm.response.json().data || [];",
                   "    console.log(rows.map(r => `${r.participantId} (${r.type})`).join('\\n'));",
-                  "    pm.expect(rows).to.have.lengthOf(7);",
+                  "    pm.expect(rows.length).to.be.at.least(7);",
                   "});"
                 ]
               }
@@ -259,6 +273,41 @@
           },
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.replaceIn('{{consumer-participant-key}}')) {",
+                  "    console.log('consumer-participant-key is empty, so this write would be'",
+                  "        + ' refused on the key pattern. Fill it from quick-start/keys/'",
+                  "        + 'keys.json -- the consumer.signingPublic value -- to run this.');",
+                  "    pm.execution.skipRequest();",
+                  "}",
+                  "",
+                  "const value = pm.variables.replaceIn('{{consumer-participant-id}}');",
+                  "const host = pm.variables.replaceIn('{{registry-host}}');",
+                  "",
+                  "pm.sendRequest({",
+                  "    url: `${host}/api/v1/Participant/search`,",
+                  "    method: 'POST',",
+                  "    header: {'Content-Type': 'application/json'},",
+                  "    body: {mode: 'raw', raw: JSON.stringify({",
+                  "        filters: {participantId: {eq: value}}})}",
+                  "}, (err, res) => {",
+                  "    if (err) {",
+                  "        console.log(`could not check for ${value}: ${err}.`",
+                  "            + ' Sending the write anyway.');",
+                  "        return;",
+                  "    }",
+                  "    if (((res.json() || {}).data || []).length) {",
+                  "        console.log(`${value}: already present -- write skipped`);",
+                  "        pm.execution.skipRequest();",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -308,9 +357,37 @@
                 "Participant"
               ]
             },
-            "description": "upstream(), setup.py:308. No role, no keys, no credential. Both role and keys are permitted by the schema but neither is read -- a signature is checked against the node identity that signed it.\n\nAgainst a seeded registry this comes back 200 with status UNSUCCESSFUL and a duplicate-key errmsg naming public_V_Participant_participantId_sqlgIdx. That is the expected answer, not a fault."
+            "description": "upstream(), setup.py:308. No role, no keys, no credential. Both role and keys are permitted by the schema but neither is read -- a signature is checked against the node identity that signed it.\n\nAgainst a seeded registry the pre-request script finds the row and skips the write, logging 'mausamgram: already present'. Without it the answer is HTTP 500, status UNSUCCESSFUL, and a duplicate-key errmsg naming public_V_Participant_participantId_sqlgIdx. Note the 500: Sunbird RC reports a refused write as a server error, not a 409, so an HTTP-status assertion here would be wrong. That is why the test reports instead of asserting."
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const value = pm.variables.replaceIn('{{mausamgram-participant-id}}');",
+                  "const host = pm.variables.replaceIn('{{registry-host}}');",
+                  "",
+                  "pm.sendRequest({",
+                  "    url: `${host}/api/v1/Participant/search`,",
+                  "    method: 'POST',",
+                  "    header: {'Content-Type': 'application/json'},",
+                  "    body: {mode: 'raw', raw: JSON.stringify({",
+                  "        filters: {participantId: {eq: value}}})}",
+                  "}, (err, res) => {",
+                  "    if (err) {",
+                  "        console.log(`could not check for ${value}: ${err}.`",
+                  "            + ' Sending the write anyway.');",
+                  "        return;",
+                  "    }",
+                  "    if (((res.json() || {}).data || []).length) {",
+                  "        console.log(`${value}: already present -- write skipped`);",
+                  "        pm.execution.skipRequest();",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -372,11 +449,13 @@
                 "exec": [
                   "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
                   "",
-                  "pm.test('four bindings', () => {",
+                  "// At least four, for the same reason as the participant list:",
+                  "// four is what setup.py seeds, not a ceiling.",
+                  "pm.test('the four setup.py seeds are all there', () => {",
                   "    const rows = pm.response.json().data || [];",
                   "    rows.forEach(r => console.log(",
                   "        `${r.bindingKey}\\n    ${(r.actions || []).map(a => a.mappings).join('\\n    ')}`));",
-                  "    pm.expect(rows).to.have.lengthOf(4);",
+                  "    pm.expect(rows.length).to.be.at.least(4);",
                   "});"
                 ]
               }
@@ -474,9 +553,37 @@
                 "ProviderSchema"
               ]
             },
-            "description": "ensure_binding(), setup.py:321. method is the provider's contract, not a network convention: Mausamgram and Agmarknet answer a GET whose query the mapping builds, while Vistaar and POCRA take a POST. The adapter reads it from this row, so nothing about it is compiled in -- change GET to POST here for those two.\n\nbindingKey carries a unique index of its own, public_V_ProviderSchema_bindingKey_sqlgIdx, so this is safe to re-run and CANNOT produce a second row for a key that already exists. To change an existing binding, use the PUT below rather than trying to re-create it."
+            "description": "ensure_binding(), setup.py:321. method is the provider's contract, not a network convention: Mausamgram and Agmarknet answer a GET whose query the mapping builds, while Vistaar and POCRA take a POST. The adapter reads it from this row, so nothing about it is compiled in -- change GET to POST here for those two.\n\nbindingKey carries a unique index of its own, public_V_ProviderSchema_bindingKey_sqlgIdx, and the pre-request script checks for the key before writing, so this is safe to re-run twice over and CANNOT produce a second row for a key that already exists. To change an existing binding, use the PUT below rather than trying to re-create it."
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const value = pm.variables.replaceIn('{{mausamgram-binding-key}}');",
+                  "const host = pm.variables.replaceIn('{{registry-host}}');",
+                  "",
+                  "pm.sendRequest({",
+                  "    url: `${host}/api/v1/ProviderSchema/search`,",
+                  "    method: 'POST',",
+                  "    header: {'Content-Type': 'application/json'},",
+                  "    body: {mode: 'raw', raw: JSON.stringify({",
+                  "        filters: {bindingKey: {eq: value}}})}",
+                  "}, (err, res) => {",
+                  "    if (err) {",
+                  "        console.log(`could not check for ${value}: ${err}.`",
+                  "            + ' Sending the write anyway.');",
+                  "        return;",
+                  "    }",
+                  "    if (((res.json() || {}).data || []).length) {",
+                  "        console.log(`${value}: already present -- write skipped`);",
+                  "        pm.execution.skipRequest();",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -558,7 +665,7 @@
     },
     {
       "name": "4. Capability Schemas",
-      "description": "The SchemaRegistry entity: what a capabilityCode MEANS, as opposed to who serves it. One row per capability, pointing at the schema pack in OpenAgriNet/network-specs that defines its attributes.\n\nEMPTY ON A FRESHLY SEEDED STACK. bin/setup.py creates seven participants and four bindings and does not mention SchemaRegistry at all, so nothing in the quick-start puts a row here -- these requests are the only way one arrives.\n\nTHE ENTITY IS REAL, THOUGH, not a leftover: config/registry/schemas/SchemaRegistry.json is mounted at /home/sunbirdrc/config/public/_schemas alongside Participant and ProviderSchema. Schemas are read at startup, so editing one needs sunbird-registry-service restarted before the registry honours it.\n\nschemaUrl IS PATTERN-CHECKED, and narrowly: a raw.githubusercontent URL under OpenAgriNet/network-specs, with a schema/<Capability>/v<major>.<minor>/<name>.yaml path. version is checked against ^v[0-9]+\\.[0-9]+$ and capabilityCode against ^openagrinet:[A-Z][A-Za-z0-9]*$, so a typo in any of the three is refused rather than stored.",
+      "description": "The SchemaRegistry entity: what a capabilityCode MEANS, as opposed to who serves it. One row per capability, pointing at the schema pack in OpenAgriNet/network-specs that defines its attributes.\n\nSEEDED, AS OF THE COMMIT THAT ADDED THIS FOLDER. bin/setup.py now writes all four rows, so a fresh stack comes up with them and every request here reads or re-reads rather than filling a gap. It did not before: the entity was mounted, uniquely indexed and empty, with nothing in the quick-start able to put a row in it.\n\nONE VARIABLE DRIVES THE WHOLE FOLDER. Set capability-code and every request follows, the two writes included -- schemaUrl and the display name are derived from it by a pre-request script, the same way setup.py's schema_url() derives them, because a capability code already contains its pack's directory name. Nothing in a request body needs editing to work on a different capability, and the code cannot end up naming a different pack than the URL does.\n\nTHE ENTITY IS REAL, not a leftover: config/registry/schemas/SchemaRegistry.json is mounted at /home/sunbirdrc/config/public/_schemas alongside Participant and ProviderSchema. Schemas are read at startup, so editing one needs sunbird-registry-service restarted before the registry honours it.\n\nschemaUrl IS PATTERN-CHECKED, and narrowly: a raw.githubusercontent URL under OpenAgriNet/network-specs, with a schema/<Capability>/v<major>.<minor>/<name>.yaml path. version is checked against ^v[0-9]+\\.[0-9]+$ and capabilityCode against ^openagrinet:[A-Z][A-Za-z0-9]*$, so a typo in any of the three is refused rather than stored.",
       "item": [
         {
           "name": "List all capabilities",
@@ -601,8 +708,9 @@
                 "exec": [
                   "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
                   "",
-                  "// Not an assertion on the count: 0 is the seeded state, and any",
-                  "// number above it is somebody having registered a capability.",
+                  "// Not an assertion on the count at all. setup.py seeds four, and",
+                  "// network-specs carries eight packs, so a fifth or a sixth is",
+                  "// somebody extending the deployment rather than breaking it.",
                   "pm.test('reports how many are registered', () => {",
                   "    const rows = pm.response.json().data || [];",
                   "    console.log(rows.length",
@@ -626,7 +734,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"filters\": {\n    \"capabilityCode\": {\n      \"eq\": \"{{mausamgram-capability}}\"\n    }\n  }\n}",
+              "raw": "{\n  \"filters\": {\n    \"capabilityCode\": {\n      \"eq\": \"{{capability-code}}\"\n    }\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -685,7 +793,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"capabilityCode\": \"{{mausamgram-capability}}\",\n  \"name\": \"Weather Observation and Forecast\",\n  \"version\": \"v0.1\",\n  \"schemaUrl\": \"{{weather-observation-schema-url}}\",\n  \"status\": \"active\"\n}",
+              "raw": "{\n  \"capabilityCode\": \"{{capability-code}}\",\n  \"name\": \"{{schema-name}}\",\n  \"version\": \"{{schema-pack-version}}\",\n  \"schemaUrl\": \"{{schema-url}}\",\n  \"status\": \"active\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -703,9 +811,62 @@
                 "SchemaRegistry"
               ]
             },
-            "description": "THIS ONE ACTUALLY CREATES SOMETHING. The other three creates here are refused against a seeded stack -- a duplicate participantId, a duplicate bindingKey, an empty key -- but SchemaRegistry starts empty, so this succeeds and the row is real.\n\nTHE REF IN weather-observation-schema-url IS main, AND main DOES NOT SERVE THIS PATH YET -- it is a 404 today; only the schema-packs-v0.1 branch answers 200. The registry only pattern-checks the URL's shape and never fetches it, so the row stores either way: main is the value that becomes correct when the schema packs merge, and pointing at the branch instead would resolve now but break on delete. Change this one variable to switch.\n\ncapabilityCode is uniquely indexed, so a second row for the same capability is refused; correcting a URL means the PUT below, not a re-create."
+            "description": "SKIPPED AGAINST A SEEDED STACK, like the other three creates in this collection -- setup.py writes all four schema rows now, so the pre-request script finds the row and does not write. It is the request to reach for when adding a capability setup.py does not know about; the eight packs in network-specs outnumber the four capabilities this deployment serves. Point capability-code at one of the other four and it writes for real.\n\nschema-pack-ref IS main, AND main DOES NOT SERVE THIS PATH YET -- it is a 404 today; only the schema-packs-v0.1 branch answers 200. The registry only pattern-checks the URL's shape and never fetches it, so the row stores either way: main is the value that becomes correct when the schema packs merge, and pointing at the branch instead would resolve now but break on delete. Change this one variable to switch.\n\ncapabilityCode is uniquely indexed, so a second row for the same capability is refused; correcting a URL means the PUT below, not a re-create."
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const value = pm.variables.replaceIn('{{capability-code}}');",
+                  "const host = pm.variables.replaceIn('{{registry-host}}');",
+                  "",
+                  "pm.sendRequest({",
+                  "    url: `${host}/api/v1/SchemaRegistry/search`,",
+                  "    method: 'POST',",
+                  "    header: {'Content-Type': 'application/json'},",
+                  "    body: {mode: 'raw', raw: JSON.stringify({",
+                  "        filters: {capabilityCode: {eq: value}}})}",
+                  "}, (err, res) => {",
+                  "    if (err) {",
+                  "        console.log(`could not check for ${value}: ${err}.`",
+                  "            + ' Sending the write anyway.');",
+                  "        return;",
+                  "    }",
+                  "    if (((res.json() || {}).data || []).length) {",
+                  "        console.log(`${value}: already present -- write skipped`);",
+                  "        pm.execution.skipRequest();",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const code = pm.variables.get('capability-code') || '';",
+                  "const pack = code.split(':')[1];",
+                  "if (!pack) {",
+                  "    throw new Error(`capability-code must be <prefix>:<Pack>, got '${code}'`);",
+                  "}",
+                  "",
+                  "const ref = pm.variables.get('schema-pack-ref') || 'main';",
+                  "const version = pm.variables.get('schema-pack-version') || 'v0.1';",
+                  "",
+                  "pm.collectionVariables.set('schema-url',",
+                  "    'https://raw.githubusercontent.com/OpenAgriNet/network-specs/'",
+                  "    + `${ref}/schema/${pack}/${version}/attributes.yaml`);",
+                  "",
+                  "// WeatherObservation -> Weather Observation, which is what the pack's own",
+                  "// info.title says once its 'OpenAgriNet -' and 'Attributes' are stripped.",
+                  "pm.collectionVariables.set('schema-name',",
+                  "    pack.replace(/([a-z0-9])([A-Z])/g, '$1 $2'));"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -714,6 +875,10 @@
                   "pm.test('created, or already there', () => {",
                   "    const p = pm.response.json().params || {};",
                   "    console.log(`${p.status}: ${p.errmsg || ''}`);",
+                  "    // What the pre-request script derived, so a surprise is",
+                  "    // visible here rather than in the stored row.",
+                  "    console.log(`${pm.variables.get('capability-code')} -> `",
+                  "        + pm.collectionVariables.get('schema-url'));",
                   "});"
                 ]
               }
@@ -736,7 +901,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"capabilityCode\": \"{{mausamgram-capability}}\",\n  \"name\": \"Weather Observation and Forecast\",\n  \"version\": \"v0.1\",\n  \"schemaUrl\": \"{{weather-observation-schema-url}}\",\n  \"status\": \"active\"\n}",
+              "raw": "{\n  \"capabilityCode\": \"{{capability-code}}\",\n  \"name\": \"{{schema-name}}\",\n  \"version\": \"{{schema-pack-version}}\",\n  \"schemaUrl\": \"{{schema-url}}\",\n  \"status\": \"active\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -758,6 +923,31 @@
             "description": "RUN \"Find one capability by code\" FIRST -- it sets capability-osid. Without it the URL ends in a bare slash and the answer is 405, which is not the real behaviour below.\n\nTHIS FAILS TODAY, AND NOT BECAUSE OF THE BODY. It answers UNSUCCESSFUL with 'extraneous key [osid] is not permitted' and the same for osOwner, osCreatedAt, osUpdatedAt, osCreatedBy, osUpdatedBy. On an update the registry merges the STORED record into the body and re-validates the result, so those six system fields arrive on their own and are then rejected.\n\nTHE CAUSE IS ONE FLAG. SchemaRegistry.json sets additionalProperties false; Participant.json and ProviderSchema.json both set it true, which is why PUT works on those two and not this one. Set it true and restart sunbird-registry-service -- schemas are read at startup -- and this request starts working.\n\nUNTIL THEN A schemaUrl IS FIXED FOR THE ROW'S LIFETIME, which matters because moving refs is exactly what this field is for. Delete is soft and the unique index on capabilityCode survives it, so a wrong URL cannot be corrected by re-creating the row either.\n\nPUT REPLACES THE RECORD once it does work, so all five required fields belong in this body -- one left out is one dropped from the row."
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const code = pm.variables.get('capability-code') || '';",
+                  "const pack = code.split(':')[1];",
+                  "if (!pack) {",
+                  "    throw new Error(`capability-code must be <prefix>:<Pack>, got '${code}'`);",
+                  "}",
+                  "",
+                  "const ref = pm.variables.get('schema-pack-ref') || 'main';",
+                  "const version = pm.variables.get('schema-pack-version') || 'v0.1';",
+                  "",
+                  "pm.collectionVariables.set('schema-url',",
+                  "    'https://raw.githubusercontent.com/OpenAgriNet/network-specs/'",
+                  "    + `${ref}/schema/${pack}/${version}/attributes.yaml`);",
+                  "",
+                  "// WeatherObservation -> Weather Observation, which is what the pack's own",
+                  "// info.title says once its 'OpenAgriNet -' and 'Attributes' are stripped.",
+                  "pm.collectionVariables.set('schema-name',",
+                  "    pack.replace(/([a-z0-9])([A-Z])/g, '$1 $2'));"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
