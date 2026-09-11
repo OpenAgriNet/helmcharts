@@ -42,7 +42,16 @@
                 ],
                 "supportedFacilityTypes": [
                   "Warehouse"
-                ]
+                ],
+                "location": {
+                  "geo": {
+                    "type": "Point",
+                    "coordinates": [
+                      73.7898,
+                      19.9975
+                    ]
+                  }
+                }
               }
             }
           ],
@@ -58,26 +67,6 @@
                 "name": "PoCRA, Government of Maharashtra"
               }
             }
-          },
-          "fulfillment": {
-            "stops": [
-              {
-                "location": {
-                  "geo": {
-                    "type": "Point",
-                    "coordinates": [
-                      73.7898,
-                      19.9975
-                    ]
-                  }
-                },
-                "time": {
-                  "range": {
-                    "start": "2026-09-10T09:31:00+05:30"
-                  }
-                }
-              }
-            ]
           }
         }
       ]
