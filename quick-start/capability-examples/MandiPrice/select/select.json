@@ -16,15 +16,15 @@
   "message": {
     "contract": {
       "status": {
-        "code": "DRAFT",
-        "name": "Draft"
+        "code": "ACTIVE",
+        "name": "active"
       },
       "commitments": [
         {
           "status": {
             "descriptor": {
-              "code": "DRAFT",
-              "name": "Draft"
+              "code": "ACTIVE",
+              "name": "active"
             }
           },
           "resources": [
