@@ -95,6 +95,29 @@ volumes:
   nginx-proxy-manager-data:
   nginx-proxy-manager-letsencrypt:
 
+x-logging: &logging
+  # Every container's stdout, tagged so the log console can name it.
+  #
+  # The driver is unchanged -- json-file is what Docker was already using. The
+  # two additions are:
+  #
+  # `labels`, which makes the json-file driver write the compose service name
+  # into each line's `attrs` field. Compose sets that label on every container
+  # already; without this opt it stays in the container's metadata, where the
+  # collector reading the log FILE cannot see it. config/observability/filelog.yaml
+  # turns it into service.name, and it is the only reason HyperDX can show
+  # "discovery-service" rather than 64 hex characters.
+  #
+  # `max-size`/`max-file`, which bound the files those logs accumulate in.
+  # Docker's default is unbounded, so today a chatty service fills the disk and
+  # takes Postgres down with it. Unrelated to telemetry and fixed here because
+  # this is the change that made the log files matter.
+  driver: json-file
+  options:
+    labels: com.docker.compose.service
+    max-size: "10m"
+    max-file: "3"
+
 x-adapter: &adapter
   # Pulled, never built. Set ADAPTER_IMAGE in .env to the tag published for
   # this environment -- `docker compose up -d` is the whole deployment step.
@@ -105,6 +128,7 @@ x-adapter: &adapter
   # ones NPM can reach. They still need oan-internal to read the registry and
   # to call discovery, so they sit on both.
   networks: [oan-internal, oan-edge]
+  logging: *logging
 
 x-adapter-env: &adapter-env
   CONFIG_FILE: /app/config/adapter.yaml
@@ -154,6 +178,7 @@ services:
     image: postgres:14
     container_name: sunbird-registry-postgres
     restart: unless-stopped
+    logging: *logging
     networks: [oan-internal]
     environment:
       POSTGRES_DB: ${REGISTRY_DB_NAME}
@@ -174,6 +199,7 @@ services:
     image: ghcr.io/sunbird-rc/sunbird-rc-keycloak:latest
     container_name: sunbird-registry-keycloak
     restart: unless-stopped
+    logging: *logging
     networks: [oan-internal]
     volumes:
       - ./config/registry/imports:/opt/jboss/keycloak/imports
@@ -206,6 +232,7 @@ services:
     image: ghcr.io/sunbird-rc/sunbird-rc-core:${REGISTRY_IMAGE_TAG}
     container_name: sunbird-registry-service
     restart: unless-stopped
+    logging: *logging
     # oan-internal ONLY, and that is the decision, not an omission. NPM sits
     # on oan-edge alone, so it cannot resolve the name `registry` -- a proxy
     # host pointed here fails to start rather than quietly working. Attaching
@@ -297,6 +324,7 @@ services:
     image: pgvector/pgvector:0.8.0-pg16
     container_name: discovery-postgres
     restart: unless-stopped
+    logging: *logging
     networks: [oan-internal]
     environment:
       # Not read from .env, unlike the registry's pair, and so not covered by
@@ -374,6 +402,7 @@ services:
 
     container_name: discovery-service
     restart: unless-stopped
+    logging: *logging
     networks: [oan-internal]
     environment:
       DATABASE_URL: postgres://discovery:discovery@discovery-postgres:5432/discovery?sslmode=disable
@@ -531,6 +560,7 @@ services:
     pull_policy: missing
     container_name: mock-imd
     restart: unless-stopped
+    logging: *logging
     networks: [oan-internal]
     command:
       - "-addr=:9100"
@@ -545,6 +575,7 @@ services:
     pull_policy: missing
     container_name: mock-agmarknet
     restart: unless-stopped
+    logging: *logging
     networks: [oan-internal]
     command:
       - "-addr=:9101"
@@ -661,6 +692,7 @@ services:
     image: clickhouse/clickstack-local:latest
     container_name: hyperdx
     restart: unless-stopped
+    logging: *logging
     profiles: ["observability"]
 
     # oan-edge in addition to oan-internal, so NPM can resolve `hyperdx` and
@@ -694,6 +726,14 @@ services:
       OTEL_METRICS_EXPORTER: none
       OTEL_LOGS_EXPORTER: none
       USAGE_STATS_ENABLED: "false"
+
+      # Container stdout -> this container's own collector. The supervisor
+      # appends this file to /etc/otelcol-contrib/config.yaml rather than
+      # replacing it (/etc/otel/supervisor.yaml.tmpl:27), so it adds a pipeline
+      # and changes nothing HyperDX configures for itself. The reasoning is in
+      # the file; the short version is that traces, metrics and AUDIT records
+      # arrive over OTLP and the console log did not arrive at all.
+      CUSTOM_OTELCOL_CONFIG_FILE: /etc/otelcol-contrib/filelog.yaml
     ports:
       # 8085, not the 8080 this image serves the UI on and not the 8081 it is
       # usually published as: 8081 is REGISTRY_PORT here, and two services
@@ -745,6 +785,22 @@ services:
       - "127.0.0.1:${CLICKHOUSE_HTTP_PORT:-8123}:8123"
     volumes:
       - hyperdx-clickhouse-data:/var/lib/clickhouse
+      - ./config/observability/filelog.yaml:/etc/otelcol-contrib/filelog.yaml:ro
+
+      # Docker's own log files, READ-ONLY. This is the container that reads
+      # every other container's stdout, which is a real widening of what a
+      # compromise here reaches -- stated rather than buried, because it is the
+      # cost of the feature.
+      #
+      # The path is the daemon's, not the host's. On Docker Desktop for macOS
+      # it lives inside the LinuxKit VM and the bind still resolves (verified
+      # on 28.2.2). On rootless Docker, Podman or colima it does not, and the
+      # collector simply finds no files -- the stack comes up, the pipeline
+      # runs, and the log console stays empty. That failure is silent, so if
+      # logs are missing this mount is the first thing to check:
+      #
+      #     docker exec hyperdx ls /var/lib/docker/containers | head
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
     healthcheck:
       # wget, not curl: this image has busybox. And a GET, not `--spider`,
       # which sends HEAD -- Next.js answers HEAD / with a 404 while serving
@@ -785,6 +841,7 @@ services:
     image: jc21/nginx-proxy-manager:latest
     container_name: nginx-proxy-manager
     restart: unless-stopped
+    logging: *logging
     profiles: ["reverse-proxy"]
 
     # oan-edge ONLY, and this is the whole security argument for putting a
