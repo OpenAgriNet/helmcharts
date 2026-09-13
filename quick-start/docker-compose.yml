@@ -796,10 +796,26 @@ services:
       # it lives inside the LinuxKit VM and the bind still resolves (verified
       # on 28.2.2). On rootless Docker, Podman or colima it does not, and the
       # collector simply finds no files -- the stack comes up, the pipeline
-      # runs, and the log console stays empty. That failure is silent, so if
-      # logs are missing this mount is the first thing to check:
+      # runs, and the log console stays empty.
       #
-      #     docker exec hyperdx ls /var/lib/docker/containers | head
+      # "No logs arrive" has TWO causes that look identical from outside, so
+      # check them in this order -- the second is the more common one and the
+      # cheaper test:
+      #
+      #   1. The collector never built the pipeline, because something in
+      #      filelog.yaml did not parse or names a component the merged config
+      #      no longer supplies. The container stays UP and the UI keeps
+      #      serving; only the collector is down. `docker compose ps` says
+      #      unhealthy, because the healthcheck below probes 13133 as well
+      #      as 8080. Then: docker compose logs hyperdx | grep -i error
+      #
+      #   2. This mount resolved to nothing, so the receiver has no files to
+      #      read. The container is HEALTHY -- the collector is fine, it just
+      #      has no input -- which is what makes this one silent:
+      #
+      #          docker exec hyperdx ls /var/lib/docker/containers | head
+      #
+      # Healthy-but-empty is (2). Unhealthy-and-empty is (1).
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
     healthcheck:
       # wget, not curl: this image has busybox. And a GET, not `--spider`,

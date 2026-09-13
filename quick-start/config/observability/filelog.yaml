@@ -26,6 +26,29 @@
 # use collides with nothing; it references `clickhouse` and the three processors
 # by name, which the merged config supplies.
 #
+# WHAT THAT COSTS, STATED PLAINLY
+#
+# Those four names are the coupling. They are HyperDX's, not ours, and the image
+# is pinned to :latest -- so a release that renames one breaks this pipeline. The
+# failure is partial and worth recognising: the container stays up and the UI
+# keeps serving while the collector is down, which stops traces and metrics too,
+# not just these logs. The 13133 healthcheck in docker-compose.yml is what turns
+# that into an `unhealthy` container rather than a silent outage; it is the
+# reason that probe is worth keeping. Options for removing the drift are in
+# helmcharts#24.
+#
+# After any HyperDX bump, the one-line check is:
+#
+#     docker exec hyperdx grep -n 'logs/containers' \
+#         /etc/otel/supervisor-data/effective.yaml
+#
+# That is the supervisor's merged output -- NOT /etc/otelcol-contrib/, which holds
+# only the two inputs (config.yaml and this file). A hit means the merge kept the
+# pipeline; then confirm the four names it references are still defined:
+#
+#     docker exec hyperdx grep -nE '^ {4}(clickhouse|memory_limiter|transform|batch):' \
+#         /etc/otel/supervisor-data/effective.yaml
+#
 # WHAT WAS CONSIDERED INSTEAD
 #
 # The docker `fluentd` log driver, pointed at the fluentforward receiver this
