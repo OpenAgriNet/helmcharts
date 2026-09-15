@@ -416,25 +416,40 @@ response: |
     $unique := $each($wanted{ item.id: $ }, function($grouped) { $grouped[0] });
 
     /* POCRA ranks by distance and reports it only as a string with a unit --
-       "165 Km". It is parsed to sort by and then dropped: the pack states that
-       query-relative distance is not an intrinsic facility attribute, and
-       belongs in result metadata rather than on the facility.
+       "165 Km". Read once here into {value, unit}, then used twice: to sort by
+       below, and published on the facility as `distance`.
+
+       PUBLISHED UNDER AN UNGOVERNED KEY, deliberately. v0.1 defines no distance
+       field, and Beckn offers no structured home either -- Resource carries no
+       tags and Descriptor is additionalProperties: false, so the only
+       spec-clean alternative was prose in shortDesc. It validates because
+       AgricultureFacility sets no additionalProperties: false, but it carries
+       no x-jsonld-id, so the term does not resolve through the pack's context.
+       A governed field in a later pack version is the real fix.
 
        Sorting the strings would put "165 Km" before "98 Km", which nothing
        downstream could detect. An item with no distance sorts last, which is
        what an absent ranking should mean. */
-    $reading := function($item) {
+    $distanceOf := function($item) {
       (
         /* A duplicated distance tag makes .value a sequence, and
            $numericPrefix's $substringBefore throws on anything but a string
            before the $type guard inside it is ever reached. Take the first. */
         $values := [$item.tags.list[descriptor.code = "distance"].value];
-        $numericPrefix($values[0])
+        $reported := $values[0];
+        $value := $numericPrefix($reported);
+        /* unit is left unguarded on the same argument as capacity's below: it
+           is only ever read once value parsed, and $substringAfter on the
+           string that just matched the numeric-prefix regex cannot throw. */
+        $exists($value) ? {
+          "value": $value,
+          "unit": $substringAfter($reported, " ")
+        }
       )
     };
     $sorted := $map($unique, function($entry) {
       (
-        $distance := $reading($entry.item);
+        $distance := $distanceOf($entry.item).value;
         {
           "facility": $entry.item,
           "type": $entry.type,
@@ -607,6 +622,9 @@ response: |
         "facilityType": $facilityType,
         "address": $address($item),
         "capacity": $capacity($item),
+        /* Ungoverned -- see $distanceOf. Absent when POCRA reported none, so a
+           consumer cannot read "not ranked" as "zero away". */
+        "distance": $distanceOf($item),
         /* sourceUri is whatever the upstream answered, not a literal. POCRA
            sends "https://provider.mahapocra.gov.in" on CHC and KVK items and
            "https://warehouse.com" on warehouses -- a per-BPP value rather than
