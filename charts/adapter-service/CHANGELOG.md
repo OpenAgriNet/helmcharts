@@ -30,6 +30,21 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Added
 
+- `routing.rules[].target.urls` — a list of targets for one rule, for an action
+  that has to reach several networks (#22). More than one entry is what turns
+  fan-out on: the adapter calls every target in parallel and answers with their
+  catalogs merged into one response. `target.url` is unchanged and still the
+  form for a single target; setting both is refused at render.
+- `handler.fanout` (`maxConcurrency`, `timeout`) — bounds on a fan-out (#22).
+  `timeout` is the budget for the fan-out as a whole, not per target, and the
+  render fails if it is not shorter than `http.timeout.write`.
+- `handler.httpClient` (`timeout`, `responseHeaderTimeout`) — bounds on every
+  outbound call (#22). `timeout` covers the whole round trip including the body
+  read, which `responseHeaderTimeout` alone does not: without it an upstream
+  that answers promptly and then stalls mid-body is never cut off. It applies to
+  forwarded requests as well as fanned-out ones.
+- `ci/fanout-values.yaml` renders a rule with several targets alongside a
+  single-target one, so the `urls` branch has render coverage.
 - `examples/{provider,network,experience}.yaml` — one values file per role.
 - `ci/otel-ingress-values.yaml` now renders the `experience` role, so the role
   branches that `ci/lint-values.yaml` (network) does not reach are covered.

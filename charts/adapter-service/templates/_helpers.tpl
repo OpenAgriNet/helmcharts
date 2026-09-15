@@ -95,18 +95,45 @@ network and experience each have a single target. Every rule needs a target url,
 and a trailing slash on one produces //discover once the router appends the
 action -- so that is caught here rather than at request time.
 */}}
+{{/*
+Renders routing.rules, validating each one. "Fan-out" below means one rule with
+several targets -- the adapter calls them all and merges the answers. That is a
+different thing from a role having several RULES (provider has one per upstream
+capability), which is ordinary routing and always has been.
+*/}}
 {{- define "adapter-service.routingRules" -}}
 {{- $rules := .Values.routing.rules | default list -}}
 {{- if not $rules -}}
 {{- fail (printf "%s: routing.rules is required and must hold at least one rule. An adapter with no route accepts requests and has nowhere to send them. See examples/%s.yaml." .Chart.Name (include "adapter-service.role" .)) -}}
 {{- end -}}
 {{- range $i, $rule := $rules -}}
-{{- $url := $rule.target.url | default "" -}}
-{{- if not $url -}}
-{{- fail (printf "%s: routing.rules[%d].target.url is required -- e.g. http://discovery:8080. In-cluster this is the RELEASE name of the target, which is what its Service is called." $.Chart.Name $i) -}}
+{{/*
+url and urls are alternatives, never both. Rendering both would leave the
+adapter to pick, and an operator widening a rule to a second network who adds
+urls but forgets to delete url would get whichever the adapter prefers with no
+error anywhere -- exactly the "two things that have to be kept in agreement"
+hazard the urls list exists to remove.
+*/}}
+{{- if and $rule.target.url $rule.target.urls -}}
+{{- fail (printf "%s: routing.rules[%d].target sets both url and urls. They are alternatives: keep urls and delete url." $.Chart.Name $i) -}}
+{{- end -}}
+{{- if and $rule.target.urls (not (kindIs "slice" $rule.target.urls)) -}}
+{{- fail (printf "%s: routing.rules[%d].target.urls must be a list, not a single value. For one target use url instead." $.Chart.Name $i) -}}
+{{- end -}}
+{{- $urls := $rule.target.urls | default list -}}
+{{- if and (not $urls) $rule.target.url -}}
+{{- $urls = list $rule.target.url -}}
+{{- end -}}
+{{- if not $urls -}}
+{{- fail (printf "%s: routing.rules[%d].target needs a url, or a urls list to reach several networks -- e.g. http://discovery:8080. In-cluster this is the RELEASE name of the target, which is what its Service is called." $.Chart.Name $i) -}}
+{{- end -}}
+{{- range $j, $url := $urls -}}
+{{- if empty $url -}}
+{{- fail (printf "%s: routing.rules[%d].target.urls[%d] is empty." $.Chart.Name $i $j) -}}
 {{- end -}}
 {{- if hasSuffix "/" $url -}}
-{{- fail (printf "%s: routing.rules[%d].target.url must not end in a slash (%q). The router appends the action to it, so a trailing slash produces //discover." $.Chart.Name $i $url) -}}
+{{- fail (printf "%s: routing.rules[%d] target %q must not end in a slash. The router appends the action to it, so a trailing slash produces //discover." $.Chart.Name $i $url) -}}
+{{- end -}}
 {{- end -}}
 {{- if not $rule.endpoints -}}
 {{- fail (printf "%s: routing.rules[%d].endpoints is required -- e.g. [discover, publish]. A rule with no endpoints matches nothing." $.Chart.Name $i) -}}

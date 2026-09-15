@@ -158,16 +158,54 @@ handler:
   role: ""
   steps: []
 
+  # Bounds on outbound calls. Timeout covers the WHOLE round trip including the
+  # body read -- responseHeaderTimeout alone bounds only the wait for headers,
+  # so an upstream that answers promptly and then stalls mid-body is never cut
+  # off. Both are durations ("25s", "1m").
+  httpClient:
+    timeout: 25s
+    responseHeaderTimeout: 10s
+
+  # Bounds on a fan-out, which is what a routing rule naming several targets
+  # produces. Read only on that path.
+  #
+  # timeout is the budget for the fan-out AS A WHOLE, not per target: when it
+  # expires the caller is answered with whatever arrived and the rest are counted
+  # in the X-Beckn-Degraded response header. It MUST stay below the server's own
+  # write timeout, or a slow fan-out resets the connection instead of returning
+  # the partial answer it was designed to return.
+  fanout:
+    maxConcurrency: 8
+    timeout: 10s
+
 # ---------------------------------------------------------------------------
 # Routing
 #
-# A list, because provider fans out to several upstreams while network and experience
-# each have one target. Required: an adapter with no route accepts requests and
+# A list, because provider has one rule per upstream capability while network and
+# experience have fewer. Required: an adapter with no route accepts requests and
 # has nowhere to send them.
+#
+# Several RULES is ordinary routing and always has been. Several TARGETS on one
+# rule (target.urls, below) is fan-out, and a different thing: the adapter calls
+# them all for the same action and merges the answers.
 #
 # target.url is a bare host and port with NO path -- targetType "url" appends
 # the action, so a trailing slash produces //discover. In-cluster the host is
 # the RELEASE name of the target, which is what its Service is called.
+#
+# target.urls takes a LIST instead, for an action that has to reach several
+# networks. THE LIST HAVING MORE THAN ONE ENTRY IS WHAT TURNS FAN-OUT ON -- there
+# is no separate flag, because a second URL and a flag saying to use it are two
+# things that have to be kept in agreement. The adapter then calls every target
+# in parallel and answers with their catalogs merged into one response, under
+# handler.fanout above. A target that fails is COUNTED in the X-Beckn-Degraded
+# response header rather than denying the caller what the others returned; the
+# header carries a count and not the addresses, which are internal.
+#
+#   target:
+#     urls:
+#       - http://network-adapter-bharat-vistar:9201
+#       - http://network-adapter-maha-vistar:9201
 # ---------------------------------------------------------------------------
 routing:
   rules: []

@@ -1,0 +1,41 @@
+# The multi-target routing path. Without this case the lint renders only rules
+# with a single target.url, so the urls branch -- the per-entry validation, the
+# both-keys refusal, and the list that actually reaches the rendered routing
+# file -- would ship with no render coverage at all.
+#
+# experience is the role that fans out: it is the one that originates discovery,
+# so it is the one with several networks to ask.
+role: experience
+fullnameOverride: experience-adapter
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/network-adapter
+  tag: "v1.9.0"
+
+keys:
+  existingSecret:
+    name: experience-adapter-keys
+
+registry:
+  url: http://registry:8081/api/v1
+
+routing:
+  rules:
+    # Several networks, one action: the adapter calls them all and merges.
+    - version: "2.0.0"
+      targetType: url
+      target:
+        urls:
+          - http://network-adapter-bharat-vistar:9201
+          - http://network-adapter-maha-vistar:9201
+      endpoints:
+        - discover
+
+    # And the single-target form alongside it, so one render covers both.
+    - version: "2.0.0"
+      targetType: url
+      target:
+        url: http://network-adapter-bharat-vistar:9201
+      endpoints:
+        - publish

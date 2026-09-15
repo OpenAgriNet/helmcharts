@@ -122,6 +122,39 @@ data:
             - {{ . }}
             {{- end }}
 
+          {{- with .Values.handler.httpClient }}
+          httpClientConfig:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          {{/*
+          Read only by a routing rule that names several targets. Emitted
+          regardless so that widening a rule to more networks is a change to
+          the routing file alone.
+          */}}
+          {{- with .Values.handler.fanout }}
+          {{/*
+          A fan-out that outlives the server's own write timeout produces a
+          reset connection instead of the partial answer it exists to return --
+          a misconfiguration that renders, deploys and reports Ready before it
+          fails. Checked here rather than only documented. Only plain second
+          and minute forms are comparable; anything else is left to the
+          operator.
+          */}}
+          {{- $budget := toString .timeout -}}
+          {{- $seconds := 0 -}}
+          {{- if regexMatch "^[0-9]+s$" $budget -}}
+          {{- $seconds = atoi (trimSuffix "s" $budget) -}}
+          {{- else if regexMatch "^[0-9]+m$" $budget -}}
+          {{- $seconds = mul 60 (atoi (trimSuffix "m" $budget)) -}}
+          {{- end -}}
+          {{- if and $seconds (ge $seconds (int $.Values.http.timeout.write)) -}}
+          {{- fail (printf "%s: handler.fanout.timeout (%s) must be shorter than http.timeout.write (%ds). A fan-out that outlives the write timeout resets the connection instead of returning the partial answer." $.Chart.Name $budget (int $.Values.http.timeout.write)) -}}
+          {{- end }}
+          fanout:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
   {{ include "adapter-service.routingFile" . }}: |
     # Where this adapter hands requests on.
     #

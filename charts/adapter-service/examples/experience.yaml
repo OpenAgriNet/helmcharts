@@ -46,6 +46,21 @@ handler:
     - addRoute
     - sign
 
+# One network today, so one target. A second network is a second entry under
+# target.urls on the discover rule -- the list having more than one entry is
+# what makes the adapter call them all in parallel and answer with their
+# catalogs merged:
+#
+#   - version: "2.0.0"
+#     targetType: url
+#     target:
+#       urls:
+#         - http://network-adapter-bharat-vistar:9201
+#         - http://network-adapter-maha-vistar:9201
+#     endpoints:
+#       - discover
+#
+# publish stays single-target: it writes to one network, not all of them.
 routing:
   rules:
     - version: "2.0.0"
