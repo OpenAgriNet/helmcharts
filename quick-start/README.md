@@ -262,6 +262,10 @@ host, on a public hostname behind an NPM Access List, which is how you read it
 without a tunnel. Route + credential → **Appendix B**. → Appendix H, which is
 honest about how much actually arrives.
 
+Every container's stdout lands there too, next to the traces — so this is also
+what replaces keeping `docker compose logs -f` open. How that is wired, and the
+one gotcha, are in Appendix H.
+
 `docker compose restart nginx-proxy-manager` after this command, the first
 time: NPM only resolves `hyperdx` on reload.
 
@@ -864,14 +868,49 @@ forward, routing
 No `spanmetrics`, no `metricsgeneration` — the two components that *are* the
 derivation.
 
+### Container logs now arrive too
+
+Every container's stdout and stderr lands in HyperDX alongside the traces, so a
+failing request and the line the service printed while failing it are readable
+in one place. This used to need `docker compose logs -f` in a second terminal.
+
+Two pieces make it work, and both are small:
+
+- `config/observability/filelog.yaml` — a **collector overlay**, handed to
+  HyperDX's supervisor through `CUSTOM_OTELCOL_CONFIG_FILE`. It adds a `filelog`
+  receiver over `/var/lib/docker/containers/*/*-json.log` (bind-mounted read-only)
+  and its own `logs/containers` pipeline. The overlay is merged *after* the
+  remote config HyperDX pushes over OpAMP, and the pipeline sits under a key
+  that config does not use, so nothing it defines is clobbered.
+- an `x-logging` anchor on every service in `docker-compose.yml`. It sets
+  `labels: com.docker.compose.service` on the json-file driver, which writes an
+  `attrs` object into each log line — **the only way the collector learns which
+  service a file belongs to**. Without it every line arrives with an empty
+  `ServiceName`. The same anchor caps each container at `10m × 3` files; before
+  it, container logs grew without bound.
+
+The overlay reads files rather than taking a push, so it also picks up
+containers compose does not define — and it needs no change to any service that
+logs. `docker logs` keeps working throughout.
+
+**Verified on Docker Desktop for macOS** (28.2.2): `/var/lib/docker/containers`
+is inside the Linux VM, not on the host filesystem, but the bind mount resolves
+against the VM and the receiver reads it normally. No `:cached`, no
+`osxfs` tuning, no difference from Linux.
+
+Two things worth expecting. Lines written *before* a container was recreated
+with the `labels` option carry no `attrs`, so they arrive with an empty
+`ServiceName` until those files roll — cosmetic, and self-clearing. And a
+service whose SDK already pushes logs over OTLP (the three adapters do) is now
+visible twice: once as its own structured stream, once as the raw stdout the
+collector read.
+
 ### Everything else unchanged
 
 The three adapters send to HyperDX directly, as they always have. Whether the
 adapter image's SDK actually reads the OTLP variables is still unverified —
 nothing depends on the answer, since an absent collector makes an exporter drop
-spans rather than fail a request. Container logs go nowhere near HyperDX either;
-that needs a `filelog` receiver, which is not in this stack, so
-`docker compose logs -f` remains the way to read them.
+spans rather than fail a request.
 
 ## Appendix I — Schema validation
 
@@ -969,6 +1008,10 @@ config/
       consumer.conf                here because a textarea in a database is not
       hyperdx.conf            reviewable. consumer = rate limit; hyperdx = ClickHouse
                               timeouts (its login is an NPM Access List)
+  observability/
+    filelog.yaml          collector overlay for HyperDX, merged after its OpAMP
+                            remote config. Reads every container's json log and
+                            names the service from the compose label
   adapters/
     consumer.yaml.tmpl    templates. setup.py renders these to .yaml,
     network.yaml.tmpl       filling in the keys it generated. The rendered
