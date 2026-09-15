@@ -402,10 +402,17 @@ response: |
                       "sourceUri": "https://mausamgram.imd.gov.in/"
                     },
                     /* The same point on every resource: one call answers one
-                       location, and $lat/$lon resolved it once at the top. */
+                       location, and $lat/$lon resolved it once at the top.
+
+                       A Beckn Location, with the geometry under `geo`. The pack
+                       moved off a bare GeoJSON geometry so a resolved location
+                       can also carry a postal address; this upstream reports
+                       none, so geo is the whole of it. */
                     "location": {
-                      "type": "Point",
-                      "coordinates": [$lon, $lat]
+                      "geo": {
+                        "type": "Point",
+                        "coordinates": [$lon, $lat]
+                      }
                     },
                     "generatedAt": $generatedAt,
                     "modelRunAt": $modelRunAt,
