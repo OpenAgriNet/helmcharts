@@ -48,6 +48,16 @@ modules:
             url: http://sunbird-registry-service:8081/api/v1
             entity: Participant
             providerEntity: ProviderSchema
+            # 0 because no cache plugin is configured. A non-zero TTL here only
+            # warns at startup and caches nothing.
+            cacheTTL: 0
+            # Plain seconds, per attempt.
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            # A search response past this is refused, not truncated.
+            maxResponseBytes: 1048576
 
         keyManager:
           id: simplekeymanager

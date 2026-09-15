@@ -50,6 +50,17 @@ modules:
             url: http://sunbird-registry-service:8081/api/v1
             entity: Participant
             providerEntity: ProviderSchema
+            # 0 because no cache plugin is configured. A non-zero TTL here only
+            # warns at startup and caches nothing.
+            cacheTTL: 0
+            # Plain seconds, per attempt. Two registry calls happen per request.
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            # A search response past this is refused, not truncated: half a JSON
+            # document fails to decode with an error that says nothing useful.
+            maxResponseBytes: 1048576
 
         # Dev keys, rendered by bin/setup.py. Production uses a secret store,
         # which is why this file is gitignored and written 0600.
@@ -100,15 +111,60 @@ modules:
         mapper:
           id: jsonmapper
           config:
+            # A mapping host that accepts the connection then goes quiet must
+            # not hold a request open.
             fetchTimeout: 10s
+            # Also how long a corrected mapping takes to take effect.
             cacheTTL: 1m
+            # How long a failed fetch is remembered. Without it a broken
+            # reference turns every inbound request into an outbound one.
+            negativeTTL: 1m
+            # References come from the registry, so an unbounded read is an
+            # unbounded allocation driven by whoever can write a registry row.
+            maxMappingBytes: 262144
+            maxCacheEntries: 200
 
         # One step per capability. Each recognises its own binding key and
         # passes anything else through.
         #
-        # Auth is per provider, in a block named for the participant id. A
-        # served provider with no block is refused at startup. Credentials are
-        # never values here -- the block names the environment variable.
+        # A binding key is "<participantId>|<capabilityCode>", read out of the
+        # payload at two paths. Both are defaults and are NOT set below:
+        #
+        #   providerIdAt      message.contract.commitments[].offer.provider.id
+        #   capabilityCodeAt  message.contract.commitments[].resources[].resourceAttributes.@type
+        #
+        # The grammar is segments split on "." plus a "[]" suffix meaning "look
+        # in every element" -- no wildcards, filters or indices. Leave both
+        # unset: they are a network convention, so overriding one here makes
+        # this adapter stop matching everybody else. Set both or neither.
+        #
+        # ONE STEP CAN SERVE SEVERAL PROVIDERS OF THE SAME CAPABILITY.
+        # bindingKeys is a comma-separated list and auth is a block per
+        # participant id, so two providers of one capability can authenticate
+        # differently:
+        #
+        #   - id: MandiPrice
+        #     config:
+        #       bindingKeys: "agmarknet|openagrinet:MandiPrice,othermandi|openagrinet:MandiPrice"
+        #       agmarknet:
+        #         authScheme: tokenQuery
+        #         tokenUrl: "https://..."
+        #         ...
+        #       othermandi:
+        #         authScheme: header
+        #         headerName: Authorization
+        #         headerValueEnv: OTHERMANDI_AUTH
+        #
+        # The payload's provider id picks which one answers. Everything else
+        # that differs -- base URL, paths, mappings -- comes from that
+        # provider's own registry row, so nothing more is needed here.
+        #
+        # A second entry with the same plugin id would NOT work: the ids collide
+        # in the handler's step map and one capability is lost with no error.
+        #
+        # Auth is per provider. A served provider with no block is refused at
+        # startup. Credentials are never values here -- the block names the
+        # environment variable.
         providerSteps:
           - id: WeatherObservation
             config:
@@ -196,6 +252,13 @@ modules:
             url: http://sunbird-registry-service:8081/api/v1
             entity: Participant
             providerEntity: ProviderSchema
+            # 0 because no cache plugin is configured; see the module above.
+            cacheTTL: 0
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            maxResponseBytes: 1048576
 
         keyManager:
           id: simplekeymanager
