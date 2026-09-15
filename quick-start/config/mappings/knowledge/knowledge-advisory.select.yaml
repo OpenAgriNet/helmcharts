@@ -240,16 +240,26 @@ response: |
                     "rationale": $exists($text($h.instance_name))
                       ? $counts & " from the " & $text($h.instance_name) & " corpus."
                       : $counts & ".",
-                    /* The document behind this passage IS its source:
-                       doc_id identifies it, filename is its human label. Two
-                       upstream fields that look like better candidates are
+                    /* The document behind this passage IS its source: doc_id
+                       identifies it, and name_en is its human label -- an
+                       actual title ("ICAR En-Kharif Agro-Advisories for
+                       Farmers 2025") rather than the pipeline artefact name
+                       filename carries ("doc-bc286f0d5bef-rerun-1789107255").
+
+                       filename remains the FALLBACK, not the first choice: it
+                       is always present, so it keeps a passage attributable
+                       when a document has no English name. title_en is not a
+                       third option -- it comes back empty on this corpus.
+
+                       Two upstream fields that look like better candidates are
                        traps, and the guide says so -- hits[].instance is a
                        provider-internal code ("bv") and hits[].source names
                        the ingestion pipeline ("docs-pipeline"). */
                     "source": $merge([
                       { "sourceId": $h.doc_id },
-                      $exists($text($h.filename))
-                        ? { "sourceName": $text($h.filename) } : {}
+                      ( $label := $exists($text($h.name_en))
+                                    ? $text($h.name_en) : $text($h.filename);
+                        $exists($label) ? { "sourceName": $label } : {} )
                     ])
                   },
                   /* Optional, so emitted only when this hit's type maps. */
