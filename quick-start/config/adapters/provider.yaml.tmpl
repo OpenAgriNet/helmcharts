@@ -337,6 +337,18 @@ modules:
         - KnowledgeAdvisory   # its binding key, or pass through
         - AgricultureFacility # its binding key, or pass through
 
+      # Bounds on outbound calls. timeout covers the WHOLE round trip including
+      # the body read; responseHeaderTimeout alone bounds only the wait for
+      # headers, so an upstream that answers promptly and then stalls mid-body
+      # would never be cut off and would hold its connection and goroutine.
+      #
+      # This matters most here: this adapter's upstreams are external services
+      # rather than containers in this compose, so they are the hop least under
+      # anyone's control.
+      httpClientConfig:
+        timeout: 25s
+        responseHeaderTimeout: 10s
+
   # The outbound leg: the provider's own catalogue system publishing to the
   # network layer. POST /publish.
   #
@@ -449,5 +461,12 @@ modules:
         # list never runs, which is why publish went unvalidated until now.
         - validateSchema # the Beckn v2 spec, plus each resource's own @context
         - addRoute       # publish -> the network layer
+
+      # Same bounds as the module above: this leg forwards to the network layer,
+      # and an outbound call with no whole-round-trip timeout holds its
+      # connection and goroutine for as long as the far end cares to stall.
+      httpClientConfig:
+        timeout: 25s
+        responseHeaderTimeout: 10s
 
 

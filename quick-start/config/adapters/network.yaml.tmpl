@@ -135,3 +135,11 @@ modules:
       # does is rejected.
       steps:
         - addRoute
+
+      # Bounds on outbound calls. timeout covers the WHOLE round trip including
+      # the body read; responseHeaderTimeout alone bounds only the wait for
+      # headers, so an upstream that answers promptly and then stalls mid-body
+      # would never be cut off and would hold its connection and goroutine.
+      httpClientConfig:
+        timeout: 25s
+        responseHeaderTimeout: 10s

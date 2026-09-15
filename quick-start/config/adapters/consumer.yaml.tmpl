@@ -133,3 +133,27 @@ modules:
       steps:
         - validateSchema
         - addRoute
+
+      # Bounds on outbound calls. timeout covers the WHOLE round trip including
+      # the body read; responseHeaderTimeout alone bounds only the wait for
+      # headers, so an upstream that answers promptly and then stalls mid-body
+      # would never be cut off and would hold its connection and goroutine.
+      httpClientConfig:
+        timeout: 25s
+        responseHeaderTimeout: 10s
+
+      # Bounds on a fan-out -- what a routing rule naming several targets
+      # produces. Read only on that path, so this does nothing until
+      # routing-consumer.yaml names more than one target for an action.
+      #
+      # timeout is the budget for the fan-out AS A WHOLE, not per target: with
+      # a concurrency cap the targets run in waves, and a per-target bound
+      # would multiply by the number of waves. When it expires the caller is
+      # answered with whatever arrived and the rest are reported degraded.
+      #
+      # It sits under http.timeout.write above (30s) deliberately. A fan-out
+      # that outlives the server's own write timeout produces a reset
+      # connection instead of the partial answer it exists to return.
+      fanout:
+        maxConcurrency: 8
+        timeout: 10s

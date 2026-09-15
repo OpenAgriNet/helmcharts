@@ -6,6 +6,30 @@
 #
 # targetType "url" appends the action to the path, so the base here is the
 # module mount point and /discover or /select is added to it.
+#
+# FAN-OUT. A rule reaches several networks by naming `urls` instead of one
+# `url`, and THE LIST HAVING MORE THAN ONE ENTRY IS THE SWITCH -- there is no
+# separate flag, because a second URL and a flag saying to use it are two
+# things that have to be kept in agreement:
+#
+#     target:
+#       urls:
+#         - "http://network-adapter-bharat-vistar:9201"
+#         - "http://network-adapter-maha-vistar:9201"
+#
+# Every target is then called in parallel and their catalogs come back merged
+# into one response. A target that fails, answers non-2xx, or misses the budget
+# in consumer.yaml's handler.fanout is COUNTED in the X-Beckn-Degraded response
+# header and the rest still answer; only a total failure is a NACK. The header
+# carries a count and not the addresses: which target failed, and why, is in the
+# adapter's logs, where the operator is and the caller is not.
+#
+# `offset` is refused on a fan-out rule: forwarded as-is it means "skip N in
+# EACH network", which is not page two of anything. `limit` is forwarded and
+# applied again to the merged list, so a caller asking for 20 gets 20 rather
+# than 20 per network.
+#
+# One network today, so one url.
 routingRules:
   - version: "2.0.0"
     targetType: "url"
