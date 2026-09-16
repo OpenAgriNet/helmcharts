@@ -98,56 +98,6 @@
           ]
         },
         {
-          "name": "Publish - Direct",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{provider-adapter-host}}/publish",
-              "host": [
-                "{{provider-adapter-host}}"
-              ],
-              "path": [
-                "publish"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"context\": {\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"catalogs\": [\n      {\n        \"id\": \"catalog:mandi-price:MH:current\",\n        \"descriptor\": {\n          \"code\": \"MANDI_PRICE_CURRENT_MH\",\n          \"name\": \"Maharashtra current mandi prices\",\n          \"shortDesc\": \"4 Direct price Resources for Maharashtra, one per market and commodity, each carrying its latest price.\",\n          \"longDesc\": \"Each Resource carries the most recent minimum, maximum, and modal prices reported by AGMARKNET for one commodity at one market. Republishing overwrites it in place: arrivalDate and prices are fields, not identity. Published so Direct results can be discovered and filtered without a select round trip; the primary flow remains OnDemand discovery followed by a live provider invocation.\"\n        },\n        \"isActive\": true,\n        \"provider\": {\n          \"id\": \"agmarknet\",\n          \"descriptor\": {\n            \"code\": \"AGMARKNET\",\n            \"name\": \"Agmarknet Vistaar\",\n            \"shortDesc\": \"Provider of live agricultural market price information.\"\n          }\n        },\n        \"resources\": [\n          {\n            \"id\": \"resource:mandi-price:price:1284:23\",\n            \"descriptor\": {\n              \"code\": \"MANDI_PRICE_OBSERVATION\",\n              \"name\": \"Onion prices at Pathardi APMC on 2026-09-06\",\n              \"shortDesc\": \"Minimum, maximum, and modal onion prices reported by Pathardi APMC for 2026-09-06.\"\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld\",\n              \"@type\": \"openagrinet:MandiPrice\",\n              \"informationMode\": \"Direct\",\n              \"subjectCategories\": [\n                \"Market\"\n              ],\n              \"source\": {\n                \"sourceId\": \"agmarknet\",\n                \"sourceName\": \"Agmarknet Vistaar\",\n                \"sourceUri\": \"https://agmarknet.gov.in/\"\n              },\n              \"supportedCommodities\": [\n                {\n                  \"code\": \"23\",\n                  \"name\": \"Onion\"\n                }\n              ],\n              \"commodityGroup\": \"Vegetables\",\n              \"grade\": \"Local\",\n              \"variety\": \"Red\",\n              \"market\": {\n                \"marketName\": \"Pathardi APMC\",\n                \"district\": \"Ahmednagar\",\n                \"state\": \"Maharashtra\",\n                \"marketCode\": \"1432\",\n                \"location\": {\n                  \"geo\": {\n                    \"type\": \"Point\",\n                    \"coordinates\": [\n                      75.17606191,\n                      19.17442009\n                    ]\n                  }\n                }\n              },\n              \"arrivalDate\": \"2026-09-06\",\n              \"prices\": {\n                \"minimum\": 1000,\n                \"maximum\": 5200,\n                \"modal\": 3100,\n                \"currency\": \"INR\",\n                \"unit\": \"quintal\"\n              },\n              \"generatedAt\": \"2026-09-10T09:15:00Z\",\n              \"validity\": {\n                \"startsAt\": \"2026-09-10T09:15:00Z\",\n                \"endsAt\": \"2026-09-11T09:15:00Z\"\n              }\n            }\n          },\n          {\n            \"id\": \"resource:mandi-price:price:1634:23\",\n            \"descriptor\": {\n              \"code\": \"MANDI_PRICE_OBSERVATION\",\n              \"name\": \"Onion prices at Rahuri APMC on 2026-09-06\",\n              \"shortDesc\": \"Minimum, maximum, and modal onion prices reported by Rahuri APMC for 2026-09-06.\"\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld\",\n              \"@type\": \"openagrinet:MandiPrice\",\n              \"informationMode\": \"Direct\",\n              \"subjectCategories\": [\n                \"Market\"\n              ],\n              \"source\": {\n                \"sourceId\": \"agmarknet\",\n                \"sourceName\": \"Agmarknet Vistaar\",\n                \"sourceUri\": \"https://agmarknet.gov.in/\"\n              },\n              \"supportedCommodities\": [\n                {\n                  \"code\": \"23\",\n                  \"name\": \"Onion\"\n                }\n              ],\n              \"commodityGroup\": \"Vegetables\",\n              \"grade\": \"Local\",\n              \"variety\": \"Other\",\n              \"market\": {\n                \"marketName\": \"Rahuri APMC\",\n                \"district\": \"Ahmednagar\",\n                \"state\": \"Maharashtra\",\n                \"marketCode\": \"1803\",\n                \"location\": {\n                  \"geo\": {\n                    \"type\": \"Point\",\n                    \"coordinates\": [\n                      74.66192086448265,\n                      19.644527591487904\n                    ]\n                  }\n                }\n              },\n              \"arrivalDate\": \"2026-09-06\",\n              \"prices\": {\n                \"minimum\": 1000,\n                \"maximum\": 6100,\n                \"modal\": 3100,\n                \"currency\": \"INR\",\n                \"unit\": \"quintal\"\n              },\n              \"generatedAt\": \"2026-09-10T09:15:00Z\",\n              \"validity\": {\n                \"startsAt\": \"2026-09-10T09:15:00Z\",\n                \"endsAt\": \"2026-09-11T09:15:00Z\"\n              }\n            }\n          },\n          {\n            \"id\": \"resource:mandi-price:price:1649:23\",\n            \"descriptor\": {\n              \"code\": \"MANDI_PRICE_OBSERVATION\",\n              \"name\": \"Onion prices at Newasa APMC on 2026-09-06\",\n              \"shortDesc\": \"Minimum, maximum, and modal onion prices reported by Newasa APMC for 2026-09-06.\"\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld\",\n              \"@type\": \"openagrinet:MandiPrice\",\n              \"informationMode\": \"Direct\",\n              \"subjectCategories\": [\n                \"Market\"\n              ],\n              \"source\": {\n                \"sourceId\": \"agmarknet\",\n                \"sourceName\": \"Agmarknet Vistaar\",\n                \"sourceUri\": \"https://agmarknet.gov.in/\"\n              },\n              \"supportedCommodities\": [\n                {\n                  \"code\": \"23\",\n                  \"name\": \"Onion\"\n                }\n              ],\n              \"commodityGroup\": \"Vegetables\",\n              \"grade\": \"Local\",\n              \"variety\": \"Unhali\",\n              \"market\": {\n                \"marketName\": \"Newasa APMC\",\n                \"district\": \"Ahmednagar\",\n                \"state\": \"Maharashtra\",\n                \"marketCode\": \"1821\",\n                \"location\": {\n                  \"geo\": {\n                    \"type\": \"Point\",\n                    \"coordinates\": [\n                      74.93534498,\n                      19.54478514\n                    ]\n                  }\n                }\n              },\n              \"arrivalDate\": \"2026-09-06\",\n              \"prices\": {\n                \"minimum\": 1500,\n                \"maximum\": 5100,\n                \"modal\": 4200,\n                \"currency\": \"INR\",\n                \"unit\": \"quintal\"\n              },\n              \"generatedAt\": \"2026-09-10T09:15:00Z\",\n              \"validity\": {\n                \"startsAt\": \"2026-09-10T09:15:00Z\",\n                \"endsAt\": \"2026-09-11T09:15:00Z\"\n              }\n            }\n          },\n          {\n            \"id\": \"resource:mandi-price:price:1894:23\",\n            \"descriptor\": {\n              \"code\": \"MANDI_PRICE_OBSERVATION\",\n              \"name\": \"Onion prices at Parner APMC on 2026-09-06\",\n              \"shortDesc\": \"Minimum, maximum, and modal onion prices reported by Parner APMC for 2026-09-06.\"\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld\",\n              \"@type\": \"openagrinet:MandiPrice\",\n              \"informationMode\": \"Direct\",\n              \"subjectCategories\": [\n                \"Market\"\n              ],\n              \"source\": {\n                \"sourceId\": \"agmarknet\",\n                \"sourceName\": \"Agmarknet Vistaar\",\n                \"sourceUri\": \"https://agmarknet.gov.in/\"\n              },\n              \"supportedCommodities\": [\n                {\n                  \"code\": \"23\",\n                  \"name\": \"Onion\"\n                }\n              ],\n              \"commodityGroup\": \"Vegetables\",\n              \"grade\": \"Local\",\n              \"variety\": \"Unhali\",\n              \"market\": {\n                \"marketName\": \"Parner APMC\",\n                \"district\": \"Ahmednagar\",\n                \"state\": \"Maharashtra\",\n                \"marketCode\": \"2072\",\n                \"location\": {\n                  \"geo\": {\n                    \"type\": \"Point\",\n                    \"coordinates\": [\n                      74.44058799,\n                      18.99974287\n                    ]\n                  }\n                }\n              },\n              \"arrivalDate\": \"2026-09-06\",\n              \"prices\": {\n                \"minimum\": 1000,\n                \"maximum\": 5600,\n                \"modal\": 4000,\n                \"currency\": \"INR\",\n                \"unit\": \"quintal\"\n              },\n              \"generatedAt\": \"2026-09-10T09:15:00Z\",\n              \"validity\": {\n                \"startsAt\": \"2026-09-10T09:15:00Z\",\n                \"endsAt\": \"2026-09-11T09:15:00Z\"\n              }\n            }\n          }\n        ]\n      }\n    ],\n    \"publishDirectives\": [\n      {\n        \"catalogId\": \"catalog:mandi-price:MH:current\",\n        \"catalogType\": \"REGULAR\",\n        \"updateMode\": \"MERGE\"\n      }\n    ]\n  }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "description": "Body is capability-examples/MandiPrice/publish/direct-mh.json, unedited apart from the context variables."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-                  "",
-                  "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
-                  "// status code alone does not tell you the call worked.",
-                  "pm.test('not a NACK', () => {",
-                  "    const b = pm.response.json();",
-                  "    const err = (b.error) || (b.message && b.message.error);",
-                  "    if (err) throw new Error(`${err.code}: ${err.message}`);",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
           "name": "Discover - On-demand",
           "request": {
             "method": "POST",
@@ -176,56 +126,6 @@
               }
             },
             "description": "Body is capability-examples/MandiPrice/discover/discover.json, unedited apart from the context variables."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-                  "",
-                  "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
-                  "// status code alone does not tell you the call worked.",
-                  "pm.test('not a NACK', () => {",
-                  "    const b = pm.response.json();",
-                  "    const err = (b.error) || (b.message && b.message.error);",
-                  "    if (err) throw new Error(`${err.code}: ${err.message}`);",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Discover - Direct",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{consumer-adapter-host}}/discover",
-              "host": [
-                "{{consumer-adapter-host}}"
-              ],
-              "path": [
-                "discover"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"schemaContext\": [\n      \"https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld#openagrinet:MandiPrice\"\n    ]\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.resourceAttributes.subjectCategories[*] == \\\"Market\\\" && @.resourceAttributes.informationMode == \\\"Direct\\\" && @.resourceAttributes.commodity.code == \\\"23\\\")\"\n      },\n      \"spatial\": [\n        {\n          \"op\": \"S_DWITHIN\",\n          \"targets\": \"$.catalogs[*].resources[*].resourceAttributes.market.location\",\n          \"geometry\": {\n            \"type\": \"Point\",\n            \"coordinates\": [\n              73.7898,\n              19.9975\n            ]\n          },\n          \"distanceMeters\": 200000,\n          \"quantifier\": \"ANY\"\n        }\n      ]\n    }\n  }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "description": "Body is capability-examples/MandiPrice/discover/discover-direct.json, unedited apart from the context variables."
           },
           "event": [
             {
