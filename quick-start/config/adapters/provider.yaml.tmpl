@@ -1,9 +1,5 @@
-# OAN provider adapter -- dev deployment.
-#
-# Serves the Beckn actions at the root synchronously: verifies the sender
-# against the registry,
-# resolves the capability's call plan, calls the provider, and answers with the
-# mapped result. No callback -- the answer is the HTTP response.
+# OAN provider adapter. Answers Beckn actions synchronously: resolve the
+# capability's call plan, call the provider, return the mapped result.
 appName: "provider-adapter"
 
 log:
@@ -22,32 +18,9 @@ http:
 pluginManager:
   root: ./plugins
 
-# ---------------------------------------------------------------------------
-# OpenTelemetry. An application-level plugin rather than a module one: it runs
-# its own background lifecycle -- an exporter and a periodic flush -- instead
-# of being loaded per request by a step.
-#
-# It ships metrics, traces and logs over OTLP/gRPC to the collector named
-# below. In this stack that is ClickStack, on the observability profile, which
-# `make up` starts as step 5 and `make up-core` deliberately does not.
-#
-# WHICH IS WHY THE ENABLE FLAGS ARE A SWITCH. With all three false the plugin
-# builds no exporter at all and returns a no-op provider -- it does not dial,
-# so it cannot log a connection failure every few seconds. Point a stack with
-# no collector at one and that is exactly what you get, so ADAPTER_OTEL_ENABLED=false
-# is the right setting for `make up-core`.
-#
-# serviceVersion is deliberately absent: left empty the plugin fills in the
-# adapter's own build version, which is truer than anything written here and
-# does not go stale.
-#
-# Not set, and worth knowing they exist:
-#   auditFieldsConfig  a YAML file of masking rules and field selection for
-#                      audit logs -- payloads are emitted whole without it.
-#   networkMetricsGranularity / networkMetricsFrequency
-#                      network-level metric windows.
-#   timeInterval       metric export period in seconds; defaults to 5.
 plugins:
+  # Ships metrics, traces and logs over OTLP/gRPC. All three flags false builds
+  # no exporter at all, which is the right setting for a stack with no collector.
   otelsetup:
     id: otelsetup
     config:
@@ -60,21 +33,9 @@ plugins:
 
 modules:
   - name: oanProvider
-    # A subtree, not one action. "/" with the trailing slash is a prefix
-    # match, so every action lands here; an exact pattern like "/select"
-    # would mount that one action and 404 the rest.
-    #
-    # Which action it is comes from the URL, not the payload: the mount path
-    # is stripped off the request path and what remains -- "select",
-    # "discover" -- is what the routing config matches on.
-    #
-    # The schema validator is handed that same stripped path and ignores it,
-    # reading context.action out of the payload instead. Nothing reconciles
-    # the two. A mismatch is caught anyway in practice -- POST /select
-    # carrying action "discover" is validated against the discover schema and
-    # rejected with SCH_FIELD_NOT_ALLOWED -- but it is the two body shapes
-    # differing that catches it, not a check that the URL and the action
-    # agree.
+    # "/" with the trailing slash is a prefix match, so every action lands here.
+    # The action comes from the URL, not the payload: the mount path is stripped
+    # and what remains ("select", "discover") is what routing matches on.
     path: /
     handler:
       type: std
@@ -82,25 +43,32 @@ modules:
       subscriberId: __PROVIDER_SUBSCRIBER_ID__
 
       plugins:
-        # Serves both halves: the sender's signing key for validateSign, and the
-        # capability call plans the provider steps resolve against.
+        # Serves the sender's signing key and the capability call plans.
         registry:
           id: sunbirdRegistry
           config:
             url: http://sunbird-registry-service:8081/api/v1
             entity: Participant
             providerEntity: ProviderSchema
+            # 0 because no cache plugin is configured. A non-zero TTL here only
+            # warns at startup and caches nothing.
+            cacheTTL: 0
+            # Plain seconds, per attempt. Two registry calls happen per request.
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            # A search response past this is refused, not truncated: half a JSON
+            # document fails to decode with an error that says nothing useful.
+            maxResponseBytes: 1048576
 
-        # The adapter's OWN keys, used by signAck to sign what it answers with.
-        # Dev keys, rendered here by bin/setup.py. Production uses a key
-        # manager backed by a secret store, not values in a config file --
+        # Dev keys, rendered by bin/setup.py. Production uses a secret store,
         # which is why this file is gitignored and written 0600.
         keyManager:
           id: simplekeymanager
           config:
             subscriberId: __PROVIDER_SUBSCRIBER_ID__
-            # The KEY's osid, not a friendly name: that is what the registry
-            # indexes keys by, and what a verifier looks up.
+            # The key's osid, not a friendly name: the registry indexes on it.
             keyId: __PROVIDER_KEY_ID__
             signingPrivateKey: "__PROVIDER_SIGNING_PRIVATE__"
             signingPublicKey: "__PROVIDER_SIGNING_PUBLIC__"
@@ -112,147 +80,108 @@ modules:
         signer:
           id: signer
 
-        # Base Beckn v2 schema validation against the pinned LTS spec, plus the
-        # extended layer, which resolves each resource's @type to a capability
-        # schema and validates resourceAttributes against it. Base validation
-        # treats that object as free-form, so extended is the only layer that
-        # checks a capability's own attributes at all.
-        #
-        # Resolution is a FETCH of the @context each resource declares. The
-        # validator swaps context.jsonld for attributes.yaml to get the schema
-        # beside it, so a payload names the pack revision it is judged
-        # against and no copy of the schemas is kept here to drift. Cached for
-        # the TTL below, so only the first payload after a restart pays; a
-        # fetch that FAILS rejects the payload rather than skipping
-        # validation, so this container does need egress to the allowed host.
-        #
-        # Not enforced, and worth knowing before reading a pass as pack
-        # conformance: the validator library parses if/then/else but never
-        # evaluates it, so every pack rule predicated on informationMode is
-        # unchecked.
+        # Populates transaction_id and message_id on the context so every log
+        # line carries them. subscriber_id is resolved separately, not listed.
+        middleware:
+          - id: reqpreprocessor
+            config:
+              contextKeys: transaction_id,message_id
+              role: bpp
+
         schemaValidator:
           id: schemav2validator
           config:
             type: url
             location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
+            # Resolves each resource's @context to its pack and validates
+            # resourceAttributes. Base validation treats that object as
+            # free-form, so this is the only layer checking capability fields.
             extendedSchema_enabled: "true"
-            # THE HOSTS THE PACKS' @context AND ITS $refs RESOLVE TO, and the
-            # whole trust boundary: the entry @context and every $ref under it
-            # is checked, because the document a payload names comes from a URL
-            # the payload chose. Without the check its $refs could point this
-            # process at an internal service or a metadata endpoint.
-            #
-            # EVERY HOST HERE IS LOAD-BEARING. Loading one capability pack
-            # pulls 13-16 documents: the pack itself from the raw CDN, then
-            # Descriptor/GeoJSONGeometry/Location/Address, which in turn $ref a
-            # fourth host. Drop any one and no pack loads at all -- the failure
-            # is SCH_SCHEMA_ADAPTATION_FAILED on every payload, not a partial
-            # validation.
-            #
-            # openagrinet.github.io is where OAN's own packs are published.
-            #
-            # Keep it as tight as the packs allow. raw.githubusercontent.com is
-            # world-writable, so this trusts every GitHub account for schema
-            # content; narrowing it to a path prefix, or serving every pack
-            # from the host above, is the real fix and is not a one-line
-            # change.
+            # The trust boundary: a payload chooses the @context URL, so every
+            # host it and its $refs resolve to must be listed. Loading one pack
+            # pulls 13-16 documents across these hosts -- drop any one and no
+            # pack loads at all.
             extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
 
-        # Generic: fetches, compiles and caches whatever the registry's mapping
-        # URLs point at. Knows nothing about any provider.
+        # Fetches and caches whatever the registry's mapping URLs point at.
         mapper:
           id: jsonmapper
           config:
+            # A mapping host that accepts the connection then goes quiet must
+            # not hold a request open.
             fetchTimeout: 10s
+            # Also how long a corrected mapping takes to take effect.
             cacheTTL: 1m
+            # How long a failed fetch is remembered. Without it a broken
+            # reference turns every inbound request into an outbound one.
+            negativeTTL: 1m
+            # References come from the registry, so an unbounded read is an
+            # unbounded allocation driven by whoever can write a registry row.
+            maxMappingBytes: 262144
+            maxCacheEntries: 200
 
-        # One entry per provider capability. Each recognises its own binding key
-        # and passes through anything else.
+        # One step per capability. Each recognises its own binding key and
+        # passes anything else through.
         #
-        # AUTH IS PER PROVIDER, in a block named for the participant id. There
-        # is no step-wide setting: one step serves several binding keys and the
-        # providers behind them need not authenticate alike, so a served
-        # provider without a block is refused at startup rather than quietly
-        # sending no credential. A bare top-level authScheme is refused too,
-        # rather than ignored.
+        # A binding key is "<participantId>|<capabilityCode>", read out of the
+        # payload at two paths. Both are defaults and are NOT set below:
         #
-        # A credential is never a value here. The block names the ENVIRONMENT
-        # VARIABLE carrying it -- usernameEnv, passwordEnv, queryValueEnv,
-        # clientIdEnv, clientSecretEnv -- so nothing secret is in this file or
-        # in the registry.
+        #   providerIdAt      message.contract.commitments[].offer.provider.id
+        #   capabilityCodeAt  message.contract.commitments[].resources[].resourceAttributes.@type
         #
-        # A list: one provider can serve several capabilities, and the registry
-        # contract expects exactly that -- one Participant, one ProviderSchema
-        # row per capability. Comma-separated, because a plugin config value is
-        # a string; a binding key uses a pipe, so a comma is unambiguous.
+        # The grammar is segments split on "." plus a "[]" suffix meaning "look
+        # in every element" -- no wildcards, filters or indices. Leave both
+        # unset: they are a network convention, so overriding one here makes
+        # this adapter stop matching everybody else. Set both or neither.
+        #
+        # ONE STEP CAN SERVE SEVERAL PROVIDERS OF THE SAME CAPABILITY.
+        # bindingKeys is a comma-separated list and auth is a block per
+        # participant id, so two providers of one capability can authenticate
+        # differently:
+        #
+        #   - id: MandiPrice
+        #     config:
+        #       bindingKeys: "agmarknet|openagrinet:MandiPrice,othermandi|openagrinet:MandiPrice"
+        #       agmarknet:
+        #         authScheme: tokenQuery
+        #         tokenUrl: "https://..."
+        #         ...
+        #       othermandi:
+        #         authScheme: header
+        #         headerName: Authorization
+        #         headerValueEnv: OTHERMANDI_AUTH
+        #
+        # The payload's provider id picks which one answers. Everything else
+        # that differs -- base URL, paths, mappings -- comes from that
+        # provider's own registry row, so nothing more is needed here.
+        #
+        # A second entry with the same plugin id would NOT work: the ids collide
+        # in the handler's step map and one capability is lost with no error.
+        #
+        # Auth is per provider. A served provider with no block is refused at
+        # startup. Credentials are never values here -- the block names the
+        # environment variable.
         providerSteps:
           - id: WeatherObservation
             config:
               bindingKeys: "__MAUSAMGRAM_BINDING_KEY__"
-              # header, NOT basic, and the difference matters.
-              #
-              # IMD Mausamgram is called with one ready-made credential:
-              #
-              #   curl 'https://mausamgram.imd.gov.in/nwpapi/get-daily?lat=..&lon=..' \
-              #        --header 'Authorization: Basic <token>'
-              #
-              # authScheme basic would BUILD that header itself, as
-              # Basic base64(usernameEnv + ":" + passwordEnv) -- so it needs the
-              # credential split into two halves. IMD issues a single opaque
-              # token instead, and there is no username to put on the left of a
-              # colon. Splitting one on a guess would send a header the upstream
-              # rejects, which surfaces as 401 and looks like a wrong password.
-              #
-              # So the whole header VALUE lives in MAUSAMGRAM_AUTH, prefix
-              # included ("Basic eyJ..."), and is sent verbatim. That is exactly
-              # what the curl above sends, and it stays correct whether the
-              # token happens to be base64 of user:key or entirely opaque.
-              #
-              # Still only a NAME here, so the credential is in neither this
-              # file nor the registry, and the adapter redacts Authorization
-              # from anything it logs.
-              #
-              # NO MOCK SERVES ANY CAPABILITY NOW. mock-imd takes -user and
-              # -pass, so pointing back at it is the one case that DOES want
-              # authScheme basic with a username and password pair.
+              # header, not basic: IMD issues one opaque token, and basic would
+              # build the header itself from a username and password pair.
               __MAUSAMGRAM_PARTICIPANT_ID__:
                 authScheme: header
                 headerName: Authorization
                 headerValueEnv: MAUSAMGRAM_AUTH
 
-          # A second capability in the same pipeline, from a different domain
-          # package. Each step recognises its own binding key and passes
-          # through anything else, so adding one is an entry here rather than a
-          # change to a routing table.
-          #
-          # Agmarknet ISSUES ITS OWN short-lived tokens rather than accepting a
-          # static one, which is what tokenQuery is for: the credentials are
-          # POSTed as JSON to the endpoint below, and the token that comes back
-          # travels in the query string. The adapter redacts it from the URL it
-          # logs, escaped form included.
-          #
-          # The JSON keys are named here because access_name and password are
-          # this provider's spelling, not a standard. The VALUES are
-          # environment variables, as everywhere else.
-          #
-          # tokenTtl is required and it is an ESTIMATE: the token response
-          # carries no expiry at all, so there is nothing to read. Ten minutes
-          # is conservative. Too long is not an outage -- a 401 or 403 from the
-          # provider drops the held token and the next call exchanges a fresh
-          # one -- but it does cost one failed request when the guess is wrong.
-          #
-          # THE MOCK CANNOT SERVE THIS. mock-agmarknet has no token endpoint, so
-          # this scheme means the real API and the stack needs egress to it. To
-          # go back to the mock, set authScheme query with queryName token and
-          # queryValueEnv MOCKAGMARKNET_TOKEN, and point AGMARKNET_BASE_URL back -- but see
-          # the note in .env.example about the registry being append-only.
           - id: MandiPrice
             config:
               bindingKeys: "__AGMARKNET_BINDING_KEY__"
+              # Agmarknet issues short-lived tokens. The field names are this
+              # provider's spelling, not a standard. tokenTtl is an estimate --
+              # the response carries no expiry -- and a 401 drops the held token.
               __AGMARKNET_PARTICIPANT_ID__:
                 authScheme: tokenQuery
                 tokenUrl: "__AGMARKNET_TOKEN_URL__"
@@ -264,17 +193,6 @@ modules:
                 queryName: token
                 tokenTtl: 10m
 
-          # KnowledgeAdvisory. The first capability here that calls a REAL
-          # external provider rather than a mock in this network, so the stack
-          # needs egress to it and its base URL comes from .env rather than a
-          # compose service name. It is also the first that cannot use a static
-          # credential: the provider sits behind an OAuth2 token endpoint, so
-          # authScheme oauth2 exchanges the client credentials for a token and
-          # holds it until just before it expires.
-          #
-          # tokenUrl is rendered from .env because it is a deployment fact. The
-          # client id and secret are named as VARIABLES, so neither value is in
-          # this file or in the registry.
           - id: KnowledgeAdvisory
             config:
               bindingKeys: "__VISTAAR_BINDING_KEY__"
@@ -287,91 +205,43 @@ modules:
               # measured 15.7 KB against the live corpus.
               maxResponseBytes: 1048576
 
-          # AgricultureFacility, served by POCRA. Also a real external
-          # provider, and the only capability here that needs NO credential --
-          # authScheme none, which is what its registry row publishes.
-          #
-          # THE ONE CAPABILITY THAT FANS OUT. POCRA's search takes exactly ONE
-          # facility type per call: a comma-separated pair answers 200 with no
-          # providers, and an array is refused outright, both measured against
-          # the live API. So a payload asking for three types becomes three
-          # calls, and the step merges the answers.
-          #
-          # searchConcurrency IS PINNED TO 1 AND MUST STAY THERE. POCRA starts
-          # answering 200 WITH AN EMPTY CATALOGUE after roughly twenty calls in
-          # a few minutes, and recovers after a pause. A healthy "nothing
-          # nearby" and a rate-limited answer are structurally identical, so
-          # raising this buys nothing and risks telling a farmer there is no
-          # facility when there is.
           - id: AgricultureFacility
             config:
               bindingKeys: "__POCRA_BINDING_KEY__"
               __POCRA_PARTICIPANT_ID__:
                 authScheme: none
+              # Must stay 1. POCRA answers 200 with an empty catalogue after
+              # roughly twenty calls in a few minutes. That is indistinguishable
+              # from a genuine "nothing nearby", so raising this risks telling a
+              # farmer there is no facility when there is.
               searchConcurrency: 1
 
-      # Declaring a provider step above is not enough: this list is what runs.
-      # All four provider steps sit in the pipeline in order, and each
-      # recognises its own binding key and passes through anything else -- so
-      # which one answers is decided by the payload, not by this order.
-      # SIGNING AND SIGNATURE VALIDATION ARE OFF in this deployment.
+      # Signing and signature validation are OFF: validateSign and signAck are
+      # absent below, so this tier accepts unsigned traffic and answers
+      # unsigned. Turning it back on means adding the step names here AND on the
+      # other side of the hop at the same time.
       #
-      # validateSign and sign/signAck are absent from the list below. Nothing
-      # verifies who a caller is, and nothing this answers or forwards carries
-      # a signature -- so every tier accepts unsigned traffic and anything that
-      # can reach the port is served.
-      #
-      # validateSchema STAYS. Payload shape is still enforced; only identity is
-      # not.
-      #
-      # The signer, signValidator and keyManager plugins above are still
-      # declared. A plugin no steps: list names is loaded and never runs, so
-      # turning this back on is adding the step names back here -- and it has
-      # to be done on BOTH SIDES of a hop at once: a signed request into a tier
-      # that no longer validates is fine, but an unsigned one into a tier that
-      # does is rejected.
+      # A plugin declared above but missing from this list is loaded and never runs.
       steps:
-        - validateSchema # the pinned Beckn v2 spec
-        - WeatherObservation  # its binding key, or pass through
-        - MandiPrice          # its binding key, or pass through
-        - KnowledgeAdvisory   # its binding key, or pass through
-        - AgricultureFacility # its binding key, or pass through
+        - validateSchema
+        - WeatherObservation
+        - MandiPrice
+        - KnowledgeAdvisory
+        - AgricultureFacility
 
-  # The outbound leg: the provider's own catalogue system publishing to the
-  # network layer. POST /publish.
+  # The outbound leg: this provider's catalogue system publishing to the network.
   #
-  # Mounted on the EXACT path /publish while the module above takes the whole
-  # subtree at /. Go's mux prefers the exact pattern for /publish and falls
-  # back to / for everything else, so /select still reaches the module that
-  # answers it. The two can coexist only because the patterns differ -- give
-  # both the same path and registration panics at startup.
+  # A separate module, not another action above: the routing step fails any
+  # action missing from its config, and listing select there would proxy it to
+  # the network instead of answering it locally.
   #
-  # THIS IS WHY routing-provider.yaml LOOKS ODD. The adapter takes the action
-  # from the URL, not from the payload: it strips the module's mount path off
-  # the request path and matches whatever is left. Under / that leaves
-  # "select"; under the exact /publish it leaves the empty string. So the
-  # routing rule keys on "" and spells its target out in full with
-  # excludeAction, because there is no action left to append.
-  #
-  # It has to be a second module, not another action on the one above: the
-  # routing step fails any action missing from its config, so routing publish
-  # from the module that answers select would mean listing select too -- and
-  # listing select would proxy it to the network layer instead of answering
-  # it here, which is the one thing that module does.
-  #
-  # No validateSign: the caller is this provider's own catalogue system,
-  # inside its trust boundary, exactly as the consumer adapter takes
-  # unsigned calls from the app in front of it. This adapter then signs the
-  # forwarded request as itself, which is what the network layer verifies.
-  #
-  # No party is named in the body at all. Identity travels in the
-  # Authorization header's keyId, taken from keyManager below, and that is
-  # what the network layer verifies against the registry.
+  # Mounted on the exact path /publish while the module above takes /. Go's mux
+  # prefers the exact pattern, so /select still reaches the module that answers it.
   - name: oanProviderPublish
     path: /publish
     handler:
       type: std
-      # bap because this module SENDS.
+      # bap because this module SENDS. role sets direction, not participant type.
       role: bap
       subscriberId: __PROVIDER_SUBSCRIBER_ID__
 
@@ -382,6 +252,13 @@ modules:
             url: http://sunbird-registry-service:8081/api/v1
             entity: Participant
             providerEntity: ProviderSchema
+            # 0 because no cache plugin is configured; see the module above.
+            cacheTTL: 0
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            maxResponseBytes: 1048576
 
         keyManager:
           id: simplekeymanager
@@ -396,44 +273,22 @@ modules:
         signer:
           id: signer
 
-        # Base Beckn v2 schema validation, against the pinned LTS spec. The
-        # extended layer is off: it fetches a resource's own @context and
-        # validates against that, which is a network call per payload and a
-        # second failure mode, and nothing here needs it yet. The allowed
-        # domains and cache settings below only take effect if it is turned on.
+        # No subscriber_id here: a publish body names no party. Identity travels
+        # in the Authorization keyId.
+        middleware:
+          - id: reqpreprocessor
+            config:
+              contextKeys: transaction_id,message_id
+              role: bap
+
         schemaValidator:
           id: schemav2validator
           config:
             type: url
             location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
-            # ON. It could not be before: the validator stripped @context and
-            # @type as JSON-LD plumbing, while the packs list @type in
-            # allOf[].required -- so every resource was rejected for a missing
-            # @type the payload had sent. The validator now decides per key,
-            # keeping the ones a schema declares, which is what makes a
-            # catalogue's resource attributes checkable at all.
             extendedSchema_enabled: "true"
-            # THE HOSTS THE PACKS' @context AND ITS $refs RESOLVE TO, and the
-            # whole trust boundary: the entry @context and every $ref under it
-            # is checked, because the document a payload names comes from a URL
-            # the payload chose. Without the check its $refs could point this
-            # process at an internal service or a metadata endpoint.
-            #
-            # EVERY HOST HERE IS LOAD-BEARING. Loading one capability pack
-            # pulls 13-16 documents: the pack itself from the raw CDN, then
-            # Descriptor/GeoJSONGeometry/Location/Address, which in turn $ref a
-            # fourth host. Drop any one and no pack loads at all -- the failure
-            # is SCH_SCHEMA_ADAPTATION_FAILED on every payload, not a partial
-            # validation.
-            #
-            # openagrinet.github.io is where OAN's own packs are published.
-            #
-            # Keep it as tight as the packs allow. raw.githubusercontent.com is
-            # world-writable, so this trusts every GitHub account for schema
-            # content; narrowing it to a path prefix, or serving every pack
-            # from the host above, is the real fix and is not a one-line
-            # change.
+            # Same trust boundary as the module above; see the note there.
             extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
@@ -444,10 +299,8 @@ modules:
           config:
             routingConfig: /app/config/routing-provider.yaml
 
+      # No validateSign: the caller is this provider's own catalogue system,
+      # inside its trust boundary. The adapter signs the forwarded request itself.
       steps:
-        # Declaring the validator above is not enough: a plugin missing from this
-        # list never runs, which is why publish went unvalidated until now.
-        - validateSchema # the Beckn v2 spec, plus each resource's own @context
-        - addRoute       # publish -> the network layer
-
-
+        - validateSchema
+        - addRoute
