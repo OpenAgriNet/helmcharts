@@ -1,0 +1,36 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "discover",
+    "version": "2.0.0",
+    "transactionId": "d1b2c3d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+    "messageId": "d4e5f6a7-8b9c-4d0e-8f1a-3b4c5d6e7f8a",
+    "timestamp": "2026-09-10T09:30:00Z",
+    "schemaContext": [
+      "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld#openagrinet:MandiPrice"
+    ]
+  },
+  "message": {
+    "intent": {
+      "filters": {
+        "type": "jsonpath",
+        "expression": "$.catalogs[*].resources[*] ? (@.resourceAttributes.subjectCategories[*] == \"Market\" && @.resourceAttributes.informationMode == \"Direct\" && @.resourceAttributes.commodity.code == \"23\")"
+      },
+      "spatial": [
+        {
+          "op": "S_DWITHIN",
+          "targets": "$.catalogs[*].resources[*].resourceAttributes.market.location",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              73.7898,
+              19.9975
+            ]
+          },
+          "distanceMeters": 200000,
+          "quantifier": "ANY"
+        }
+      ]
+    }
+  }
+}

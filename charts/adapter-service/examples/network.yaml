@@ -1,0 +1,55 @@
+# ===========================================================================
+# network role -- the network layer of the Beckn network.
+#
+# Verifies that the caller's signature checks out against the key the registry
+# publishes for them, hands discover and publish to the discovery service, and
+# signs on the way out. It answers neither action itself.
+#
+#   helm install network-adapter . -f examples/network.yaml
+#
+# Keep the release name `network-adapter`: experience routes to this Service by name.
+# ===========================================================================
+role: network
+
+# The Service name, and therefore the in-cluster DNS name other adapters use.
+# Set explicitly because fullname is otherwise "<release>-<chart>" -- release
+# network-adapter plus chart adapter-service would render
+# network-adapter-adapter-service, which is not what anything routes to.
+fullnameOverride: network-adapter
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/network-adapter
+  tag: "latest"
+
+keys:
+  existingSecret:
+    name: network-adapter-keys
+
+registry:
+  url: http://registry:8081/api/v1
+
+service:
+  port: 9201
+  targetPort: 9201
+
+# Both actions share one rule because they share a target: publish arrives
+# from the provider adapter, discover from the experience adapter, and neither
+# is answered here.
+routing:
+  rules:
+    - version: "2.0.0"
+      targetType: url
+      target:
+        url: http://discovery:8080
+      endpoints:
+        - discover
+        - publish
+
+# The upstreams this adapter cannot serve a request without.
+waitFor:
+  enabled: false
+
+otel:
+  enabled: false
+  endpoint: ""

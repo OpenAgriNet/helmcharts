@@ -1,0 +1,51 @@
+{{- if .Values.autoscaling.enabled }}
+{{/*
+The registry is stateless - it holds no session state and writes everything to
+PostgreSQL - so it scales horizontally. Two things to keep in mind:
+
+  - Every replica opens its own connection pool, so scaling out multiplies
+    connections against the database. Check `max_connections` on the cluster
+    before raising maxReplicas much.
+  - Autoscaling takes over `replicas`, so replicaCount is ignored once this is
+    enabled. The Deployment deliberately omits `replicas` in that case, or the
+    two would fight on every reconcile.
+*/}}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "registry.fullname" . }}
+  labels:
+    {{- include "registry.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "registry.fullname" . }}
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  metrics:
+    {{- with .Values.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ . }}
+    {{- end }}
+    {{- with .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ . }}
+    {{- end }}
+  {{- with .Values.autoscaling.behavior }}
+  behavior:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

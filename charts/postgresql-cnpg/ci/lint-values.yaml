@@ -1,0 +1,10 @@
+# Exercises the backup and ESO paths in CI, which are off in the defaults.
+fullnameOverride: ci-db
+bootstrap:
+  database: ci
+  owner: ci
+backup:
+  enabled: true
+  objectStore:
+    bucket: ci-bucket
+    path: /ci

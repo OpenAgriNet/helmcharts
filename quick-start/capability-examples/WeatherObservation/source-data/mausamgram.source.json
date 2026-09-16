@@ -1,0 +1,131 @@
+{
+  "fcstday1": {
+    "date": "2026-09-10",
+    "rain": 0.0,
+    "cloud": 95.84,
+    "tmin": 23.6,
+    "tmax": 32.32,
+    "tmin_raw": 22.86,
+    "tmax_raw": 31.45,
+    "rhmin": 43.79,
+    "rhmax": 82.25,
+    "wdir": 297.46,
+    "wind": [
+      "WNW",
+      "West-North Westerly"
+    ],
+    "wspd": 4.68,
+    "rain_message": "No Rain",
+    "cloud_message": "Generally Cloudy Sky",
+    "rain_icon": "",
+    "cloud_icon": "NW7.png",
+    "weather_warning": "Overcast Sky"
+  },
+  "fcstday2": {
+    "date": "2026-09-11",
+    "rain": 0.37,
+    "cloud": 85.88,
+    "tmin": 23.1,
+    "tmax": 33.02,
+    "tmin_raw": 22.64,
+    "tmax_raw": 32.06,
+    "rhmin": 38.11,
+    "rhmax": 84.7,
+    "wdir": 301.32,
+    "wind": [
+      "WNW",
+      "West-North Westerly"
+    ],
+    "wspd": 4.4,
+    "rain_message": "Light Rain",
+    "cloud_message": "Generraly Cloudy Sky",
+    "rain_icon": "rain1.png",
+    "cloud_icon": "NW6.png",
+    "weather_warning": "Overcast Sky"
+  },
+  "fcstday3": {
+    "date": "2026-09-12",
+    "rain": 3.69,
+    "cloud": 96.62,
+    "tmin": 23.0,
+    "tmax": 30.6,
+    "tmin_raw": 23.07,
+    "tmax_raw": 30.57,
+    "rhmin": 48.74,
+    "rhmax": 81.02,
+    "wdir": 283.44,
+    "wind": [
+      "WNW",
+      "West-North Westerly"
+    ],
+    "wspd": 4.92,
+    "rain_message": "Light Rain",
+    "cloud_message": "Generally Cloudy Sky",
+    "rain_icon": "rain1.png",
+    "cloud_icon": "NW7.png",
+    "weather_warning": "Overcast Cloudy Sky with possibility of Light Rainfall or Thunderstorm"
+  },
+  "fcstday4": {
+    "date": "2026-09-13",
+    "rain": 3.09,
+    "cloud": 100.0,
+    "tmin": 22.2,
+    "tmax": 25.5,
+    "tmin_raw": 21.96,
+    "tmax_raw": 25.49,
+    "rhmin": 69.89,
+    "rhmax": 83.55,
+    "wdir": 279.82,
+    "wind": [
+      "W",
+      "Westerly"
+    ],
+    "wspd": 4.37,
+    "rain_message": "Light Rain",
+    "cloud_message": "Overcast Sky",
+    "rain_icon": "rain1.png",
+    "cloud_icon": "NW8.png",
+    "weather_warning": "Overcast Cloudy Sky with possibility of Light Rainfall or Thunderstorm"
+  },
+  "fcstday5": {
+    "date": "2026-09-14",
+    "rain": 1.55,
+    "cloud": 99.62,
+    "tmin": 22.1,
+    "tmax": 29.1,
+    "tmin_raw": 22.48,
+    "tmax_raw": 29.44,
+    "rhmin": 53.94,
+    "rhmax": 83.88,
+    "wdir": 255.84,
+    "wind": [
+      "WSW",
+      "West-South Westerly"
+    ],
+    "wspd": 4.15,
+    "rain_message": "Light Rain",
+    "cloud_message": "Overcast Sky",
+    "rain_icon": "rain1.png",
+    "cloud_icon": "NW8.png",
+    "weather_warning": "Overcast Cloudy Sky with possibility of Light Rainfall or Thunderstorm"
+  },
+  "abbreviation": {
+    "rain": "Rainfall (mm)",
+    "cloud": "Total Cloud Cover (%)",
+    "tmax": "Maximum Temperatue (Celsius) - Real Time Bias Corrected",
+    "tmin": "Minimum Temperatue (Celsius) - Real Time Bias Corrected",
+    "tmax_raw": "Maximum Temperatue (Celsius) - Actual MMEM, Non-Bias Corrected",
+    "tmin_raw": "Minimum Temperatue (Celsius) - Actual MMEM, Non-Bias Corrected",
+    "rhmin": "Minimum Relative Humidity (%)",
+    "rhmax": "Maximum Relative Humidity (%)",
+    "wind": "Wind Direction (compass readable)",
+    "wdir": "Wind Direction (degree)",
+    "wspd": "Wind Speed (m/s)"
+  },
+  "location": {
+    "lat": 18.4,
+    "lon": 74.4
+  },
+  "lat_r": 18.375,
+  "lon_r": 74.375
+}

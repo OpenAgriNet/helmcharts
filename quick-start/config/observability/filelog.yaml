@@ -1,0 +1,143 @@
+# Container stdout -> HyperDX, via the collector that is already inside the
+# hyperdx container.
+#
+# This file is a SECOND config file for that collector, not a replacement. The
+# image's supervisor takes CUSTOM_OTELCOL_CONFIG_FILE and appends it to
+# /etc/otelcol-contrib/config.yaml (see /etc/otel/supervisor.yaml.tmpl), and the
+# collector merges the two. So everything not named here keeps whatever the base
+# config and HyperDX's own OpAMP remote config gave it.
+#
+# WHY THIS EXISTS
+#
+# The services already send traces, metrics and -- since discovery-service #34
+# -- AUDIT records over OTLP to hyperdx:4317. None of that is the console log.
+# `docker compose logs discovery-service` was the only way to read a stack trace
+# or a startup failure, which means the one signal you want at 3am is the one
+# signal that is not in the console you are already looking at. Postgres,
+# Keycloak and NPM will never speak OTLP at all, so a per-service exporter could
+# not have covered them either.
+#
+# WHY A NEW PIPELINE AND NOT A RECEIVER ON THE EXISTING ONE
+#
+# HyperDX drives this collector over OpAMP and supplies `logs/in`'s receiver
+# list itself (fluentforward, otlp/hyperdx). Adding filelog to that list would
+# be a value the remote config also sets, and the merge would decide which of us
+# wins on a release we do not control. A pipeline under a key HyperDX does not
+# use collides with nothing; it references `clickhouse` and the three processors
+# by name, which the merged config supplies.
+#
+# WHAT THAT COSTS, STATED PLAINLY
+#
+# Those four names are the coupling. They are HyperDX's, not ours, and the image
+# is pinned to :latest -- so a release that renames one breaks this pipeline. The
+# failure is partial and worth recognising: the container stays up and the UI
+# keeps serving while the collector is down, which stops traces and metrics too,
+# not just these logs. The 13133 healthcheck in docker-compose.yml is what turns
+# that into an `unhealthy` container rather than a silent outage; it is the
+# reason that probe is worth keeping. Options for removing the drift are in
+# helmcharts#24.
+#
+# After any HyperDX bump, the one-line check is:
+#
+#     docker exec hyperdx grep -n 'logs/containers' \
+#         /etc/otel/supervisor-data/effective.yaml
+#
+# That is the supervisor's merged output -- NOT /etc/otelcol-contrib/, which holds
+# only the two inputs (config.yaml and this file). A hit means the merge kept the
+# pipeline; then confirm the four names it references are still defined:
+#
+#     docker exec hyperdx grep -nE '^ {4}(clickhouse|memory_limiter|transform|batch):' \
+#         /etc/otel/supervisor-data/effective.yaml
+#
+# WHAT WAS CONSIDERED INSTEAD
+#
+# The docker `fluentd` log driver, pointed at the fluentforward receiver this
+# image already runs on 24225. It works -- verified end to end -- and needs no
+# collector config at all. It was not chosen because it edits every service in
+# docker-compose.yml rather than one, and it makes each container's ability to
+# start depend on a logging option pointing somewhere sane. This is one file and
+# one service, and it picks up containers the compose file does not even define.
+receivers:
+  filelog/containers:
+    # Docker's own json-file driver output. IDs in the path, not names -- which
+    # is the whole reason docker-compose.yml sets the `labels` log-opt: the
+    # container name is nowhere in this file, and a log console keyed by
+    # 64 hex characters is not a log console.
+    include: [/var/lib/docker/containers/*/*-json.log]
+
+    # Rotated files. Without this the collector re-reads a whole rotation as if
+    # it were new output every time the driver rolls one over.
+    exclude: [/var/lib/docker/containers/*/*-json.log.*]
+
+    # END, not beginning. `up -d` on a stack that has been running for days
+    # would otherwise replay every line any container ever wrote, all stamped
+    # correctly, all arriving at once -- which reads as an incident.
+    #
+    # The cost is that lines written while the collector is down are lost.
+    # That is the right trade for a console: the recovery is `docker logs`,
+    # which still works, because this reads the same files it reads.
+    start_at: end
+
+    operators:
+      # Docker wraps each line: {"log":"...","stream":"stdout","time":"..."}.
+      - type: json_parser
+        timestamp:
+          parse_from: attributes.time
+          # Docker writes RFC3339 with nanoseconds. gotime rather than strptime
+          # because %f is microseconds and would truncate.
+          layout_type: gotime
+          layout: '2006-01-02T15:04:05.999999999Z07:00'
+
+      # The collector's own output, dropped BEFORE anything downstream sees it.
+      #
+      # Not tidiness: this collector logs a line per export, and exporting that
+      # line is another export. Left in, the loop is self-sustaining and the
+      # only symptom is that ClickHouse fills up.
+      - type: filter
+        # Bracket access throughout, and the nil guard spelled out. `?.` does
+        # not parse against a bracket index in this expression language -- the
+        # collector refuses to build the pipeline and the supervisor keeps the
+        # container alive without it, which is the failure the 13133 healthcheck
+        # below exists to catch.
+        expr: 'attributes["attrs"] != nil and attributes["attrs"]["com.docker.compose.service"] == "hyperdx"'
+
+      # The compose service name becomes service.name, which is what HyperDX's
+      # Service filter is bound to. Everything else is an attribute you have to
+      # know to search for.
+      - type: move
+        from: attributes.attrs["com.docker.compose.service"]
+        to: resource["service.name"]
+        if: 'attributes["attrs"] != nil and attributes["attrs"]["com.docker.compose.service"] != nil'
+
+      # stdout or stderr. Kept, and kept OUT of severity: a Go service writing
+      # its structured logs to stderr is not a service in trouble, and mapping
+      # the stream onto a level is how every line from such a service becomes an
+      # error. The base config's `transform` processor reads the real level out
+      # of the JSON body, which is where it actually is.
+      - type: move
+        from: attributes.stream
+        to: attributes["log.iostream"]
+
+      # The raw line becomes the body. LAST of the moves, because the base
+      # config's transform processor parses JSON out of the body -- so a Go
+      # service's zap output arrives with its own fields promoted to attributes,
+      # and a plain-text line from Postgres arrives as text.
+      - type: move
+        from: attributes.log
+        to: body
+
+      # Already on the record as its timestamp; a second copy is a column that
+      # disagrees with itself the moment either is rewritten.
+      - type: remove
+        field: attributes.time
+
+service:
+  pipelines:
+    # Same three processors as HyperDX's own logs/out-default, and that is
+    # deliberate rather than copied: `transform` is what parses a JSON body into
+    # attributes and lifts `level` into severity. Without it every line from
+    # every Go service in this stack arrives as unseverited text.
+    logs/containers:
+      receivers: [filelog/containers]
+      processors: [memory_limiter, transform, batch]
+      exporters: [clickhouse]

@@ -1,0 +1,27 @@
+{{- if include "keycloak.renderRealmConfigMap" . }}
+{{/*
+The realm the registry expects: realm `sunbird-rc`, the admin-api and
+registry-frontend clients, and the roles the registry checks. Mounted at
+realmImport.mountPath and imported on startup via KEYCLOAK_IMPORT.
+
+The exported admin-api client secret is masked ("**********"), not a working
+credential - it has to be regenerated in the Keycloak console after the first
+import. See this chart's README.
+
+Not rendered when realmImport.existingConfigMap points at a ConfigMap managed
+outside the chart.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "keycloak.realmConfigMapName" . }}
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  {{ .Values.realmImport.fileName }}: |-
+    {{- include "keycloak.realmJson" . | nindent 4 }}
+{{- end }}

@@ -1,0 +1,33 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+{{/*
+Caps how many pods can be voluntarily disrupted at once - node drains, cluster
+upgrades, autoscaler scale-down.
+
+With replicaCount: 1 a PDB of minAvailable: 1 blocks drains entirely, because
+evicting the only pod would breach it. That is why this is disabled by default
+and should be enabled together with replicaCount >= 2.
+*/}}
+{{- if and (eq (int .Values.replicaCount) 1) (not .Values.podDisruptionBudget.allowSingleReplica) }}
+{{- fail (printf "%s: podDisruptionBudget is enabled with replicaCount 1, which blocks node drains entirely. Raise replicaCount to 2+, or set podDisruptionBudget.allowSingleReplica=true if you accept that." .Chart.Name) }}
+{{- end }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "registry.fullname" . }}
+  labels:
+    {{- include "registry.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ . }}
+  {{- end }}
+  {{- with .Values.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ . }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "registry.selectorLabels" . | nindent 6 }}
+{{- end }}

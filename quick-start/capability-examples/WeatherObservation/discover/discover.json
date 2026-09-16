@@ -1,0 +1,35 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "discover",
+    "version": "2.0.0",
+    "transactionId": "a2000000-0000-4000-8000-000000000002",
+    "messageId": "b2000000-0000-4000-8000-000000000002",
+    "timestamp": "2026-09-10T09:30:00Z",
+    "schemaContext": [
+      "https://openagrinet.github.io/network-specs/schema/WeatherObservation/v0.1/context.jsonld#openagrinet:WeatherObservation"
+    ]
+  },
+  "message": {
+    "intent": {
+      "filters": {
+        "type": "jsonpath",
+        "expression": "$.catalogs[*].resources[*] ? (@.resourceAttributes.subjectCategories[*] == \"Weather\" && @.resourceAttributes.informationMode == \"OnDemand\")"
+      },
+      "spatial": [
+        {
+          "op": "S_INTERSECTS",
+          "targets": "$.catalogs[*].resources[*].resourceAttributes.coverageAreas[*]",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              74.4,
+              18.4
+            ]
+          },
+          "quantifier": "ANY"
+        }
+      ]
+    }
+  }
+}

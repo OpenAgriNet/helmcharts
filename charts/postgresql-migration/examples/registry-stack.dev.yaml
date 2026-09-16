@@ -1,0 +1,55 @@
+# Example: migrations for the registry stack, dev environment.
+#
+#   helm install migrate charts/postgresql-migration \
+#     -n oan-registry -f charts/postgresql-migration/examples/registry-stack.dev.yaml
+#
+# NOTE: with both databases now created by the postgresql-cnpg chart, and with
+# Sunbird RC and Keycloak both managing their own schemas, this chart currently
+# has nothing to do for the registry stack - every target below is empty and gets
+# skipped. It is here for when OAN adds schemas of its own (catalog publish and
+# discovery, per engineering-tracker #30), so the targets and their history exist
+# from the start rather than being retrofitted.
+#
+# Run it after the database cluster.
+
+postgresql:
+  # The CNPG primary. Migrations write, so this must not be a replica.
+  host: registry-db-rw
+  port: 5432
+  # Needs rights on each database it migrates. The CNPG superuser has them
+  # everywhere; a per-database owner would need one release per database.
+  #
+  # NOTE: the dev database example leaves enableSuperuserAccess false, since no
+  # application needs it. Turn it on there before enabling any target that
+  # actually has SQL, or point this at a per-database owner instead.
+  user: postgres
+  passwordSecret:
+    name: registry-db-superuser
+    key: password
+
+targets:
+  # No .sql files yet: Sunbird RC creates its own tables. The target is kept so
+  # anything OAN adds alongside the registry has a versioned home.
+  - name: 01-registry
+    database: registry
+
+  # No .sql files, and there should not be: Keycloak manages its own schema with
+  # Liquibase. Listed so the database appears in this chart's inventory.
+  - name: 02-keycloak
+    database: keycloak
+
+# Dev convenience. Consider turning this off in production, so a failed
+# migration stays failed until someone reads the log rather than being repaired
+# automatically.
+repairOnFailure: true
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+commonLabels:
+  oan.in/environment: dev

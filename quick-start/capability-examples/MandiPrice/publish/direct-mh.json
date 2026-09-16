@@ -1,0 +1,262 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "catalog/publish",
+    "version": "2.0.0",
+    "senderId": "provider.oan.dev",
+    "receiverId": "discovery.oan.dev",
+    "transactionId": "a1000000-0000-4000-8000-000000000002",
+    "messageId": "b1000000-0000-4000-8000-000000000002",
+    "timestamp": "2026-09-10T09:15:00Z",
+    "schemaContext": [
+      "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld#openagrinet:MandiPrice"
+    ]
+  },
+  "message": {
+    "catalogs": [
+      {
+        "id": "catalog:mandi-price:MH:current",
+        "descriptor": {
+          "code": "MANDI_PRICE_CURRENT_MH",
+          "name": "Maharashtra current mandi prices",
+          "shortDesc": "4 Direct price Resources for Maharashtra, one per market and commodity, each carrying its latest price.",
+          "longDesc": "Each Resource carries the most recent minimum, maximum, and modal prices reported by AGMARKNET for one commodity at one market. Republishing overwrites it in place: arrivalDate and prices are fields, not identity. Published so Direct results can be discovered and filtered without a select round trip; the primary flow remains OnDemand discovery followed by a live provider invocation."
+        },
+        "isActive": true,
+        "provider": {
+          "id": "agmarknet",
+          "descriptor": {
+            "code": "AGMARKNET",
+            "name": "Agmarknet Vistaar",
+            "shortDesc": "Provider of live agricultural market price information."
+          }
+        },
+        "resources": [
+          {
+            "id": "resource:mandi-price:price:1284:23",
+            "descriptor": {
+              "code": "MANDI_PRICE_OBSERVATION",
+              "name": "Onion prices at Pathardi APMC on 2026-09-06",
+              "shortDesc": "Minimum, maximum, and modal onion prices reported by Pathardi APMC for 2026-09-06."
+            },
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "informationMode": "Direct",
+              "subjectCategories": [
+                "Market"
+              ],
+              "source": {
+                "sourceId": "agmarknet",
+                "sourceName": "Agmarknet Vistaar",
+                "sourceUri": "https://agmarknet.gov.in/"
+              },
+              "commodity": {
+                "code": "23",
+                "name": "Onion"
+              },
+              "commodityGroup": "Vegetables",
+              "grade": "Local",
+              "variety": "Red",
+              "market": {
+                "marketName": "Pathardi APMC",
+                "district": "Ahmednagar",
+                "state": "Maharashtra",
+                "marketCode": "1432",
+                "location": {
+                  "type": "Point",
+                  "coordinates": [
+                    75.17606191,
+                    19.17442009
+                  ]
+                }
+              },
+              "arrivalDate": "2026-09-06",
+              "prices": {
+                "minimum": 1000,
+                "maximum": 5200,
+                "modal": 3100,
+                "currency": "INR",
+                "unit": "quintal"
+              },
+              "generatedAt": "2026-09-10T09:15:00Z",
+              "validity": {
+                "startsAt": "2026-09-10T09:15:00Z",
+                "endsAt": "2026-09-11T09:15:00Z"
+              }
+            }
+          },
+          {
+            "id": "resource:mandi-price:price:1634:23",
+            "descriptor": {
+              "code": "MANDI_PRICE_OBSERVATION",
+              "name": "Onion prices at Rahuri APMC on 2026-09-06",
+              "shortDesc": "Minimum, maximum, and modal onion prices reported by Rahuri APMC for 2026-09-06."
+            },
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "informationMode": "Direct",
+              "subjectCategories": [
+                "Market"
+              ],
+              "source": {
+                "sourceId": "agmarknet",
+                "sourceName": "Agmarknet Vistaar",
+                "sourceUri": "https://agmarknet.gov.in/"
+              },
+              "commodity": {
+                "code": "23",
+                "name": "Onion"
+              },
+              "commodityGroup": "Vegetables",
+              "grade": "Local",
+              "variety": "Other",
+              "market": {
+                "marketName": "Rahuri APMC",
+                "district": "Ahmednagar",
+                "state": "Maharashtra",
+                "marketCode": "1803",
+                "location": {
+                  "type": "Point",
+                  "coordinates": [
+                    74.66192086448265,
+                    19.644527591487904
+                  ]
+                }
+              },
+              "arrivalDate": "2026-09-06",
+              "prices": {
+                "minimum": 1000,
+                "maximum": 6100,
+                "modal": 3100,
+                "currency": "INR",
+                "unit": "quintal"
+              },
+              "generatedAt": "2026-09-10T09:15:00Z",
+              "validity": {
+                "startsAt": "2026-09-10T09:15:00Z",
+                "endsAt": "2026-09-11T09:15:00Z"
+              }
+            }
+          },
+          {
+            "id": "resource:mandi-price:price:1649:23",
+            "descriptor": {
+              "code": "MANDI_PRICE_OBSERVATION",
+              "name": "Onion prices at Newasa APMC on 2026-09-06",
+              "shortDesc": "Minimum, maximum, and modal onion prices reported by Newasa APMC for 2026-09-06."
+            },
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "informationMode": "Direct",
+              "subjectCategories": [
+                "Market"
+              ],
+              "source": {
+                "sourceId": "agmarknet",
+                "sourceName": "Agmarknet Vistaar",
+                "sourceUri": "https://agmarknet.gov.in/"
+              },
+              "commodity": {
+                "code": "23",
+                "name": "Onion"
+              },
+              "commodityGroup": "Vegetables",
+              "grade": "Local",
+              "variety": "Unhali",
+              "market": {
+                "marketName": "Newasa APMC",
+                "district": "Ahmednagar",
+                "state": "Maharashtra",
+                "marketCode": "1821",
+                "location": {
+                  "type": "Point",
+                  "coordinates": [
+                    74.93534498,
+                    19.54478514
+                  ]
+                }
+              },
+              "arrivalDate": "2026-09-06",
+              "prices": {
+                "minimum": 1500,
+                "maximum": 5100,
+                "modal": 4200,
+                "currency": "INR",
+                "unit": "quintal"
+              },
+              "generatedAt": "2026-09-10T09:15:00Z",
+              "validity": {
+                "startsAt": "2026-09-10T09:15:00Z",
+                "endsAt": "2026-09-11T09:15:00Z"
+              }
+            }
+          },
+          {
+            "id": "resource:mandi-price:price:1894:23",
+            "descriptor": {
+              "code": "MANDI_PRICE_OBSERVATION",
+              "name": "Onion prices at Parner APMC on 2026-09-06",
+              "shortDesc": "Minimum, maximum, and modal onion prices reported by Parner APMC for 2026-09-06."
+            },
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "informationMode": "Direct",
+              "subjectCategories": [
+                "Market"
+              ],
+              "source": {
+                "sourceId": "agmarknet",
+                "sourceName": "Agmarknet Vistaar",
+                "sourceUri": "https://agmarknet.gov.in/"
+              },
+              "commodity": {
+                "code": "23",
+                "name": "Onion"
+              },
+              "commodityGroup": "Vegetables",
+              "grade": "Local",
+              "variety": "Unhali",
+              "market": {
+                "marketName": "Parner APMC",
+                "district": "Ahmednagar",
+                "state": "Maharashtra",
+                "marketCode": "2072",
+                "location": {
+                  "type": "Point",
+                  "coordinates": [
+                    74.44058799,
+                    18.99974287
+                  ]
+                }
+              },
+              "arrivalDate": "2026-09-06",
+              "prices": {
+                "minimum": 1000,
+                "maximum": 5600,
+                "modal": 4000,
+                "currency": "INR",
+                "unit": "quintal"
+              },
+              "generatedAt": "2026-09-10T09:15:00Z",
+              "validity": {
+                "startsAt": "2026-09-10T09:15:00Z",
+                "endsAt": "2026-09-11T09:15:00Z"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:mandi-price:MH:current",
+        "catalogType": "REGULAR",
+        "updateMode": "MERGE"
+      }
+    ]
+  }
+}

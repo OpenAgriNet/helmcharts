@@ -1,0 +1,341 @@
+# ===========================================================================
+# adapter-service
+#
+# One chart for all three Beckn adapters. provider, network and experience are the
+# same image and the same config format; `role` below decides the handler
+# role, the step list and where requests are routed.
+#
+# INSTALL ONCE PER ROLE, and keep the RELEASE name per-role:
+#
+#   helm install provider-adapter . -f examples/provider.yaml
+#   helm install network-adapter  . -f examples/network.yaml
+#   helm install experience-adapter      . -f examples/experience.yaml
+#
+# The release name is what the Service is called, which is the DNS name the
+# other adapters address. Rename a release and you must update whatever routes
+# to it -- experience routes to the network adapter, provider is routed to by network.
+#
+# Two things every role needs that this chart cannot give it:
+#
+#   1. an identity -- a keypair, and the osid the registry indexes it by. That
+#      is `keys.existingSecret` below, and this chart renders no Secrets.
+#   2. a Participant row in the registry carrying the public half. Without it
+#      every peer that verifies this adapter's signature fails, and the
+#      symptom is a signature error at the far end rather than anything here.
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Role: provider | network | experience
+#
+# Required, with no default. A default would hand one role's handler role and
+# step list to a different adapter, which renders, starts, reports Ready and
+# then mis-handles every request. See examples/ for a values file per role.
+# ---------------------------------------------------------------------------
+role: ""
+
+# Overrides for what the role implies. Leave empty to take the role's default.
+appName: ""
+
+replicaCount: 1
+
+# ---------------------------------------------------------------------------
+# Image
+#
+# One image serves all three adapters -- provider, network and experience --
+# and the config decides which one a pod is. So the repository here is the
+# adapter image, not a network-adapter-specific build.
+#
+# repository is EMPTY on purpose: the render fails while it is, rather than
+# producing "ghcr.io/:v1.9.0", which Helm and the API server both accept and
+# which only surfaces later as an ImagePullBackOff. Set it per environment.
+#
+# The runtime is cgr.dev/chainguard/wolfi-base. It has a shell -- the image's
+# own CMD is `sh -c` -- so unlike the discovery service this one is not
+# distroless, and the security context below is doing real work rather than
+# restating what the image already guarantees.
+# ---------------------------------------------------------------------------
+image:
+  registry: ghcr.io
+  repository: openagrinet/network-adapter  # one image for all three roles
+  tag: "latest"
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+# ---------------------------------------------------------------------------
+# Identity
+#
+# The private half of this adapter's keypair. It is a Secret, it is provided
+# rather than generated, and the chart never renders one -- the same rule the
+# rest of these charts follow.
+#
+# Create it with ExternalSecrets, or by hand from what bin/setup.py wrote into
+# keys/keys.json in the compose stack:
+#
+#   kubectl create secret generic <role>-adapter-keys \
+#     --from-literal=subscriberId=... \
+#     --from-literal=keyId=... \
+#     --from-literal=signingPrivateKey=... \
+#     --from-literal=signingPublicKey=... \
+#     --from-literal=encrPrivateKey=... \
+#     --from-literal=encrPublicKey=...
+#
+# keyId is the KEY's osid as the registry assigned it, not a name you choose:
+# that is what a verifier looks the key up by. Getting it wrong fails at the
+# far end, when a peer cannot find the key that signed.
+#
+# HOW IT REACHES THE PROCESS. The adapter reads one config file and wants the
+# keys inline in it, so a plain ConfigMap would put private keys in an object
+# that is not a Secret. Instead the ConfigMap holds the config with
+# placeholders -- the same shape as the .tmpl in the compose stack -- and an
+# init container substitutes the Secret into an emptyDir that only this pod
+# can see. The Secret is mounted as files rather than env vars so the values
+# are not readable from /proc/<pid>/environ of any process in the pod.
+# ---------------------------------------------------------------------------
+keys:
+  existingSecret:
+    name: ""
+    # Key names inside that Secret. Override only if yours are named
+    # differently -- there is no reason to rename them otherwise.
+    subscriberIdKey: subscriberId
+    keyIdKey: keyId
+    signingPrivateKey: signingPrivateKey
+    signingPublicKey: signingPublicKey
+    encrPrivateKey: encrPrivateKey
+    encrPublicKey: encrPublicKey
+
+# The image that renders the config. busybox, matching what waitFor already
+# uses, so a cluster that can run one can run the other.
+configRenderer:
+  image:
+    registry: docker.io
+    repository: busybox
+    tag: "1.37"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+# ---------------------------------------------------------------------------
+# Upstreams
+#
+# In-cluster address, read at request time rather than at
+# start-up -- so a registry that is briefly unreachable produces failed
+# requests, not a crash loop.
+# ---------------------------------------------------------------------------
+registry:
+  # The SunbirdRC registry API base. /api/v1 included: the plugin appends the
+  # entity name to it.
+  url: ""
+  entity: Participant
+  providerEntity: ProviderSchema
+
+# ---------------------------------------------------------------------------
+# Handler
+#
+# role: bap originates a call, bpp receives one. Left empty, experience gets bap and
+#   the other two get bpp.
+# steps: left empty, experience gets [addRoute, sign] and the other two get
+#   [validateSign, addRoute, sign]. experience sits inside the trust boundary and
+#   accepts unsigned requests, so it has no signature to validate -- that
+#   difference is the reason this is a value and not a constant.
+# ---------------------------------------------------------------------------
+handler:
+  path: /
+  role: ""
+  steps: []
+
+# ---------------------------------------------------------------------------
+# Routing
+#
+# A list, because provider fans out to several upstreams while network and experience
+# each have one target. Required: an adapter with no route accepts requests and
+# has nowhere to send them.
+#
+# target.url is a bare host and port with NO path -- targetType "url" appends
+# the action, so a trailing slash produces //discover. In-cluster the host is
+# the RELEASE name of the target, which is what its Service is called.
+# ---------------------------------------------------------------------------
+routing:
+  rules: []
+
+# ---------------------------------------------------------------------------
+# Beckn schema validation
+#
+# The base v2 schema, pinned to the LTS tag. Fetched once and cached for
+# cacheTTL seconds.
+#
+# extendedSchema is off, and turning it on is a real decision rather than a
+# stricter setting: it fetches each resource's own @context and validates
+# against that, which is a network call per payload and a second thing that
+# can fail on the request path.
+# ---------------------------------------------------------------------------
+becknSpec:
+  url: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+  cacheTTL: "3600"
+  extendedSchema:
+    enabled: false
+    cacheTTL: "86400"
+    maxCacheSize: "100"
+    downloadTimeout: "30"
+    allowedDomains: "beckn.org,example.com,raw.githubusercontent.com"
+
+# ---------------------------------------------------------------------------
+# Telemetry
+#
+# All three flags move together on purpose. With every one false the plugin
+# builds no exporter and returns a no-op provider -- it does not dial, so it
+# cannot log a connection failure every few seconds. Pointing a cluster with
+# no collector at one is exactly how you get that, so `enabled: false` is the
+# right setting until a collector exists.
+#
+# serviceVersion is deliberately not settable: left empty the plugin fills in
+# the adapter's own build version, which is truer than anything written here
+# and does not go stale.
+# ---------------------------------------------------------------------------
+otel:
+  enabled: false
+  # OTLP/gRPC, e.g. "otel-collector.observability.svc.cluster.local:4317"
+  endpoint: ""
+  environment: dev
+  # Left empty, defaults to oan-<role>-adapter, matching OTEL_SERVICE_NAME in
+  # the compose stack so traces from either deployment line up.
+  serviceName: ""
+
+logLevel: info
+
+http:
+  timeout:
+    read: 30
+    write: 30
+    idle: 30
+
+# The compose stack uses 9200 for provider, 9201 for network and 9202 for experience.
+# Nothing in-cluster requires that -- each adapter has its own Service -- but
+# keeping them distinct means a rendered config reads the same in both places.
+service:
+  type: ClusterIP
+  port: 9201
+  # The adapter's http.port. Changing this changes what the config tells the
+  # binary to listen on, not just what the Service points at.
+  targetPort: 9201
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  tls: []
+
+# ---------------------------------------------------------------------------
+# Wait for the upstreams before starting.
+#
+# Off by default. The adapter reads the registry per request rather than at
+# boot, so it starts happily without one and answers 5xx until it is there --
+# which is usually what you want from a rolling update. Turn it on where a
+# pod that is Ready but cannot serve is worse than a pod that is slow to
+# arrive.
+# ---------------------------------------------------------------------------
+waitFor:
+  enabled: false
+  timeoutSeconds: 300
+  intervalSeconds: 3
+  image:
+    registry: docker.io
+    repository: busybox
+    tag: "1.37"
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Both hit /health, which the adapter serves from its own mux and which does
+# not touch the registry or discovery -- so a readiness failure here means
+# this process is unwell, not that something downstream is.
+probes:
+  liveness:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 20
+    timeoutSeconds: 3
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: ""
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  maxUnavailable: ""
+
+# The image declares no USER, so it would run as root without this. 65532 is
+# nobody in the distroless convention and the image has no files owned by it,
+# which is fine: everything written at runtime goes to the emptyDir below.
+podSecurityContext:
+  enabled: true
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  enabled: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+commonLabels: {}
+commonAnnotations: {}
+
+extraInitContainers: []
+extraVolumes: []
+extraVolumeMounts: []
+extraEnv: []
+envFromSecrets: []

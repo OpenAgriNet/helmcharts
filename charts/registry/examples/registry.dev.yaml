@@ -1,0 +1,84 @@
+# Example: the OAN participant registry, dev environment.
+#
+#   helm install registry charts/registry \
+#     -n oan-registry -f charts/registry/examples/registry.dev.yaml
+#
+# Install this LAST - it needs the database, and it needs the regenerated
+# admin-api client secret from Keycloak. See README.md for the full order.
+
+# No fullnameOverride needed: the chart is named "registry", so a release named
+# "registry" already produces Service/registry.
+
+# The image the compose stack runs, so dev deploys what was verified locally.
+# The chart default is empty on purpose - see values.yaml.
+image:
+  registry: ghcr.io
+  repository: sunbird-rc/sunbird-rc-core
+  tag: "v2.0.0"
+
+# Connects as the OWNER of its own database, not as the superuser. Compose uses
+# `postgres` because everything shares one database there; in the cluster the
+# registry owns `registry` and Keycloak owns `keycloak`, so neither needs
+# superuser rights.
+database:
+  host: registry-db-rw
+  port: 5432
+  name: registry
+  user: registry
+  # The Secret the cluster's bootstrap owner was created from.
+  passwordSecret:
+    name: registry-db-app
+    key: password
+
+keycloak:
+  # Must match the keycloak release's in-cluster DNS, including /auth, and must
+  # equal the issuer Keycloak puts in its tokens.
+  url: http://keycloak.oan-registry.svc.cluster.local:8080/auth
+  realm: sunbird-rc
+  adminClientId: admin-api
+  clientId: registry-frontend
+  # The REGENERATED admin-api secret. Until ESO is available:
+  #   kubectl -n oan-registry create secret generic registry-keycloak \
+  #     --from-literal=keycloakAdminClientSecret='<regenerated secret>' \
+  #     --from-literal=registryDefaultUserPassword='<password>'
+  adminClientSecret:
+    name: registry-keycloak
+    key: keycloakAdminClientSecret
+
+authenticationEnabled: true
+
+keycloakUserSetPassword: true
+defaultUserPasswordSecret:
+  name: registry-keycloak
+  key: registryDefaultUserPassword
+
+# Ships files/schemas/*.json (currently just Participant.json)
+schemas:
+  existingConfigMap: ""
+
+ingress:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 1Gi
+  limits:
+    cpu: "1"
+    memory: 2Gi
+
+commonLabels:
+  oan.in/environment: dev
+
+# Blocks startup until the database is reachable AND Keycloak's realm endpoint
+# answers. The Keycloak check is HTTP against the realm, not TCP against the
+# port: the realm is imported during Keycloak's first start, so the port opens
+# well before the realm the registry needs exists.
+waitFor:
+  enabled: true
+  database: true
+  keycloak: true
+
+# `helm test registry -n oan-registry` checks /health.
+tests:
+  enabled: true

@@ -1,0 +1,40 @@
+{{- if .Values.tests.enabled }}
+{{/*
+`helm test` check: the service answers on /readyz.
+
+/readyz rather than /healthz on purpose. /healthz depends on nothing and stays
+200 with the database down, so a test against it would pass on a deployment
+that cannot serve a single discover. /readyz pings the datastore, which is the
+question worth asking after an install.
+
+Deliberately does not POST a discover: that needs a published catalog to find,
+and a failure would be ambiguous between "the service is broken" and "nothing
+has been published yet".
+*/}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "discovery.fullname" . }}-test-connection
+  labels:
+    {{- include "discovery.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: test
+      image: {{ printf "%s/%s:%s" .Values.tests.image.registry .Values.tests.image.repository .Values.tests.image.tag | quote }}
+      command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          url="http://{{ include "discovery.fullname" . }}:{{ .Values.service.port }}/readyz"
+          echo "GET $url"
+          wget -q -O- --timeout=10 "$url"
+          echo ""
+          echo "OK: discovery is ready - it is serving and it can reach PostgreSQL"
+      resources:
+        {{- toYaml .Values.tests.resources | nindent 8 }}
+{{- end }}

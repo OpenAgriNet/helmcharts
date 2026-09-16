@@ -1,0 +1,7 @@
+# Minimum values that let `helm template` run in CI. This chart deliberately
+# fails the render when the host and password Secret are unset, so bare defaults
+# cannot be templated. Dummy references only - see examples/ for real config.
+postgresql:
+  host: registry-db-rw
+  passwordSecret:
+    name: registry-db-superuser

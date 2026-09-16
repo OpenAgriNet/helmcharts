@@ -1,0 +1,113 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "catalog/publish",
+    "version": "2.0.0",
+    "senderId": "provider.oan.dev",
+    "receiverId": "discovery.oan.dev",
+    "transactionId": "a4000000-0000-4000-8000-000000000001",
+    "messageId": "b4000000-0000-4000-8000-000000000001",
+    "timestamp": "2026-09-10T09:15:00Z",
+    "schemaContext": [
+      "https://openagrinet.github.io/network-specs/schema/KnowledgeAdvisory/v0.1/context.jsonld#openagrinet:KnowledgeAdvisory"
+    ]
+  },
+  "message": {
+    "catalogs": [
+      {
+        "id": "catalog:knowledge-advisory:knowledge",
+        "descriptor": {
+          "code": "KNOWLEDGE_ADVISORY",
+          "name": "OpenAgriNet knowledge advisory retrieval",
+          "shortDesc": "On-demand retrieval of agricultural advisory passages from a curated document corpus.",
+          "longDesc": "One Resource, not one per document. The Provider runs a retrieval query over an ingested corpus of extension literature, scheme documents and package-of-practice material, so there is no enumerable list of advisories to publish. Consumers discover this Resource and then invoke the Provider with the topics they are asking about, receiving one Direct KnowledgeAdvisory Resource per retrieved passage, each carrying the passage text as its recommendation and naming the document it came from as its source."
+        },
+        "isActive": true,
+        "provider": {
+          "id": "bharat-vistaar",
+          "descriptor": {
+            "code": "KNOWLEDGE_PROVIDER",
+            "name": "Knowledge retrieval provider",
+            "shortDesc": "Provider of retrieval over curated agricultural knowledge documents."
+          }
+        },
+        "resources": [
+          {
+            "id": "resource:knowledge-advisory:knowledge:retrieval",
+            "descriptor": {
+              "code": "KNOWLEDGE_ADVISORY_RETRIEVAL",
+              "name": "Agricultural advisory retrieval",
+              "shortDesc": "Ask a question about crops, practices, schemes, weather or markets and receive the relevant advisory passages.",
+              "longDesc": "Invoke this Resource with the topics being asked about to obtain one Direct KnowledgeAdvisory Resource per retrieved passage. A request whose subjectCategories name Scheme and nothing else is answered from the narrower schemes corpus; any other combination is answered from the Provider's default corpus, because the request no longer states a question only the schemes corpus can answer."
+            },
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/KnowledgeAdvisory/v0.1/context.jsonld",
+              "@type": "openagrinet:KnowledgeAdvisory",
+              "informationMode": "OnDemand",
+              "subjectCategories": [
+                "Crop",
+                "Livestock",
+                "Scheme",
+                "Practice",
+                "Weather",
+                "Market"
+              ],
+              "languages": [
+                "en",
+                "hi",
+                "gu"
+              ],
+              "topics": [
+                "Crop establishment",
+                "Nutrient management",
+                "Pest management",
+                "Government schemes",
+                "Package of practices"
+              ],
+              "source": {
+                "sourceId": "knowledge-corpus",
+                "sourceName": "OpenAgriNet curated knowledge corpus",
+                "sourceUri": "https://openagrinet.github.io/network-specs/"
+              },
+              "coverageAreas": [
+                {
+                  "codeScheme": "ISO-3166-1",
+                  "areaCode": "IN",
+                  "areaLevel": "Country",
+                  "areaName": "India"
+                },
+                {
+                  "type": "Polygon",
+                  "coordinates": [
+                    [
+                      [
+                        68.0,
+                        6.5
+                      ],
+                      [
+                        97.5,
+                        6.5
+                      ],
+                      [
+                        97.5,
+                        37.5
+                      ],
+                      [
+                        68.0,
+                        37.5
+                      ],
+                      [
+                        68.0,
+                        6.5
+                      ]
+                    ]
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

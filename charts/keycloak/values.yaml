@@ -1,0 +1,313 @@
+# ============================================================================
+# keycloak - default values
+#
+# Keycloak for the OAN registry, on the Sunbird RC Keycloak image. This is the
+# legacy (WildFly/JBoss) Keycloak distribution: it serves under /auth and takes
+# DB_VENDOR-style environment variables, not the modern KC_* ones.
+#
+# Defaults mirror the verified compose stack (registry/docker-compose.yml) so a
+# cluster deploy reproduces what was tested locally. Where this chart deviates,
+# it says so and why.
+#
+# Minimum you must set:
+#   - database.host                    (e.g. the CNPG primary, registry-db-rw)
+#   - database.passwordSecret.name
+#   - admin.passwordSecret.name
+# ============================================================================
+
+replicaCount: 1
+
+image:
+  registry: ghcr.io
+  repository: sunbird-rc/sunbird-rc-keycloak
+  # Compose uses `latest`. A chart must not deploy a moving tag, so this pins
+  # the version Sunbird's own v2 deployment pairs with sunbird-rc-core v2.0.0.
+  tag: "v1.0.0"
+  # Digest pin; wins over tag. Preferred for anything past dev.
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+# Only needed when the release name differs from "keycloak". The resulting name
+# is the in-cluster DNS the registry connects to, and the registry validates the
+# token issuer against exactly this host - so keep it stable once anything
+# depends on it.
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: true
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  annotations: {}
+# Compose also publishes 9990, the WildFly management port. That exists only for
+# the compose healthcheck; nothing in-cluster needs it, and the Keycloak admin
+# console is on 8080 under /auth/admin. Not exposed here.
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: keycloak.local
+      paths:
+        # Legacy Keycloak serves everything under /auth
+        - path: /auth
+          pathType: Prefix
+  tls: []
+
+# ---------------------------------------------------------------------------
+# Database
+#
+# Defaults match compose: Keycloak shares the registry's database and connects
+# as the same user. Sunbird's own Helm charts instead give Keycloak its own
+# database ("keycloak") on the same host, which is the better arrangement -
+# Keycloak's realm tables have no reason to sit beside registry records, and it
+# frees the registry to connect as a non-superuser owner. To separate them:
+#
+#   database:
+#     name: keycloak
+#     user: keycloak
+#
+# and provision that database and role in the cluster.
+# ---------------------------------------------------------------------------
+database:
+  vendor: postgres
+  # PostgreSQL primary service, e.g. "registry-db-rw"
+  host: ""
+  port: 5432
+  name: registry
+  user: postgres
+  schema: ""
+  # Secret holding the database password. Required.
+  passwordSecret:
+    name: ""
+    key: password
+
+# ---------------------------------------------------------------------------
+# Keycloak admin user (the console login)
+# ---------------------------------------------------------------------------
+admin:
+  username: admin
+  passwordSecret:
+    name: ""
+    key: keycloakAdminPassword
+
+# ---------------------------------------------------------------------------
+# Realm import
+#
+# The chart ships the realm the registry expects: realm `sunbird-rc`, the
+# admin-api and registry-frontend clients, and the roles the registry checks.
+# The legacy image imports it on startup when the realm is not already present.
+#
+# IMPORTANT: the exported admin-api client secret is masked ("**********"), not
+# a working credential. After the first import, regenerate it in the console
+# (realm -> Clients -> admin-api -> Credentials -> Regenerate Secret) and hand
+# that value to the registry chart. First install is therefore two-phase.
+# ---------------------------------------------------------------------------
+realmImport:
+  enabled: true
+
+  # The realm shipped with this chart, rendered into a ConfigMap and mounted for
+  # KEYCLOAK_IMPORT. Copied verbatim from the compose stack's
+  # registry/imports/realm-export.json, so the cluster imports the same realm
+  # that was verified locally.
+  #
+  # Keeping it in the chart means `helm install` needs nothing prepared
+  # beforehand, and a realm change rolls the pod via the checksum annotation.
+  # The trade-off is that this is a second copy of that file: if the compose one
+  # changes, update this one too.
+  file: files/realm-export.json
+
+  # Key in the ConfigMap, which becomes the filename on disk and the value of
+  # KEYCLOAK_IMPORT.
+  fileName: realm-export.json
+
+  # Where the legacy image looks for imports.
+  mountPath: /opt/jboss/keycloak/imports
+
+  # Use a ConfigMap managed outside this chart instead. When set, the chart
+  # renders no realm ConfigMap and mounts this name - so it must already exist.
+  existingConfigMap: ""
+
+  # Inline realm JSON, overriding the shipped file. Useful for a test with a
+  # deliberately minimal realm.
+  realmJson: ""
+
+# Lets a caller behind an ingress obtain a token whose `iss` matches what the
+# registry validates, via X-Forwarded-Host / X-Forwarded-Proto. Matches compose.
+# If you enable ingress, the controller must actually set those headers.
+proxyAddressForwarding: true
+
+# WildFly-based Keycloak is memory-hungry; Sunbird requests 500m/2G with no
+# ceiling. Limits are mandatory in this repo, so it gets one.
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "1"
+    memory: 2Gi
+
+# ---------------------------------------------------------------------------
+# Probes
+#
+# These follow Sunbird's own Helm chart rather than the compose healthcheck:
+# compose curls the WildFly management port (9990), which this chart does not
+# expose. Readiness instead checks that Keycloak is really serving /auth.
+#
+# First start imports the realm and runs schema migrations, so startupProbe
+# carries the slow path and liveness stays tight.
+# ---------------------------------------------------------------------------
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /auth/
+    port: http
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  timeoutSeconds: 10
+  failureThreshold: 30
+
+livenessProbe:
+  enabled: true
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 10
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /auth/
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 10
+
+# This image runs as the jboss user and writes into its own directories, so
+# readOnlyRootFilesystem needs extra volumes to work. Off by default.
+podSecurityContext:
+  enabled: false
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+securityContext:
+  enabled: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+
+# ---------------------------------------------------------------------------
+# Dependency waiting
+#
+# Kubernetes has no equivalent of compose's `depends_on: condition:
+# service_healthy`. Without these init containers the pod starts before its
+# dependencies are up, fails, and crashloops with backoff - which recovers on
+# its own but makes a first install look broken.
+# ---------------------------------------------------------------------------
+waitFor:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: busybox
+    tag: "1.37"
+    pullPolicy: IfNotPresent
+  timeoutSeconds: 300
+  intervalSeconds: 3
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 50m
+      memory: 32Mi
+  # Wait for the database. Host and port come from `database` above, so there is
+  # nothing to keep in sync.
+  database: true
+  # Extra checks, if this Keycloak depends on anything else.
+  extraTcp: []
+  extraHttp: []
+
+# Extra init containers, appended after the waitFor ones. Rendered verbatim.
+extraInitContainers: []
+
+# Extra volumes and mounts, rendered verbatim. For certificates, extra config,
+# or a writable scratch directory when readOnlyRootFilesystem is enabled.
+extraVolumes: []
+extraVolumeMounts: []
+
+# ---------------------------------------------------------------------------
+# PodDisruptionBudget
+#
+# Caps voluntary disruptions - node drains, cluster upgrades, autoscaler
+# scale-down. Disabled by default because with a single replica a PDB of
+# minAvailable: 1 blocks drains entirely; the render fails if you enable it
+# anyway without acknowledging that.
+# ---------------------------------------------------------------------------
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # Set one or the other, not both.
+  maxUnavailable: ""
+  # Enable a PDB with a single replica anyway, accepting that node drains block.
+  allowSingleReplica: false
+
+# ---------------------------------------------------------------------------
+# `helm test` checks
+#
+#   helm test <release> -n <namespace>
+#
+# Runs after install to confirm the service actually answers, which is the
+# difference between "the pod is running" and "the deployment works".
+# ---------------------------------------------------------------------------
+tests:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: busybox
+    tag: "1.37"
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 50m
+      memory: 32Mi
+  # Realm the test expects to find. Only used when realmImport.enabled.
+  realm: sunbird-rc
+
+
+# Extra non-secret configuration, exposed as a ConfigMap and injected with
+# envFrom. The database and admin settings above render as explicit env vars,
+# so they do not belong here.
+envConfig: {}
+  # JAVA_OPTS_APPEND: "-Xms512m -Xmx1024m"
+
+# Extra env vars from specific Secret keys, beyond the two wired above.
+secretEnv: {}
+extraEnv: []
+envFromSecrets: []
+
+commonLabels: {}
+commonAnnotations: {}

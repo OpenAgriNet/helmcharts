@@ -1,0 +1,41 @@
+{{- if .Values.backup.enabled }}
+{{- include "postgresql-cnpg.validateBackup" . }}
+{{- $os := .Values.backup.objectStore }}
+# Barman Cloud Plugin ObjectStore - target for base backups and WAL archiving.
+# Requires the Barman Cloud Plugin installed cluster-wide.
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: {{ include "postgresql-cnpg.objectStoreName" . }}
+  namespace: {{ include "postgresql-cnpg.namespace" . }}
+  labels:
+    {{- include "postgresql-cnpg.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.backup.retentionPolicy }}
+  retentionPolicy: {{ . | quote }}
+  {{- end }}
+  configuration:
+    destinationPath: {{ include "postgresql-cnpg.objectStore.destinationPath" . | quote }}
+    {{- with $os.endpointURL }}
+    endpointURL: {{ . | quote }}
+    {{- end }}
+    {{- with $os.serverName }}
+    serverName: {{ . | quote }}
+    {{- end }}
+    {{ include "postgresql-cnpg.objectStore.credentialsField" . }}:
+      {{- toYaml $os.credentials | nindent 6 }}
+    wal:
+      compression: {{ $os.wal.compression }}
+      {{- with $os.wal.encryption }}
+      encryption: {{ . }}
+      {{- end }}
+    data:
+      compression: {{ $os.data.compression }}
+      {{- with $os.data.encryption }}
+      encryption: {{ . }}
+      {{- end }}
+{{- end }}

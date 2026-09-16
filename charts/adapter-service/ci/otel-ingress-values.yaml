@@ -1,0 +1,51 @@
+# The other side of every switch, so lint covers the branches the default
+# values never reach.
+#
+# Uses the experience role on purpose: it is the one with a different handler role and
+# a shorter step list, so this case renders the role branches that
+# ci/lint-values.yaml (network) does not.
+role: experience
+fullnameOverride: experience-adapter
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/network-adapter
+  tag: "v1.9.0"
+
+keys:
+  existingSecret:
+    name: experience-adapter-keys
+
+registry:
+  url: http://registry:8081/api/v1
+
+routing:
+  rules:
+    - version: "2.0.0"
+      targetType: url
+      target:
+        url: http://network-adapter:9201
+      endpoints:
+        - discover
+        - publish
+
+otel:
+  enabled: true
+  endpoint: otel-collector.observability.svc.cluster.local:4317
+
+autoscaling:
+  enabled: true
+podDisruptionBudget:
+  enabled: true
+
+waitFor:
+  enabled: true
+
+ingress:
+  enabled: true
+  className: alb
+  hosts:
+    - host: network.oan.example.com
+      paths:
+        - path: /
+          pathType: Prefix

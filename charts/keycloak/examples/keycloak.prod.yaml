@@ -1,0 +1,97 @@
+# Example: Keycloak for the registry, production.
+#
+#   helm install keycloak charts/keycloak \
+#     -n oan-registry -f charts/keycloak/examples/keycloak.prod.yaml
+
+image:
+  registry: ghcr.io
+  repository: sunbird-rc/sunbird-rc-keycloak
+  tag: "v1.0.0"
+  # digest: "sha256:..."   # pin this before going live
+
+# NOTE: this is the legacy WildFly Keycloak distribution. Running two replicas
+# needs its Infinispan cache cluster configured (JGroups discovery, session
+# replication) or the two will not share sessions - a token issued by one is not
+# recognised by the other. That is not configured by this chart, so production
+# stays at one replica until either that is set up or the deployment moves to a
+# current Keycloak with the Keycloak Operator.
+#
+# The practical consequence: a Keycloak restart briefly interrupts token issuing.
+# The registry keeps serving requests whose tokens are already valid.
+replicaCount: 1
+
+database:
+  host: registry-db-rw
+  port: 5432
+  name: keycloak
+  # Production uses a dedicated role owning only the keycloak database, not the
+  # superuser. Requires that role and database to exist - see
+  # postgresql-migration.
+  user: keycloak
+  passwordSecret:
+    name: keycloak-db
+    key: password
+
+admin:
+  username: admin
+  passwordSecret:
+    name: keycloak-admin
+    key: keycloakAdminPassword
+
+# The admin password Secret is created out of band, by whatever manages secrets
+# in this environment. This chart never renders a password.
+#   kubectl -n oan-registry create secret generic keycloak-admin \
+#     --from-literal=keycloakAdminPassword='<password>'
+
+# Uses the realm shipped with the chart (files/realm-export.json), so nothing
+# needs preparing before install.
+realmImport:
+  enabled: true
+
+# Reachable from outside only if users need the login page. Keep it internal
+# otherwise - the registry reaches Keycloak over cluster DNS.
+#
+# If you do expose it: proxyAddressForwarding below is already on, the controller
+# must set X-Forwarded-Host and X-Forwarded-Proto, and the registry's
+# keycloak.url must then be the EXTERNAL URL, because that is what Keycloak will
+# put in the token issuer.
+ingress:
+  enabled: false
+  # className: alb
+  # annotations:
+  #   alb.ingress.kubernetes.io/scheme: internal
+  # hosts:
+  #   - host: keycloak.oan.example
+  #     paths:
+  #       - path: /auth
+  #         pathType: Prefix
+  # tls:
+  #   - hosts: [keycloak.oan.example]
+  #     secretName: keycloak-tls
+
+proxyAddressForwarding: true
+
+resources:
+  requests:
+    cpu: "1"
+    memory: 2Gi
+  limits:
+    cpu: "2"
+    memory: 3Gi
+
+# Not enabled: with replicaCount 1 a PDB blocks node drains entirely. Revisit
+# together with the clustering note above.
+podDisruptionBudget:
+  enabled: false
+
+podSecurityContext:
+  enabled: false
+securityContext:
+  enabled: false
+
+envConfig:
+  # Keep the JVM heap inside the memory limit above.
+  JAVA_OPTS_APPEND: "-Xms1024m -Xmx2048m"
+
+commonLabels:
+  oan.in/environment: prod

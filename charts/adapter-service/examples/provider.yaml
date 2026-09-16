@@ -1,0 +1,66 @@
+# ===========================================================================
+# provider role -- the seller side.
+#
+# Receives from the network, verifies the caller, and fans the action out to
+# the upstream APIs that actually answer it. Unlike the other two roles it has
+# more than one target, which is why routing.rules is a list.
+#
+#   helm install provider-adapter . -f examples/provider.yaml
+#
+# MANDI_TOKEN is the mandi upstream's credential. It is named here and read at
+# call time, so it never lands in a config file or in the registry -- put it in
+# a Secret and reference it, do not inline it.
+# ===========================================================================
+role: provider
+
+# The Service name, and therefore the in-cluster DNS name other adapters use.
+# Set explicitly because fullname is otherwise "<release>-<chart>" -- release
+# provider-adapter plus chart adapter-service would render
+# provider-adapter-adapter-service, which is not what anything routes to.
+fullnameOverride: provider-adapter
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/network-adapter
+  tag: "latest"
+
+keys:
+  existingSecret:
+    name: provider-adapter-keys
+
+registry:
+  url: http://registry:8081/api/v1
+
+service:
+  port: 9200
+  targetPort: 9200
+
+# One rule per upstream. Each target.url is a bare host and port -- the router
+# appends the action, so no path and no trailing slash.
+routing:
+  rules:
+    - version: "2.0.0"
+      targetType: url
+      target:
+        url: http://mockimd:8080
+      endpoints:
+        - search
+        - select
+    - version: "2.0.0"
+      targetType: url
+      target:
+        url: http://mockagmarknet:8080
+      endpoints:
+        - search
+
+# The mandi credential. envFromSecrets pulls the whole Secret in as env vars,
+# so MANDI_TOKEN is a key inside it rather than a literal here.
+envFromSecrets:
+  - provider-adapter-upstream
+
+waitFor:
+  enabled: false
+
+otel:
+  enabled: false
+  endpoint: ""

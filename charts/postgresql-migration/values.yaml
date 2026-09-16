@@ -1,0 +1,194 @@
+# ============================================================================
+# postgresql-migration - default values
+#
+# Flyway migrations for OAN PostgreSQL databases, run as a Job. It does two
+# things, in order:
+#
+#   1. Creates the per-service databases the cluster does not create itself.
+#   2. Applies versioned SQL to each database.
+#
+# It runs as a Helm hook by default, so `helm install` of a service chart waits
+# for migrations to finish before the service starts.
+#
+# Minimum you must set:
+#   - postgresql.host
+#   - postgresql.passwordSecret.name
+# ============================================================================
+
+image:
+  registry: docker.io
+  repository: flyway/flyway
+  # Pinned; `latest` in a migration job means a tool upgrade you did not choose.
+  tag: "11.10.0-alpine"
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  # The Job talks to PostgreSQL, not the Kubernetes API.
+  automountServiceAccountToken: false
+
+# ---------------------------------------------------------------------------
+# Connection
+#
+# One host, one role, many databases: each target below reuses this connection
+# with a different database name.
+#
+# The role needs ownership or superuser rights on each database it migrates, in
+# order to create objects and the flyway_schema_history table.
+#
+# This chart does NOT create databases. That is the postgresql-cnpg chart's job -
+# `bootstrap.database` for the first one and `databases` for the rest, both
+# reconciled by the CNPG operator. Creating them here instead would mean
+# CREATE DATABASE outside a transaction, no IF NOT EXISTS, and a rule about never
+# listing the database the cluster already made. The operator does it properly.
+# ---------------------------------------------------------------------------
+postgresql:
+  # PostgreSQL primary service, e.g. "registry-db-rw". Must be the primary:
+  # migrations write.
+  host: ""
+  port: 5432
+  user: postgres
+  # Secret holding the password. Required - the chart renders no passwords.
+  passwordSecret:
+    name: ""
+    key: password
+  # Appended to every JDBC URL, e.g. "?sslmode=require"
+  jdbcParams: ""
+
+# ---------------------------------------------------------------------------
+# Targets
+#
+# Each entry is one database and the migration directory applied to it, run in
+# the order listed. The order in this list is what runs - directory names are
+# numbered only so they read in the same order on disk.
+#
+#   name:      the directory under files/migrations/
+#   database:  the database to connect to
+#   enabled:   set false to skip without removing the entry
+#
+# A target whose directory has no .sql files is skipped, and the Job says so.
+# ---------------------------------------------------------------------------
+targets:
+  - name: 01-registry
+    database: registry
+    enabled: true
+  - name: 02-keycloak
+    database: keycloak
+    enabled: true
+
+# Run `flyway repair` and retry once when a migration fails.
+#
+# Repair rewrites the schema history to match the migrations on disk. It fixes
+# the common case - a previous run that failed partway and left a checksum
+# mismatch - but it will also happily paper over a genuinely edited migration.
+# Leave it on for dev; consider turning it off where you want a failed migration
+# to stay failed until someone looks at it.
+repairOnFailure: true
+
+# Flyway's own settings, passed through as environment variables. Anything
+# Flyway reads from FLYWAY_* can go here.
+flyway:
+  # Create the schema history table on a database that has objects but no
+  # history yet, instead of refusing to run.
+  baselineOnMigrate: true
+  # Version recorded for that baseline.
+  baselineVersion: "0"
+  # Reject a migration whose checksum no longer matches the recorded one.
+  validateOnMigrate: true
+  # Allow out-of-order migrations. Off: a lower version arriving late is an error.
+  outOfOrder: false
+  # Extra FLYWAY_* environment variables, as name -> value.
+  extraEnv: {}
+    # FLYWAY_CONNECT_RETRIES: "10"
+
+# ---------------------------------------------------------------------------
+# Helm hook
+#
+# As a hook, the Job runs during `helm install`/`helm upgrade` and Helm waits for
+# it before proceeding. That is what orders migrations ahead of the services.
+#
+# Two consequences worth knowing:
+#   - A hook resource is not tracked in the release, so `helm uninstall` does not
+#     remove it; deletePolicy handles the cleanup instead.
+#   - The database cluster must already be running when the hook fires. That
+#     holds in the OAN layout, where the cluster is a separate, earlier release.
+#
+# Set enabled: false to install the Job as an ordinary release resource, e.g. to
+# run migrations by themselves.
+# ---------------------------------------------------------------------------
+hook:
+  enabled: true
+  events:
+    - pre-install
+    - pre-upgrade
+  # Lower weights run first, so keep this below any other hook that needs the
+  # schema to exist.
+  weight: "-5"
+  # before-hook-creation deletes the previous Job before creating this one,
+  # which is what makes repeated upgrades work: a Job's pod template is
+  # immutable, so re-applying a changed one is rejected.
+  deletePolicy: before-hook-creation
+
+job:
+  # Pod-level retries. Flyway is idempotent - already-applied migrations are
+  # skipped - so a retry is safe.
+  backoffLimit: 3
+  # Give up after this long. Without it a Job that cannot reach the database
+  # blocks `helm install` until Helm's own timeout.
+  activeDeadlineSeconds: 900
+  # Delete the finished Job (and its pod, and its logs) this long after it ends.
+  # Empty keeps it until the next run, so the logs are there to read.
+  ttlSecondsAfterFinished: ""
+  restartPolicy: OnFailure
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Off by default, as elsewhere in this repo. Flyway only reads its migrations and
+# writes to the database, so it is a good candidate for tightening - but verify
+# the pinned image's own user before enabling runAsUser, since a mismatch shows
+# up as a permission error on /flyway rather than anything obvious.
+podSecurityContext:
+  enabled: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+securityContext:
+  enabled: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+
+# Non-secret extra configuration, injected via envFrom.
+envConfig: {}
+
+# Extra env vars from specific Secret keys.
+secretEnv: {}
+extraEnv: []
+envFromSecrets: []
+
+commonLabels: {}
+commonAnnotations: {}

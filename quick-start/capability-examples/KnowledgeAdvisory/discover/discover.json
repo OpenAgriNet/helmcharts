@@ -1,0 +1,35 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "discover",
+    "version": "2.0.0",
+    "transactionId": "a4000000-0000-4000-8000-000000000002",
+    "messageId": "b4000000-0000-4000-8000-000000000002",
+    "timestamp": "2026-09-10T09:30:00Z",
+    "schemaContext": [
+      "https://openagrinet.github.io/network-specs/schema/KnowledgeAdvisory/v0.1/context.jsonld#openagrinet:KnowledgeAdvisory"
+    ]
+  },
+  "message": {
+    "intent": {
+      "filters": {
+        "type": "jsonpath",
+        "expression": "$.catalogs[*].resources[*] ? (@.resourceAttributes.subjectCategories[*] == \"Crop\" && @.resourceAttributes.informationMode == \"OnDemand\")"
+      },
+      "spatial": [
+        {
+          "op": "S_INTERSECTS",
+          "targets": "$.catalogs[*].resources[*].resourceAttributes.coverageAreas[*]",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              73.7898,
+              19.9975
+            ]
+          },
+          "quantifier": "ANY"
+        }
+      ]
+    }
+  }
+}
