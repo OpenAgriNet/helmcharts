@@ -254,7 +254,7 @@
           ]
         },
         {
-          "name": "Discover",
+          "name": "Discover - On-demand",
           "request": {
             "method": "POST",
             "header": [
@@ -410,7 +410,7 @@
           ]
         },
         {
-          "name": "Discover",
+          "name": "Discover - On-demand",
           "request": {
             "method": "POST",
             "header": [
@@ -566,7 +566,7 @@
           ]
         },
         {
-          "name": "Discover",
+          "name": "Discover - On-demand",
           "request": {
             "method": "POST",
             "header": [
