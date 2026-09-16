@@ -1,9 +1,5 @@
-# consumer-adapter
-#
-# The caller. Signs outbound requests as oan-caller and routes them by action:
-# discovery to the network layer, transactions straight to the provider adapter.
-# No validateSign -- the experience app calling it is inside the trust boundary,
-# so there is no network signature to check on the way in.
+# OAN consumer adapter. The caller: routes by action -- discovery to the
+# network layer, transactions straight to the provider adapter.
 appName: "consumer-adapter"
 
 log:
@@ -22,32 +18,9 @@ http:
 pluginManager:
   root: ./plugins
 
-# ---------------------------------------------------------------------------
-# OpenTelemetry. An application-level plugin rather than a module one: it runs
-# its own background lifecycle -- an exporter and a periodic flush -- instead
-# of being loaded per request by a step.
-#
-# It ships metrics, traces and logs over OTLP/gRPC to the collector named
-# below. In this stack that is ClickStack, on the observability profile, which
-# `make up` starts as step 5 and `make up-core` deliberately does not.
-#
-# WHICH IS WHY THE ENABLE FLAGS ARE A SWITCH. With all three false the plugin
-# builds no exporter at all and returns a no-op provider -- it does not dial,
-# so it cannot log a connection failure every few seconds. Point a stack with
-# no collector at one and that is exactly what you get, so ADAPTER_OTEL_ENABLED=false
-# is the right setting for `make up-core`.
-#
-# serviceVersion is deliberately absent: left empty the plugin fills in the
-# adapter's own build version, which is truer than anything written here and
-# does not go stale.
-#
-# Not set, and worth knowing they exist:
-#   auditFieldsConfig  a YAML file of masking rules and field selection for
-#                      audit logs -- payloads are emitted whole without it.
-#   networkMetricsGranularity / networkMetricsFrequency
-#                      network-level metric windows.
-#   timeInterval       metric export period in seconds; defaults to 5.
 plugins:
+  # Ships metrics, traces and logs over OTLP/gRPC. All three flags false builds
+  # no exporter at all, which is the right setting for a stack with no collector.
   otelsetup:
     id: otelsetup
     config:
@@ -64,6 +37,7 @@ modules:
     path: /
     handler:
       type: std
+      # bap because this adapter SENDS. role sets direction, not participant type.
       role: bap
       subscriberId: __CONSUMER_SUBSCRIBER_ID__
 
@@ -74,13 +48,22 @@ modules:
             url: http://sunbird-registry-service:8081/api/v1
             entity: Participant
             providerEntity: ProviderSchema
+            # 0 because no cache plugin is configured. A non-zero TTL here only
+            # warns at startup and caches nothing.
+            cacheTTL: 0
+            # Plain seconds, per attempt.
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            # A search response past this is refused, not truncated.
+            maxResponseBytes: 1048576
 
         keyManager:
           id: simplekeymanager
           config:
             subscriberId: __CONSUMER_SUBSCRIBER_ID__
-            # The KEY's osid, not a friendly name: that is what the registry
-            # indexes keys by, and what a verifier looks up.
+            # The key's osid, not a friendly name: the registry indexes on it.
             keyId: __CONSUMER_KEY_ID__
             signingPrivateKey: "__CONSUMER_SIGNING_PRIVATE__"
             signingPublicKey: "__CONSUMER_SIGNING_PUBLIC__"
@@ -92,11 +75,17 @@ modules:
         signValidator:
           id: signvalidator
 
-        # Base Beckn v2 schema validation, against the pinned LTS spec. The
-        # extended layer is off: it fetches a resource's own @context and
-        # validates against that, which is a network call per payload and a
-        # second failure mode, and nothing here needs it yet. The allowed
-        # domains and cache settings below only take effect if it is turned on.
+        # Populates transaction_id and message_id on the context so every log
+        # line carries them. subscriber_id is resolved separately, not listed.
+        middleware:
+          - id: reqpreprocessor
+            config:
+              contextKeys: transaction_id,message_id
+              role: bap
+
+        # The extended layer is off: it fetches a resource's own @context per
+        # payload, and nothing here needs it. The settings below only apply if
+        # it is turned on.
         schemaValidator:
           id: schemav2validator
           config:
@@ -114,22 +103,12 @@ modules:
           config:
             routingConfig: /app/config/routing-consumer.yaml
 
-      # SIGNING AND SIGNATURE VALIDATION ARE OFF in this deployment.
+      # Signing and signature validation are OFF: this tier accepts unsigned
+      # traffic and forwards unsigned. Turning it back on means adding the step
+      # names here AND on the other side of the hop at the same time.
       #
-      # validateSign and sign/signAck are absent from the list below. Nothing
-      # verifies who a caller is, and nothing this answers or forwards carries
-      # a signature -- so every tier accepts unsigned traffic and anything that
-      # can reach the port is served.
-      #
-      # validateSchema STAYS. Payload shape is still enforced; only identity is
-      # not.
-      #
-      # The signer, signValidator and keyManager plugins above are still
-      # declared. A plugin no steps: list names is loaded and never runs, so
-      # turning this back on is adding the step names back here -- and it has
-      # to be done on BOTH SIDES of a hop at once: a signed request into a tier
-      # that no longer validates is fine, but an unsigned one into a tier that
-      # does is rejected.
+      # No validateSign either way: the experience app calling this is inside
+      # the trust boundary, so there is no network signature to check inbound.
       steps:
         - validateSchema
         - addRoute

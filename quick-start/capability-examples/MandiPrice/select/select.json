@@ -56,10 +56,6 @@
                   "district": "338",
                   "state": "MH"
                 },
-                "commodity": {
-                  "code": "23",
-                  "name": "Onion"
-                },
                 "validity": {
                   "startsAt": "2026-09-01T00:00:00+05:30",
                   "endsAt": "2026-09-09T23:59:59+05:30"
