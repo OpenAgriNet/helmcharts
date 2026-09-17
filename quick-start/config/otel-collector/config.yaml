@@ -1,0 +1,169 @@
+# The whole OpenTelemetry Collector for this stack: OTLP ingest from the
+# adapters and discovery-service, container-log collection, and the
+# ClickHouse export both land in. Unlike the HyperDX image this replaces,
+# there is no base config supplied by an upstream vendor and merged with this
+# one over OpAMP -- this file is the entire pipeline, so nothing here is
+# coupled to a name some other party's release could rename out from under
+# it.
+#
+# docker-compose.yml mounts this read-only and passes it with
+# --config=/etc/otelcol-contrib/config.yaml.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # Container stdout, read straight from Docker's own json-file driver output
+  # -- the same approach config/observability/filelog.yaml used against
+  # HyperDX's embedded collector, carried over almost unchanged. See
+  # docker-compose.yml's `otel-collector` service for the bind mount this
+  # reads and its two-cause "no logs arrive" checklist.
+  filelog/containers:
+    # IDs in the path, not names -- which is the whole reason
+    # docker-compose.yml's x-logging anchor sets the `labels` log-opt: the
+    # container name is nowhere in this file, and a log console keyed by 64
+    # hex characters is not a log console.
+    include: [/var/lib/docker/containers/*/*-json.log]
+
+    # Rotated files. Without this the collector re-reads a whole rotation as
+    # if it were new output every time the driver rolls one over.
+    exclude: [/var/lib/docker/containers/*/*-json.log.*]
+
+    # END, not beginning. `up -d` on a stack that has been running for days
+    # would otherwise replay every line any container ever wrote, all
+    # stamped correctly, all arriving at once -- which reads as an incident.
+    #
+    # The cost is that lines written while the collector is down are lost.
+    # That is the right trade for a console: the recovery is `docker logs`,
+    # which still works, because this reads the same files it reads.
+    start_at: end
+
+    operators:
+      # Docker wraps each line: {"log":"...","stream":"stdout","time":"..."}.
+      - type: json_parser
+        timestamp:
+          parse_from: attributes.time
+          # Docker writes RFC3339 with nanoseconds. gotime rather than
+          # strptime because %f is microseconds and would truncate.
+          layout_type: gotime
+          layout: '2006-01-02T15:04:05.999999999Z07:00'
+
+      # The collector's own output, dropped BEFORE anything downstream sees
+      # it.
+      #
+      # Not tidiness: this collector logs a line per export, and exporting
+      # that line is another export. Left in, the loop is self-sustaining
+      # and the only symptom is that ClickHouse fills up. The service name
+      # to exclude is `otel-collector` -- this container's own compose
+      # service name -- not `hyperdx`, which is what the old overlay
+      # excluded.
+      - type: filter
+        # Bracket access throughout, and the nil guard spelled out. `?.` does
+        # not parse against a bracket index in this expression language --
+        # the collector refuses to build the pipeline without this guard,
+        # which the (absent, on this image) health_check-based Docker probe
+        # would otherwise be what catches.
+        expr: 'attributes["attrs"] != nil and attributes["attrs"]["com.docker.compose.service"] == "otel-collector"'
+
+      # The compose service name becomes service.name, which is what a
+      # Grafana panel filters on. Everything else is an attribute you have
+      # to know to search for.
+      - type: move
+        from: attributes.attrs["com.docker.compose.service"]
+        to: resource["service.name"]
+        if: 'attributes["attrs"] != nil and attributes["attrs"]["com.docker.compose.service"] != nil'
+
+      # stdout or stderr. Kept, and kept OUT of severity: a Go service
+      # writing its structured logs to stderr is not a service in trouble,
+      # and mapping the stream onto a level is how every line from such a
+      # service becomes an error. The `transform/logs` processor below reads
+      # the real level out of the JSON body, which is where it actually is.
+      - type: move
+        from: attributes.stream
+        to: attributes["log.iostream"]
+
+      # The raw line becomes the body. LAST of the moves, because
+      # `transform/logs` parses JSON out of the body -- so a Go service's
+      # zap output arrives with its own fields promoted to attributes, and a
+      # plain-text line from Postgres arrives as text.
+      - type: move
+        from: attributes.log
+        to: body
+
+      # Already on the record as its timestamp; a second copy is a column
+      # that disagrees with itself the moment either is rewritten.
+      - type: remove
+        field: attributes.time
+
+processors:
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  batch: {}
+
+  # Parses a JSON body into attributes and lifts a `level` field into
+  # severity, so a structured log from a Go service arrives searchable by
+  # severity rather than as an unparsed blob. A line that is not JSON (a
+  # plain Postgres or Keycloak line) fails the `ParseJSON` guard and passes
+  # through unchanged -- this is additive, not a requirement every log meet.
+  transform/logs:
+    log_statements:
+      - context: log
+        statements:
+          - 'set(cache["parsed"], ParseJSON(body)) where IsMatch(body, "^\\s*\\{")'
+          - 'merge_maps(attributes, cache["parsed"], "insert") where cache["parsed"] != nil'
+          - 'set(severity_text, attributes["level"]) where attributes["level"] != nil'
+          - 'set(severity_number, SEVERITY_NUMBER_DEBUG) where severity_text == "debug"'
+          - 'set(severity_number, SEVERITY_NUMBER_INFO) where severity_text == "info"'
+          - 'set(severity_number, SEVERITY_NUMBER_WARN) where severity_text == "warn" or severity_text == "warning"'
+          - 'set(severity_number, SEVERITY_NUMBER_ERROR) where severity_text == "error"'
+          - 'set(severity_number, SEVERITY_NUMBER_FATAL) where severity_text == "fatal" or severity_text == "panic"'
+
+extensions:
+  # Docker cannot probe this on the otel-collector container -- see the "No
+  # healthcheck" comment on that service in docker-compose.yml for why -- but
+  # it still binds 13133 for a manual check from another container on
+  # oan-internal, and it is what turns a pipeline that failed to build into
+  # something observable at all rather than a silent gap in the data.
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+exporters:
+  clickhouse:
+    endpoint: ${env:CLICKHOUSE_ENDPOINT}
+    database: ${env:CLICKHOUSE_DATABASE}
+    username: ${env:CLICKHOUSE_USERNAME}
+    password: ${env:CLICKHOUSE_PASSWORD}
+    ttl: 720h
+    create_schema: true
+    logs_table_name: otel_logs
+    traces_table_name: otel_traces
+    metrics_table_name: otel_metrics
+    timeout: 10s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [clickhouse]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [clickhouse]
+    logs:
+      receivers: [otlp, filelog/containers]
+      processors: [memory_limiter, transform/logs, batch]
+      exporters: [clickhouse]

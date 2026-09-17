@@ -1,0 +1,25 @@
+# Auto-provisioned so the ClickHouse datasource exists on first boot -- no
+# Team Settings click-through, which is what clickstack-local's browser-side
+# query used to need. Grafana reads every *.yaml under
+# provisioning/datasources on start and reconciles the API against them;
+# deleting this file removes the datasource on the next restart too.
+#
+# The three CLICKHOUSE_* values come from the environment docker-compose.yml
+# sets on the grafana container, via Grafana's own ${VAR} provisioning
+# interpolation -- not a templating step we run ourselves.
+apiVersion: 1
+
+datasources:
+  - name: ClickHouse
+    type: grafana-clickhouse-datasource
+    access: proxy
+    isDefault: true
+    jsonData:
+      host: clickhouse
+      port: 9000
+      protocol: native
+      defaultDatabase: ${CLICKHOUSE_DATABASE}
+      username: ${CLICKHOUSE_USERNAME}
+    secureJsonData:
+      password: ${CLICKHOUSE_PASSWORD}
+    editable: false
