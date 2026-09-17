@@ -31,34 +31,50 @@ environment variables, same names and same values.
 ```bash
 helm dependency update charts/keycloak
 helm install keycloak charts/keycloak \
-  -n oan-registry -f charts/keycloak/examples/keycloak.dev.yaml
+  -n keycloak -f charts/keycloak/examples/keycloak.dev.yaml
 ```
 
 Requires a reachable PostgreSQL — see [`postgresql-cnpg`](../postgresql-cnpg) —
 and two Secrets that this chart never creates: the database password and the
 Keycloak admin password.
 
-## The two-phase first install
+## The admin-api client secret
 
-**The registry cannot authenticate immediately after this chart installs.** The
-realm export ships with the `admin-api` client secret masked (`**********`),
-which is not a working credential. So:
+The realm ships `"secret": "${env.KEYCLOAK_ADMIN_CLIENT_SECRET}"` for the
+`admin-api` client rather than a value. The legacy image substitutes `${env.*}`
+while importing, so the credential arrives as an environment variable read from
+`realmImport.adminClientSecret` — and the realm ConfigMap holds only the
+placeholder. That matters: a ConfigMap is readable by anyone who can list them
+in the namespace, and a Secret is not.
 
-1. Install this chart; it imports the realm on first start.
-2. Reach the admin console:
-   ```bash
-   kubectl -n oan-registry port-forward svc/keycloak 8080:8080
-   ```
-   then open `http://localhost:8080/auth/admin`.
-3. Realm `sunbird-rc` → Clients → `admin-api` → Credentials → **Regenerate
-   Secret**.
-4. Store that value where the registry chart's
-   `keycloak.adminClientSecret` points.
-5. Install the registry.
+This chart installs into its own `keycloak` namespace, and the registry into
+`registry`. Secrets are namespaced, so the client secret has to be readable in
+both — but it is one Secret, created in `registry` and mirrored into `keycloak`
+by Kubernetes Reflector, not two copies. Point both charts at it:
 
-There is no way for a chart to shortcut this while the realm is imported from a
-masked export. Making it one-phase means managing clients declaratively instead
-— `keycloak-config-cli` or the Keycloak Operator — which is a larger change.
+```yaml
+# charts/keycloak
+realmImport:
+  adminClientSecret: {name: keycloak-admin-api, key: keycloakAdminClientSecret}
+
+# charts/registry
+keycloak:
+  adminClientSecret: {name: keycloak-admin-api, key: keycloakAdminClientSecret}
+```
+
+The value the registry sends is then the value Keycloak was imported with, by
+construction. Generate it with `scripts/gen-secrets.py`.
+
+This replaces an earlier two-phase install, where the export shipped the secret
+masked and an operator regenerated it in the console between installing this
+chart and installing the registry.
+
+**Verify once per environment.** Substitution is a property of the image, not of
+the chart, so rendering proves nothing. After the first import, check
+`admin-api` → Credentials in the console: the secret must match the Secret and
+must not read `${env....}`. If it does read that literally, this image does not
+substitute and the realm needs `keycloak-config-cli` or an init container to
+render it instead.
 
 ## Waiting for the database
 
@@ -78,7 +94,7 @@ on its own, but looks broken.
 ## Verifying an install
 
 ```bash
-helm test keycloak -n oan-registry
+helm test keycloak -n keycloak
 ```
 
 Checks that `/auth` responds and, when `realmImport.enabled`, that the realm is
@@ -98,8 +114,8 @@ The practical consequence: restarting Keycloak briefly interrupts token issuing.
 The registry keeps serving requests whose tokens are already valid.
 
 Getting past this means either configuring Infinispan clustering, or moving to a
-current Keycloak with the Keycloak Operator — which would also remove the masked
-client-secret problem below.
+current Keycloak with the Keycloak Operator — which would also manage clients
+declaratively rather than through a realm import.
 
 `podDisruptionBudget` is therefore off by default: over a single pod it blocks
 node drains entirely.

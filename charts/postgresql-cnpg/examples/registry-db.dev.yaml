@@ -1,10 +1,10 @@
 # Example: the registry service's database, dev environment.
 #
 #   helm install registry-db charts/postgresql-cnpg \
-#     -n oan-registry -f charts/postgresql-cnpg/examples/registry-db.dev.yaml
+#     -n postgres -f charts/postgresql-cnpg/examples/registry-db.dev.yaml
 #
 # Other workloads then connect to:
-#   registry-db-rw.oan-registry.svc.cluster.local:5432
+#   registry-db-rw.postgres.svc.cluster.local:5432
 
 fullnameOverride: registry-db
 
@@ -42,14 +42,14 @@ bootstrap:
   database: registry
   owner: registry
   # Secret carrying `username` and `password` for the owner role.
-  #   kubectl -n oan-registry create secret generic registry-db-app \
+  #   kubectl -n postgres create secret generic registry-db \
   #     --from-literal=username=registry --from-literal=password='<password>'
   # Or drop ownerSecret and let CNPG generate the password itself.
-  ownerSecret: registry-db-app
+  ownerSecret: registry-db
 
 # Keycloak's own role. The operator creates and reconciles it, so Keycloak never
 # needs superuser rights.
-#   kubectl -n oan-registry create secret generic keycloak-db \
+#   kubectl -n postgres create secret generic keycloak-db \
 #     --from-literal=username=keycloak --from-literal=password='<password>'
 managed:
   roles:
@@ -91,10 +91,10 @@ serviceAccount:
 
 # The owner Secret above is created out of band. Until a secrets manager is
 # wired up, either create it by hand:
-#   kubectl -n oan-registry create secret generic registry-db-app \
+#   kubectl -n postgres create secret generic registry-db \
 #     --from-literal=username=registry --from-literal=password='<password>'
 # or drop bootstrap.ownerSecret entirely and let CNPG generate the password into
-# Secret/registry-db-app itself, which is simpler for dev.
+# Secret/registry-db itself, which is simpler for dev.
 
 commonLabels:
   oan.in/environment: dev

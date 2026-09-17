@@ -6,7 +6,7 @@
 # credentials, storage and backup schedule:
 #
 #   helm install registry-db charts/postgresql-cnpg \
-#     -n oan-registry -f values/registry-db.dev.yaml
+#     -n registry -f values/registry-db.dev.yaml
 #
 # PREREQUISITES (neither is installed by this chart):
 #   1. The CloudNativePG operator, cluster-wide.

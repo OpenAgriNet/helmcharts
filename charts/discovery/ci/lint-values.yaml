@@ -14,7 +14,7 @@ app:
 database:
   host: discovery-db-rw
   passwordSecret:
-    name: discovery-db-app
+    name: discovery-db
 
 becknSpec:
   url: https://example.invalid/beckn.yaml

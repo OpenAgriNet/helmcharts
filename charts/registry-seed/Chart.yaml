@@ -1,0 +1,27 @@
+apiVersion: v2
+name: registry-seed
+description: >-
+  Seeds the OAN registry: the adapter identities with their published signing
+  keys, the upstream providers, the capability bindings that say who answers
+  what, and the schema rows that say what each capability means. Runs as a Job,
+  is safe to re-run, and reports the key osid each adapter must be configured
+  with.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - registry
+  - seeding
+  - beckn
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
+dependencies:
+  - name: common
+    version: "0.2.x"
+    repository: "file://../common"

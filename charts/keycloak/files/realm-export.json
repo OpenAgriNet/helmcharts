@@ -489,7 +489,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "no-user-password",
+          "value": "${env.REGISTRY_SEED_PASSWORD}",
           "temporary": false
         }
       ],
@@ -619,7 +619,7 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "**********",
+      "secret": "${env.KEYCLOAK_ADMIN_CLIENT_SECRET}",
       "redirectUris": [
         "*",
         "http://localhost:4200/",
