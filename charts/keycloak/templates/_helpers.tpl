@@ -107,6 +107,12 @@ mirror the compose stack.
 {{- if not .Values.admin.passwordSecret.name }}
 {{- fail (printf "%s: admin.passwordSecret.name is required - this chart renders no passwords" .Chart.Name) }}
 {{- end }}
+{{- if and .Values.realmImport.enabled (not .Values.realmImport.seedUserSecret.name) }}
+{{- fail (printf "%s: realmImport.seedUserSecret.name is required while realmImport is enabled - the realm carries ${env.REGISTRY_SEED_PASSWORD} for the `no-user` account, which is the identity that WRITES to the registry. With nothing to substitute, Keycloak would import that literal string as the password." .Chart.Name) }}
+{{- end }}
+{{- if and .Values.realmImport.enabled (not .Values.realmImport.adminClientSecret.name) }}
+{{- fail (printf "%s: realmImport.adminClientSecret.name is required while realmImport is enabled - the realm carries ${env.KEYCLOAK_ADMIN_CLIENT_SECRET} for the admin-api client, and with nothing to substitute it Keycloak would import that literal string as the secret." .Chart.Name) }}
+{{- end }}
 - name: DB_VENDOR
   value: {{ $db.vendor | quote }}
 - name: DB_ADDR
@@ -138,6 +144,16 @@ mirror the compose stack.
 {{- if .Values.realmImport.enabled }}
 - name: KEYCLOAK_IMPORT
   value: {{ include "keycloak.realmImportPath" . | quote }}
+- name: KEYCLOAK_ADMIN_CLIENT_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.realmImport.adminClientSecret.name }}
+      key: {{ .Values.realmImport.adminClientSecret.key }}
+- name: REGISTRY_SEED_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.realmImport.seedUserSecret.name }}
+      key: {{ .Values.realmImport.seedUserSecret.key }}
 {{- end }}
 {{- with (include "common.env" . | trim) }}
 {{ . }}

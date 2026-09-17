@@ -79,7 +79,8 @@ ingress:
 # ---------------------------------------------------------------------------
 database:
   vendor: postgres
-  # PostgreSQL primary service, e.g. "registry-db-rw"
+  # PostgreSQL primary service. The CNPG Clusters run in their own namespace,
+  # so this is an FQDN: "registry-db-rw.postgres.svc.cluster.local"
   host: ""
   port: 5432
   name: registry
@@ -106,10 +107,10 @@ admin:
 # admin-api and registry-frontend clients, and the roles the registry checks.
 # The legacy image imports it on startup when the realm is not already present.
 #
-# IMPORTANT: the exported admin-api client secret is masked ("**********"), not
-# a working credential. After the first import, regenerate it in the console
-# (realm -> Clients -> admin-api -> Credentials -> Regenerate Secret) and hand
-# that value to the registry chart. First install is therefore two-phase.
+# The admin-api client secret is not baked in. The realm carries
+# "${env.KEYCLOAK_ADMIN_CLIENT_SECRET}" and the import substitutes it from
+# realmImport.adminClientSecret below, so a fresh install needs no console step
+# and the value can come from a secrets manager like any other credential.
 # ---------------------------------------------------------------------------
 realmImport:
   enabled: true
@@ -139,6 +140,48 @@ realmImport:
   # Inline realm JSON, overriding the shipped file. Useful for a test with a
   # deliberately minimal realm.
   realmJson: ""
+
+  # The admin-api client secret.
+  #
+  # The realm ships `"secret": "${env.KEYCLOAK_ADMIN_CLIENT_SECRET}"` for that
+  # client, and the legacy image substitutes ${env.*} while importing. So the
+  # value lives in a Secret and reaches Keycloak as an environment variable -
+  # the realm ConfigMap carries the placeholder and nothing else, which matters
+  # because a ConfigMap is readable by anyone with `get configmaps` here.
+  #
+  # This replaces the old two-phase install, where the realm shipped the secret
+  # masked and someone regenerated it in the console before the registry could
+  # authenticate. The same Secret is what registry.keycloak.adminClientSecret
+  # reads, so the two cannot drift.
+  #
+  # Required while realmImport is enabled: with nothing to substitute, Keycloak
+  # imports the literal "${env.KEYCLOAK_ADMIN_CLIENT_SECRET}" as the secret and
+  # every admin call fails with something that does not mention the realm.
+  #   kubectl -n registry create secret generic keycloak-admin-api \
+  #     --from-literal=keycloakAdminClientSecret='<value>'
+  #
+  # One Secret holding one key, deliberately: Reflector mirrors a whole Secret
+  # and cannot select keys, so anything bundled alongside would land in this
+  # namespace too.
+  adminClientSecret:
+    name: ""
+    key: keycloakAdminClientSecret
+
+  # The `no-user` account the realm ships, and the identity registry-seed
+  # writes participants as -- it carries the `network_operator` role the
+  # registry checks.
+  #
+  # It shipped as a committed plaintext password (`no-user-password`) until
+  # this was added, which in compose was bounded by the registry publishing on
+  # loopback only. In a cluster it is not: anyone who can reach the registry
+  # and has read this repository could write participant rows, and those rows
+  # cannot be deleted - the delete is soft and keeps the unique index.
+  #
+  # Required while realmImport is enabled, for the same reason as
+  # adminClientSecret above.
+  seedUserSecret:
+    name: ""
+    key: registrySeedPassword
 
 # Lets a caller behind an ingress obtain a token whose `iss` matches what the
 # registry validates, via X-Forwarded-Host / X-Forwarded-Proto. Matches compose.

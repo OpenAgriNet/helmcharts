@@ -37,3 +37,14 @@ registry/
 !.env.example
 !.env.*.example
 
+
+# Output of scripts/gen-secrets.py. The script defaults to stdout and writes
+# 0600 when given --out, but the file it produces holds every credential the
+# charts consume -- and `registry/` above is what happens when one of those
+# reaches a `git add -A`.
+secrets.json
+*-secrets.json
+
+# Python bytecode
+__pycache__/
+*.pyc

@@ -1,7 +1,7 @@
 # Example: Keycloak for the registry, production.
 #
 #   helm install keycloak charts/keycloak \
-#     -n oan-registry -f charts/keycloak/examples/keycloak.prod.yaml
+#     -n registry -f charts/keycloak/examples/keycloak.prod.yaml
 
 image:
   registry: ghcr.io
@@ -21,7 +21,9 @@ image:
 replicaCount: 1
 
 database:
-  host: registry-db-rw
+  # FQDN, not the bare name: the Cluster lives in the `postgres` namespace
+  # and this release does not, so `registry-db-rw` alone would not resolve.
+  host: registry-db-rw.postgres.svc.cluster.local
   port: 5432
   name: keycloak
   # Production uses a dedicated role owning only the keycloak database, not the
@@ -40,13 +42,20 @@ admin:
 
 # The admin password Secret is created out of band, by whatever manages secrets
 # in this environment. This chart never renders a password.
-#   kubectl -n oan-registry create secret generic keycloak-admin \
+#   kubectl -n registry create secret generic keycloak-admin \
 #     --from-literal=keycloakAdminPassword='<password>'
 
 # Uses the realm shipped with the chart (files/realm-export.json), so nothing
 # needs preparing before install.
 realmImport:
   enabled: true
+  # Substituted into the realm's admin-api client at import. The same Secret the
+  # registry chart reads as keycloak.adminClientSecret, so the two cannot drift.
+  adminClientSecret:
+    name: keycloak-admin-api
+  seedUserSecret:
+    name: registry-seed
+    key: keycloakAdminClientSecret
 
 # Reachable from outside only if users need the login page. Keep it internal
 # otherwise - the registry reaches Keycloak over cluster DNS.

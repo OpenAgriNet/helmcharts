@@ -30,7 +30,7 @@ Neither is installed by this chart, and both are cluster-wide:
 ```bash
 helm dependency update charts/postgresql-cnpg
 helm install registry-db charts/postgresql-cnpg \
-  -n oan-registry -f charts/postgresql-cnpg/examples/registry-db.dev.yaml
+  -n postgres -f charts/postgresql-cnpg/examples/registry-db.dev.yaml
 ```
 
 See [`examples/registry-db.dev.yaml`](./examples/registry-db.dev.yaml) for a
@@ -47,7 +47,7 @@ several service databases without any of them sharing tables or credentials.
 bootstrap:
   database: registry
   owner: registry
-  ownerSecret: registry-db-app
+  ownerSecret: registry-db
 
 # roles for the others, created and reconciled by the operator
 managed:

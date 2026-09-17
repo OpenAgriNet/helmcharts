@@ -14,6 +14,7 @@ produced it.
 | A deployed component | Named after the **role it plays in OAN** | `registry`, `keycloak` |
 | Two charts for the same role | Add the distinguishing implementation as a suffix, only when there is something to distinguish | `postgresql-cnpg` |
 | Release name | Matches the chart name, so resources read `registry-...` and not `registry-registry-...` | `helm install registry charts/registry` |
+| Namespace | The stack it holds, kebab-case, no prefix | `registry`, `discovery` |
 | Template helpers | Chart-local helpers are namespaced by chart name: `<chart>.<helper>` | `registry.fullname` |
 | Value keys | camelCase, matching Kubernetes field names where one exists | `podSecurityContext`, `envFromSecrets` |
 | Env var keys in `envConfig` | SCREAMING_SNAKE_CASE | `LOG_LEVEL` |
@@ -32,6 +33,62 @@ the chart is configured and operated.
 No chart carries an `oan-` prefix. The organisation is expressed in labels, not
 in names: every chart depends on `common` and carries the standard OAN labels,
 including `app.kubernetes.io/part-of: oan`.
+
+The same applies to namespaces: `registry`, not `oan-registry`. Every cluster
+this repo deploys into is an OAN cluster, so the prefix distinguishes nothing and
+repeats in every `-n` flag what `part-of: oan` already carries.
+
+A namespace is named for the component it holds, and a component that another
+team could plausibly be given separately gets its own:
+
+| Namespace | Holds |
+|---|---|
+| `postgres` | the CNPG `Cluster`s, and nothing else |
+| `keycloak` | the identity provider |
+| `registry` | the participant registry |
+| `discovery` | the discover-and-publish service |
+
+Databases are the clearest case: one namespace to hand a DBA, and one place
+where `get secrets` reaches a database credential. Services then reach their
+database by FQDN -- `registry-db-rw.postgres.svc.cluster.local`, never the bare
+`registry-db-rw`, which only resolves in the Cluster's own namespace.
+
+That split has a consequence worth stating. Secrets are namespaced, and several
+values are needed in more than one namespace -- a database password by the CNPG
+operator that sets the role and by the service that connects with it, the
+admin-api client secret by the realm import and by the registry.
+
+They are still **one Secret**. It is created once, in the namespace that owns it,
+and mirrored into the others by [Kubernetes
+Reflector](https://github.com/emberstack/kubernetes-reflector) via annotations:
+
+```yaml
+reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
+reflector.v1.k8s.emberstack.com/reflection-auto-namespaces: "keycloak"
+```
+
+One consequence of using Reflector: it mirrors a **whole** Secret and cannot
+select keys. So a Secret holds only what every namespace it reaches is entitled
+to see. `keycloak-admin-api` carries the admin-api client secret alone, and the
+registry's `registryDefaultUserPassword` lives in its own `registry-default-user`
+rather than beside it, because the keycloak namespace has no use for it and the
+point of the split is to keep that reach small.
+
+Do not create the same secret twice by hand. Two hand-made copies are two values
+that can drift, and a drifted one fails as "password authentication failed",
+which reads as a database problem rather than a Secret problem. One source, one
+value, mirrored.
+
+`scripts/gen-secrets.py` emits each value exactly once, in YAML, as the input to
+AWS Secrets Manager -- one top-level key per secret, one Secrets Manager entry
+each. From there External Secrets Operator pulls it into the owning namespace
+and Reflector mirrors it onward.
+
+One consequence is easy to miss. CNPG's generated app Secret carries a ready-made
+`uri`, but it names the **bare** in-namespace host, so it does not resolve from
+the service's namespace. Supply `bootstrap.ownerSecret` with a DSN built on the
+FQDN instead of relying on the generated one.
 
 Chart directory name, `name` in `Chart.yaml`, and the prefix of the chart-local
 helpers must all agree. A mismatch is the most common cause of a chart that

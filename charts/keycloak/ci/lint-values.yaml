@@ -6,7 +6,12 @@
 database:
   host: registry-db-rw
   passwordSecret:
-    name: registry-db-app
+    name: registry-db
 admin:
   passwordSecret:
     name: keycloak-admin
+realmImport:
+  adminClientSecret:
+    name: keycloak-admin-api
+  seedUserSecret:
+    name: registry-seed

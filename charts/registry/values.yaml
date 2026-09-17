@@ -72,7 +72,8 @@ ingress:
 # CNPG cluster's bootstrap owner and give Keycloak its own database.
 # ---------------------------------------------------------------------------
 database:
-  # PostgreSQL primary service, e.g. "registry-db-rw"
+  # PostgreSQL primary service. The CNPG Clusters run in their own namespace,
+  # so this is an FQDN: "registry-db-rw.postgres.svc.cluster.local"
   host: ""
   port: 5432
   name: registry
@@ -93,7 +94,7 @@ database:
 # The keycloak chart prints the exact value to use in its NOTES.
 # ---------------------------------------------------------------------------
 keycloak:
-  # e.g. http://keycloak.oan-registry.svc.cluster.local:8080/auth
+  # e.g. http://keycloak.keycloak.svc.cluster.local:8080/auth
   url: ""
   realm: sunbird-rc
   # Confidential client the registry uses for admin operations on Keycloak
@@ -104,10 +105,10 @@ keycloak:
   identityProvider: dev.sunbirdrc.auth.keycloak.KeycloakProviderImpl
   # Secret holding the admin-api client secret.
   #
-  # The realm export ships this masked, so it is NOT usable until someone
-  # regenerates it: Keycloak console -> realm sunbird-rc -> Clients -> admin-api
-  # -> Credentials -> Regenerate Secret. First install is two-phase because of
-  # this.
+  # The keycloak chart substitutes this same Secret into the realm at import
+  # (realmImport.adminClientSecret), so point both charts at one Secret and the
+  # value the registry sends is by construction the one Keycloak holds. No
+  # console step, and no two-phase install.
   adminClientSecret:
     name: ""
     key: keycloakAdminClientSecret

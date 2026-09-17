@@ -1,7 +1,7 @@
 # Example: the OAN participant registry, production.
 #
 #   helm install registry charts/registry \
-#     -n oan-registry -f charts/registry/examples/registry.prod.yaml
+#     -n registry -f charts/registry/examples/registry.prod.yaml
 #
 # The differences from dev are all here, per issue #30's requirement that
 # environment differences live only in values files.
@@ -38,7 +38,8 @@ image:
 replicaCount: 2
 
 database:
-  host: registry-db-rw
+  # FQDN: the CNPG Cluster runs in its own `postgres` namespace.
+  host: registry-db-rw.postgres.svc.cluster.local
   port: 5432
   name: registry
   # Production connects as the database OWNER, not the superuser. This is the
@@ -46,29 +47,30 @@ database:
   # database. Requires the cluster's bootstrap owner to be `registry`.
   user: registry
   passwordSecret:
-    name: registry-db-app
+    name: registry-db
     key: password
 
 keycloak:
-  url: http://keycloak.oan-registry.svc.cluster.local:8080/auth
+  url: http://keycloak.keycloak.svc.cluster.local:8080/auth
   realm: sunbird-rc
   adminClientId: admin-api
   clientId: registry-frontend
   adminClientSecret:
-    name: registry-keycloak
+    name: keycloak-admin-api
     key: keycloakAdminClientSecret
 
 authenticationEnabled: true
 
 keycloakUserSetPassword: true
 defaultUserPasswordSecret:
-  name: registry-keycloak
+  name: registry-default-user
   key: registryDefaultUserPassword
 
 # Secrets are created out of band; this chart renders none of them. The Secret
 # named above must carry both keys:
-#   kubectl -n oan-registry create secret generic registry-keycloak \
-#     --from-literal=keycloakAdminClientSecret='<regenerated admin-api secret>' \
+#   kubectl -n registry create secret generic keycloak-admin-api \
+#     --from-literal=keycloakAdminClientSecret='<value>'
+#   kubectl -n registry create secret generic registry-default-user \
 #     --from-literal=registryDefaultUserPassword='<password>'
 
 resources:

@@ -5,6 +5,57 @@ All notable changes to the `keycloak` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-09-15
+
+### Changed
+- **BREAKING.** `realmImport.adminClientSecret.name` is now required while
+  `realmImport.enabled` is true. The render fails without it rather than
+  importing a realm whose `admin-api` secret is an unsubstituted placeholder,
+  which would fail every registry admin call with an error that does not mention
+  the realm.
+- The shipped realm carries `"secret": "${env.KEYCLOAK_ADMIN_CLIENT_SECRET}"` for
+  the `admin-api` client instead of the masked `"**********"`. The legacy image
+  substitutes `${env.*}` at import, so the credential reaches Keycloak as an
+  environment variable sourced from a Secret, and the realm ConfigMap holds only
+  the placeholder - a ConfigMap being readable by anyone who can list them.
+
+### Changed
+- Documented namespace is now `keycloak` rather than `registry`. No template
+  changes: nothing here hardcodes a namespace, and `keycloak.url` already derives
+  from `.Release.Namespace`. Two consequences of the move are not optional.
+
+  `database.host` must now be the FQDN
+  `registry-db-rw.postgres.svc.cluster.local`. Keycloak still uses its own
+  database and its own role on the registry stack's Cluster - that has not
+  changed - but the Cluster is in another namespace now, so the bare service
+  name no longer resolves.
+
+  And two Secrets are now needed in two namespaces each, for different reasons:
+
+  - `keycloak-db` is Keycloak's own database password. The `postgres` namespace
+    needs it for the CNPG operator, which reconciles the `keycloak` role against
+    it and can only read Secrets in its Cluster's namespace. The registry
+    service never reads it; the registry connects as `registry`.
+  - `keycloak-admin-api` holds the admin-api client secret, and nothing else.
+    Both services read it: the realm import writes the client from it, and the
+    registry authenticates to Keycloak's admin API with it. It is one key in its
+    own Secret because Reflector mirrors a whole Secret and cannot select keys -
+    `registryDefaultUserPassword`, which only the registry needs, lives
+    separately in `registry-default-user` so it never reaches this namespace.
+
+  Neither is created twice. Each is one Secret, mirrored into the second
+  namespace by Kubernetes Reflector, so there is no second copy to drift.
+
+### Removed
+- The two-phase first install. There is no longer a console step between
+  installing this chart and installing the registry: point both at one Secret
+  and the value the registry sends is the value Keycloak was imported with.
+
+### Note
+- `${env.*}` substitution is a property of the image, not of the chart, so
+  rendering does not prove it. Verify once per environment against
+  `sunbird-rc-keycloak:v1.0.0` - see the chart README.
+
 ## [0.2.0] - 2026-08-31
 
 ### Removed
