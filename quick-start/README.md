@@ -229,8 +229,9 @@ make up
 ```
 
 `make up`, not `make up-core`: two more tiers on top of Part 1's three —
-nginx-proxy-manager on 80 and 443, and HyperDX. **This is the step that makes
-the VM reachable from the internet.**
+nginx-proxy-manager on 80 and 443, and observability (ClickHouse, the
+OpenTelemetry Collector, Grafana). **This is the step that makes the VM
+reachable from the internet.**
 
 ## Step V4 — Decide what is exposed
 
@@ -257,17 +258,18 @@ loopback.
 make observability
 ```
 
-HyperDX on `127.0.0.1:8085`, OTLP on 4317/4318 — and, once you add its proxy
-host, on a public hostname behind an NPM Access List, which is how you read it
-without a tunnel. Route + credential → **Appendix B**. → Appendix H, which is
-honest about how much actually arrives.
+Grafana on `127.0.0.1:8085`, OTLP on 4317/4318 into the collector — and, once
+you add its proxy host, Grafana on a public hostname behind an NPM Access List
+(and its own login), which is how you read it without a tunnel. Route +
+credential → **Appendix B**. → Appendix H, which is honest about how much
+actually arrives.
 
 Every container's stdout lands there too, next to the traces — so this is also
 what replaces keeping `docker compose logs -f` open. How that is wired, and the
 one gotcha, are in Appendix H.
 
 `docker compose restart nginx-proxy-manager` after this command, the first
-time: NPM only resolves `hyperdx` on reload.
+time: NPM only resolves `grafana` on reload.
 
 ---
 
@@ -315,8 +317,9 @@ Running: **registry** (SunbirdRC + Postgres + Keycloak), **discovery**
 (catalogue search + Postgres), **three adapters** (same image, three configs),
 **two mock upstreams** standing in for Mausamgram and Agmarknet. Behind
 profiles: **nginx-proxy-manager** (`reverse-proxy`, the only container on a
-routable interface) and **hyperdx** (`observability`, ClickStack — the
-heaviest thing here).
+routable interface) and **clickhouse + otel-collector + grafana**
+(`observability` — ClickHouse is the heaviest thing here, and the reason the
+profile wants 16 GB).
 
 Deliberately absent:
 
@@ -361,22 +364,24 @@ Three hosts rather than one with path prefixes, so a rate limit or a block
 attaches to a hostname instead of a regex in a textarea, and each gets its own
 certificate. An unknown `Host` gets NPM's default page, not an adapter.
 
-**A fourth host for HyperDX**, if the `observability` profile is up — this is
+**A fourth host for Grafana**, if the `observability` profile is up — this is
 what replaces `ssh -L 8085` for reading telemetry:
 
 | Domain | Forward Hostname | Port | Then |
 |---|---|---|---|
-| `hyperdx.oan.example.com` | `hyperdx` | 8080 | **Access List**, then paste `config/reverse-proxy/npm-advanced/hyperdx.conf` into **Advanced** |
+| `grafana.oan.example.com` | `grafana` | 3000 | **Access List**, then paste `config/reverse-proxy/npm-advanced/grafana.conf` into **Advanced** |
 
-`8080`, the container port — not the `8085` loopback publishes it as. Turn on
-**Websockets Support** (the UI's live tail needs it) and **Block Common
-Exploits**; scheme stays `http`.
+`3000`, the container port — not the `8085` loopback publishes it as. Turn on
+**Websockets Support** (Grafana Live, used for streaming panels and live-tailing
+logs, needs it) and **Block Common Exploits**; scheme stays `http`.
 
-**The Access List is not optional, and it is the whole login.** `clickstack-local`
-runs single-user: no team, no user, no ingestion key — which is what makes
-`make observability` one command, and also means a proxy host without an Access
-List publishes every trace, log and metric the stack has emitted, to anyone who
-resolves the name.
+**Grafana has its own login** (`GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD`
+in `docker-compose.yml`'s `grafana` service) — unlike `clickstack-local`, which
+this replaced and which ran single-user with no login at all. That does not
+make the Access List optional, only a second layer rather than the only one: it
+keeps the login prompt itself off the public internet, and stops an attacker
+who has guessed or brute-forced the Grafana password from being asked for a
+second, unrelated credential first.
 
 Access Lists → Add → name it → **Authorization** tab → username + password →
 leave **Satisfy Any off**, and leave the **Rules** tab empty. Then the proxy
@@ -397,31 +402,31 @@ for the password. Unchecked (`satisfy all`) means basic auth must pass. Only
 check it if you have IP rules and want address *or* password to be enough.
 
 Check both directions, because a detached list fails open and a 200 looks like
-success either way:
+success either way (then Grafana's own login prompt, on top):
 
 ```sh
-curl -s -o /dev/null -w '%{http_code}\n' https://hyperdx.oan.example.com/ -u user:pass   # 200
-curl -s -o /dev/null -w '%{http_code}\n' https://hyperdx.oan.example.com/                # 401
+curl -s -o /dev/null -w '%{http_code}\n' https://grafana.oan.example.com/ -u user:pass   # 200
+curl -s -o /dev/null -w '%{http_code}\n' https://grafana.oan.example.com/                # 401
 ```
 
-`hyperdx` resolves for NPM because the service is on `oan-edge` as well as
-`oan-internal`. Two consequences worth holding onto:
+`grafana` resolves for NPM because the service is on `oan-edge` as well as
+`oan-internal` — the only observability container that is. **NPM was started
+before that name existed**, so the host 502s until
+`docker compose restart nginx-proxy-manager`. Grafana is behind a profile and
+cannot be a `depends_on`, so nothing does this for you.
 
-- **NPM was started before that name existed**, so the host 502s until
-  `docker compose restart nginx-proxy-manager`. HyperDX is behind a profile and
-  cannot be a `depends_on`, so nothing does this for you.
-- **The container is also ClickHouse**, so `hyperdx:8123` is now a Forward
-  Hostname that resolves, pointing at an HTTP interface `clickstack-local`
-  leaves open on the same volume. The host above pins 8080; nothing in the UI
-  stops a second one on 8123. Registry and Keycloak are still off `oan-edge` —
-  that bound did not move — but this one name did.
+Unlike the HyperDX container this replaced, **ClickHouse itself never touches
+`oan-edge`** — Grafana's ClickHouse plugin queries server-side, inside the
+`grafana` container, so there is no browser-facing ClickHouse port that a
+second, forgotten proxy host could expose. `clickhouse` and `otel-collector`
+stay on `oan-internal` only, always.
 
 **OTLP stays off the edge.** Do not add 4317/4318 to this host or any other:
 they accept telemetry with no credential, and an Access List in front of them
 would break every in-stack sender (gRPC, not HTTP Basic) while an open route
 would let anyone write into the tables you are reading. Inside the stack,
-senders use `hyperdx:4317` over `oan-internal`; outside it, a reverse tunnel to
-the loopback publish.
+senders use `otel-collector:4317` over `oan-internal`; outside it, a reverse
+tunnel to the loopback publish.
 
 **Certificates.** SSL tab → Request a new certificate → Force SSL → HTTP
 validation. Two things must be true, and both are easy to miss:
@@ -463,7 +468,7 @@ an `allow`.
 | `npm-custom/http_top.conf` | **Automatic**, top of the `http` block. The `consumer` rate-limit zone and `limit_req_status 429`. |
 | `npm-custom/server_proxy.conf` | **Automatic**, every server block. The `/publish` deny. |
 | `npm-advanced/consumer.conf` | **Manual** — paste into the consumer host's Advanced tab. `limit_req` for that host only; a 10 r/s ceiling on signed peer traffic would throttle for no gain. |
-| `npm-advanced/hyperdx.conf` | **Manual** — paste into the HyperDX host's Advanced tab. 300s timeouts for ClickHouse scans, buffering off for live tail. Carries no credential; the Access List does. |
+| `npm-advanced/grafana.conf` | **Manual** — paste into the Grafana host's Advanced tab. 300s timeouts for ClickHouse-backed queries, a WebSocket upgrade for Grafana Live, buffering off for streaming panels. Carries no credential of its own; Grafana's login and the Access List do. |
 
 The manual one is in a file anyway because NPM's Advanced field is a textarea
 in a database row — nothing diffs it and nothing reviews it.
@@ -471,7 +476,7 @@ in a database row — nothing diffs it and nothing reviews it.
 ### Adding a route for another service
 
 Two steps, and the first is in git rather than the UI. NPM sits on `oan-edge`,
-where only the three adapters and `hyperdx` resolve, so a proxy host pointed at
+where only the three adapters and `grafana` resolve, so a proxy host pointed at
 `registry` or `keycloak` 502s rather than quietly working. **The UI alone
 cannot widen what is public** — that is the property worth keeping.
 
@@ -516,7 +521,7 @@ loopback. A registry route would depend on that silently.
 2. bin/setup.py                  keys, seven participants, four bindings, three configs
 3. mock upstreams, then the three adapters
 4. nginx-proxy-manager           the public edge — 80 and 443, all interfaces
-5. hyperdx                       ClickStack
+5. clickhouse, otel-collector, grafana   OTLP ingest, storage, UI
 ```
 
 `make up` runs all five; `make up-core` stops after 3, which is enough to
@@ -765,21 +770,28 @@ need to undo.
 
 ## Appendix H — Telemetry
 
-`make observability` brings up HyperDX on `127.0.0.1:8085` with OTLP on
-4317/4318. It is `clickstack-local`: single-user, no team to create and no
-ingestion key to mint, which is what makes it one command — and also why it has
-**no login of its own**.
+`make observability` brings up three containers where one used to be: an
+OpenTelemetry Collector (`otel-collector`, OTLP ingest on 4317/4318 plus
+container-log collection), ClickHouse (`clickhouse`, storage), and Grafana
+(`grafana`, the UI, on `127.0.0.1:8085`). Grafana is a query layer, not a
+telemetry backend — it needs something to query, which is what the other two
+are for. This replaced `hyperdx`/`clickstack-local`, a single all-in-one
+container that bundled all three roles; the same telemetry contract (OTLP
+in, ClickHouse storage) survives the split, but each piece is now the
+upstream project's own image rather than a vendor-trimmed build.
 
-So the UI is reachable two ways, and only one of them has a credential. The
-loopback publish is still there for `ssh -L 8085:127.0.0.1:8085`. The public
-path is a proxy host on `hyperdx:8080` with an **NPM Access List** in front,
-which is the only authentication that exists on it — see Appendix B, including
-why OTLP's 4317/4318 do not get the same treatment.
+So the UI is reachable two ways, and now both of them have a credential.
+The loopback publish is still there for `ssh -L 8085:127.0.0.1:8085`. The
+public path is a proxy host on `grafana:3000` with an **NPM Access List** in
+front of Grafana's own login (`GF_SECURITY_ADMIN_USER` /
+`GF_SECURITY_ADMIN_PASSWORD`) — see Appendix B, including why OTLP's
+4317/4318 do not get the same treatment, and why that login is new
+compared to `clickstack-local`.
 
 **Discovery now exports.** It used to read the OTLP variables and consume
 nothing; that changed when its telemetry package landed, so `DISCOVERY_OTEL_EXPORTER`
-defaults to `otlp` and its spans and two `pgxpool` instruments go to HyperDX
-over OTLP/gRPC — the same hop the adapters make.
+defaults to `otlp` and its spans and two `pgxpool` instruments go to the
+collector over OTLP/gRPC — the same hop the adapters make.
 
 Two `.env` keys come with that, and they are not optional:
 `DISCOVERY_SUBSCRIBER_ID` and `DISCOVERY_DOMAIN`. Discovery **refuses to boot**
@@ -826,8 +838,8 @@ $ docker run --rm discovery-service:local --version
 github.com/OpenAgriNet/discovery-service dev unknown 1970-01-01T00:00:00Z unknown
 ```
 
-That `dev`/`unknown` reaches HyperDX verbatim as `build.commit`, `build.date` and
-`build.tree_state`. Honest for a local build. `VERSION`, `COMMIT`, `BUILD_DATE`
+That `dev`/`unknown` reaches ClickHouse verbatim as `build.commit`, `build.date`
+and `build.tree_state`. Honest for a local build. `VERSION`, `COMMIT`, `BUILD_DATE`
 and `TREE_STATE` are passed through from the environment when set, so exporting
 them before the build — or building in the discovery-service repo with
 `make docker`, which derives all four — gives a Resource you can trace back.
@@ -845,51 +857,47 @@ The five OAN `metric.code` streams:
 **These are not instrumented in the discovery service.** There is no counter for
 them in the Go code, by design — they are computed from the exported span stream
 by a `spanmetrics` connector and a `metricsgeneration` processor in
-`otel/collector.yaml` in the discovery-service repo. This stack does not run
-that collector, so the codes are simply absent. Traces still arrive and
-everything looks healthy, which is exactly why it is worth stating here.
+`otel/collector.yaml` in the discovery-service repo. `config/otel-collector/config.yaml`
+in this stack does not wire either one up, so the codes are simply absent.
+Traces still arrive and everything looks healthy, which is exactly why it is
+worth stating here.
 
-That is a **quick-start simplification, not the deployment shape**. A real OAN
-deployment runs that collector between discovery and its telemetry backend; the
-five codes are a network contract owed to the facilitator, and the collector is
-what produces them.
-
-HyperDX's own collector cannot stand in for it, which is worth knowing before
-someone tries. Despite a `/otelcontribcol` binary and an `/etc/otelcol-contrib`
-directory, it is a trimmed custom build:
-
-```
-$ docker exec hyperdx /otelcontribcol --version
-otelcol-hyperdx version 0.155.0
-$ docker exec hyperdx /otelcontribcol components   # connectors:
-forward, routing
-```
-
-No `spanmetrics`, no `metricsgeneration` — the two components that *are* the
-derivation.
+That is a **quick-start simplification, not a platform limitation**. Unlike
+the HyperDX container this replaced — a trimmed custom build (`otelcol-hyperdx`)
+whose `components` output listed only `forward, routing` under connectors —
+`otel/opentelemetry-collector-contrib`, the image `otel-collector` runs, ships
+both `spanmetricsconnector` and `metricsgenerationprocessor` already. Deriving
+the five codes here is a matter of adding a `spanmetrics` connector and a
+`transform`/`metricsgeneration` stage to this file's `traces`/`metrics`
+pipelines, not swapping the collector image — this stack simply does not do
+that today. A real OAN deployment runs that derivation between discovery and
+its telemetry backend; the five codes are a network contract owed to the
+facilitator.
 
 ### Container logs now arrive too
 
-Every container's stdout and stderr lands in HyperDX alongside the traces, so a
-failing request and the line the service printed while failing it are readable
-in one place. This used to need `docker compose logs -f` in a second terminal.
+Every container's stdout and stderr lands in ClickHouse alongside the traces,
+readable in Grafana, so a failing request and the line the service printed
+while failing it are readable in one place. This used to need
+`docker compose logs -f` in a second terminal.
 
 Two pieces make it work, and both are small:
 
-- `config/observability/filelog.yaml` — a **collector overlay**, handed to
-  HyperDX's supervisor through `CUSTOM_OTELCOL_CONFIG_FILE`. It adds a `filelog`
-  receiver over `/var/lib/docker/containers/*/*-json.log` (bind-mounted read-only)
-  and its own `logs/containers` pipeline. The overlay is merged *after* the
-  remote config HyperDX pushes over OpAMP, and the pipeline sits under a key
-  that config does not use, so nothing it defines is clobbered.
+- `config/otel-collector/config.yaml` — the collector's **whole config**, not an
+  overlay merged into a vendor-supplied base the way HyperDX's
+  `CUSTOM_OTELCOL_CONFIG_FILE` worked. It defines a `filelog/containers`
+  receiver over `/var/lib/docker/containers/*/*-json.log` (bind-mounted
+  read-only) feeding the same `logs` pipeline that OTLP-received logs go
+  through, plus a `transform/logs` processor that parses a JSON body into
+  attributes and lifts a `level` field into severity.
 - an `x-logging` anchor on every service in `docker-compose.yml`. It sets
   `labels: com.docker.compose.service` on the json-file driver, which writes an
   `attrs` object into each log line — **the only way the collector learns which
   service a file belongs to**. Without it every line arrives with an empty
-  `ServiceName`. The same anchor caps each container at `10m × 3` files; before
+  `service.name`. The same anchor caps each container at `10m × 3` files; before
   it, container logs grew without bound.
 
-The overlay reads files rather than taking a push, so it also picks up
+The receiver reads files rather than taking a push, so it also picks up
 containers compose does not define — and it needs no change to any service that
 logs. `docker logs` keeps working throughout.
 
@@ -907,7 +915,8 @@ collector read.
 
 ### Everything else unchanged
 
-The three adapters send to HyperDX directly, as they always have. Whether the
+The three adapters send to the collector directly, as they always sent to
+HyperDX. Whether the
 adapter image's SDK actually reads the OTLP variables is still unverified —
 nothing depends on the answer, since an absent collector makes an exporter drop
 spans rather than fail a request.
@@ -1006,12 +1015,18 @@ config/
       server_proxy.conf       deny every proxy host gets
     npm-advanced/           NOT loaded. Paste into a host's Advanced tab; kept
       consumer.conf                here because a textarea in a database is not
-      hyperdx.conf            reviewable. consumer = rate limit; hyperdx = ClickHouse
-                              timeouts (its login is an NPM Access List)
-  observability/
-    filelog.yaml          collector overlay for HyperDX, merged after its OpAMP
-                            remote config. Reads every container's json log and
-                            names the service from the compose label
+      grafana.conf            reviewable. consumer = rate limit; grafana = ClickHouse
+                              query timeouts + a WebSocket upgrade for Grafana Live
+  otel-collector/
+    config.yaml             the whole collector config: OTLP ingest, container
+                            log collection, the ClickHouse export -- self-owned,
+                            not an overlay on an image-supplied base
+  grafana/
+    provisioning/
+      datasources/
+        clickhouse.yaml     auto-provisions the ClickHouse datasource on boot,
+                            reading its credentials from the grafana container's
+                            own environment
   adapters/
     consumer.yaml.tmpl    templates. setup.py renders these to .yaml,
     network.yaml.tmpl       filling in the keys it generated. The rendered
@@ -1044,7 +1059,7 @@ name it is running under:
 
 ```sh
 make down
-for v in sunbird-registry-postgres-data discovery-postgres-data nginx-proxy-manager-data nginx-proxy-manager-letsencrypt hyperdx-clickhouse-data; do
+for v in sunbird-registry-postgres-data discovery-postgres-data nginx-proxy-manager-data nginx-proxy-manager-letsencrypt clickhouse-data grafana-data; do
   docker volume create "openagrinet_$v" >/dev/null
   docker run --rm -v "old-name_$v:/from" -v "openagrinet_$v:/to" alpine \
     sh -c 'cd /from && tar cf - . | (cd /to && tar xf -)'

@@ -115,7 +115,7 @@ cat <<'NEXT'
       cp .env.example .env && nano .env      # change every credential
       make up
 
-  `make up` includes the gateway and hyperdx. Use `make up-core` for neither.
+  `make up` includes the gateway and observability. Use `make up-core` for neither.
   See CERTIFICATES.md before requesting a certificate.
 
 NEXT

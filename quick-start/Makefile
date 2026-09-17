@@ -4,7 +4,7 @@
 # thing to type.
 #
 #     make up        the whole stack, in the order it has to start
-#     make up-core   the same minus the reverse proxy and hyperdx
+#     make up-core   the same minus the reverse proxy and observability
 #     make down      stop everything, keep the data
 #     make help      the rest
 #
