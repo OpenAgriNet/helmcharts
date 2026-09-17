@@ -12,11 +12,11 @@
 #                   sunbird-registry-service
 #   discovery       discovery-postgres, discovery-service
 #   adapters        provider, network, consumer
-#   observability   hyperdx                      profile: observability
+#   observability   clickhouse, otel-collector, grafana   profile: observability
 #   edge            nginx-proxy-manager          profile: reverse-proxy
 #
 # The last two are behind profiles because neither is needed to exercise the
-# stack, and HyperDX is the heaviest thing here.
+# stack, and ClickHouse is the heaviest thing here.
 #
 # ---------------------------------------------------------------- bringing up
 #
@@ -42,13 +42,14 @@
 #
 # Exactly one container publishes on a routable interface: Nginx Proxy
 # Manager, on 80 and 443. Everything else -- both Postgres instances,
-# Keycloak, the registry, discovery, the HyperDX UI, and NPM's own admin UI on
-# 81 -- publishes on 127.0.0.1 and is reachable only through an SSH tunnel:
+# Keycloak, the registry, discovery, ClickHouse, the Grafana UI, and NPM's own
+# admin UI on 81 -- publishes on 127.0.0.1 and is reachable only through an
+# SSH tunnel:
 #
-# The HyperDX UI is the one item on that list with a second way in: it also has
-# a proxy host, so it is readable at https://<your hyperdx name>/ with the
-# Access List's username and password. Its loopback publish is unchanged --
-# routing it did not open a port here.
+# The Grafana UI is the one item on that list with a second way in: it also has
+# a proxy host, so it is readable at https://<your grafana name>/ with its own
+# login (and, in front of that, the Access List's username and password). Its
+# loopback publish is unchanged -- routing it did not open a port here.
 #
 #   ssh -L 81:127.0.0.1:81   -L 8080:127.0.0.1:8080 \
 #       -L 8081:127.0.0.1:8081 -L 8085:127.0.0.1:8085 -N you@the-vm
@@ -66,9 +67,12 @@
 # decoration and becomes the actual control. NPM's "Forward Hostname" is a
 # free-text field, so anyone with the admin password can point a public route
 # at `sunbird-registry-service` or `sunbird-registry-keycloak`. NPM sits only on
-# oan-edge, where neither name resolves and neither address is routable -- the three adapters and hyperdx
+# oan-edge, where neither name resolves and neither address is routable -- the three adapters and grafana
 # are the only containers it shares a network with. Those four straddle both
-# networks; everything else is internal-only.
+# networks; everything else is internal-only. ClickHouse and the collector stay
+# oan-internal ONLY -- Grafana's ClickHouse plugin queries server-side, so
+# unlike the old hyperdx container there is no browser-facing ClickHouse port
+# that needs a route.
 #
 # Neither is `internal: true`: the adapters and discovery fetch the Beckn spec
 # from raw.githubusercontent.com at boot, the provider adapter calls an
@@ -91,7 +95,8 @@ networks:
 volumes:
   sunbird-registry-postgres-data:
   discovery-postgres-data:
-  hyperdx-clickhouse-data:
+  clickhouse-data:
+  grafana-data:
   nginx-proxy-manager-data:
   nginx-proxy-manager-letsencrypt:
 
@@ -104,8 +109,8 @@ x-logging: &logging
   # `labels`, which makes the json-file driver write the compose service name
   # into each line's `attrs` field. Compose sets that label on every container
   # already; without this opt it stays in the container's metadata, where the
-  # collector reading the log FILE cannot see it. config/observability/filelog.yaml
-  # turns it into service.name, and it is the only reason HyperDX can show
+  # collector reading the log FILE cannot see it. config/otel-collector/config.yaml
+  # turns it into service.name, and it is the only reason Grafana can show
   # "discovery-service" rather than 64 hex characters.
   #
   # `max-size`/`max-file`, which bound the files those logs accumulate in.
@@ -146,7 +151,7 @@ x-adapter-env: &adapter-env
   # "default" includes an EMPTY scheme. OTLP_ENDPOINT is a bare host:port,
   # because that is what the plugin's own otlpEndpoint config field takes --
   # so without the scheme prefix below, or this flag, the exporter dials TLS
-  # at hyperdx's plaintext 4317 and logs, once per export interval:
+  # at otel-collector's plaintext 4317 and logs, once per export interval:
   #
   #     failed to upload metrics: ... authentication handshake failed:
   #     tls: first record does not look like a TLS handshake
@@ -166,7 +171,7 @@ x-adapter-env: &adapter-env
   # OTEL_EXPORTER_OTLP_PROTOCOL is deliberately absent. The plugin constructs
   # gRPC exporters in code, so a protocol preference here is ignored and only
   # suggests the transport is configurable from this file.
-  OTEL_EXPORTER_OTLP_ENDPOINT: http://${OTLP_ENDPOINT:-hyperdx:4317}
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://${OTLP_ENDPOINT:-otel-collector:4317}
   OTEL_EXPORTER_OTLP_INSECURE: "true"
 
 services:
@@ -462,7 +467,7 @@ services:
       # This block used to say the exporter was parsed and unread, and that
       # `none` was therefore the honest default. That stopped being true when
       # the telemetry package landed: the service exports spans and two pgxpool
-      # instruments over OTLP/gRPC, straight to hyperdx like the adapters.
+      # instruments over OTLP/gRPC, straight to otel-collector like the adapters.
       #
       # WHAT DOES NOT ARRIVE, so nobody goes looking for it: the five OAN
       # `metric.code` streams -- the two *_total_count and the three *_percent.
@@ -488,7 +493,7 @@ services:
       # host:port is what silently selects TLS. Adding http:// to this line
       # would not make it more explicit; it would route through the URL branch.
       # OTEL_EXPORTER_OTLP_INSECURE is absent for the same reason: unread.
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTLP_ENDPOINT:-hyperdx:4317}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTLP_ENDPOINT:-otel-collector:4317}
 
       # BOTH ARE REQUIRED once the exporter is otlp, and their absence fails
       # the boot rather than degrading -- the service refuses to export a
@@ -514,7 +519,7 @@ services:
       # SOFTWARE this is and so must not vary by deployment. Confirmed against
       # a live stack on 2026-09-10 -- spans arrived as `discovery-service` with
       # nothing set. The variable was worse than inert: it named a value you
-      # would then go hunting for in HyperDX and never find, and the rename
+      # would then go hunting for in Grafana and never find, and the rename
       # gave it a second wrong value to hunt for. What varies per deployment is
       # `producer`, from APP_SUBSCRIBER_ID above.
     # config/common.yaml is baked into the image and is the reviewed default.
@@ -674,171 +679,168 @@ services:
       - "127.0.0.1:${CONSUMER_ADAPTER_PORT}:9202"
 
   # ==========================================================================
-  # observability -- HyperDX / ClickStack: OTLP ingest, ClickHouse, and the UI
-  # over it.
+  # observability -- ClickHouse (storage), an OpenTelemetry Collector (OTLP
+  # ingest and container-log collection), and Grafana (the UI over both).
   #
   #   docker compose --profile observability up -d
   #
-  # Sizing: ClickHouse alone wants 2-4 GB. With this profile on, the VM needs
-  # 16 GB (t3.xlarge or m6i.xlarge); without it, 8 GB is workable.
+  # Three containers where HyperDX/ClickStack used to be one, because Grafana
+  # is a query layer, not a telemetry backend -- it needs something to query.
+  # ClickHouse is that backend, and the collector is what gets data into it:
+  # it replaces the collector that used to live inside the HyperDX image, so
+  # it is also what config/observability/filelog.yaml used to be an OVERLAY
+  # on -- config/otel-collector/config.yaml is the whole config now, not a
+  # fragment merged into an image we did not otherwise control.
+  #
+  # Sizing unchanged from before: ClickHouse alone wants 2-4 GB, so with this
+  # profile on the VM needs 16 GB (t3.xlarge or m6i.xlarge); without it, 8 GB
+  # is workable.
   # ==========================================================================
-  hyperdx:
-    # clickstack-local, not clickstack-all-in-one: local runs single-user with
-    # no team to create and no ingestion API key to mint, which is what makes
-    # `up -d` the whole setup step. It is also why it has NO login of its own
-    # -- so once this is routed (see networks, below) the Access List on the
-    # proxy host is the only authentication in front of every trace, log and
-    # metric the stack has emitted. It is not an optional hardening step.
-    image: clickhouse/clickstack-local:latest
-    container_name: hyperdx
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse
     restart: unless-stopped
     logging: *logging
     profiles: ["observability"]
 
-    # oan-edge in addition to oan-internal, so NPM can resolve `hyperdx` and
-    # serve the UI on a hostname instead of an `ssh -L`. oan-internal stays,
-    # because that is the network the in-stack senders reach 4317/4318 on.
-    #
-    # This widens what a wrong click in NPM can reach, and the widening is
-    # worth stating rather than discovering: this container is also ClickHouse,
-    # so `hyperdx` is now a resolvable Forward Hostname for port 8123 -- an
-    # HTTP interface clickstack-local leaves open, over the same volume. The
-    # proxy host for the UI pins 8080 and is fine; nothing in NPM stops someone
-    # typing 8123 into a second one. Registry and Keycloak remain off oan-edge,
-    # so that bound is unchanged -- this is a deliberate trade of one name for
-    # not having to tunnel to read telemetry.
-    networks: [oan-internal, oan-edge]
-    env_file:
-      # Optional. Present so an existing .env.docker keeps working; compose
-      # errors on a missing env_file unless it is declared this way.
-      - path: .env.docker
-        required: false
+    # oan-internal ONLY. Unlike the old hyperdx container, nothing here queries
+    # ClickHouse from a BROWSER -- Grafana's ClickHouse plugin runs server-side
+    # inside the grafana container, so the query never has to leave this
+    # network. That is what lets ClickHouse stay off oan-edge entirely: there
+    # is no "Team Settings -> Host" step where a browser needs its own route or
+    # tunnel to 8123, which was the reason clickstack-local's HTTP port had to
+    # be published on oan-edge at all.
+    networks: [oan-internal]
     environment:
-      # Self-instrumentation off: the telemetry stack reporting on itself is
-      # noise in the same tables the stack under test writes to, and at debug
-      # level it is most of the volume.
-      OTEL_SDK_DISABLED: "true"
-      HYPERDX_LOG_LEVEL: error
-      HYPERDX_USAGE_STATS_ENABLED: "false"
-      HYPERDX_USAGE_STATS_COLLECTION_ENABLED: "false"
-      OTEL_LOG_LEVEL: none
-      OTEL_TRACES_EXPORTER: none
-      OTEL_METRICS_EXPORTER: none
-      OTEL_LOGS_EXPORTER: none
-      USAGE_STATS_ENABLED: "false"
-
-      # Container stdout -> this container's own collector. The supervisor
-      # appends this file to /etc/otelcol-contrib/config.yaml rather than
-      # replacing it (/etc/otel/supervisor.yaml.tmpl:27), so it adds a pipeline
-      # and changes nothing HyperDX configures for itself. The reasoning is in
-      # the file; the short version is that traces, metrics and AUDIT records
-      # arrive over OTLP and the console log did not arrive at all.
-      CUSTOM_OTELCOL_CONFIG_FILE: /etc/otelcol-contrib/filelog.yaml
-    ports:
-      # 8085, not the 8080 this image serves the UI on and not the 8081 it is
-      # usually published as: 8081 is REGISTRY_PORT here, and two services
-      # cannot claim one host port.
-      #
-      # Still 127.0.0.1 now that there is a route: the public path is NPM ->
-      # hyperdx:8080 across oan-edge, which is what makes the Access List
-      # unavoidable. Rebinding this to 0.0.0.0 would open a second door on the
-      # same UI with no credential on it, and the security group is the only
-      # thing that would be holding it shut.
-      - "127.0.0.1:${HYPERDX_UI_PORT:-8085}:8080"
-      # OTLP. Published on loopback only so a reverse tunnel can carry
-      # telemetry from a provider API running on someone's laptop; the
-      # in-stack senders reach hyperdx:4317/4318 over oan-internal and do not
-      # need these at all.
-      - "127.0.0.1:${HYPERDX_OTLP_GRPC_PORT:-4317}:4317"
-      - "127.0.0.1:${HYPERDX_OTLP_HTTP_PORT:-4318}:4318"
-
-      # ClickHouse's HTTP interface, and it is published for one specific
-      # reason: clickstack-local is LOCAL mode, where the UI queries ClickHouse
-      # straight from the BROWSER with no API server in between. So the Host
-      # field in Team Settings is dialled by your laptop, not by the container
-      # -- its `http://localhost:8123` default means *your* machine, so with
-      # nothing listening there it fails with "Error connecting to ClickHouse
-      # server" however the proxy is set up. The route and the Access List are
-      # not implicated; the query never leaves the browser's own stack.
-      #
-      # A tunnel to 8123 is all it needs, and the UI can still be the public
-      # host -- the origin serving the UI and the address it queries are
-      # independent:
-      #
-      #   ssh -L 8123:127.0.0.1:8123 -N you@the-vm
-      #   then https://hyperdx.<your host>/ with connection Host
-      #   http://localhost:8123     (add -L 8085 if you want the UI local too)
-      #
-      # The catch is that this is PER VIEWER: a teammate who opens the public
-      # host without that tunnel gets the same error, and connections live in
-      # browser local storage, so each origin needs its own set up by hand.
-      #
-      # 127.0.0.1 and NOT negotiable, unlike the UI on 8085. This interface
-      # executes arbitrary SQL and clickstack-local leaves it open, so a
-      # 0.0.0.0 bind or an NPM route publishes the whole telemetry store --
-      # and its own auth uses the same `Authorization: Basic` header an NPM
-      # Access List needs, so the two cannot be stacked.
-      #
-      # The real fix is clickstack-all-in-one: a server-side API queries
-      # ClickHouse, connections stop being browser state, and this publish and
-      # the tunnel both become unnecessary. See README Appendix H.
-      - "127.0.0.1:${CLICKHOUSE_HTTP_PORT:-8123}:8123"
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-otel}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-otel}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
     volumes:
-      - hyperdx-clickhouse-data:/var/lib/clickhouse
-      - ./config/observability/filelog.yaml:/etc/otelcol-contrib/filelog.yaml:ro
-
-      # Docker's own log files, READ-ONLY. This is the container that reads
-      # every other container's stdout, which is a real widening of what a
-      # compromise here reaches -- stated rather than buried, because it is the
-      # cost of the feature.
-      #
-      # The path is the daemon's, not the host's. On Docker Desktop for macOS
-      # it lives inside the LinuxKit VM and the bind still resolves (verified
-      # on 28.2.2). On rootless Docker, Podman or colima it does not, and the
-      # collector simply finds no files -- the stack comes up, the pipeline
-      # runs, and the log console stays empty.
-      #
-      # "No logs arrive" has TWO causes that look identical from outside, so
-      # check them in this order -- the second is the more common one and the
-      # cheaper test:
-      #
-      #   1. The collector never built the pipeline, because something in
-      #      filelog.yaml did not parse or names a component the merged config
-      #      no longer supplies. The container stays UP and the UI keeps
-      #      serving; only the collector is down. `docker compose ps` says
-      #      unhealthy, because the healthcheck below probes 13133 as well
-      #      as 8080. Then: docker compose logs hyperdx | grep -i error
-      #
-      #   2. This mount resolved to nothing, so the receiver has no files to
-      #      read. The container is HEALTHY -- the collector is fine, it just
-      #      has no input -- which is what makes this one silent:
-      #
-      #          docker exec hyperdx ls /var/lib/docker/containers | head
-      #
-      # Healthy-but-empty is (2). Unhealthy-and-empty is (1).
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - clickhouse-data:/var/lib/clickhouse
+    ports:
+      # Loopback only, and only for debugging with clickhouse-client or a
+      # one-off SQL query over a tunnel. Nothing in the stack needs this
+      # published -- the collector and Grafana both reach `clickhouse` by
+      # service name over oan-internal.
+      - "127.0.0.1:${CLICKHOUSE_HTTP_PORT:-8123}:8123"
     healthcheck:
-      # wget, not curl: this image has busybox. And a GET, not `--spider`,
-      # which sends HEAD -- Next.js answers HEAD / with a 404 while serving
-      # GET / perfectly, so the probe failed against a UI that was working.
-      #
-      # 127.0.0.1 rather than localhost, because busybox resolves localhost to
-      # ::1 first and these listeners are v4.
-      #
-      # Two checks, because this container is two things. 8080 is the Next.js
-      # UI -- what 8085 publishes and what you actually open. 13133 is the
-      # collector's health_check extension, and the collector is what receives
-      # telemetry on 4317/4318: it can die while the UI keeps serving, which
-      # loses data silently and is the failure worth catching.
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ && wget -q -O /dev/null http://127.0.0.1:13133/"]
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:8123/ping || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # Everything HyperDX's own embedded collector used to do: OTLP ingest from
+  # the adapters and discovery-service, plus the filelog pipeline that reads
+  # every container's stdout. One self-owned config,
+  # config/otel-collector/config.yaml, replaces both the base config HyperDX
+  # supplied and the filelog.yaml overlay that used to be merged into it over
+  # OpAMP -- there is no longer an upstream image's own naming to stay
+  # coupled to.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    restart: unless-stopped
+    logging: *logging
+    profiles: ["observability"]
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+
+    # oan-internal ONLY. Nothing on oan-edge ever needs to resolve this name --
+    # NPM does not route to it, and README Appendix B says why 4317/4318 must
+    # never get a proxy host: they take telemetry with no credential at all.
+    networks: [oan-internal]
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      CLICKHOUSE_ENDPOINT: tcp://clickhouse:9000?dial_timeout=10s
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB:-otel}
+      CLICKHOUSE_USERNAME: ${CLICKHOUSE_USER:-otel}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    volumes:
+      - ./config/otel-collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
+
+      # Docker's own log files, READ-ONLY -- same file HyperDX's collector read
+      # for the same reason: it is the only way to see every OTHER container's
+      # stdout without a per-service exporter, and Postgres, Keycloak and NPM
+      # will never speak OTLP. Same macOS/rootless-Docker caveat as before: see
+      # config/otel-collector/config.yaml for the two-cause "no logs arrive"
+      # checklist.
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    ports:
+      # Loopback only, so a reverse tunnel can carry telemetry from a provider
+      # API running on someone's laptop. In-stack senders reach
+      # otel-collector:4317/4318 over oan-internal and do not need these.
+      - "127.0.0.1:${OTEL_COLLECTOR_OTLP_GRPC_PORT:-4317}:4317"
+      - "127.0.0.1:${OTEL_COLLECTOR_OTLP_HTTP_PORT:-4318}:4318"
+    # No healthcheck: the contrib image is built FROM SCRATCH -- the binary,
+    # its config and CA certificates, nothing else. No shell and no wget/curl,
+    # so neither a CMD-SHELL probe nor a CMD exec-form one can run inside this
+    # container at all (verified against the image's own Dockerfile, which
+    # ends `FROM scratch`). The health_check extension in
+    # config/otel-collector/config.yaml still binds 13133 for a manual check
+    # from another container on oan-internal; Docker just cannot be the one
+    # asking. depends_on below is `service_started`, not `service_healthy`,
+    # for the same reason.
+
+  # The UI. Queries ClickHouse through the grafana-clickhouse-datasource
+  # plugin, provisioned automatically from config/grafana/provisioning -- no
+  # click-through needed, unlike HyperDX's Team Settings step.
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    logging: *logging
+    profiles: ["observability"]
+
+    # oan-edge in addition to oan-internal, so NPM can resolve `grafana` and
+    # serve the UI on a hostname instead of an `ssh -L`. Unlike the old
+    # hyperdx container, this does NOT also expose ClickHouse on oan-edge:
+    # the datasource plugin runs server-side, inside this container, so there
+    # is no browser-facing ClickHouse port to accidentally route. That was
+    # HyperDX's `hyperdx:8123` problem, and moving the query server-side is
+    # what removes it rather than documenting around it.
+    networks: [oan-internal, oan-edge]
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    environment:
+      # UNLIKE HyperDX, Grafana ships a real login -- so this credential is
+      # what guards it, not only the NPM Access List in front. Both are worth
+      # keeping: the Access List keeps the login prompt itself off the public
+      # internet, same as it did for HyperDX.
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      # Not bundled with the base image -- it is a community-maintained
+      # datasource plugin, so it has to be installed at boot. That needs
+      # egress, on the same argument as the "why isn't this internal: true"
+      # note at the top of this file.
+      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      # Substituted into config/grafana/provisioning/datasources/clickhouse.yaml
+      # so the datasource is wired up on first boot with no click-through --
+      # the same property HyperDX had for the opposite reason (it had nothing
+      # to configure).
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB:-otel}
+      CLICKHOUSE_USERNAME: ${CLICKHOUSE_USER:-otel}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      # Loopback only, same reasoning as every other UI in this file: the
+      # public path is the NPM proxy host, not this publish.
+      - "127.0.0.1:${GRAFANA_UI_PORT:-8085}:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:3000/api/health || exit 1"]
       interval: 10s
       timeout: 5s
-      # ClickHouse creates its system tables on a cold volume, which takes
-      # minutes rather than the 80s the previous 5/30s pair allowed. Docker
-      # does not re-evaluate once a container has failed past `retries`, so a
-      # window that is merely tight leaves a permanent wrong label.
-      retries: 10
-      start_period: 180s
+      retries: 15
+      start_period: 30s
 
   # ==========================================================================
   # edge -- Nginx Proxy Manager.
@@ -866,10 +868,12 @@ services:
     # NPM's "Forward Hostname" is a free-text field. Anyone with the admin
     # password can type `sunbird-registry-service`, `sunbird-registry-keycloak` or `discovery-postgres` into it. On
     # this network none of those names resolve and none of those addresses are
-    # routable from here -- the three adapters, and hyperdx when the
+    # routable from here -- the three adapters, and grafana when the
     # observability profile is up, are the only containers NPM shares a network
     # with. So the blast radius of a wrong click, or of the admin UI being
     # reached by someone who should not have it, is bounded to that set.
+    # clickhouse and otel-collector stay oan-internal only and are never
+    # reachable from here at all, routed or not.
     #
     # Putting NPM on oan-internal to "make things easier" would remove that
     # bound entirely and put the registry's write API one form field away from
@@ -933,11 +937,11 @@ services:
       #
       #   docker compose restart nginx-proxy-manager
       #
-      # hyperdx is deliberately absent even though it is routed: it is behind
+      # grafana is deliberately absent even though it is routed: it is behind
       # the `observability` profile, and a depends_on would make it start
       # whenever NPM does. That means the restart above is not optional after
       # `make observability` -- NPM was started before the name existed, so the
-      # HyperDX host 502s until it re-resolves.
+      # Grafana host 502s until it re-resolves.
       consumer-adapter:
         condition: service_started
       network-adapter:
