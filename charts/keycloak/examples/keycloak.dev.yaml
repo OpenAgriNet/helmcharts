@@ -56,9 +56,13 @@ realmImport:
   # registry chart reads as keycloak.adminClientSecret, so the two cannot drift.
   adminClientSecret:
     name: keycloak-admin-api
+  # The password for `no-user`, the identity registry-seed writes as. The key
+  # defaults to registrySeedPassword; naming the admin-api key here instead
+  # gave Keycloak and registry-seed two different passwords for the same
+  # account, and the seed failed with HTTP 401 against a realm that looked
+  # correct.
   seedUserSecret:
     name: registry-seed
-    key: keycloakAdminClientSecret
 
 # Dev: reach it with `kubectl port-forward` rather than an ingress. Enabling
 # ingress means the controller must set X-Forwarded-Host / X-Forwarded-Proto,
