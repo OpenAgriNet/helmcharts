@@ -7,7 +7,7 @@ description: >-
   identity is a keypair held in a Secret, and everything else it reads from
   the registry.
 type: application
-version: 0.2.0
+version: 0.3.0
 # The adapter binary, not this chart. `/health` reports the build it is
 # actually running, which is the number to trust over this one.
 appVersion: "v1.9.0"

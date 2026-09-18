@@ -61,3 +61,8 @@ secrets:
     namespaces: [oan]
   - name: provider-adapter-keys
     namespaces: [oan]
+
+  # The provider adapter's upstream credentials, named as environment variables
+  # by its config rather than substituted into it.
+  - name: provider-upstream
+    namespaces: [oan]
