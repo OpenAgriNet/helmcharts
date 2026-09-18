@@ -113,6 +113,48 @@ keys:
     encrPrivateKey: encrPrivateKey
     encrPublicKey: encrPublicKey
 
+    # Anything else in the config that must come from the Secret rather than
+    # the file: placeholder -> key inside that Secret.
+    #
+    # Upstream token endpoints belong here. They are deployment facts, not chart
+    # facts -- one is a bare IP that will change -- and committing them puts a
+    # partner's endpoint in a public repository. Same substitution as the keys,
+    # and the same failure if the key is missing: the init container exits
+    # rather than starting an adapter whose config still says __SOMETHING__.
+    #
+    #   extraSubstitutions:
+    #     __AGMARKNET_TOKEN_URL__: agmarknetTokenUrl
+    #     __VISTAAR_TOKEN_URL__:   vistaarTokenUrl
+    extraSubstitutions: {}
+
+# ---------------------------------------------------------------------------
+# Raw config override
+#
+# Set this to an adapter config in full and the chart mounts it verbatim instead
+# of rendering its own. For the provider adapter that is the only workable form:
+# its config carries one plugin per capability, each with its own binding key,
+# auth block and mapping, and modelling that in values would mean this chart
+# learning what a capability is.
+#
+# KEY MATERIAL MUST USE THE PLACEHOLDERS, not literal values:
+#
+#   subscriberId:      __ADAPTER_SUBSCRIBER_ID__
+#   keyId:             __ADAPTER_KEY_ID__
+#   signingPrivateKey: "__ADAPTER_SIGNING_PRIVATE__"
+#   signingPublicKey:  "__ADAPTER_SIGNING_PUBLIC__"
+#   encrPrivateKey:    "__ADAPTER_ENCR_PRIVATE__"
+#   encrPublicKey:     "__ADAPTER_ENCR_PUBLIC__"
+#
+# The init container substitutes each from the mounted Secret into an emptyDir
+# at pod start, so no key is ever in the ConfigMap. The render REFUSES a config
+# carrying a literal private key.
+#
+# keyId is a placeholder for a different reason: the registry assigns it when
+# registry-seed writes the public key, and scripts/resolve-key-ids.sh puts it
+# into the Secret afterwards. Hardcoding it here bypasses that and goes stale
+# the first time an identity is re-seeded.
+config: ""
+
 # The image that renders the config. busybox, matching what waitFor already
 # uses, so a cluster that can run one can run the other.
 configRenderer:

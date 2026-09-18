@@ -5,6 +5,37 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-09-18
+
+### Changed
+- **BREAKING.** The adapter config comes from `config/<role>-config.yaml` in this
+  chart, mounted verbatim, instead of being rendered by `configmap.yaml`. The
+  render fails naming the expected file when it is absent.
+
+  An adapter config is a plugin graph. The provider one carries a plugin per
+  capability, each with its own binding key, auth block and mapping, plus a
+  second module for the outbound publish leg — 298 lines against the 131 the
+  template produced. Expressing that in values would mean this chart learning
+  what a capability is, and every new provider becoming a chart change.
+
+  `config` in values still overrides the file, for an environment that must
+  differ without a new file.
+
+### Added
+- `keys.existingSecret.extraSubstitutions`: placeholder -> key in the same
+  Secret, substituted by the same init container as the keys. Upstream token
+  endpoints use it — they are deployment facts, one of them a bare IP, and
+  committing them would put a partner's endpoint in a public repository.
+
+### Fixed
+- The leftover-placeholder check matched only `__ADAPTER_`, so any other
+  unsubstituted placeholder reached the application as literal text and failed
+  as a DNS error on a hostname like `__AGMARKNET_TOKEN_URL__`. It now catches
+  any `__UPPERCASE__` and refuses to start.
+- `examples/consumer.yaml` still said `role: experience` throughout. The file
+  was renamed in 845d916 but its contents were not, so it failed to render
+  against the chart that validates `consumer`.
+
 ## [0.2.0] - 2026-09-17
 
 ### Changed
