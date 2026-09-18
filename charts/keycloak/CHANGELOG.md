@@ -5,6 +5,37 @@ All notable changes to the `keycloak` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-09-18
+
+### Fixed
+- The realm is rendered by a `render-realm` init container before Keycloak
+  reads it, instead of being mounted from the ConfigMap with `${env.NAME}`
+  placeholders intact.
+
+  **Keycloak does not expand `${env.NAME}` in a realm import file.** It imported
+  the placeholders as the literal credentials, so `no-user`'s password was the
+  string `${env.REGISTRY_SEED_PASSWORD}` and the admin-api client's secret was
+  `${env.KEYCLOAK_ADMIN_CLIENT_SECRET}`. Both the registry
+  (`invalid_client_credentials` on every `client_credentials` grant) and
+  registry-seed (`invalid_user_credentials`, HTTP 401) failed against a realm
+  that looked correct in the console. The reference compose stack never hit this
+  because its realm file carries literal values.
+
+  The rendered file lands in an emptyDir, so the credentials exist only for the
+  pod's lifetime and never become an API object -- this chart still renders no
+  Secrets. The init container fails, rather than importing something wrong, when
+  either value is empty, contains a non-printable character, or when any
+  `${env.*}` placeholder survives substitution. Values are JSON-escaped, since
+  the placeholder sits inside a JSON string.
+
+  **Upgrading does not fix an already-imported realm.** Keycloak imports only
+  when the realm does not exist, so delete realm `sunbird-rc` (or the Keycloak
+  database) and restart the pod for the corrected import to run.
+
+### Changed
+- The realm ConfigMap is mounted at `/realm-src` for the init container; the
+  main container's `realmImport.mountPath` now carries the rendered file.
+
 ## [0.3.0] - 2026-09-15
 
 ### Changed
