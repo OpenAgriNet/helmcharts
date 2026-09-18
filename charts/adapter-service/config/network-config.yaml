@@ -44,7 +44,7 @@ modules:
       type: std
       # bpp because this adapter RECEIVES. role sets direction, not participant type.
       role: bpp
-      subscriberId: __ADAPTER_SUBSCRIBER_ID__
+      subscriberId: "__ADAPTER_SUBSCRIBER_ID__"
 
       plugins:
         registry:
@@ -70,11 +70,11 @@ modules:
         keyManager:
           id: simplekeymanager
           config:
-            subscriberId: __ADAPTER_SUBSCRIBER_ID__
+            subscriberId: "__ADAPTER_SUBSCRIBER_ID__"
             # The key's osid, not a friendly name: the registry indexes on it.
             # Assigned when registry-seed writes the public key, and written
             # into the Secret afterwards by scripts/resolve-key-ids.sh.
-            keyId: __ADAPTER_KEY_ID__
+            keyId: "__ADAPTER_KEY_ID__"
             signingPrivateKey: "__ADAPTER_SIGNING_PRIVATE__"
             signingPublicKey: "__ADAPTER_SIGNING_PUBLIC__"
             encrPrivateKey: "__ADAPTER_ENCR_PRIVATE__"
