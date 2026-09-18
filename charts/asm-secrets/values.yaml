@@ -56,13 +56,13 @@ secrets:
   #    resolve-key-ids.sh AFTER the registry has been seeded, so these entries
   #    change once per environment after the first bring-up.
   - name: consumer-adapter-keys
-    namespaces: [oan]
+    namespaces: [consumer-adapter]
   - name: network-adapter-keys
-    namespaces: [oan]
+    namespaces: [network-adapter]
   - name: provider-adapter-keys
-    namespaces: [oan]
+    namespaces: [provider-adapter]
 
   # The provider adapter's upstream credentials, named as environment variables
   # by its config rather than substituted into it.
   - name: provider-upstream
-    namespaces: [oan]
+    namespaces: [provider-adapter]
