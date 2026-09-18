@@ -6,7 +6,7 @@ description: >-
   reads it. This is what turns a Secrets Manager entry into something a chart
   can reference by name.
 type: application
-version: 0.1.0
+version: 0.2.0
 appVersion: "0.10.7"
 maintainers:
   - name: OpenAgriNet Engineering Team
