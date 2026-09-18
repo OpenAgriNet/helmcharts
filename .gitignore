@@ -38,7 +38,12 @@ rendered/
 # Local scratch: a standalone registry someone ran by hand, with a real .env in
 # it. Not part of this repo, and its .env holds live credentials -- it was
 # committed once by a `git add -A` and must not be again.
-registry/
+#
+# Anchored. Unanchored, it matched every directory named `registry` at any
+# depth, so charts/registry/ was ignored too: `git add charts/registry` failed,
+# and a plain `grep -r` skipped the whole chart. The credentials this guards
+# against are covered repo-wide by the .env rules below regardless.
+/registry/
 
 # Live credentials, ANYWHERE in the repo.
 #
