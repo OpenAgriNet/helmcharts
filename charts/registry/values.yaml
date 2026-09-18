@@ -78,6 +78,15 @@ database:
   port: 5432
   name: registry
   user: postgres
+  # pgjdbc's own default is `prefer`, which cannot be used here: it falls back
+  # to plaintext only if the server refuses SSL, and CNPG never refuses. The
+  # registry runs on Java 8, whose TLS support PostgreSQL 18 on Debian trixie
+  # rejects with `Received fatal alert: protocol_version`.
+  #
+  # `disable` is safe for in-cluster traffic to a Service in a namespace the
+  # adapters cannot reach. Set it to `require` once the registry moves to a JRE
+  # that can negotiate TLS 1.2, or put a mesh in front of it.
+  sslMode: disable
   # Secret holding the database password. Required.
   passwordSecret:
     name: ""

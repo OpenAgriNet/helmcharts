@@ -5,6 +5,24 @@ All notable changes to the `registry` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-09-18
+
+### Added
+- `database.sslMode`, appended to the JDBC URL as `?sslmode=<mode>` when set.
+  Defaults to `disable`.
+
+  MINOR rather than MAJOR despite changing a rendered value: pgjdbc's own
+  default is `prefer`, which reaches plaintext anyway against a server with SSL
+  off, so no working deployment changes behaviour. What it fixes is CNPG, which
+  always offers SSL. `prefer` falls back only when the server REFUSES SSL -- a
+  failed handshake is fatal -- and this registry's Java 8 runtime cannot
+  complete a handshake with PostgreSQL 18 on Debian trixie, which answers
+  `Received fatal alert: protocol_version`.
+
+  `disable` is a deliberate downgrade, safe only because this is pod-to-pod
+  traffic to a Service in another namespace. It should become `require` once the
+  registry image ships a JRE that can negotiate TLS 1.2.
+
 ## [0.2.1] - 2026-09-15
 
 ### Changed
