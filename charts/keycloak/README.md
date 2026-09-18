@@ -63,7 +63,7 @@ keycloak:
 ```
 
 The value the registry sends is then the value Keycloak was imported with, by
-construction. Generate it with `scripts/gen-secrets.py`.
+construction. Generate it with `manage-secrets.py` in the infra-automation repository.
 
 This replaces an earlier two-phase install, where the export shipped the secret
 masked and an operator regenerated it in the console between installing this

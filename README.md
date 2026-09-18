@@ -14,6 +14,7 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`registry`](charts/registry) | application | The OAN participant registry, on Sunbird RC core. Needs `postgresql-cnpg` and `keycloak`. |
 | [`discovery`](charts/discovery) | application | The OAN Beckn discover-and-publish service. Needs `postgresql-cnpg` **with pgvector**. |
 | [`adapter-service`](charts/adapter-service) | application | The OAN Beckn adapters. One chart, installed once per `role` — `provider`, `network` or `experience`. Needs `registry`. |
+| [`kong`](charts/kong) | application | Kong — the cluster's API gateway and ingress controller, in one release. The official `kong` chart 3.2.0 committed whole and unmodified. Per-environment configuration lives in the infra-automation repository. |
 | [`registry-seed`](charts/registry-seed) | application | Seeds the registry — adapter identities, upstreams, capability bindings and schemas — as a re-runnable Job. Reports the key osid each adapter needs. |
 | [`clickstack`](charts/clickstack) | application | Observability — ClickHouse, an OTel collector and the HyperDX UI. A verbatim copy of the official upstream chart, with no OAN changes yet. |
 
@@ -28,15 +29,16 @@ charts/
 ├── keycloak/            # auth for the registry
 ├── registry/            # the participant registry
 ├── registry-seed/       # seeds it, as a Job
+├── kong/                # API gateway + ingress controller — vendored upstream
 ├── discovery/           # the Beckn discover-and-publish service
 ├── adapter-service/     # the Beckn adapters — one release per role
 └── clickstack/          # observability — vendored upstream, not yet OAN-shaped
 ```
 
-Every chart depends on `common` via `file://../common`, except
-`clickstack`: it is the official upstream chart committed unmodified, so it
-carries neither the dependency nor the conventions. Its README lists what that
-leaves to override.
+Every chart depends on `common` via `file://../common`, except `clickstack` and
+`kong`: both are official upstream charts committed unmodified, so they carry
+neither the dependency nor the conventions. Each README lists what that leaves
+to override.
 
 ## The registry stack
 
@@ -45,10 +47,10 @@ Three charts, deployed in this order — the ordering is not optional:
 ```bash
 # 1. Database cluster. Creates BOTH databases: `registry` via bootstrap.initdb
 #    and `keycloak` via a CNPG Database object, each owned by its own role.
-helm install registry-db charts/postgresql-cnpg -n postgres -f charts/postgresql-cnpg/examples/registry-db.dev.yaml
+helm install postgres charts/postgresql-cnpg -n postgres -f charts/postgresql-cnpg/examples/postgres.dev.yaml
 # 2. Secrets, before anything that reads them. One Secret per value, pulled from
 #    Secrets Manager and mirrored where a second namespace needs it:
-#      ./scripts/gen-secrets.py --env dev > secrets.yaml
+#      infra-automation: ./scripts/manage-secrets.py generate --env dev
 # 3. Keycloak — imports the sunbird-rc realm it ships with, on first start
 helm install keycloak    charts/keycloak        -n keycloak -f charts/keycloak/examples/keycloak.dev.yaml
 # 4. Registry

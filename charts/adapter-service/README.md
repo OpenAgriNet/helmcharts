@@ -1,11 +1,11 @@
 # adapter-service
 
-One chart for all three Beckn adapters. `provider`, `network` and `experience`
+One chart for all three Beckn adapters. `provider`, `network` and `consumer`
 are the same image and the same config format, so `role` selects the handler
 role, the step list and where requests are routed.
 
 ```
-  experience ──unsigned──▶ network ──▶ discovery
+  consumer ──unsigned──▶ network ──▶ discovery
                               │
     provider ──signed─────────┤
         │                     └── registry (whose key signed this?)
@@ -16,9 +16,9 @@ role, the step list and where requests are routed.
 |---|---|---|---|
 | `provider` | `bpp` | `validateSign → addRoute → sign` | upstream APIs (several) |
 | `network` | `bpp` | `validateSign → addRoute → sign` | discovery |
-| `experience` | `bap` | `addRoute → sign` | network |
+| `consumer` | `bap` | `addRoute → sign` | network |
 
-`experience` is the only one that accepts **unsigned** requests: the experience
+`consumer` is the only one that accepts **unsigned** requests: the consumer
 app is inside the trust boundary, so there is no network signature to check.
 That is why it has no `validateSign`, and why an Ingress on it exposes an
 unauthenticated entry point.
@@ -38,13 +38,13 @@ helm upgrade --install provider-adapter charts/adapter-service -n oan \
   -f charts/adapter-service/examples/provider.yaml
 helm upgrade --install network-adapter charts/adapter-service -n oan \
   -f charts/adapter-service/examples/network.yaml
-helm upgrade --install experience-adapter charts/adapter-service -n oan \
-  -f charts/adapter-service/examples/experience.yaml
+helm upgrade --install consumer-adapter charts/adapter-service -n oan \
+  -f charts/adapter-service/examples/consumer.yaml
 ```
 
 Each example sets `fullnameOverride` to `<role>-adapter`. Without it the Service
 would be named `<release>-adapter-service`, and nothing routing by name would
-resolve. Rename a release and you must update whatever routes to it — `experience`
+resolve. Rename a release and you must update whatever routes to it — `consumer`
 points at the network adapter, `network` points at discovery.
 
 The Secret comes first — the render fails without it.
@@ -124,7 +124,7 @@ healthy.
 ## Values
 
 See `values.yaml` — every field is commented with what it does and what breaks
-without it. `examples/{provider,network,experience}.yaml` are working dev deployments;
+without it. `examples/{provider,network,consumer}.yaml` are working dev deployments;
 `ci/` holds the two files lint renders, one minimal and one with every switch
 turned on.
 

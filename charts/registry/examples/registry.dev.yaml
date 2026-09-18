@@ -23,7 +23,7 @@ image:
 database:
   # FQDN: the CNPG Cluster runs in its own `postgres` namespace, so the bare
   # service name does not resolve from here.
-  host: registry-db-rw.postgres.svc.cluster.local
+  host: postgres-rw.postgres.svc.cluster.local
   port: 5432
   name: registry
   user: registry

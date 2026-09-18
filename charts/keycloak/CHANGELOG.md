@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from `.Release.Namespace`. Two consequences of the move are not optional.
 
   `database.host` must now be the FQDN
-  `registry-db-rw.postgres.svc.cluster.local`. Keycloak still uses its own
+  `postgres-rw.postgres.svc.cluster.local`. Keycloak still uses its own
   database and its own role on the registry stack's Cluster - that has not
   changed - but the Cluster is in another namespace now, so the bare service
   name no longer resolves.

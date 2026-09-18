@@ -1,7 +1,7 @@
 # ===========================================================================
 # adapter-service
 #
-# One chart for all three Beckn adapters. provider, network and experience are the
+# One chart for all three Beckn adapters. provider, network and consumer are the
 # same image and the same config format; `role` below decides the handler
 # role, the step list and where requests are routed.
 #
@@ -9,11 +9,11 @@
 #
 #   helm install provider-adapter . -f examples/provider.yaml
 #   helm install network-adapter  . -f examples/network.yaml
-#   helm install experience-adapter      . -f examples/experience.yaml
+#   helm install consumer-adapter      . -f examples/consumer.yaml
 #
 # The release name is what the Service is called, which is the DNS name the
 # other adapters address. Rename a release and you must update whatever routes
-# to it -- experience routes to the network adapter, provider is routed to by network.
+# to it -- consumer routes to the network adapter, provider is routed to by network.
 #
 # Two things every role needs that this chart cannot give it:
 #
@@ -25,7 +25,7 @@
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
-# Role: provider | network | experience
+# Role: provider | network | consumer
 #
 # Required, with no default. A default would hand one role's handler role and
 # step list to a different adapter, which renders, starts, reports Ready and
@@ -41,7 +41,7 @@ replicaCount: 1
 # ---------------------------------------------------------------------------
 # Image
 #
-# One image serves all three adapters -- provider, network and experience --
+# One image serves all three adapters -- provider, network and consumer --
 # and the config decides which one a pod is. So the repository here is the
 # adapter image, not a network-adapter-specific build.
 #
@@ -146,10 +146,10 @@ registry:
 # ---------------------------------------------------------------------------
 # Handler
 #
-# role: bap originates a call, bpp receives one. Left empty, experience gets bap and
+# role: bap originates a call, bpp receives one. Left empty, consumer gets bap and
 #   the other two get bpp.
-# steps: left empty, experience gets [addRoute, sign] and the other two get
-#   [validateSign, addRoute, sign]. experience sits inside the trust boundary and
+# steps: left empty, consumer gets [addRoute, sign] and the other two get
+#   [validateSign, addRoute, sign]. consumer sits inside the trust boundary and
 #   accepts unsigned requests, so it has no signature to validate -- that
 #   difference is the reason this is a value and not a constant.
 # ---------------------------------------------------------------------------
@@ -161,7 +161,7 @@ handler:
 # ---------------------------------------------------------------------------
 # Routing
 #
-# A list, because provider fans out to several upstreams while network and experience
+# A list, because provider fans out to several upstreams while network and consumer
 # each have one target. Required: an adapter with no route accepts requests and
 # has nowhere to send them.
 #
@@ -223,7 +223,7 @@ http:
     write: 30
     idle: 30
 
-# The compose stack uses 9200 for provider, 9201 for network and 9202 for experience.
+# The compose stack uses 9200 for provider, 9201 for network and 9202 for consumer.
 # Nothing in-cluster requires that -- each adapter has its own Service -- but
 # keeping them distinct means a rendered config reads the same in both places.
 service:

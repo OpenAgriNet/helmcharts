@@ -50,8 +50,8 @@ team could plausibly be given separately gets its own:
 
 Databases are the clearest case: one namespace to hand a DBA, and one place
 where `get secrets` reaches a database credential. Services then reach their
-database by FQDN -- `registry-db-rw.postgres.svc.cluster.local`, never the bare
-`registry-db-rw`, which only resolves in the Cluster's own namespace.
+database by FQDN -- `postgres-rw.postgres.svc.cluster.local`, never the bare
+`postgres-rw`, which only resolves in the Cluster's own namespace.
 
 That split has a consequence worth stating. Secrets are namespaced, and several
 values are needed in more than one namespace -- a database password by the CNPG
@@ -80,7 +80,8 @@ that can drift, and a drifted one fails as "password authentication failed",
 which reads as a database problem rather than a Secret problem. One source, one
 value, mirrored.
 
-`scripts/gen-secrets.py` emits each value exactly once, in YAML, as the input to
+`infra-automation`'s `scripts/manage-secrets.py` emits each value exactly once, in
+YAML, as the input to
 AWS Secrets Manager -- one top-level key per secret, one Secrets Manager entry
 each. From there External Secrets Operator pulls it into the owning namespace
 and Reflector mirrors it onward.

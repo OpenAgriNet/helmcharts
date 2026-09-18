@@ -7,7 +7,7 @@
 #
 #   helm install network-adapter . -f examples/network.yaml
 #
-# Keep the release name `network-adapter`: experience routes to this Service by name.
+# Keep the release name `network-adapter`: consumer routes to this Service by name.
 # ===========================================================================
 role: network
 
@@ -34,7 +34,7 @@ service:
   targetPort: 9201
 
 # Both actions share one rule because they share a target: publish arrives
-# from the provider adapter, discover from the experience adapter, and neither
+# from the provider adapter, discover from the consumer adapter, and neither
 # is answered here.
 routing:
   rules:

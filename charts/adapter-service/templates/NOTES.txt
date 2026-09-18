@@ -42,8 +42,8 @@ on and nothing listening the exporter logs a failure every interval.
 {{- if .Values.ingress.enabled }}
 
 Ingress is ON.
-{{- if eq (include "adapter-service.role" .) "experience" }}
-This is the experience role, which accepts UNSIGNED requests — it is inside the trust
+{{- if eq (include "adapter-service.role" .) "consumer" }}
+This is the consumer role, which accepts UNSIGNED requests — it is inside the trust
 boundary and has no validateSign step. An Ingress therefore exposes an
 unauthenticated entry point to the network: rate-limit this host, and do not
 route it from anywhere you would not trust to call the network directly.

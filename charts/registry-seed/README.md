@@ -40,7 +40,7 @@ Three consequences, all deliberate:
 ## keyId, and why it is a second step
 
 `keyId` is the **osid the registry assigns** when the public key is written. It
-cannot be generated in advance — `scripts/gen-secrets.py` emits it as `PENDING`
+cannot be generated in advance — `manage-secrets.py` emits it as `PENDING`
 for exactly this reason — so the order is forced:
 
 ```

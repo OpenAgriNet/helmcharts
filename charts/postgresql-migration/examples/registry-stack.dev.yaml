@@ -15,7 +15,7 @@
 postgresql:
   # The CNPG primary. Migrations write, so this must not be a replica.
   # FQDN: the CNPG Cluster runs in its own `postgres` namespace.
-  host: registry-db-rw.postgres.svc.cluster.local
+  host: postgres-rw.postgres.svc.cluster.local
   port: 5432
   # Needs rights on each database it migrates. The CNPG superuser has them
   # everywhere; a per-database owner would need one release per database.
@@ -25,7 +25,7 @@ postgresql:
   # actually has SQL, or point this at a per-database owner instead.
   user: postgres
   passwordSecret:
-    name: registry-db-superuser
+    name: postgres-superuser
     key: password
 
 targets:

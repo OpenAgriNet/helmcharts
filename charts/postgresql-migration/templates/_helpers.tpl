@@ -56,7 +56,7 @@ so a misconfiguration fails the render rather than the Job.
 {{- define "postgresql-migration.validate" -}}
 {{- $pg := .Values.postgresql -}}
 {{- if not $pg.host -}}
-{{- fail (printf "%s: postgresql.host is required - point it at the PostgreSQL PRIMARY service, e.g. registry-db-rw. Migrations write, so a read-only replica will not do." .Chart.Name) -}}
+{{- fail (printf "%s: postgresql.host is required - point it at the PostgreSQL PRIMARY service, e.g. postgres-rw. Migrations write, so a read-only replica will not do." .Chart.Name) -}}
 {{- end -}}
 {{- if not $pg.passwordSecret.name -}}
 {{- fail (printf "%s: postgresql.passwordSecret.name is required - this chart renders no passwords" .Chart.Name) -}}

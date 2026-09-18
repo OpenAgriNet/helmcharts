@@ -131,13 +131,13 @@ and `discovery` its own service. Services reach their database by FQDN.
 #    bootstrap.initdb, `keycloak` via a CNPG Database object - each owned by its
 #    own role. Nothing else lives here: one namespace to give a DBA, and one
 #    place where `get secrets` reaches database credentials.
-helm install registry-db charts/postgresql-cnpg \
-  -n postgres -f charts/postgresql-cnpg/examples/registry-db.dev.yaml
+helm install postgres charts/postgresql-cnpg \
+  -n postgres -f charts/postgresql-cnpg/examples/postgres.dev.yaml
 
 # 2. Secrets, before anything that reads them.
 #
 #    Generate the values:
-#      ./scripts/gen-secrets.py --env dev > secrets.yaml
+#      infra-automation: ./scripts/manage-secrets.py generate --env dev
 #
 #    One top-level key per secret, one Secrets Manager entry each. External
 #    Secrets Operator pulls each into the namespace that owns it, and
