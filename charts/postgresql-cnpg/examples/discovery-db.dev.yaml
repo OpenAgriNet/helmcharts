@@ -6,8 +6,9 @@
 # The discovery service then connects to:
 #   discovery-db-rw.postgres.svc.cluster.local:5432
 #
-# Separate from registry-db in every way - its own cluster, its own namespace,
-# its own PostgreSQL major. Nothing here affects the registry stack.
+# Separate from the shared `postgres` cluster, and the reason is capability
+# rather than ownership: discovery-service needs pgvector, which is a different
+# operand image, so it cannot be a database inside that one.
 
 fullnameOverride: discovery-db
 

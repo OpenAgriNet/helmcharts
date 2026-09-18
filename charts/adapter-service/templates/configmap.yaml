@@ -6,7 +6,7 @@ this is a ConfigMap, and a ConfigMap is world-readable to anything with get on
 the namespace. The init container substitutes the real values from the Secret
 into an emptyDir at start-up.
 
-Everything that differs between the provider, network and experience adapters is a
+Everything that differs between the provider, network and consumer adapters is a
 value: they are one image with one config format, and the role decides the
 identity, the handler role, the step list and where requests are routed.
 */}}
@@ -63,7 +63,7 @@ data:
           {{/*
           bap originates a call, bpp receives one. It decides which declared
           identity validateSign would compare a signer against -- so it is not
-          cosmetic, and it is why experience (which originates) differs from network
+          cosmetic, and it is why consumer (which originates) differs from network
           and provider (which receive).
           */}}
           role: {{ include "adapter-service.handlerRole" . | quote }}
@@ -112,7 +112,7 @@ data:
                 routingConfig: {{ include "adapter-service.configDir" . }}/{{ include "adapter-service.routingFile" . }}
 
           {{/*
-          The step list is role-specific and the difference matters. experience is
+          The step list is role-specific and the difference matters. consumer is
           inside the trust boundary and takes unsigned requests, so it has no
           validateSign to run; network and provider receive from the network
           and must verify before they do anything else.

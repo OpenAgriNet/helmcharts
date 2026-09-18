@@ -10,7 +10,7 @@
 # it says so and why.
 #
 # Minimum you must set:
-#   - database.host                    (e.g. the CNPG primary, registry-db-rw)
+#   - database.host                    (e.g. the CNPG primary, postgres-rw)
 #   - database.passwordSecret.name
 #   - admin.passwordSecret.name
 # ============================================================================
@@ -80,7 +80,7 @@ ingress:
 database:
   vendor: postgres
   # PostgreSQL primary service. The CNPG Clusters run in their own namespace,
-  # so this is an FQDN: "registry-db-rw.postgres.svc.cluster.local"
+  # so this is an FQDN: "postgres-rw.postgres.svc.cluster.local"
   host: ""
   port: 5432
   name: registry

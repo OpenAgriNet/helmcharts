@@ -23,11 +23,11 @@
 # needs superuser rights.
 #
 # To reproduce compose exactly instead, set name: registry, user: postgres, and
-# point passwordSecret at registry-db-superuser.
+# point passwordSecret at postgres-superuser.
 database:
   # FQDN, not the bare name: the Cluster lives in the `postgres` namespace
-  # and this release does not, so `registry-db-rw` alone would not resolve.
-  host: registry-db-rw.postgres.svc.cluster.local
+  # and this release does not, so `postgres-rw` alone would not resolve.
+  host: postgres-rw.postgres.svc.cluster.local
   port: 5432
   name: keycloak
   user: keycloak

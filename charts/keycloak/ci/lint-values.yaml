@@ -4,7 +4,7 @@
 # Secrets are unset, so bare defaults cannot be templated. These are dummy
 # references, not real configuration - see examples/ for that.
 database:
-  host: registry-db-rw
+  host: postgres-rw
   passwordSecret:
     name: registry-db
 admin:

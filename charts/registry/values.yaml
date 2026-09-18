@@ -73,7 +73,7 @@ ingress:
 # ---------------------------------------------------------------------------
 database:
   # PostgreSQL primary service. The CNPG Clusters run in their own namespace,
-  # so this is an FQDN: "registry-db-rw.postgres.svc.cluster.local"
+  # so this is an FQDN: "postgres-rw.postgres.svc.cluster.local"
   host: ""
   port: 5432
   name: registry

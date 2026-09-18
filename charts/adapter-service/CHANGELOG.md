@@ -5,6 +5,22 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-09-17
+
+### Changed
+- **BREAKING.** The third role is `consumer`, not `experience`. `role: experience`
+  now fails the render, `examples/experience.yaml` is `examples/consumer.yaml`,
+  and the default `appName` and handler wiring follow.
+
+  The compose stack renamed this adapter to `consumer-adapter`, and the chart
+  kept validating against the old word -- so a values file written from the
+  running stack was rejected with "role must be one of provider, network,
+  experience", which names the rule rather than the rename. The two now agree.
+
+  The role is not cosmetic: it decides the handler role, the step list and the
+  routing target, so a chart that accepted both spellings would be a chart with
+  two names for one thing.
+
 ## [Unreleased]
 
 ### Changed

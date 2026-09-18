@@ -96,7 +96,7 @@ is rejected as unauthorised.
 {{- $db := .Values.database -}}
 {{- $kc := .Values.keycloak -}}
 {{- if not $db.host }}
-{{- fail (printf "%s: database.host is required - point it at the PostgreSQL primary service, e.g. registry-db-rw" .Chart.Name) }}
+{{- fail (printf "%s: database.host is required - point it at the PostgreSQL primary service, e.g. postgres-rw" .Chart.Name) }}
 {{- end }}
 {{- if not $db.passwordSecret.name }}
 {{- fail (printf "%s: database.passwordSecret.name is required - this chart renders no passwords" .Chart.Name) }}

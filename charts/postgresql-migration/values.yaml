@@ -50,7 +50,7 @@ serviceAccount:
 # listing the database the cluster already made. The operator does it properly.
 # ---------------------------------------------------------------------------
 postgresql:
-  # PostgreSQL primary service, e.g. "registry-db-rw". Must be the primary:
+  # PostgreSQL primary service, e.g. "postgres-rw". Must be the primary:
   # migrations write.
   host: ""
   port: 5432

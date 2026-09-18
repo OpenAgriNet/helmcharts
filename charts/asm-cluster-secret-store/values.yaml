@@ -1,0 +1,43 @@
+# ============================================================================
+# asm-cluster-secret-store
+#
+# One ClusterSecretStore, cluster-scoped, naming the AWS Secrets Manager the
+# operator reads. `asm-secrets` then declares what to read from it.
+#
+# Split from asm-secrets deliberately: the store is a property of the CLUSTER
+# (which account, which region, which role) and changes when the cluster does.
+# The secrets are a property of the APPLICATION and change when a service does.
+# One chart for both would tie an IAM change to a service change.
+# ============================================================================
+
+# Referenced by every ExternalSecret as secretStoreRef.name.
+name: aws-secrets-manager
+
+# The region the secrets live in. Not the cluster's region by default -- they
+# are the same here, but Secrets Manager is regional and a store pointing at the
+# wrong one fails with NotFound rather than a permissions error.
+region: ap-south-1
+
+# ---------------------------------------------------------------------------
+# Authentication
+#
+# IRSA: the operator's ServiceAccount carries an IAM role, and no credential
+# exists in the cluster at all. This is the reason the operator runs in its own
+# namespace with its own ServiceAccount -- the role is scoped to it.
+#
+# The role needs, on arn:aws:secretsmanager:<region>:<account>:secret:oan/<env>/*:
+#   secretsmanager:GetSecretValue
+#   secretsmanager:DescribeSecret
+# and nothing else. Read-only: nothing in the cluster should be able to write to
+# the store, since the store is the source of truth and the cluster is a copy.
+# ---------------------------------------------------------------------------
+auth:
+  # The ServiceAccount the external-secrets release created, annotated with
+  # eks.amazonaws.com/role-arn. Empty means "use the operator pod's own
+  # credentials", which on EKS is the node role -- broader than intended, so
+  # this is required rather than defaulted.
+  serviceAccount:
+    name: external-secrets
+    namespace: external-secrets
+
+commonLabels: {}

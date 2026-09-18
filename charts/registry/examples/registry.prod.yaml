@@ -39,7 +39,7 @@ replicaCount: 2
 
 database:
   # FQDN: the CNPG Cluster runs in its own `postgres` namespace.
-  host: registry-db-rw.postgres.svc.cluster.local
+  host: postgres-rw.postgres.svc.cluster.local
   port: 5432
   name: registry
   # Production connects as the database OWNER, not the superuser. This is the
