@@ -79,6 +79,18 @@ spec:
                   echo "render-config: $(basename "$2") is missing or empty in the keys Secret" >&2
                   exit 1
                 fi
+                # A value the registry has not assigned yet. keyId is the osid it
+                # mints when registry-seed writes the public key, so before that the
+                # Secret holds a sentinel. Substituting it yields either invalid YAML
+                # -- the sentinel contains a colon -- or an adapter signing with an
+                # identity nothing can verify.
+                if head -c 9 "$2" | grep -q "<<PENDING"; then
+                  echo "render-config: $(basename "$2") is still unresolved." >&2
+                  echo "  The registry assigns it when registry-seed writes this" >&2
+                  echo "  adapter's public key. Run that, then:" >&2
+                  echo "    ./scripts/resolve-key-ids.sh -e <env>" >&2
+                  exit 1
+                fi
                 sed -i "s|$1|$(cat "$2")|g" /rendered/adapter.yaml
               }
 
