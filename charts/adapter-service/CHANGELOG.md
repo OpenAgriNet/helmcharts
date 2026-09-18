@@ -5,6 +5,21 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-09-18
+
+### Fixed
+- `subscriberId` and `keyId` are quoted in all three role configs. The init
+  container substitutes each sentinel with the contents of the keys Secret, and
+  the placeholder `keyId` holds before registry-seed runs contains a colon, so
+  the substituted line parsed as a nested mapping. Every adapter crash-looped on
+  `yaml: line 77: mapping values are not allowed in this context`.
+
+### Added
+- The init container fails, naming `resolve-key-ids.sh`, when the `keyId` in the
+  Secret is still the `<<PENDING ...>>` sentinel. Quoting alone would let the
+  adapter start and sign with an identity the registry has never issued, which
+  fails at every counterparty with nothing in this pod's logs to explain it.
+
 ## [0.3.0] - 2026-09-18
 
 ### Changed
