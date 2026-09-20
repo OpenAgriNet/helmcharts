@@ -5,6 +5,29 @@ All notable changes to the `keycloak` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-09-20
+
+### Added
+- `realmImport.reconcileCredentials` — a post-install/post-upgrade Job that
+  writes the admin-api client secret and the `no-user` password to the running
+  server with `kcadm`, then verifies both by making the same two grants the
+  registry and registry-seed make. Enabled by default.
+
+  0.4.0 fixed the import, but an import only runs when the realm is absent, so
+  it could not repair the realm this cluster already had: correcting the file
+  changes nothing Keycloak will read again. Reconciling against the running
+  server is the only path that reaches an existing realm.
+
+  It also closes the same gap going forward. Every credential in an imported
+  realm is a first-boot value, so rotating either Secret leaves the realm on the
+  old one, with nothing to report the drift — the realm looks correct in the
+  console and the failure appears as a 401 in a different service. With this,
+  the credentials converge on every sync instead, and a deploy that would leave
+  those services unable to authenticate fails here, naming the grant that broke.
+
+  Argo CD maps the Helm hook to PostSync. The Job is not deleted on success, so
+  a failed run's logs survive for inspection.
+
 ## [0.4.0] - 2026-09-18
 
 ### Fixed
