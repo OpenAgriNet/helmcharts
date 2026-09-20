@@ -5,6 +5,29 @@ All notable changes to the `keycloak` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-09-20
+
+### Fixed
+- The realm now defines `registryOperator` and grants it to `no-user`. It was
+  the only thing that had drifted from the realm the compose stack runs, and
+  every schema the registry ships gates writes on it through `_osConfig.roles`,
+  so registry-seed was rejected on all seven writes with:
+
+      User is not allowed to perform the operation on this entity
+
+  The token was valid and the payloads passed schema validation -- nothing in
+  that message, or anywhere in Keycloak, points at a missing realm role.
+
+### Added
+- `realmImport.reconcileCredentials.seedUserRoles`, reconciled by the same Job
+  that handles the credentials: the role is created if absent, assigned if
+  unassigned, and the Job fails if the account still does not hold it.
+
+  Adding the role to the realm file alone would not have fixed this cluster,
+  for the same reason the credentials fix did not -- Keycloak imports a realm
+  only when the realm is absent. Roles are first-boot state exactly like
+  passwords, so they belong in the same convergence loop.
+
 ## [0.5.1] - 2026-09-20
 
 ### Fixed

@@ -209,6 +209,13 @@ realmImport:
     adminClientId: admin-api
     # The account registry-seed writes participants as.
     seedUsername: no-user
+    # Realm roles that account must hold. Every schema the registry ships gates
+    # writes on `registryOperator` through its `_osConfig.roles`; without it the
+    # registry rejects each write with "User is not allowed to perform the
+    # operation on this entity" -- an authorization failure that looks nothing
+    # like one, since the token itself is valid.
+    seedUserRoles:
+      - registryOperator
     # The public client the password grant is verified through. Not written
     # to - it only has to exist and allow direct access grants.
     verifyClientId: registry-frontend

@@ -100,6 +100,14 @@
         "clientRole": false,
         "containerId": "sunbird-rc",
         "attributes": {}
+      },
+      {
+        "name": "registryOperator",
+        "description": "Registry Operator - manages SchemaRegistry, Participant and ProviderSchema records",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "sunbird-rc",
+        "attributes": {}
       }
     ],
     "client": {
@@ -495,7 +503,8 @@
       ],
       "realmRoles": [
         "default-roles-sunbird-rc",
-        "network_operator"
+        "network_operator",
+        "registryOperator"
       ]
     }
   ],
