@@ -1,0 +1,5 @@
+# Minimum to render every template. `helm template` with bare defaults works
+# too -- email is optional -- but an issuer with no contact address is not what
+# any environment should install, so the lint case sets one.
+email: ops@oan.invalid
+ingressClassName: kong

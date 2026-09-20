@@ -16,6 +16,8 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`adapter-service`](charts/adapter-service) | application | The OAN Beckn adapters. One chart, installed once per `role` — `provider`, `network` or `experience`. Needs `registry`. |
 | [`kong`](charts/kong) | application | Kong — the cluster's API gateway and ingress controller, in one release. The official `kong` chart 3.2.0 committed whole and unmodified. Per-environment configuration lives in the infra-automation repository. |
 | [`registry-seed`](charts/registry-seed) | application | Seeds the registry — adapter identities, upstreams, capability bindings and schemas — as a re-runnable Job. Reports the key osid each adapter needs. |
+| [`cert-manager`](charts/cert-manager) | application | X.509 certificate management. The official `cert-manager` chart v1.21.2 committed whole and unmodified. Its CRDs are applied out of band — three exceed the annotation size limit. |
+| [`cert-manager-issuers`](charts/cert-manager-issuers) | application | Let's Encrypt `ClusterIssuer`s. Separate from `cert-manager` because one release cannot register a CRD and create an instance of it. |
 | [`clickstack`](charts/clickstack) | application | Observability — ClickHouse, an OTel collector and the HyperDX UI. A verbatim copy of the official upstream chart, with no OAN changes yet. |
 
 ## How they fit together
@@ -30,15 +32,19 @@ charts/
 ├── registry/            # the participant registry
 ├── registry-seed/       # seeds it, as a Job
 ├── kong/                # API gateway + ingress controller — vendored upstream
+├── cert-manager/        # certificate management — vendored upstream
+├── cert-manager-issuers/# Let's Encrypt ClusterIssuers for it
 ├── discovery/           # the Beckn discover-and-publish service
 ├── adapter-service/     # the Beckn adapters — one release per role
 └── clickstack/          # observability — vendored upstream, not yet OAN-shaped
 ```
 
-Every chart depends on `common` via `file://../common`, except `clickstack` and
-`kong`: both are official upstream charts committed unmodified, so they carry
-neither the dependency nor the conventions. Each README lists what that leaves
-to override.
+Every chart depends on `common` via `file://../common`, except `clickstack`,
+`kong` and `cert-manager`: all three are official upstream charts committed
+unmodified, so they carry neither the dependency nor the conventions. Each
+README lists what that leaves to override. `cert-manager-issuers` also skips it,
+for a different reason — it renders two custom resources and no workload, so
+none of the library's helpers apply.
 
 ## The registry stack
 
