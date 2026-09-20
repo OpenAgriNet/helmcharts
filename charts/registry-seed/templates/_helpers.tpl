@@ -68,25 +68,32 @@ angle-bracketed and no real id, URL or path can be, so this is an exact test
 rather than a guess -- and it is worth having because seeding a row from a
 placeholder burns that id permanently: the registry cannot update a record and
 its delete is soft, so the capability could only be recovered under a NEW id.
+
+Matched ANYWHERE in the value, not just as a whole one. A host assembled from
+a template -- `https://consumer.<IP>.sslip.io` -- neither starts with `<` nor
+ends with `>`, so a prefix/suffix test waves it through and the unfilled
+address is seeded for good. That is the exact mistake this guard exists to
+stop, and it is the likely shape of one now that these values are composed
+rather than written out whole.
 */}}
 {{- $placeholders := list -}}
 {{- range .Values.adapters }}
 {{- range $k, $v := (dict "participantId" .participantId "baseUrl" .baseUrl "signingPublicKey" .signingPublicKey) }}
-{{- if and (hasPrefix "<" $v) (hasSuffix ">" $v) }}
+{{- if regexMatch "[<>]" $v }}
 {{- $placeholders = append $placeholders (printf "adapters[].%s = %s" $k $v) }}
 {{- end }}
 {{- end }}
 {{- end }}
 {{- range .Values.upstreams }}
 {{- range $k, $v := (dict "participantId" .participantId "baseUrl" .baseUrl) }}
-{{- if and (hasPrefix "<" $v) (hasSuffix ">" $v) }}
+{{- if regexMatch "[<>]" $v }}
 {{- $placeholders = append $placeholders (printf "upstreams[].%s = %s" $k $v) }}
 {{- end }}
 {{- end }}
 {{- end }}
 {{- range .Values.bindings }}
 {{- range $k, $v := (dict "path" .path "mappingUrl" .mappingUrl "capability" .capability) }}
-{{- if and (hasPrefix "<" $v) (hasSuffix ">" $v) }}
+{{- if regexMatch "[<>]" $v }}
 {{- $placeholders = append $placeholders (printf "bindings[].%s = %s" $k $v) }}
 {{- end }}
 {{- end }}

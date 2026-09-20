@@ -5,6 +5,23 @@ All notable changes to the `registry-seed` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-09-20
+
+### Fixed
+- The placeholder guard matches angle brackets ANYWHERE in a value, not only as
+  a whole one.
+
+  It tested `hasPrefix "<"` and `hasSuffix ">"`, which is exact for a value
+  written out whole -- `<consumer.oan.example.com>` -- and blind to one that is
+  composed. `baseUrl: https://consumer.{{ .Values.global.domain }}` with an
+  unfilled domain renders `https://consumer.<IP>.sslip.io`: it neither starts
+  with `<` nor ends with `>`, so the old test passed it straight through.
+
+  That is precisely the mistake the guard exists to stop. A seeded `baseUrl` is
+  permanent -- the registry cannot update a record and its delete is soft -- so
+  an unfilled address becomes an adapter identity that can only be abandoned
+  under a new participant id, never corrected.
+
 ## [0.1.0] - 2026-09-15
 
 ### Added
