@@ -5,6 +5,17 @@ All notable changes to the `keycloak` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-09-20
+
+### Fixed
+- The reconcile Job passed `--config` before the kcadm command rather than as an
+  option of it, so every invocation died with `Unknown command:
+  --config=/tmp/kcadm.config` and the Job never reconciled anything.
+
+  It passed testing because the stub kcadm ignored argument order. The stub now
+  rejects a first argument that is not a command, exactly as kcadm does, and
+  reproduces the original error for the old form.
+
 ## [0.5.0] - 2026-09-20
 
 ### Added

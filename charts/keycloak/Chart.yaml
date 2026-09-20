@@ -5,7 +5,7 @@ description: >-
   validates the tokens the registry authorises requests with, and imports the
   realm, clients and roles the registry expects.
 type: application
-version: 0.5.0
+version: 0.5.1
 # Tag of ghcr.io/sunbird-rc/sunbird-rc-keycloak. Sunbird's own v2 deployment
 # pairs this version with sunbird-rc-core v2.0.0.
 appVersion: "v1.0.0"
