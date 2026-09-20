@@ -5,7 +5,7 @@ description: >-
   and the key material inbound signed requests are verified against. Requires
   PostgreSQL and Keycloak.
 type: application
-version: 0.3.0
+version: 0.4.0
 appVersion: "v2.0.0"
 maintainers:
   - name: OpenAgriNet Engineering Team

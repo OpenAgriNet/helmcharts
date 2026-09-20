@@ -138,9 +138,19 @@ defaultUserPasswordSecret:
 # Every .json under the registry's schema directory is an entity definition.
 # The chart ships the participant schema and mounts it at mountPath.
 #
-# NOTE: this schema was built and verified against the local stack, but per
-# engineering-tracker #33 it has no design issue of its own yet. Expect it to
-# change - a schema change is a chart release.
+# The three schemas are the ones the verified compose stack runs, copied from
+# quick-start/config/registry/schemas. registry-seed writes Participant,
+# ProviderSchema and SchemaRegistry, and its payloads are shaped for these.
+#
+# A snake_case Participant schema (participant_id, display_name, roles,
+# signing_public_key, ...) lived here until 0.4.0. It is a different data model
+# from the one the seed produces, so the registry rejected every write with
+# `required key [participant_id] not found` alongside `extraneous key
+# [participantId] is not permitted`, and ProviderSchema/SchemaRegistry did not
+# exist at all, which is a 404 on those entities.
+#
+# Per engineering-tracker #33 the model is expected to change. When it does,
+# the seed's payloads change with it -- they are one decision, not two.
 # ---------------------------------------------------------------------------
 schemas:
   filesGlob: "files/schemas/*.json"
