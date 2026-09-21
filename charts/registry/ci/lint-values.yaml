@@ -1,15 +1,15 @@
 # Minimum values that let `helm template` run in CI. Dummy references only -
 # see examples/ for real per-environment configuration.
 database:
-  host: registry-db-rw
+  host: postgres-rw
   passwordSecret:
-    name: registry-db-app
+    name: registry-db
 keycloak:
   url: http://keycloak:8080/auth
   adminClientSecret:
-    name: registry-keycloak
+    name: keycloak-admin-api
 defaultUserPasswordSecret:
-  name: registry-keycloak
+  name: registry-default-user
 
 # image.repository is intentionally empty in the chart, so CI supplies one.
 image:

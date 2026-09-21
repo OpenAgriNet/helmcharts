@@ -1,0 +1,68 @@
+# ============================================================================
+# asm-secrets
+#
+# One ExternalSecret per credential. Each pulls a Secrets Manager entry into a
+# Kubernetes Secret in this release's namespace, and Reflector mirrors it into
+# the namespaces that read it.
+#
+# THE NAMES HERE MUST MATCH manage-secrets.py. It pushes one entry per secret to
+# oan/<env>/<name>; this pulls oan/<env>/<name> back. A name that exists in one
+# and not the other fails as a Secret that never appears, which surfaces as a
+# pod stuck pending with the reason two layers away in the ExternalSecret's
+# events.
+#
+# `namespaces` is the fan-out list, and the first is not special -- ESO writes
+# into THIS release's namespace and Reflector mirrors to all of them.
+# ============================================================================
+
+# Prefix on the Secrets Manager entry, i.e. oan/<env>. Set per environment.
+prefix: oan/dev
+
+secretStoreRef:
+  name: aws-secrets-manager
+  kind: ClusterSecretStore
+
+# How often ESO re-reads the store. A rotation reaches the cluster within this
+# window and no sooner.
+refreshInterval: 1h
+
+secrets:
+  # -- databases. The operator namespace needs each one because CNPG reconciles
+  #    the role from it; the service namespace because the service connects.
+  - name: registry-db
+    namespaces: [postgres, registry]
+  - name: keycloak-db
+    namespaces: [postgres, keycloak]
+  - name: discovery-db
+    namespaces: [postgres, discovery]
+  - name: postgres-superuser
+    namespaces: [postgres]
+
+  # -- identity
+  - name: keycloak-admin
+    namespaces: [keycloak]
+  # The one credential two services share: Keycloak stores it on the admin-api
+  # client at realm import, the registry presents it.
+  - name: keycloak-admin-api
+    namespaces: [keycloak, registry]
+  # The account registry-seed writes participants as. Keycloak substitutes it
+  # into the realm's `no-user` at import; the seed Job authenticates with it.
+  - name: registry-seed
+    namespaces: [keycloak, registry]
+  - name: registry-default-user
+    namespaces: [registry]
+
+  # -- adapter identities. keyId inside these is filled in by
+  #    resolve-key-ids.sh AFTER the registry has been seeded, so these entries
+  #    change once per environment after the first bring-up.
+  - name: consumer-adapter-keys
+    namespaces: [consumer-adapter]
+  - name: network-adapter-keys
+    namespaces: [network-adapter]
+  - name: provider-adapter-keys
+    namespaces: [provider-adapter]
+
+  # The provider adapter's upstream credentials, named as environment variables
+  # by its config rather than substituted into it.
+  - name: provider-upstream
+    namespaces: [provider-adapter]

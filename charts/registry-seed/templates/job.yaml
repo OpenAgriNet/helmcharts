@@ -1,0 +1,76 @@
+{{/*
+A Job, not a hook.
+
+A post-install hook on the registry would tie seeding to that release's
+lifecycle, and these are different concerns on different clocks: the registry is
+a service, the seed data is network configuration that changes when a provider
+is added. Keeping it a plain Job also means `helm upgrade` re-runs it, which is
+safe -- every write checks first.
+
+The name carries the values checksum, so a values change makes a NEW Job rather
+than failing on an immutable field. Job.spec.template is immutable, so reusing
+one name and editing the data is rejected by the API server at apply time.
+*/}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "registry-seed.fullname" . }}-{{ include "registry-seed.document" . | sha256sum | trunc 8 }}
+  labels:
+    {{- include "registry-seed.labels" . | nindent 4 }}
+spec:
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  {{- with .Values.job.ttlSecondsAfterFinished }}
+  ttlSecondsAfterFinished: {{ . }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "registry-seed.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "registry-seed.fullname" . }}
+      automountServiceAccountToken: false
+      {{- with (include "common.imagePullSecrets" .) }}
+      {{- . | nindent 6 }}
+      {{- end }}
+      {{- with (include "common.podSecurityContext" .) }}
+      securityContext:
+        {{- . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: seed
+          image: {{ include "common.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with (include "common.securityContext" .) }}
+          securityContext:
+            {{- . | nindent 12 }}
+          {{- end }}
+          command: ["python3", "/seed/seed.py"]
+          env:
+            # The one credential here. It is the account that can WRITE
+            # participants, so it comes from a Secret rather than the seed
+            # document, which is a ConfigMap and readable by anyone who can list
+            # them in this namespace.
+            - name: SEED_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.seedUser.passwordSecret.name }}
+                  key: {{ .Values.seedUser.passwordSecret.key }}
+          volumeMounts:
+            - name: seed
+              mountPath: /seed
+              readOnly: true
+          resources:
+            {{- include "common.resources" . | nindent 12 }}
+      volumes:
+        - name: seed
+          configMap:
+            name: {{ include "registry-seed.fullname" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

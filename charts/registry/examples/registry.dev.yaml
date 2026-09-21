@@ -1,10 +1,10 @@
 # Example: the OAN participant registry, dev environment.
 #
 #   helm install registry charts/registry \
-#     -n oan-registry -f charts/registry/examples/registry.dev.yaml
+#     -n registry -f charts/registry/examples/registry.dev.yaml
 #
-# Install this LAST - it needs the database, and it needs the regenerated
-# admin-api client secret from Keycloak. See README.md for the full order.
+# Install this LAST - it needs the database, and it shares the admin-api client
+# Secret with the keycloak release. See README.md for the full order.
 
 # No fullnameOverride needed: the chart is named "registry", so a release named
 # "registry" already produces Service/registry.
@@ -21,35 +21,37 @@ image:
 # registry owns `registry` and Keycloak owns `keycloak`, so neither needs
 # superuser rights.
 database:
-  host: registry-db-rw
+  # FQDN: the CNPG Cluster runs in its own `postgres` namespace, so the bare
+  # service name does not resolve from here.
+  host: postgres-rw.postgres.svc.cluster.local
   port: 5432
   name: registry
   user: registry
   # The Secret the cluster's bootstrap owner was created from.
   passwordSecret:
-    name: registry-db-app
+    name: registry-db
     key: password
 
 keycloak:
   # Must match the keycloak release's in-cluster DNS, including /auth, and must
   # equal the issuer Keycloak puts in its tokens.
-  url: http://keycloak.oan-registry.svc.cluster.local:8080/auth
+  url: http://keycloak.keycloak.svc.cluster.local:8080/auth
   realm: sunbird-rc
   adminClientId: admin-api
   clientId: registry-frontend
-  # The REGENERATED admin-api secret. Until ESO is available:
-  #   kubectl -n oan-registry create secret generic registry-keycloak \
-  #     --from-literal=keycloakAdminClientSecret='<regenerated secret>' \
-  #     --from-literal=registryDefaultUserPassword='<password>'
+  # The same Secret keycloak's realmImport.adminClientSecret substitutes into
+  # the realm. Until ESO is available:
+  #   kubectl -n registry create secret generic keycloak-admin-api \
+  #     --from-literal=keycloakAdminClientSecret='<value>'
   adminClientSecret:
-    name: registry-keycloak
+    name: keycloak-admin-api
     key: keycloakAdminClientSecret
 
 authenticationEnabled: true
 
 keycloakUserSetPassword: true
 defaultUserPasswordSecret:
-  name: registry-keycloak
+  name: registry-default-user
   key: registryDefaultUserPassword
 
 # Ships files/schemas/*.json (currently just Participant.json)
@@ -79,6 +81,6 @@ waitFor:
   database: true
   keycloak: true
 
-# `helm test registry -n oan-registry` checks /health.
+# `helm test registry -n registry` checks /health.
 tests:
   enabled: true

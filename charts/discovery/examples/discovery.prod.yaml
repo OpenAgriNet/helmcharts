@@ -1,7 +1,7 @@
 # Example: the OAN discover-and-publish service, production.
 #
 #   helm install discovery charts/discovery \
-#     -n oan-discovery -f charts/discovery/examples/discovery.prod.yaml
+#     -n discovery -f charts/discovery/examples/discovery.prod.yaml
 #
 # NOT INSTALLABLE AS-IS. image.repository is empty and the render fails until
 # it is filled in - see below.
@@ -30,14 +30,14 @@ logLevel: info
 
 database:
   urlSecret:
-    name: discovery-db-app
+    name: discovery-db
     key: uri
 
   # OFF in production. Migrating is a step someone decides to take, on a
   # release that was chosen for it - not something that happens because a pod
   # was rescheduled at 3am. To migrate:
   #
-  #   helm upgrade discovery <chart> -n oan-discovery --reuse-values \
+  #   helm upgrade discovery <chart> -n discovery --reuse-values \
   #     --set database.autoMigrate=true --set replicaCount=1
   #   # verify, then upgrade back
   autoMigrate: false
@@ -51,7 +51,7 @@ database:
 # A ConfigMap rather than a fetch: production should not have its boot depend
 # on GitHub being reachable, and the upstream URL tracks `main`, so a fetch
 # pins nothing. Create it from a reviewed copy of the document:
-#   kubectl -n oan-discovery create configmap discovery-beckn-spec \
+#   kubectl -n discovery create configmap discovery-beckn-spec \
 #     --from-file=beckn.yaml=beckn-v2.0.0.yaml
 becknSpec:
   url: ""

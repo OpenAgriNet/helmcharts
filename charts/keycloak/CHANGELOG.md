@@ -5,6 +5,145 @@ All notable changes to the `keycloak` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-09-20
+
+### Fixed
+- The realm now defines `registryOperator` and grants it to `no-user`. It was
+  the only thing that had drifted from the realm the compose stack runs, and
+  every schema the registry ships gates writes on it through `_osConfig.roles`,
+  so registry-seed was rejected on all seven writes with:
+
+      User is not allowed to perform the operation on this entity
+
+  The token was valid and the payloads passed schema validation -- nothing in
+  that message, or anywhere in Keycloak, points at a missing realm role.
+
+### Added
+- `realmImport.reconcileCredentials.seedUserRoles`, reconciled by the same Job
+  that handles the credentials: the role is created if absent, assigned if
+  unassigned, and the Job fails if the account still does not hold it.
+
+  Adding the role to the realm file alone would not have fixed this cluster,
+  for the same reason the credentials fix did not -- Keycloak imports a realm
+  only when the realm is absent. Roles are first-boot state exactly like
+  passwords, so they belong in the same convergence loop.
+
+## [0.5.1] - 2026-09-20
+
+### Fixed
+- The reconcile Job passed `--config` before the kcadm command rather than as an
+  option of it, so every invocation died with `Unknown command:
+  --config=/tmp/kcadm.config` and the Job never reconciled anything.
+
+  It passed testing because the stub kcadm ignored argument order. The stub now
+  rejects a first argument that is not a command, exactly as kcadm does, and
+  reproduces the original error for the old form.
+
+## [0.5.0] - 2026-09-20
+
+### Added
+- `realmImport.reconcileCredentials` — a post-install/post-upgrade Job that
+  writes the admin-api client secret and the `no-user` password to the running
+  server with `kcadm`, then verifies both by making the same two grants the
+  registry and registry-seed make. Enabled by default.
+
+  0.4.0 fixed the import, but an import only runs when the realm is absent, so
+  it could not repair the realm this cluster already had: correcting the file
+  changes nothing Keycloak will read again. Reconciling against the running
+  server is the only path that reaches an existing realm.
+
+  It also closes the same gap going forward. Every credential in an imported
+  realm is a first-boot value, so rotating either Secret leaves the realm on the
+  old one, with nothing to report the drift — the realm looks correct in the
+  console and the failure appears as a 401 in a different service. With this,
+  the credentials converge on every sync instead, and a deploy that would leave
+  those services unable to authenticate fails here, naming the grant that broke.
+
+  Argo CD maps the Helm hook to PostSync. The Job is not deleted on success, so
+  a failed run's logs survive for inspection.
+
+## [0.4.0] - 2026-09-18
+
+### Fixed
+- The realm is rendered by a `render-realm` init container before Keycloak
+  reads it, instead of being mounted from the ConfigMap with `${env.NAME}`
+  placeholders intact.
+
+  **Keycloak does not expand `${env.NAME}` in a realm import file.** It imported
+  the placeholders as the literal credentials, so `no-user`'s password was the
+  string `${env.REGISTRY_SEED_PASSWORD}` and the admin-api client's secret was
+  `${env.KEYCLOAK_ADMIN_CLIENT_SECRET}`. Both the registry
+  (`invalid_client_credentials` on every `client_credentials` grant) and
+  registry-seed (`invalid_user_credentials`, HTTP 401) failed against a realm
+  that looked correct in the console. The reference compose stack never hit this
+  because its realm file carries literal values.
+
+  The rendered file lands in an emptyDir, so the credentials exist only for the
+  pod's lifetime and never become an API object -- this chart still renders no
+  Secrets. The init container fails, rather than importing something wrong, when
+  either value is empty, contains a non-printable character, or when any
+  `${env.*}` placeholder survives substitution. Values are JSON-escaped, since
+  the placeholder sits inside a JSON string.
+
+  **Upgrading does not fix an already-imported realm.** Keycloak imports only
+  when the realm does not exist, so delete realm `sunbird-rc` (or the Keycloak
+  database) and restart the pod for the corrected import to run.
+
+### Changed
+- The realm ConfigMap is mounted at `/realm-src` for the init container; the
+  main container's `realmImport.mountPath` now carries the rendered file.
+
+## [0.3.0] - 2026-09-15
+
+### Changed
+- **BREAKING.** `realmImport.adminClientSecret.name` is now required while
+  `realmImport.enabled` is true. The render fails without it rather than
+  importing a realm whose `admin-api` secret is an unsubstituted placeholder,
+  which would fail every registry admin call with an error that does not mention
+  the realm.
+- The shipped realm carries `"secret": "${env.KEYCLOAK_ADMIN_CLIENT_SECRET}"` for
+  the `admin-api` client instead of the masked `"**********"`. The legacy image
+  substitutes `${env.*}` at import, so the credential reaches Keycloak as an
+  environment variable sourced from a Secret, and the realm ConfigMap holds only
+  the placeholder - a ConfigMap being readable by anyone who can list them.
+
+### Changed
+- Documented namespace is now `keycloak` rather than `registry`. No template
+  changes: nothing here hardcodes a namespace, and `keycloak.url` already derives
+  from `.Release.Namespace`. Two consequences of the move are not optional.
+
+  `database.host` must now be the FQDN
+  `postgres-rw.postgres.svc.cluster.local`. Keycloak still uses its own
+  database and its own role on the registry stack's Cluster - that has not
+  changed - but the Cluster is in another namespace now, so the bare service
+  name no longer resolves.
+
+  And two Secrets are now needed in two namespaces each, for different reasons:
+
+  - `keycloak-db` is Keycloak's own database password. The `postgres` namespace
+    needs it for the CNPG operator, which reconciles the `keycloak` role against
+    it and can only read Secrets in its Cluster's namespace. The registry
+    service never reads it; the registry connects as `registry`.
+  - `keycloak-admin-api` holds the admin-api client secret, and nothing else.
+    Both services read it: the realm import writes the client from it, and the
+    registry authenticates to Keycloak's admin API with it. It is one key in its
+    own Secret because Reflector mirrors a whole Secret and cannot select keys -
+    `registryDefaultUserPassword`, which only the registry needs, lives
+    separately in `registry-default-user` so it never reaches this namespace.
+
+  Neither is created twice. Each is one Secret, mirrored into the second
+  namespace by Kubernetes Reflector, so there is no second copy to drift.
+
+### Removed
+- The two-phase first install. There is no longer a console step between
+  installing this chart and installing the registry: point both at one Secret
+  and the value the registry sends is the value Keycloak was imported with.
+
+### Note
+- `${env.*}` substitution is a property of the image, not of the chart, so
+  rendering does not prove it. Verify once per environment against
+  `sunbird-rc-keycloak:v1.0.0` - see the chart README.
+
 ## [0.2.0] - 2026-08-31
 
 ### Removed

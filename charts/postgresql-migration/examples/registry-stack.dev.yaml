@@ -1,7 +1,7 @@
 # Example: migrations for the registry stack, dev environment.
 #
 #   helm install migrate charts/postgresql-migration \
-#     -n oan-registry -f charts/postgresql-migration/examples/registry-stack.dev.yaml
+#     -n postgres -f charts/postgresql-migration/examples/registry-stack.dev.yaml
 #
 # NOTE: with both databases now created by the postgresql-cnpg chart, and with
 # Sunbird RC and Keycloak both managing their own schemas, this chart currently
@@ -14,7 +14,8 @@
 
 postgresql:
   # The CNPG primary. Migrations write, so this must not be a replica.
-  host: registry-db-rw
+  # FQDN: the CNPG Cluster runs in its own `postgres` namespace.
+  host: postgres-rw.postgres.svc.cluster.local
   port: 5432
   # Needs rights on each database it migrates. The CNPG superuser has them
   # everywhere; a per-database owner would need one release per database.
@@ -24,7 +25,7 @@ postgresql:
   # actually has SQL, or point this at a per-database owner instead.
   user: postgres
   passwordSecret:
-    name: registry-db-superuser
+    name: postgres-superuser
     key: password
 
 targets:

@@ -87,7 +87,7 @@ endless wait.
 ## Verifying an install
 
 ```bash
-helm test registry -n oan-registry
+helm test registry -n registry
 ```
 
 Runs a Pod that checks `/health`. It deliberately does not test an authenticated
@@ -122,34 +122,51 @@ templates.
 
 ## Install order
 
-The full stack, in the only order that works:
+The full stack, in the only order that works. Four namespaces: `postgres` holds
+the CNPG Clusters, `keycloak` the identity provider, `registry` the registry,
+and `discovery` its own service. Services reach their database by FQDN.
 
 ```bash
-# 1. Database cluster. Creates BOTH databases - `registry` via bootstrap.initdb,
-#    `keycloak` via a CNPG Database object - each owned by its own role.
-helm install registry-db charts/postgresql-cnpg \
-  -n oan-registry -f charts/postgresql-cnpg/examples/registry-db.dev.yaml
+# 1. Database cluster, in `postgres`. Creates BOTH databases - `registry` via
+#    bootstrap.initdb, `keycloak` via a CNPG Database object - each owned by its
+#    own role. Nothing else lives here: one namespace to give a DBA, and one
+#    place where `get secrets` reaches database credentials.
+helm install postgres charts/postgresql-cnpg \
+  -n postgres -f charts/postgresql-cnpg/examples/postgres.dev.yaml
 
-# 2. Keycloak — imports the sunbird-rc realm on first start
+# 2. Secrets, before anything that reads them.
+#
+#    Generate the values:
+#      infra-automation: ./scripts/manage-secrets.py generate --env dev
+#
+#    One top-level key per secret, one Secrets Manager entry each. External
+#    Secrets Operator pulls each into the namespace that owns it, and
+#    Kubernetes Reflector mirrors the four that a second namespace needs:
+#
+#      registry-db         postgres  -> registry
+#      keycloak-db         postgres  -> keycloak
+#      discovery-db        postgres  -> discovery
+#      keycloak-admin-api  registry  -> keycloak
+#
+#    Do not create any of those twice by hand -- two copies are two values
+#    waiting to drift, and the failure reads as a database problem.
+
+# 3. Keycloak, in its own namespace. The realm import substitutes
+#    keycloakAdminClientSecret into the admin-api client on first start.
 helm install keycloak charts/keycloak \
-  -n oan-registry -f charts/keycloak/examples/keycloak.dev.yaml
+  -n keycloak -f charts/keycloak/examples/keycloak.dev.yaml
 
-# 3. MANUAL: regenerate the admin-api client secret.
-#    The realm export ships it masked ("**********"), so it does not work as-is.
-#    kubectl -n oan-registry port-forward svc/keycloak 8080:8080
-#    http://localhost:8080/auth/admin -> realm sunbird-rc -> Clients
-#      -> admin-api -> Credentials -> Regenerate Secret
-#    kubectl -n oan-registry create secret generic registry-keycloak \
-#      --from-literal=keycloakAdminClientSecret='<regenerated>' \
-#      --from-literal=registryDefaultUserPassword='<password>'
-
-# 4. Registry
+# 4. Registry — reads the same client secret, so what it sends is what Keycloak
+#    was imported with.
 helm install registry charts/registry \
-  -n oan-registry -f charts/registry/examples/registry.dev.yaml
+  -n registry -f charts/registry/examples/registry.dev.yaml
 ```
 
-Step 3 is unavoidable while the realm is imported from a masked export — see
-[`keycloak`](../keycloak#the-two-phase-first-install).
+There is no manual console step. One value is read from both ends — the realm
+import writes the admin-api client from it, and the registry authenticates with
+it — so the two cannot disagree, provided the two namespace copies match. That
+"provided" is the cost of the namespace split, and the reason to generate rather
+than type them.
 
 ## Entity schemas
 
@@ -187,7 +204,7 @@ one:
 |---|---|
 | `keycloak.url` | Exactly the issuer Keycloak puts in the `iss` claim, including `/auth` |
 | `keycloak.realm` | A realm that is actually imported (`sunbird-rc`) |
-| `keycloak.adminClientSecret` | The **regenerated** `admin-api` secret, never the masked one from the export |
+| `keycloak.adminClientSecret` | The same Secret `keycloak`'s `realmImport.adminClientSecret` substitutes into the realm |
 
 `OAUTH2_RESOURCES_0_URI` is derived as `<keycloak.url>/realms/<realm>`, so it
 cannot drift from `keycloak.url`.

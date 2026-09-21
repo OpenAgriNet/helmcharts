@@ -1,0 +1,16 @@
+apiVersion: v2
+name: asm-secrets
+description: >-
+  One ExternalSecret per credential, pulling from AWS Secrets Manager into a
+  Kubernetes Secret and mirroring it, via Reflector, into every namespace that
+  reads it. This is what turns a Secrets Manager entry into something a chart
+  can reference by name.
+type: application
+version: 0.2.0
+appVersion: "0.10.7"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts

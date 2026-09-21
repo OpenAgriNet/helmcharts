@@ -29,11 +29,11 @@ Neither is installed by this chart, and both are cluster-wide:
 
 ```bash
 helm dependency update charts/postgresql-cnpg
-helm install registry-db charts/postgresql-cnpg \
-  -n oan-registry -f charts/postgresql-cnpg/examples/registry-db.dev.yaml
+helm install postgres charts/postgresql-cnpg \
+  -n postgres -f charts/postgresql-cnpg/examples/postgres.dev.yaml
 ```
 
-See [`examples/registry-db.dev.yaml`](./examples/registry-db.dev.yaml) for a
+See [`examples/postgres.dev.yaml`](./examples/postgres.dev.yaml) for a
 complete, commented per-environment values file.
 
 ## Databases and roles
@@ -47,7 +47,7 @@ several service databases without any of them sharing tables or credentials.
 bootstrap:
   database: registry
   owner: registry
-  ownerSecret: registry-db-app
+  ownerSecret: registry-db
 
 # roles for the others, created and reconciled by the operator
 managed:
@@ -99,7 +99,7 @@ CNPG creates three services from the cluster name:
 **Set `fullnameOverride`.** The cluster name becomes the DNS other services
 depend on, and renaming a cluster later means recreating it. With
 `fullnameOverride: registry-db` the primary is
-`registry-db-rw.<namespace>.svc.cluster.local:5432`; without it you get
+`postgres-rw.<namespace>.svc.cluster.local:5432`; without it you get
 `<release>-postgresql-cnpg-rw`.
 
 ## Credentials

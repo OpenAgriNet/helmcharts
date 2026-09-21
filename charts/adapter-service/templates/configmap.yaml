@@ -6,10 +6,33 @@ this is a ConfigMap, and a ConfigMap is world-readable to anything with get on
 the namespace. The init container substitutes the real values from the Secret
 into an emptyDir at start-up.
 
-Everything that differs between the provider, network and experience adapters is a
+Everything that differs between the provider, network and consumer adapters is a
 value: they are one image with one config format, and the role decides the
 identity, the handler role, the step list and where requests are routed.
 */}}
+{{/*
+RAW CONFIG OVERRIDE.
+
+`config` takes an adapter config verbatim, for the cases this chart's templated
+form cannot express -- the provider adapter's per-capability plugins above all,
+where each capability carries its own binding key, auth block and mapping.
+Modelling those in values would mean the chart learning what a capability is.
+
+KEY MATERIAL MUST STAY AS PLACEHOLDERS. The init container substitutes
+__ADAPTER_SIGNING_PRIVATE__ and friends from the mounted Secret into an emptyDir
+at pod start, which is why no rendered config ever holds a key. A raw config
+with a literal private key in it would put that key in git, in a ConfigMap, and
+in `helm get values` -- so the render refuses it.
+*/}}
+{{- $cfgFile := printf "config/%s-config.yaml" (include "adapter-service.role" .) }}
+{{- $cfg := .Values.config | default (.Files.Get $cfgFile) }}
+{{- if $cfg }}
+{{- range $ph, $field := dict "__ADAPTER_SIGNING_PRIVATE__" "signingPrivateKey" "__ADAPTER_ENCR_PRIVATE__" "encrPrivateKey" }}
+{{- if and (contains (printf "%s:" $field) $cfg) (not (contains $ph $cfg)) }}
+{{- fail (printf "%s: config sets %s but does not use %s.\n\n  A private key written here reaches git, the ConfigMap, and `helm get values`.\n  Replace the value with %s -- the init container substitutes it from\n  Secret/%s at pod start, so the key exists only in the pod." $.Chart.Name $field $ph $ph ($.Values.keys.existingSecret.name | default "<keys.existingSecret.name>")) }}
+{{- end }}
+{{- end }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -22,105 +45,22 @@ metadata:
   {{- end }}
 data:
   adapter.yaml: |
-    # Rendered by the adapter-service chart for the {{ include "adapter-service.role" . }} role.
-    # Do not edit in place: the init container rewrites a copy of this, and
-    # this object is replaced on every helm upgrade.
-    appName: {{ include "adapter-service.appName" . | quote }}
+    {{- /* The config comes from a FILE, not from this template.
 
-    log:
-      level: {{ .Values.logLevel | quote }}
-      destinations:
-        - type: stdout
-      contextKeys: [transaction_id, message_id, subscriber_id, module_id]
+           An adapter config is a plugin graph -- the provider one carries a
+           plugin per capability, each with its own binding key, auth block and
+           mapping. Expressing that in Helm values would mean this chart
+           learning what a capability is, and every new provider becoming a
+           chart change. A file per role is edited directly and synced.
 
-    http:
-      port: {{ .Values.service.targetPort }}
-      timeout:
-        read: {{ .Values.http.timeout.read }}
-        write: {{ .Values.http.timeout.write }}
-        idle: {{ .Values.http.timeout.idle }}
-
-    pluginManager:
-      root: ./plugins
-
-    plugins:
-      otelsetup:
-        id: otelsetup
-        config:
-          serviceName: {{ include "adapter-service.otelServiceName" . | quote }}
-          environment: {{ .Values.otel.environment | quote }}
-          otlpEndpoint: {{ include "adapter-service.otlpEndpoint" . | quote }}
-          enableMetrics: {{ .Values.otel.enabled | quote }}
-          enableTracing: {{ .Values.otel.enabled | quote }}
-          enableLogs: {{ .Values.otel.enabled | quote }}
-
-    modules:
-      - name: {{ include "adapter-service.appName" . | quote }}
-        # A subtree: every action lands here and the payload says which one.
-        path: {{ .Values.handler.path | quote }}
-        handler:
-          type: std
-          {{/*
-          bap originates a call, bpp receives one. It decides which declared
-          identity validateSign would compare a signer against -- so it is not
-          cosmetic, and it is why experience (which originates) differs from network
-          and provider (which receive).
-          */}}
-          role: {{ include "adapter-service.handlerRole" . | quote }}
-          subscriberId: __ADAPTER_SUBSCRIBER_ID__
-
-          plugins:
-            registry:
-              id: oanregistry
-              config:
-                url: {{ include "adapter-service.registryUrl" . | quote }}
-                entity: {{ .Values.registry.entity | quote }}
-                providerEntity: {{ .Values.registry.providerEntity | quote }}
-
-            keyManager:
-              id: simplekeymanager
-              config:
-                subscriberId: __ADAPTER_SUBSCRIBER_ID__
-                # The KEY's osid, not a friendly name: that is what the
-                # registry indexes keys by, and what a verifier looks up.
-                keyId: __ADAPTER_KEY_ID__
-                signingPrivateKey: "__ADAPTER_SIGNING_PRIVATE__"
-                signingPublicKey: "__ADAPTER_SIGNING_PUBLIC__"
-                encrPrivateKey: "__ADAPTER_ENCR_PRIVATE__"
-                encrPublicKey: "__ADAPTER_ENCR_PUBLIC__"
-
-            signer:
-              id: signer
-            signValidator:
-              id: signvalidator
-
-            schemaValidator:
-              id: schemav2validator
-              config:
-                type: url
-                location: {{ .Values.becknSpec.url | quote }}
-                cacheTTL: {{ .Values.becknSpec.cacheTTL | quote }}
-                extendedSchema_enabled: {{ .Values.becknSpec.extendedSchema.enabled | quote }}
-                extendedSchema_cacheTTL: {{ .Values.becknSpec.extendedSchema.cacheTTL | quote }}
-                extendedSchema_maxCacheSize: {{ .Values.becknSpec.extendedSchema.maxCacheSize | quote }}
-                extendedSchema_downloadTimeout: {{ .Values.becknSpec.extendedSchema.downloadTimeout | quote }}
-                extendedSchema_allowedDomains: {{ .Values.becknSpec.extendedSchema.allowedDomains | quote }}
-
-            router:
-              id: router
-              config:
-                routingConfig: {{ include "adapter-service.configDir" . }}/{{ include "adapter-service.routingFile" . }}
-
-          {{/*
-          The step list is role-specific and the difference matters. experience is
-          inside the trust boundary and takes unsigned requests, so it has no
-          validateSign to run; network and provider receive from the network
-          and must verify before they do anything else.
-          */}}
-          steps:
-            {{- range include "adapter-service.steps" . | fromYamlArray }}
-            - {{ . }}
-            {{- end }}
+           `config` in values wins when set, for an environment that needs to
+           differ without a new file. */}}
+    {{- $file := printf "config/%s-config.yaml" (include "adapter-service.role" .) }}
+    {{- $raw := .Values.config | default ($.Files.Get $file) }}
+    {{- if not $raw }}
+    {{- fail (printf "%s: no config. Expected %s in the chart, or `config` set in values. The role decides the filename, so a new role needs a new file." .Chart.Name $file) }}
+    {{- end }}
+    {{- $raw | nindent 4 }}
 
   {{ include "adapter-service.routingFile" . }}: |
     # Where this adapter hands requests on.

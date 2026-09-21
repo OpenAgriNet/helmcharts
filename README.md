@@ -14,6 +14,10 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`registry`](charts/registry) | application | The OAN participant registry, on Sunbird RC core. Needs `postgresql-cnpg` and `keycloak`. |
 | [`discovery`](charts/discovery) | application | The OAN Beckn discover-and-publish service. Needs `postgresql-cnpg` **with pgvector**. |
 | [`adapter-service`](charts/adapter-service) | application | The OAN Beckn adapters. One chart, installed once per `role` — `provider`, `network` or `experience`. Needs `registry`. |
+| [`kong`](charts/kong) | application | Kong — the cluster's API gateway and ingress controller, in one release. The official `kong` chart 3.2.0 committed whole and unmodified. Per-environment configuration lives in the infra-automation repository. |
+| [`registry-seed`](charts/registry-seed) | application | Seeds the registry — adapter identities, upstreams, capability bindings and schemas — as a re-runnable Job. Reports the key osid each adapter needs. |
+| [`cert-manager`](charts/cert-manager) | application | X.509 certificate management. The official `cert-manager` chart v1.21.2 committed whole and unmodified. Its CRDs are applied out of band — three exceed the annotation size limit. |
+| [`cert-manager-issuers`](charts/cert-manager-issuers) | application | Let's Encrypt `ClusterIssuer`s. Separate from `cert-manager` because one release cannot register a CRD and create an instance of it. |
 | [`clickstack`](charts/clickstack) | application | Observability — ClickHouse, an OTel collector and the HyperDX UI. A verbatim copy of the official upstream chart, with no OAN changes yet. |
 
 ## How they fit together
@@ -26,15 +30,21 @@ charts/
 ├── postgresql-migration/# schema migrations (Flyway Job)
 ├── keycloak/            # auth for the registry
 ├── registry/            # the participant registry
+├── registry-seed/       # seeds it, as a Job
+├── kong/                # API gateway + ingress controller — vendored upstream
+├── cert-manager/        # certificate management — vendored upstream
+├── cert-manager-issuers/# Let's Encrypt ClusterIssuers for it
 ├── discovery/           # the Beckn discover-and-publish service
 ├── adapter-service/     # the Beckn adapters — one release per role
 └── clickstack/          # observability — vendored upstream, not yet OAN-shaped
 ```
 
-Every chart depends on `common` via `file://../common`, except
-`clickstack`: it is the official upstream chart committed unmodified, so it
-carries neither the dependency nor the conventions. Its README lists what that
-leaves to override.
+Every chart depends on `common` via `file://../common`, except `clickstack`,
+`kong` and `cert-manager`: all three are official upstream charts committed
+unmodified, so they carry neither the dependency nor the conventions. Each
+README lists what that leaves to override. `cert-manager-issuers` also skips it,
+for a different reason — it renders two custom resources and no workload, so
+none of the library's helpers apply.
 
 ## The registry stack
 
@@ -43,13 +53,18 @@ Three charts, deployed in this order — the ordering is not optional:
 ```bash
 # 1. Database cluster. Creates BOTH databases: `registry` via bootstrap.initdb
 #    and `keycloak` via a CNPG Database object, each owned by its own role.
-helm install registry-db charts/postgresql-cnpg -n oan-registry -f charts/postgresql-cnpg/examples/registry-db.dev.yaml
-# 2. Keycloak — imports the sunbird-rc realm it ships with, on first start
-helm install keycloak    charts/keycloak        -n oan-registry -f charts/keycloak/examples/keycloak.dev.yaml
-# MANUAL STEP: regenerate the admin-api client secret in the Keycloak console —
-# the realm export ships it masked, so the registry cannot authenticate without this.
-# 3. Registry
-helm install registry    charts/registry        -n oan-registry -f charts/registry/examples/registry.dev.yaml
+helm install postgres charts/postgresql-cnpg -n postgres -f charts/postgresql-cnpg/examples/postgres.dev.yaml
+# 2. Secrets, before anything that reads them. One Secret per value, pulled from
+#    Secrets Manager and mirrored where a second namespace needs it:
+#      infra-automation: ./scripts/manage-secrets.py generate --env dev
+# 3. Keycloak — imports the sunbird-rc realm it ships with, on first start
+helm install keycloak    charts/keycloak        -n keycloak -f charts/keycloak/examples/keycloak.dev.yaml
+# 4. Registry
+helm install registry    charts/registry        -n registry -f charts/registry/examples/registry.dev.yaml
+# 5. Seed it: adapter identities, upstreams, bindings, schemas. Re-runnable.
+#    Its log reports the key osid each adapter must be configured with - the
+#    registry assigns those on write, so they cannot be known before this runs.
+helm install registry-seed charts/registry-seed -n registry -f my-seed-values.yaml
 ```
 
 `postgresql-migration` is deliberately not in that list: both databases come from
@@ -72,9 +87,9 @@ Two charts, and one prerequisite that is easy to miss:
 #    created at bootstrap. Both are required: no stock CNPG operand image has
 #    pgvector, and `vector` is not a trusted extension, so the owner the service
 #    connects as cannot create it itself.
-helm install discovery-db charts/postgresql-cnpg -n oan-discovery -f charts/postgresql-cnpg/examples/discovery-db.dev.yaml
+helm install discovery-db charts/postgresql-cnpg -n postgres -f charts/postgresql-cnpg/examples/discovery-db.dev.yaml
 # 2. The service
-helm install discovery    charts/discovery       -n oan-discovery -f charts/discovery/examples/discovery.dev.yaml
+helm install discovery    charts/discovery       -n discovery -f charts/discovery/examples/discovery.dev.yaml
 ```
 
 It shares no database and no Keycloak with the registry stack, so the two are
