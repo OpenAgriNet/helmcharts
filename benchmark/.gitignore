@@ -1,0 +1,37 @@
+# Per-run output: JMeter results, resource samples, reports.
+#
+# The directory itself is kept, so a fresh clone shows where runs land. Only its
+# contents are ignored.
+results/*
+!results/.gitkeep
+
+# Generated payloads. NOT committed: the publish set is about 130 MB at 100,000
+# resources, and this repository is public.
+#
+# Build them before a run, which takes about twenty seconds:
+#
+#     make data
+#
+# They are deterministic — same config, same metadata, same bytes — so keeping
+# them out of git costs nothing but disk. What is committed instead is
+# data/CHECKSUMS, a digest of every generated file.
+#
+#     make verify-data
+#
+# regenerates and compares against it, failing if anything moved. That is the
+# guarantee a committed payload gave, at a few kilobytes.
+data/publish-payload/
+data/discover-payload/
+data/select-payload/
+
+# NOT ignored, deliberately: data/mandiPrice-metadata/ and data/CHECKSUMS.
+#
+# The metadata is the INPUT — real market, district, state and commodity data
+# from Agmarknet, about a megabyte. Fetching it needs credentials and an
+# endpoint that is not public, so committing it is what lets someone else
+# generate the same payloads and get the same bytes.
+
+# A working checklist, not documentation. It tracks what is left to do on the
+# machine it lives on, which is nobody else's business in a public repository --
+# what a reader needs is in README.md.
+TODO.md

@@ -1,0 +1,111 @@
+{
+  "_comment": [
+    "Payload SHAPE for the MandiPrice publish benchmark.",
+    "",
+    "The generator does not understand these fields. It substitutes",
+    "placeholders and repeats the resource block once per MARKET-COMMODITY",
+    "PAIR, so changing the shape here needs no code change.",
+    "",
+    "One resource is one market and ONE commodity. That is what keeps every",
+    "resource the same size -- and so every discover response of the same",
+    "match count the same size, which is the point.",
+    "",
+    "  {{CATALOG_ID}} {{CATALOG_INDEX}}       the catalog being generated",
+    "  {{STATE_CODE}} {{STATE_NAME}}          the state this catalog covers",
+    "  {{RESOURCE_ID}}                        the market-commodity pair",
+    "  {{MARKET_ID}} {{MARKET_NAME}}          real market, from the source data",
+    "  {{COMMODITY_CODE}} {{COMMODITY_NAME}}  the one commodity this resource is",
+    "  {{DISTRICT_ID}} {{DISTRICT_NAME}}        real district id and name",
+    "  {{AGM_STATE_CODE}} {{AGM_DISTRICT_CODE}}  the codes a provider call needs",
+    "  {{CENTER_CODE}}                        Agmarknet market centre code",
+    "  {{PROVIDER_ID}}                        from config.providerId",
+    "  {{RESOURCE_CONTEXT}} {{RESOURCE_TYPE}} from config.resource",
+    "  {{VALID_FROM}} {{VALID_TO}}            from config.validity",
+    "  {{LIST:languages}}                     the state's languages",
+    "  {{LIST:commodities}}                   exactly one real Agmarknet",
+    "                                         commodity -- a one-item list",
+    "  {{NUM:LON}} {{NUM:LAT}}                the market's real coordinates,",
+    "                                         emitted as JSON numbers"
+  ],
+
+  "catalog": {
+    "id": "{{CATALOG_ID}}",
+    "descriptor": {
+      "code": "MANDI_PRICE_{{STATE_CODE}}",
+      "name": "{{STATE_NAME}} mandi prices",
+      "shortDesc": "On-demand commodity price information for agricultural markets in {{STATE_NAME}}.",
+      "longDesc": "Each Resource represents one commodity traded at one market. Consumers discover by location or commodity and invoke the Provider to obtain current prices as a Direct MandiPrice Resource."
+    },
+    "isActive": true,
+    "provider": {
+      "id": "{{PROVIDER_ID}}",
+      "descriptor": {
+        "code": "AGMARKNET",
+        "name": "Agmarknet Vistaar",
+        "shortDesc": "Provider of live agricultural market price information."
+      }
+    },
+    "resources": []
+  },
+
+  "resource": {
+    "id": "{{RESOURCE_ID}}",
+    "descriptor": {
+      "code": "MANDI_PRICE_MARKET_{{MARKET_ID}}_C{{COMMODITY_CODE}}",
+      "name": "{{COMMODITY_NAME}} prices at {{MARKET_NAME}}",
+      "shortDesc": "Current {{COMMODITY_NAME}} prices for {{MARKET_NAME}}, {{DISTRICT_NAME}} district, {{STATE_NAME}}.",
+      "longDesc": "Invoke this Resource with an applicable date to obtain minimum, maximum, and modal {{COMMODITY_NAME}} prices for {{MARKET_NAME}}. The result uses the same MandiPrice type in Direct information mode."
+    },
+    "resourceAttributes": {
+      "@context": "{{RESOURCE_CONTEXT}}",
+      "@type": "{{RESOURCE_TYPE}}",
+      "informationMode": "OnDemand",
+      "subjectCategories": ["Market"],
+      "languages": "{{LIST:languages}}",
+      "source": {
+        "sourceId": "{{PROVIDER_ID}}",
+        "sourceName": "Agmarknet Vistaar",
+        "sourceUri": "https://agmarknet.gov.in/"
+      },
+      "market": {
+        "marketName": "{{MARKET_NAME}}",
+        "district": "{{DISTRICT_ID}}",
+        "state": "{{STATE_CODE}}",
+        "marketCode": "{{MARKET_ID}}",
+        "location": {
+          "geo": {
+            "type": "Point",
+            "coordinates": ["{{NUM:LON}}", "{{NUM:LAT}}"]
+          }
+        }
+      },
+      "supportedCommodities": "{{LIST:commodities}}",
+      "supportedPriceFields": ["Minimum", "Maximum", "Modal"],
+      "validity": {
+        "startsAt": "{{VALID_FROM}}",
+        "endsAt": "{{VALID_TO}}"
+      },
+      "historicalDataAvailable": true,
+      "historyPeriod": "P1Y",
+      "updateFrequency": "P1D",
+      "coverageAreas": [
+        {
+          "type": "Point",
+          "coordinates": ["{{NUM:LON}}", "{{NUM:LAT}}"]
+        },
+        {
+          "codeScheme": "ISO-3166-2",
+          "areaCode": "IN-{{STATE_CODE}}",
+          "areaLevel": "State",
+          "areaName": "{{STATE_NAME}}"
+        }
+      ]
+    }
+  },
+
+  "publishDirective": {
+    "catalogId": "{{CATALOG_ID}}",
+    "catalogType": "REGULAR",
+    "updateMode": "MERGE"
+  }
+}
