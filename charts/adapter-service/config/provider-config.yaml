@@ -30,16 +30,20 @@ pluginManager:
 
 plugins:
   # Ships metrics, traces and logs over OTLP/gRPC. All three flags false builds
-  # no exporter at all, which is the right setting for a stack with no collector.
+  # no exporter at all, which is the right setting for a stack with no
+  # collector -- so these are on only because clickstack is deployed alongside.
+  # Turn them back off for a cluster without it: the exporter dials on an
+  # interval and logs a connection failure every few seconds when nothing
+  # answers.
   otelsetup:
     id: otelsetup
     config:
       serviceName: "provider-adapter"
       environment: "dev"
       otlpEndpoint: "clickstack-otel-collector.observability.svc.cluster.local:4317"
-      enableMetrics: "false"
-      enableTracing: "false"
-      enableLogs: "false"
+      enableMetrics: "true"
+      enableTracing: "true"
+      enableLogs: "true"
 
 modules:
   - name: oanProvider
@@ -208,13 +212,18 @@ modules:
               # farmer there is no facility when there is.
               searchConcurrency: 1
 
-      # Signing and signature validation are OFF: validateSign and signAck are
-      # absent below, so this tier accepts unsigned traffic and answers
-      # unsigned. Turning it back on means adding the step names here AND on the
-      # other side of the hop at the same time.
+      # This tier VALIDATES the caller's signature and answers UNSIGNED:
+      # validateSign is listed, signAck is not. The caller is the consumer
+      # adapter, which signs -- removing `sign` there rejects every select
+      # arriving here.
+      #
+      # No signAck because nothing verifies the response: the consumer adapter
+      # has no validation step on the way back, so signing it would cost a
+      # keypair operation per request that nobody checks.
       #
       # A plugin declared above but missing from this list is loaded and never runs.
       steps:
+        - validateSign
         - validateSchema
         - WeatherObservation
         - MandiPrice
@@ -292,7 +301,10 @@ modules:
             routingConfig: /app/config/routing-provider.yaml
 
       # No validateSign: the caller is this provider's own catalogue system,
-      # inside its trust boundary. The adapter signs the forwarded request itself.
+      # inside its trust boundary. The adapter signs the forwarded request
+      # itself, and the network adapter validates that signature -- removing
+      # `sign` here rejects every publish.
       steps:
         - validateSchema
         - addRoute
+        - sign

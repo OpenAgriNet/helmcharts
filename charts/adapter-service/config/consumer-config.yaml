@@ -26,16 +26,20 @@ pluginManager:
 
 plugins:
   # Ships metrics, traces and logs over OTLP/gRPC. All three flags false builds
-  # no exporter at all, which is the right setting for a stack with no collector.
+  # no exporter at all, which is the right setting for a stack with no
+  # collector -- so these are on only because clickstack is deployed alongside.
+  # Turn them back off for a cluster without it: the exporter dials on an
+  # interval and logs a connection failure every few seconds when nothing
+  # answers.
   otelsetup:
     id: otelsetup
     config:
       serviceName: "consumer-adapter"
       environment: "dev"
       otlpEndpoint: "clickstack-otel-collector.observability.svc.cluster.local:4317"
-      enableMetrics: "false"
-      enableTracing: "false"
-      enableLogs: "false"
+      enableMetrics: "true"
+      enableTracing: "true"
+      enableLogs: "true"
 
 modules:
   - name: consumer-adapter
@@ -94,16 +98,21 @@ modules:
               contextKeys: transaction_id,message_id
               role: bap
 
-        # The extended layer is off: it fetches a resource's own @context per
-        # payload, and nothing here needs it. The settings below only apply if
-        # it is turned on.
+        # The extended layer is ON: it fetches each resource's own @context and
+        # validates against that, on top of the base Beckn v2 spec. That is a
+        # network call the first time a @context is seen and a second thing that
+        # can fail on the request path -- allowedDomains below is what stops a
+        # payload pointing the adapter at an arbitrary host.
+        #
+        # It is not full conformance: if/then is never enforced, so a pass here
+        # does not mean the payload matches the pack.
         schemaValidator:
           id: schemav2validator
           config:
             type: url
             location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
-            extendedSchema_enabled: "false"
+            extendedSchema_enabled: "true"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
@@ -114,12 +123,14 @@ modules:
           config:
             routingConfig: /app/config/routing-consumer.yaml
 
-      # Signing and signature validation are OFF: this tier accepts unsigned
-      # traffic and forwards unsigned. Turning it back on means adding the step
-      # names here AND on the other side of the hop at the same time.
+      # This tier SIGNS what it forwards, and the far side of both its hops
+      # validates that signature: the network adapter for discover, the
+      # provider adapter for select. Removing `sign` here without removing
+      # `validateSign` there rejects every request.
       #
-      # No validateSign either way: the app calling this is inside the trust
-      # boundary, so there is no network signature to check inbound.
+      # No validateSign inbound: the app calling this is inside the trust
+      # boundary, so there is no network signature to check.
       steps:
         - validateSchema
         - addRoute
+        - sign

@@ -25,16 +25,20 @@ pluginManager:
 
 plugins:
   # Ships metrics, traces and logs over OTLP/gRPC. All three flags false builds
-  # no exporter at all, which is the right setting for a stack with no collector.
+  # no exporter at all, which is the right setting for a stack with no
+  # collector -- so these are on only because clickstack is deployed alongside.
+  # Turn them back off for a cluster without it: the exporter dials on an
+  # interval and logs a connection failure every few seconds when nothing
+  # answers.
   otelsetup:
     id: otelsetup
     config:
       serviceName: "network-adapter"
       environment: "dev"
       otlpEndpoint: "clickstack-otel-collector.observability.svc.cluster.local:4317"
-      enableMetrics: "false"
-      enableTracing: "false"
-      enableLogs: "false"
+      enableMetrics: "true"
+      enableTracing: "true"
+      enableLogs: "true"
 
 modules:
   - name: network-adapter
@@ -113,11 +117,19 @@ modules:
           config:
             routingConfig: /app/config/routing-network.yaml
 
-      # Signing and signature validation are OFF: this tier accepts unsigned
-      # traffic and forwards unsigned. Turning it back on means adding the step
-      # names here AND on the other side of the hop at the same time.
+      # This tier VALIDATES the caller's signature and forwards unsigned.
       #
-      # validateSchema is not listed either, so this tier enforces no payload
-      # shape at all -- it only routes.
+      # validateSign covers both callers: the consumer adapter on discover and
+      # the provider adapter on publish, each of which signs. Removing `sign`
+      # on either of those rejects every request arriving here.
+      #
+      # No `sign` on the way out, because the only thing downstream is the
+      # discovery service and it verifies nothing -- its signature middleware
+      # is parked, not mounted. Signing here would cost a keypair operation per
+      # request that nobody checks.
+      #
+      # validateSchema is not listed, so this tier enforces no payload shape --
+      # it checks who is calling and routes.
       steps:
+        - validateSign
         - addRoute
