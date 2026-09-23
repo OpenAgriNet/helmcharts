@@ -197,7 +197,10 @@ select:
 # cannot write a report has wasted ten minutes.
 dependency-check:
 	@echo "go       $$(command -v go >/dev/null && go version || echo 'NOT FOUND')"
-	@echo "jmeter   $$(command -v jmeter >/dev/null && jmeter --version 2>/dev/null | head -1 || echo 'NOT FOUND')"
+	@# NOT `head -1`: jmeter leads with a log4j plugin-scanning warning on some
+	@# installs, and a banner on others, so the first line is rarely the version.
+	@# Same trap already fixed in tools/run-benchmark.sh.
+	@echo "jmeter   $$(command -v jmeter >/dev/null && (jmeter --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | tail -1) || echo 'NOT FOUND')"
 	@echo "kubectl  $$(command -v kubectl >/dev/null && echo present || echo 'not found (only needed for SAMPLE=k8s)')"
 	@echo "docker   $$(command -v docker >/dev/null && echo present || echo 'not found (only needed for SAMPLE=docker)')"
 	@echo "curl     $$(command -v curl >/dev/null && echo present || echo 'not found (only needed for HEALTH=)')"
