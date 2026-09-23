@@ -1,0 +1,27 @@
+apiVersion: v2
+name: decision-support-system
+description: >-
+  The DSS reasoning runtime: interprets a farmer's turn (intent, moderation,
+  provider discovery, planning, composition) and streams back a curated
+  answer. Stateless - state lives in the LLM providers it calls and the OAN
+  network it discovers against, not in this service.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - dss
+  - decision-support-system
+  - reasoning
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
+  - https://github.com/OpenAgriNet/decision-support-system
+dependencies:
+  - name: common
+    version: "0.2.x"
+    repository: "file://../common"

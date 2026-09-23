@@ -15,6 +15,7 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`discovery`](charts/discovery) | application | The OAN Beckn discover-and-publish service. Needs `postgresql-cnpg` **with pgvector**. |
 | [`adapter-service`](charts/adapter-service) | application | The OAN Beckn adapters. One chart, installed once per `role` — `provider`, `network` or `experience`. Needs `registry`. |
 | [`clickstack`](charts/clickstack) | application | Observability — ClickHouse, an OTel collector and the HyperDX UI. A verbatim copy of the official upstream chart, with no OAN changes yet. |
+| [`decision-support-system`](charts/decision-support-system) | application | The DSS reasoning runtime — intent, moderation, provider discovery, planning and composition for one farmer turn. Stateless; no datastore of its own. |
 
 ## How they fit together
 
