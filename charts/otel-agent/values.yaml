@@ -15,8 +15,15 @@
 
 image:
   repository: otel/opentelemetry-collector-contrib
-  # Matches the collector ClickStack runs, so both speak the same conventions.
-  tag: "0.129.0"
+  # A tag that EXISTS on Docker Hub. 0.129.0 -- chosen to match ClickStack's own
+  # collector -- is not published there, and the DaemonSet sat in
+  # ImagePullBackOff on all three nodes:
+  #
+  #     docker.io/otel/opentelemetry-collector-contrib:0.129.0: not found
+  #
+  # Check the tag before pinning it; the release cadence is weekly and older
+  # tags are not all kept.
+  tag: "0.161.0"
   pullPolicy: IfNotPresent
 
 # Where to forward. The ClickStack collector's OTLP receiver, which requires a
