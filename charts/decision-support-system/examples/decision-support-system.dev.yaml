@@ -1,0 +1,60 @@
+# Example: the DSS reasoning runtime, dev environment.
+#
+#   helm install decision-support-system charts/decision-support-system \
+#     -n dss -f charts/decision-support-system/examples/decision-support-system.dev.yaml
+#
+# Two Secrets must exist first (this chart renders neither):
+#
+#   kubectl -n dss create secret generic dss-azure-openai \
+#     --from-literal=api-key=<the deployment key>
+#   kubectl -n dss create secret docker-registry ghcr \
+#     --docker-server=ghcr.io --docker-username=<user> \
+#     --docker-password=<a PAT with read:packages>
+#
+# Left UNWIRED here on purpose: network.discoveryBaseUrl/invocationBaseUrl.
+# Point them at a running OAN discovery service (or the app repo's own
+# tools/mock_network) once one exists in this cluster - every turn answers
+# intent + moderation only until then, which exercises the transport without
+# needing the rest of the network up.
+
+image:
+  tag: "1.0.0"
+  pullSecrets:
+    - ghcr
+
+logLevel: debug
+
+# Azure on both agents that matter most for a first smoke test; the other two
+# stay on the chart's openai: default, which needs OPENAI_API_KEY somewhere in
+# envFromSecrets/secretEnv if you also exercise those.
+models:
+  intent: "azure:gpt-4o-mini"
+  moderation: "azure:gpt-4o-mini"
+  planner: "azure:gpt-4o-mini"
+  composer: "azure:gpt-4o-mini"
+
+azureOpenai:
+  endpoint: "https://<resource>.services.ai.azure.com/openai/v1"
+  apiKeySecret:
+    name: dss-azure-openai
+    key: api-key
+
+schemaPacks:
+  ref: schema-packs-v0.1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+ingress:
+  enabled: false
+
+tests:
+  enabled: true
+
+commonLabels:
+  oan.in/environment: dev

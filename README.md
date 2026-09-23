@@ -19,6 +19,7 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`cert-manager`](charts/cert-manager) | application | X.509 certificate management. The official `cert-manager` chart v1.21.2 committed whole and unmodified. Its CRDs are applied out of band — three exceed the annotation size limit. |
 | [`cert-manager-issuers`](charts/cert-manager-issuers) | application | Let's Encrypt `ClusterIssuer`s. Separate from `cert-manager` because one release cannot register a CRD and create an instance of it. |
 | [`clickstack`](charts/clickstack) | application | Observability — ClickHouse, an OTel collector and the HyperDX UI. A verbatim copy of the official upstream chart, with no OAN changes yet. |
+| [`decision-support-system`](charts/decision-support-system) | application | The DSS reasoning runtime — intent, moderation, provider discovery, planning and composition for one farmer turn. Stateless; no datastore of its own. |
 
 ## How they fit together
 

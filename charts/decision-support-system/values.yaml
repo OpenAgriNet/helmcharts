@@ -1,0 +1,372 @@
+# ============================================================================
+# decision-support-system - default values
+#
+# A single stateless FastAPI service (POST /v1/turns). No datastore of its
+# own: everything it needs is either bundled in the image (district index,
+# default policy/identity/skill packs) or reached over the network (an LLM
+# provider, optionally the OAN discovery/invocation network, optionally an
+# OTLP collector). See decision-support-system/docs/RUNNING.md for the full
+# knob list this chart does not surface directly.
+#
+# Minimum you must set for a real deployment:
+#   - image.repository (ghcr.io/openagrinet/decision-support-system is private -
+#     see image.pullSecrets)
+#   - models.* (all four default to openai:gpt-4o-mini, which needs
+#     OPENAI_API_KEY - point at azure:<deployment> + azureOpenai.* instead to
+#     use Azure OpenAI, matching docker-compose.yml's default)
+#   - network.discoveryBaseUrl / network.invocationBaseUrl, once the OAN
+#     network exists to point at - unset, every turn answers intent +
+#     moderation only and discovery finds nobody (this is the app's own
+#     designed degrade path, not a broken config)
+# ============================================================================
+
+replicaCount: 1
+
+# ---------------------------------------------------------------------------
+# Image
+#
+# The package is PRIVATE (ghcr.io/openagrinet/decision-support-system). A
+# cluster pulling it needs a docker-registry secret named in pullSecrets:
+#
+#   kubectl create secret docker-registry ghcr \
+#     --docker-server=ghcr.io --docker-username=<user> \
+#     --docker-password=<a PAT with read:packages>
+#
+# tag stays empty on purpose - it falls through to Chart.appVersion, so the
+# chart ships pointing at the app version it was written against.
+# ---------------------------------------------------------------------------
+image:
+  registry: ghcr.io
+  repository: openagrinet/decision-support-system
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  # The service talks to LLM providers and the OAN network over HTTP, never
+  # to the Kubernetes API.
+  automountServiceAccountToken: false
+
+service:
+  type: ClusterIP
+  port: 8077
+  targetPort: 8077
+  annotations: {}
+
+# Disabled by default. The app's own design is internal-only - "no auth, no
+# CORS ... only this deployment's own channel services reach this port"
+# (entrypoint/app.py). Put a channel/gateway service in front rather than
+# exposing this directly, unless that gateway *is* this Ingress.
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: dss.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# ---------------------------------------------------------------------------
+# Per-agent model bindings (ADR-0004)
+#
+# Four agents, each its own model string in Pydantic AI's own syntax:
+#   openai:<model>          - OPENAI_API_KEY (see the `openai` block below)
+#   azure:<deployment id>   - AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_API_KEY
+#                             (see the `azureOpenai` block below), NOT the
+#                             deployment's model name
+#
+# One agent can be on Azure while another is on OpenAI - the prefix decides,
+# independently per agent. Temperature/timeout/retries per agent are less
+# likely to change per environment and stay in envConfig
+# (DSS_INTENT_TEMPERATURE, DSS_PLANNER_RETRIES, ...) - see README.md.
+# ---------------------------------------------------------------------------
+models:
+  intent: "openai:gpt-4o-mini"
+  moderation: "openai:gpt-4o-mini"
+  planner: "openai:gpt-4o-mini"
+  composer: "openai:gpt-4o-mini"
+
+# AZURE_OPENAI_ENDPOINT / AZURE_OPENAI_API_KEY. Read by the SDK straight from
+# the environment, not through DSS Settings - so these reach the container as
+# plain env vars regardless, unlike a local .env file (docs/RUNNING.md's "these
+# two cannot live in .env" caveat is a local-dev-only quirk, not a container
+# one). Required, and validated at startup, only when a models.* value starts
+# `azure:`.
+azureOpenai:
+  # The v1 base or full responses URL. Not a secret, but deployment-specific.
+  endpoint: ""
+  apiKeySecret:
+    name: ""
+    key: ""
+
+# OPENAI_API_KEY / OPENAI_BASE_URL, for any models.* value that is NOT
+# `azure:...`. baseUrl is optional - unset uses api.openai.com.
+openai:
+  baseUrl: ""
+  apiKeySecret:
+    name: ""
+    key: ""
+
+# ---------------------------------------------------------------------------
+# Provider network (gated: Settings.network_enabled)
+#
+# Both URLs or neither. Unset, discovery finds nobody, the planner/composer
+# are never reached, and every turn answers intent + moderation only,
+# `outcome.status: "no_match"` - the app's own designed degrade path, not a
+# wiring fault. Set both to light up the real discover -> plan -> compose path.
+# ---------------------------------------------------------------------------
+network:
+  discoveryBaseUrl: ""
+  invocationBaseUrl: ""
+  senderId: consumer.oan.dev
+  receiverId: oan
+  # How far around the turn's location to look for a provider. Only consulted
+  # once the network is wired and the turn carries a geometry.
+  radiusMeters: 25000
+
+# ---------------------------------------------------------------------------
+# Schema packs
+#
+# The packs describing what a provider can answer live in a separate repo
+# (OpenAgriNet/network-specs) and nothing ships them in this image. With the
+# network enabled, the app fetches them itself over the GitHub API on first
+# boot IF the mounted directory is empty, and refuses to boot if that fetch
+# finds nothing (docs/RUNNING.md, "Get the schema packs"). Mounted as an
+# emptyDir rather than left on the container's root filesystem so the chart
+# still works once securityContext.readOnlyRootFilesystem is turned on.
+#
+# `main` (the app's own default) carries no packs yet - always set `ref`.
+# githubTokenSecret is optional but recommended once replicaCount > 1 or pods
+# restart often: each pod fetches independently on an empty volume, and
+# unauthenticated GitHub API calls are capped at 60/hour.
+# ---------------------------------------------------------------------------
+schemaPacks:
+  ref: schema-packs-v0.1
+  mountPath: /var/dss/schema-packs
+  sizeLimit: 256Mi
+  githubTokenSecret:
+    name: ""
+    key: ""
+
+# ---------------------------------------------------------------------------
+# Evidence
+#
+# Every turn appends to two JSONL files: telemetry (no user content, broad
+# access) and turns (the question and answer, restricted access, short
+# retention - docs/RUNNING.md "Where the evidence goes"). Mounted as an
+# emptyDir: this is an explicit stand-in for an evidence API that does not
+# exist yet, not durable storage, and nothing in the app reads these files
+# back - so per-pod, ephemeral, and lost on pod restart is the correct
+# behaviour today, not a gap this chart should paper over with a PVC.
+# ---------------------------------------------------------------------------
+evidence:
+  mountPath: /var/dss/evidence
+  sizeLimit: 512Mi
+
+# ---------------------------------------------------------------------------
+# Tracing (OpenTelemetry)
+#
+# Unset (default): nothing is instrumented, nothing exported. Set otlpEndpoint
+# to a Collector or Langfuse's OTLP endpoint to export agent spans. Neither is
+# deployed by this chart - docker-compose.yml's otel-collector is a
+# `--profiles: [tracing]` local dev convenience, and a real deployment points
+# at a separately-run Langfuse or Collector instead.
+# ---------------------------------------------------------------------------
+tracing:
+  otlpEndpoint: ""
+  # Pydantic AI counts tokens as metrics; Langfuse discards them, so "none" is
+  # the setting everywhere except a Collector that actually wants them.
+  metricsExporter: none
+  # OTEL_EXPORTER_OTLP_HEADERS, e.g. Langfuse's `Authorization=Basic ...` -
+  # carries credentials, so it is a Secret reference, never a plain value.
+  headersSecret:
+    name: ""
+    key: ""
+
+logLevel: INFO
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+
+# ---------------------------------------------------------------------------
+# Probes
+#
+# There is no dedicated /health or /readyz route (unlike this repo's
+# `discovery` chart) - only /v1/turns is registered. /openapi.json is what
+# docker-compose.yml's own healthcheck uses: FastAPI serves it unconditionally
+# once the ASGI app is constructed, with no dependency check behind it. That
+# makes it a real liveness signal (the process is up and serving) but NOT a
+# readiness one - Settings.ready=False returns 503 only from /v1/turns itself,
+# never from a probe route, so a k8s readinessProbe cannot observe that flag.
+# Flagging this as an app-level gap, not something this chart can work around.
+# ---------------------------------------------------------------------------
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /openapi.json
+    port: http
+  # Generous: on first boot with the network enabled and an empty schema-pack
+  # volume, the app fetches packs from GitHub before it starts serving.
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 60
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /openapi.json
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /openapi.json
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# ---------------------------------------------------------------------------
+# Security contexts
+#
+# Off by default, unlike this repo's `discovery` chart. The image
+# (decision-support-system/Dockerfile) is `python:3.13-slim` with no `USER`
+# directive - the process runs as root in the container today. Turning these
+# on before that changes would not make the pod any safer; it would just
+# describe a posture the image does not have. Revisit once the Dockerfile
+# gains a non-root USER.
+# ---------------------------------------------------------------------------
+podSecurityContext:
+  enabled: false
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  enabled: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+
+extraVolumes: []
+extraVolumeMounts: []
+
+# ---------------------------------------------------------------------------
+# PodDisruptionBudget
+#
+# Disabled by default: with a single replica, minAvailable: 1 blocks every
+# node drain outright.
+# ---------------------------------------------------------------------------
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  maxUnavailable: ""
+  allowSingleReplica: false
+
+# ---------------------------------------------------------------------------
+# Autoscaling
+#
+# The service is stateless by design (docs/dss-design-v2.md: "any replica can
+# serve the rest") - safe to scale horizontally. When enabled, replicaCount is
+# ignored.
+# ---------------------------------------------------------------------------
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: ""
+  behavior: {}
+
+# ---------------------------------------------------------------------------
+# `helm test` check
+#
+#   helm test <release> -n <namespace>
+#
+# Confirms the service actually answers HTTP, not just that the pod is
+# Running. There is no /readyz to check network wiring against (see the
+# probes comment above), so this is a liveness-equivalent smoke test only.
+# ---------------------------------------------------------------------------
+tests:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: busybox
+    tag: "1.37"
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 50m
+      memory: 32Mi
+
+# ---------------------------------------------------------------------------
+# ENVIRONMENT CONFIGURATION
+#
+# Rendered into a ConfigMap and injected with envFrom. Everything the chart
+# has a structured value for above is derived, not duplicated here. Use this
+# for the rest of src/dss/config/settings.py - most likely wanted:
+#
+#   DSS_INTENT_TEMPERATURE / DSS_MODERATION_TEMPERATURE / DSS_PLANNER_TEMPERATURE
+#     / DSS_COMPOSER_TEMPERATURE, and each agent's _TIMEOUT_SECONDS / _RETRIES
+#   DSS_SELECT_TIMEOUT_SECONDS, DSS_SELECT_ATTEMPTS, DSS_SELECT_BACKOFF_SECONDS
+#   DSS_MAX_BODY_BYTES (default 1000000)
+#   DSS_READY (default true - see the probes comment: flipping this to false
+#     does not actually change probe behaviour today, only /v1/turns responses)
+#
+# NEVER set these two here - both are documented footguns, not deployment
+# knobs:
+#   DSS_STUB_LLM         - canned answers, never true outside a laptop
+#   DSS_TRACE_INCLUDE_MESSAGE_CONTENT - puts the farmer's query and answer in
+#     traces verbatim; DSS_ARCHITECTURE.md S6.1 forbids this in a deployment
+#
+# NEVER put secrets here. This is a ConfigMap.
+# ---------------------------------------------------------------------------
+envConfig: {}
+
+# Names of pre-existing Secrets in this namespace to inject wholesale via
+# envFrom.
+envFromSecrets: []
+
+# Individual env vars sourced from specific Secret keys, beyond the
+# apiKeySecret/headersSecret/githubTokenSecret references above.
+secretEnv: {}
+
+extraEnv: []
+
+commonLabels: {}
+commonAnnotations: {}

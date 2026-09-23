@@ -1,0 +1,7 @@
+# The chart's own defaults (openai:gpt-4o-mini everywhere, network unwired)
+# already render with no overrides - this file exists so CI renders a case
+# with the private registry pull secret, matching how it is actually
+# installed, rather than just the bare defaults.
+image:
+  pullSecrets:
+    - ghcr
