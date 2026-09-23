@@ -103,11 +103,38 @@ sample_k8s() {
   stamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
   args=(top pod --no-headers)
-  [ -n "$NAMESPACE" ] && args+=(--namespace "$NAMESPACE")
+  if [ -n "$NAMESPACE" ]; then
+    args+=(--namespace "$NAMESPACE")
+  else
+    # EVERY namespace, not the current one.
+    #
+    # `kubectl top pod` with no namespace reads whatever the kubeconfig's
+    # context happens to point at -- usually `default`, which holds nothing.
+    # The samples file would come out with a header and no rows, and the report
+    # would show an empty CPU table for a run that was fine.
+    #
+    # It matters here more than most: this deployment puts each component in
+    # its own namespace -- consumer-adapter, network-adapter, provider-adapter,
+    # discovery, registry, postgres -- so no single namespace covers a request
+    # path.
+    args+=(--all-namespaces)
+  fi
   [ -n "$SELECTOR" ] && args+=(--selector "$SELECTOR")
 
-  kubectl "${args[@]}" 2>/dev/null | while read -r name cpu mem; do
-    local cpu_m mem_bytes
+  kubectl "${args[@]}" 2>/dev/null | while read -r c1 c2 c3 c4; do
+    local name cpu mem cpu_m mem_bytes
+    if [ -n "$NAMESPACE" ]; then
+      # name cpu mem
+      name=$c1; cpu=$c2; mem=$c3
+    else
+      # --all-namespaces prepends the namespace, so every field shifts one
+      # right. Reading the old three would have taken the namespace as the pod
+      # name and the pod name as the CPU figure -- garbage that still parses.
+      #
+      # Recorded as namespace/pod, which is also what makes the report
+      # readable when two namespaces hold a pod of the same name.
+      name="$c1/$c2"; cpu=$c3; mem=$c4
+    fi
     cpu_m=${cpu%m}
     mem_bytes=$(to_bytes "$mem")
     echo "$stamp,$name,$cpu_m,$mem_bytes" >> "$OUT"
