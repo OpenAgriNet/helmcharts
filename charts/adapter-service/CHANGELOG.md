@@ -5,6 +5,37 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-09-23
+
+### Changed
+- **BREAKING.** `routing.rules` is gone. Routing comes from
+  `config/routing-<role>.yaml` in this chart, mounted verbatim, exactly like
+  `config/<role>-config.yaml` beside it.
+
+  Routing is topology rather than environment: the in-cluster targets follow the
+  namespace-per-component convention and are identical in every environment — no
+  environment had ever overridden them. Holding them in values only meant that
+  changing an adapter's steps was a change here while changing its routes was a
+  change in another repository, for the same adapter and the same config
+  directory.
+
+  `routing.config` takes a whole routing file verbatim for a deployment that
+  genuinely differs — pointing the provider adapter at a mock upstream, say.
+
+  To migrate: delete the `routing:` block from your values. If it said anything
+  other than what `config/routing-<role>.yaml` now says, move it to
+  `routing.config`.
+
+### Removed
+- The `adapter-service.routingRules` helper, which validated and rendered those
+  values. Three of its four checks — rules present, url present, endpoints
+  present — stop earning their keep once the file is committed in the chart and
+  visible in review.
+
+  The fourth is kept, as a string check on the file: a `target.url` ending in a
+  slash fails the render, naming the file and the line. That one produces
+  `//discover` at runtime, which reads as a bad gateway rather than as a typo.
+
 ## [0.4.0] - 2026-09-22
 
 ### Changed

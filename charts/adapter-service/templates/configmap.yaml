@@ -63,9 +63,29 @@ data:
     {{- $raw | nindent 4 }}
 
   {{ include "adapter-service.routingFile" . }}: |
-    # Where this adapter hands requests on.
-    #
-    # targetType "url" appends the action to whatever base is given, so a base
-    # must be the bare host and port with no path.
-    routingRules:
-      {{- include "adapter-service.routingRules" . | nindent 6 }}
+    {{- /* Routing comes from a FILE, for the same reason the config above does:
+           it is topology rather than environment. The in-cluster names follow
+           the namespace-per-component convention and are identical in every
+           environment -- none has ever overridden them. Keeping them in values
+           meant a step change was a helmcharts PR while a route change was an
+           infra-automation PR, for the same adapter.
+
+           `routing.config` in values wins when set, for an environment that
+           genuinely has to differ. */}}
+    {{- $routeFile := printf "config/routing-%s.yaml" (include "adapter-service.role" .) }}
+    {{- $routes := .Values.routing.config | default ($.Files.Get $routeFile) }}
+    {{- if not $routes }}
+    {{- fail (printf "%s: no routing. Expected %s in the chart, or `routing.config` set in values. An adapter with no route accepts requests and has nowhere to send them." .Chart.Name $routeFile) }}
+    {{- end }}
+    {{- /* The one check worth keeping from the old value-driven render.
+           targetType "url" appends the action to the base, so a trailing slash
+           produces //discover -- which routes nowhere and reads as a bad
+           gateway rather than as a typo. A path is legitimate alongside
+           excludeAction, which is why this tests the slash and not the path. */}}
+    {{- range $line := splitList "\n" $routes }}
+    {{- $trimmed := trim $line }}
+    {{- if and (hasPrefix "url:" $trimmed) (hasSuffix "/" $trimmed) }}
+    {{- fail (printf "%s: %s has a target url ending in a slash (%q). The router appends the action to it, so that produces //discover." $.Chart.Name $routeFile $trimmed) }}
+    {{- end }}
+    {{- end }}
+    {{- $routes | nindent 4 }}

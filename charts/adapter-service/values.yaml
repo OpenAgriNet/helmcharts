@@ -203,16 +203,24 @@ handler:
 # ---------------------------------------------------------------------------
 # Routing
 #
-# A list, because provider fans out to several upstreams while network and consumer
-# each have one target. Required: an adapter with no route accepts requests and
-# has nowhere to send them.
+# WHERE THE ROUTES ACTUALLY LIVE: config/routing-<role>.yaml in this chart,
+# mounted verbatim, exactly like config/<role>-config.yaml beside it.
 #
-# target.url is a bare host and port with NO path -- targetType "url" appends
-# the action, so a trailing slash produces //discover. In-cluster the host is
-# the RELEASE name of the target, which is what its Service is called.
+# Routing is topology rather than environment. The in-cluster targets follow the
+# namespace-per-component convention and are the same in every environment, so
+# holding them in values only meant a step change and a route change to the same
+# adapter landed in two different repositories.
+#
+# `config` takes a whole routing file verbatim, for the case a deployment
+# genuinely differs -- pointing the provider adapter at a mock upstream, say.
+# Set it and the file in the chart is ignored.
+#
+# target.url is a bare host and port with NO trailing slash: targetType "url"
+# appends the action, so a slash produces //discover. The render refuses one.
+# A path is legitimate only alongside excludeAction.
 # ---------------------------------------------------------------------------
 routing:
-  rules: []
+  config: ""
 
 # ---------------------------------------------------------------------------
 # Beckn schema validation

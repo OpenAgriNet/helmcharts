@@ -37,21 +37,9 @@ service:
 
 # One rule per upstream. Each target.url is a bare host and port -- the router
 # appends the action, so no path and no trailing slash.
-routing:
-  rules:
-    - version: "2.0.0"
-      targetType: url
-      target:
-        url: http://mockimd:8080
-      endpoints:
-        - search
-        - select
-    - version: "2.0.0"
-      targetType: url
-      target:
-        url: http://mockagmarknet:8080
-      endpoints:
-        - search
+# Routing is no longer a value: it comes from config/routing-<role>.yaml in
+# the chart, like the adapter config. Set `routing.config` to a whole routing
+# file only if this deployment must differ.
 
 # The mandi credential. envFromSecrets pulls the whole Secret in as env vars,
 # so MANDI_TOKEN is a key inside it rather than a literal here.

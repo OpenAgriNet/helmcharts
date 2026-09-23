@@ -87,33 +87,6 @@ self-describing when you exec into a pod.
 routing-{{ include "adapter-service.role" . }}.yaml
 {{- end }}
 
-{{/*
-The routing rules, as a YAML array.
-
-A list rather than one rule: provider fans out to several upstreams, while
-network and consumer each have a single target. Every rule needs a target url,
-and a trailing slash on one produces //discover once the router appends the
-action -- so that is caught here rather than at request time.
-*/}}
-{{- define "adapter-service.routingRules" -}}
-{{- $rules := .Values.routing.rules | default list -}}
-{{- if not $rules -}}
-{{- fail (printf "%s: routing.rules is required and must hold at least one rule. An adapter with no route accepts requests and has nowhere to send them. See examples/%s.yaml." .Chart.Name (include "adapter-service.role" .)) -}}
-{{- end -}}
-{{- range $i, $rule := $rules -}}
-{{- $url := $rule.target.url | default "" -}}
-{{- if not $url -}}
-{{- fail (printf "%s: routing.rules[%d].target.url is required -- e.g. http://discovery:8080. In-cluster this is the RELEASE name of the target, which is what its Service is called." $.Chart.Name $i) -}}
-{{- end -}}
-{{- if hasSuffix "/" $url -}}
-{{- fail (printf "%s: routing.rules[%d].target.url must not end in a slash (%q). The router appends the action to it, so a trailing slash produces //discover." $.Chart.Name $i $url) -}}
-{{- end -}}
-{{- if not $rule.endpoints -}}
-{{- fail (printf "%s: routing.rules[%d].endpoints is required -- e.g. [discover, publish]. A rule with no endpoints matches nothing." $.Chart.Name $i) -}}
-{{- end -}}
-{{- end -}}
-{{- toYaml $rules -}}
-{{- end }}
 
 {{- define "adapter-service.name" -}}
 {{- include "common.name" . -}}

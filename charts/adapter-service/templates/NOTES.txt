@@ -5,7 +5,7 @@
   image      {{ include "adapter-service.image" . }}
   service    {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}
   registry   {{ .Values.registry.url }}
-  routes to  {{ range $i, $r := .Values.routing.rules }}{{ if $i }}, {{ end }}{{ $r.target.url }}{{ end }}
+  routes     from config/routing-{{ include "adapter-service.role" . }}.yaml
   telemetry  {{ if .Values.otel.enabled }}{{ .Values.otel.endpoint }}{{ else }}off{{ end }}
 
 This Service is reachable in-cluster as {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}.
