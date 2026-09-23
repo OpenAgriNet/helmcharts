@@ -1,0 +1,10 @@
+apiVersion: v2
+name: collector-rbac
+description: >-
+  Permission for the OTel collector to read container metrics from every
+  kubelet. Separate from the clickstack chart because that one is vendored
+  upstream and carries no RBAC of its own — its collector runs as the
+  namespace's `default` ServiceAccount, which can read nothing.
+type: application
+version: 0.1.0
+appVersion: "1.0"

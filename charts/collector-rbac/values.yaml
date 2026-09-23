@@ -1,0 +1,33 @@
+# collector-rbac
+#
+# WHAT THIS IS FOR. A dashboard of CPU, memory and I/O per service cannot be
+# built from the services themselves: Postgres, Keycloak, Kong and the registry
+# emit no telemetry about their own containers, and never will. Those numbers
+# come from the kubelet, which means something has to scrape it — and scraping
+# it needs permission the OTel collector does not have.
+#
+# The clickstack chart is vendored upstream and defines no ServiceAccount, so
+# its collector runs as `default` in its namespace. Rather than fork that chart
+# to add one, this binds the permission to the account it already uses.
+
+# The account to grant it to: the one the collector actually runs as.
+serviceAccount:
+  name: default
+  namespace: observability
+
+# Read-only, and only what a kubelet scrape needs:
+#
+#   nodes         to discover them at all (kubernetes_sd_configs, role: node)
+#   nodes/metrics the kubelet's own metrics
+#   nodes/proxy   to reach each kubelet THROUGH the API server
+#
+# nodes/proxy is the one that looks alarming and is the reason this works from a
+# single-replica Deployment. Going direct to each kubelet on :10250 means
+# reaching every node from one pod and trusting each kubelet's certificate;
+# proxying through the API server reuses the connection and the trust already
+# established. It is also, bluntly, a powerful verb — it can reach any kubelet
+# endpoint, not only metrics — so it is granted here and nowhere else.
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/metrics", "nodes/proxy"]
+    verbs: ["get", "list", "watch"]
