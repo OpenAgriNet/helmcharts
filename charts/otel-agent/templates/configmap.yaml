@@ -1,0 +1,70 @@
+{{/*
+The agent's whole config. No OpAMP and no supervisor: this collector is ours,
+so it reads a file and nothing reconfigures it underneath.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  config.yaml: |
+    receivers:
+      # Reads THIS node's kubelet, which is the whole reason for a DaemonSet.
+      #
+      # insecure_skip_verify because a kubelet serves a certificate for its node
+      # identity, not for the address we reach it on. The connection is still
+      # authenticated in the direction that matters -- the ServiceAccount token
+      # proves who is asking.
+      kubeletstats:
+        collection_interval: {{ .Values.collectionInterval }}
+        auth_type: serviceAccount
+        endpoint: "https://${env:K8S_NODE_NAME}:10250"
+        insecure_skip_verify: true
+        # Both levels: pod for the dashboard, container because a pod with a
+        # sidecar hides which half is using the CPU.
+        metric_groups:
+          - pod
+          - container
+          - node
+        # Attaches limits and requests to the metrics, so a chart can show usage
+        # against what the pod was actually given -- which is the whole point of
+        # a benchmark that varies them.
+        extra_metadata_labels:
+          - container.id
+        k8s_api_config:
+          auth_type: serviceAccount
+
+    processors:
+      # A bound on this agent's own memory. It runs on the nodes under test, so
+      # it must not be the thing that runs them out of memory.
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 80
+        spike_limit_percentage: 20
+      batch:
+        timeout: 10s
+        send_batch_size: 1024
+
+    exporters:
+      otlp:
+        endpoint: {{ .Values.exporter.endpoint | quote }}
+        # The ClickStack collector terminates no TLS. It does require a bearer
+        # token, below.
+        tls:
+          insecure: true
+        headers:
+          authorization: "${env:HYPERDX_API_KEY}"
+
+    service:
+      telemetry:
+        logs:
+          level: info
+      pipelines:
+        metrics:
+          receivers: [kubeletstats]
+          processors: [memory_limiter, batch]
+          exporters: [otlp]

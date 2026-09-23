@@ -1,0 +1,55 @@
+# otel-agent
+#
+# WHY THIS EXISTS. HyperDX ships a Kubernetes dashboard that queries metrics by
+# their OpenTelemetry semantic-convention names — k8s.pod.cpu.usage,
+# k8s.pod.memory.usage and friends. Scraping cAdvisor gives the same numbers
+# under Prometheus names (container_cpu_usage_seconds_total), so that dashboard
+# finds nothing and every chart has to be rebuilt by hand.
+#
+# The kubeletstats receiver emits the semconv names directly. It can only read
+# the kubelet on its OWN node, which is why this is a DaemonSet and not another
+# Deployment.
+#
+# It forwards to the ClickStack collector rather than writing to ClickHouse
+# itself: one place owns the schema, the credentials and the retries.
+
+image:
+  repository: otel/opentelemetry-collector-contrib
+  # Matches the collector ClickStack runs, so both speak the same conventions.
+  tag: "0.129.0"
+  pullPolicy: IfNotPresent
+
+# Where to forward. The ClickStack collector's OTLP receiver, which requires a
+# bearer token — see apiKey below.
+exporter:
+  endpoint: "clickstack-otel-collector.observability.svc.cluster.local:4317"
+
+# The HyperDX ingestion key. NOT written into a values file: supplied at install
+# time, the same one the clickstack release and the adapters get.
+#
+#     ./scripts/install-services.sh -e dev -- --set global.hyperdxApiKey=<key>
+#
+# The default is the chart's placeholder, which is refused by the collector —
+# visibly, rather than dropping telemetry in silence.
+apiKey: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# How often each kubelet is read. 15s matches the cAdvisor scrape it replaces;
+# a benchmark run is minutes long, so this is fine enough to see a saturation
+# curve without flooding ClickHouse.
+collectionInterval: 15s
+
+# Small: this reads one kubelet and forwards. It runs on every node, including
+# the ones under test, so it is capped tightly — an agent that competes with
+# the service it is measuring corrupts the measurement.
+resources:
+  requests:
+    cpu: 50m
+    memory: 96Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+# Runs on every node the workload can. Control-plane nodes are EKS-managed and
+# not visible here, so no toleration is needed for them.
+tolerations: []
+nodeSelector: {}

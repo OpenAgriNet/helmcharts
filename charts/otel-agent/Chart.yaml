@@ -1,0 +1,10 @@
+apiVersion: v2
+name: otel-agent
+description: >-
+  A per-node OTel collector that reads each kubelet and emits pod and container
+  metrics under the OpenTelemetry semantic conventions — the names HyperDX's
+  Kubernetes dashboard queries. A DaemonSet because a kubelet can only be read
+  from the node it runs on.
+type: application
+version: 0.1.0
+appVersion: "0.129.0"
