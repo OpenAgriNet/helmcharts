@@ -62,7 +62,20 @@
         <stringProp name="ThreadGroup.delay">${__P(startupDelay,0)}</stringProp>
         <stringProp name="ThreadGroup.on_sample_error">${__P(onSampleError,continue)}</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
-          <boolProp name="LoopController.continue_forever">true</boolProp>
+          <!--
+            FALSE, and it has to be. With continue_forever=true JMeter IGNORES
+            the loop count entirely and each thread loops until the test is
+            stopped. Alongside scheduler=false, which is what a positive LOOPS
+            selects, the run then has no end condition at all: it sails past the
+            requested count and keeps going until killed by hand.
+
+            Caught on a 6x167 run that should have sent 1,002 requests and was
+            still climbing at 1,207.
+
+            A loops value of -1 still means "forever" to JMeter, so
+            DURATION-bounded runs are unaffected by this.
+          -->
+          <boolProp name="LoopController.continue_forever">false</boolProp>
           <stringProp name="LoopController.loops">${__P(loops,-1)}</stringProp>
         </elementProp>
       </ThreadGroup>
