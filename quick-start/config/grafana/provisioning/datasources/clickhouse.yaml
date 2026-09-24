@@ -9,8 +9,24 @@
 # interpolation -- not a templating step we run ourselves.
 apiVersion: 1
 
+# Removed by name before the datasource below is created. This exists because
+# pinning `uid` on a datasource Grafana had already provisioned with a
+# generated one is not an update it can perform: it looks the datasource up by
+# uid, does not find it, and the provisioning module fails -- which in Grafana
+# 13 takes the whole process down in a restart loop rather than logging and
+# continuing. Deleting first makes the uid change idempotent, and costs nothing
+# on a fresh stack where there is no row to delete.
+deleteDatasources:
+  - name: ClickHouse
+    orgId: 1
+
 datasources:
   - name: ClickHouse
+    # Pinned, not left to Grafana to generate. A provisioned dashboard refers
+    # to its datasource by uid, so an auto-generated one makes the dashboard
+    # JSON machine-specific -- it works here and resolves to nothing on a
+    # teammate's stack or after `make destroy` drops the grafana-data volume.
+    uid: clickhouse
     type: grafana-clickhouse-datasource
     access: proxy
     isDefault: true
@@ -20,6 +36,92 @@ datasources:
       protocol: native
       defaultDatabase: ${CLICKHOUSE_DATABASE}
       username: ${CLICKHOUSE_USERNAME}
+
+      # Without this block the plugin knows nothing about where logs live, so
+      # Explore's Logs mode has no table to browse, the log-volume histogram
+      # reports "No logs volume available", and every log question has to be
+      # asked in hand-written SQL. Filling it in is what turns Logs mode into
+      # a working log console -- level colouring, the volume histogram, and a
+      # query builder that needs no SQL at all.
+      #
+      # This is also the reason not to add Loki: the logs are already in
+      # ClickHouse, and what Loki was going to be added for was this UI. A
+      # second backend would mean storing every line twice and splitting
+      # trace-to-log correlation across two datasources.
+      logs:
+        defaultDatabase: ${CLICKHOUSE_DATABASE}
+        defaultTable: otel_logs
+
+        # Tells the plugin the table follows the OpenTelemetry log schema, so
+        # it knows about ResourceAttributes/LogAttributes rather than treating
+        # them as opaque columns. The columns below are named explicitly
+        # anyway -- otelEnabled decides how the *rest* of the schema is read.
+        otelEnabled: true
+        otelVersion: latest
+
+        timeColumn: Timestamp
+        levelColumn: SeverityText
+        messageColumn: Body
+
+        # Shown beside each line and filterable from the log detail view.
+        # ServiceName because every container's stdout lands in one table and
+        # a line without its service is unattributable; TraceId because it is
+        # the jump from a log line to the request that produced it.
+        selectContextColumns: true
+        contextColumns:
+          - ServiceName
+          - TraceId
+
+      # The same idea for spans. Without it, Traces mode has no table and the
+      # Traces query type cannot build a waterfall -- a trace has to be
+      # hand-aliased into the seven field names Grafana's trace view expects
+      # (traceID, spanID, parentSpanID, serviceName, operationName, startTime,
+      # duration), and get one wrong and it silently renders as a table.
+      #
+      # `otelEnabled` already teaches the plugin this schema, so most of the
+      # column mappings below are what it would infer. They are written out
+      # anyway: the exporter's schema is not ours to keep stable, and an
+      # explicit mapping fails loudly on a rename rather than quietly
+      # producing an empty trace view.
+      traces:
+        defaultDatabase: ${CLICKHOUSE_DATABASE}
+        defaultTable: otel_traces
+        otelEnabled: true
+        otelVersion: latest
+
+        traceIdColumn: TraceId
+        spanIdColumn: SpanId
+        parentSpanIdColumn: ParentSpanId
+        serviceNameColumn: ServiceName
+        operationNameColumn: SpanName
+        startTimeColumn: Timestamp
+
+        # Duration is UInt64 nanoseconds in this schema. Getting the unit wrong
+        # does not error -- it renders a 1.5 ms span as 1.5 ms worth of
+        # nanoseconds and every waterfall is silently the wrong scale.
+        durationTimeColumn: Duration
+        durationUnit: nanoseconds
+
+        kindColumn: SpanKind
+        statusCodeColumn: StatusCode
+        statusMessageColumn: StatusMessage
+
+        # Span attributes are the per-request facts (beckn.action,
+        # http.status_code, result.empty); resource attributes are the
+        # per-process ones (service.version, build.commit, network.id).
+        tagsColumn: SpanAttributes
+        serviceTagsColumn: ResourceAttributes
+
+        instrumentationLibraryNameColumn: ScopeName
+        instrumentationLibraryVersionColumn: ScopeVersion
+
+        # Nested columns named Events.Timestamp / Events.Name / ... and
+        # Links.TraceId / ... -- the prefix is how the plugin finds them.
+        # This is where request_info, retrieval_info, response_info and error
+        # live, which on this service is most of the interesting content.
+        traceEventsColumnPrefix: Events
+        traceLinksColumnPrefix: Links
+        flattenNested: false
     secureJsonData:
       password: ${CLICKHOUSE_PASSWORD}
     editable: false
