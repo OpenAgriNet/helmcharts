@@ -745,6 +745,20 @@ services:
     profiles: ["observability"]
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
 
+    # The docker_stats receiver needs this and nothing else does. The contrib
+    # image runs as uid 10001, and the Docker socket is root:root mode 660 --
+    # so the mount below is readable only by root or by a member of the
+    # socket's group, which on Docker Desktop is gid 0. Adding gid 0 as a
+    # SUPPLEMENTARY group is the narrower of the two ways to bridge that: the
+    # alternative, `user: "0:0"`, would run the entire collector as root for
+    # the sake of one receiver.
+    #
+    # It is still not narrow in absolute terms -- anything that can reach the
+    # Docker API can own the host. Drop this line together with the
+    # docker.sock mount and the docker_stats receiver if that trade is not
+    # wanted; the rest of the metrics pipeline is unaffected.
+    group_add: ["0"]
+
     # oan-internal ONLY. Nothing on oan-edge ever needs to resolve this name --
     # NPM does not route to it, and README Appendix B says why 4317/4318 must
     # never get a proxy host: they take telemetry with no credential at all.
@@ -757,6 +771,16 @@ services:
       CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB:-otel}
       CLICKHOUSE_USERNAME: ${CLICKHOUSE_USER:-otel}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+
+      # Read by the postgresql/registry receiver. The same credentials the
+      # registry itself uses -- the receiver connects as that user rather than
+      # a scoped monitoring role, which is the shortcut a deployed environment
+      # should not copy: pg_monitor exists precisely so a scraper does not
+      # need the application's own login. discovery-postgres needs no pair
+      # here because its credentials are hardcoded on its own service.
+      REGISTRY_DB_USER: ${REGISTRY_DB_USER}
+      REGISTRY_DB_PASSWORD: ${REGISTRY_DB_PASSWORD}
+      REGISTRY_DB_NAME: ${REGISTRY_DB_NAME}
     volumes:
       - ./config/otel-collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
 
@@ -767,6 +791,21 @@ services:
       # config/otel-collector/config.yaml for the two-cause "no logs arrive"
       # checklist.
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
+
+      # Read by the docker_stats receiver, for per-container CPU and memory.
+      #
+      # WEIGH THIS ONE. The Docker socket is root-equivalent on the host: any
+      # process that can talk to it can start a privileged container and own
+      # the machine. `:ro` constrains the bind mount, NOT the API reachable
+      # through it -- it is not a meaningful restriction here. This is
+      # acceptable on a developer laptop running a quick-start and is the
+      # reason the docker_stats receiver must not be carried into a deployed
+      # environment unchanged; see config/otel-collector/config.yaml.
+      #
+      # Removing this mount and the docker_stats receiver together is a
+      # supported configuration -- everything else in the metrics pipeline
+      # keeps working.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
       # Loopback only, so a reverse tunnel can carry telemetry from a provider
       # API running on someone's laptop. In-stack senders reach

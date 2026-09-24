@@ -99,6 +99,87 @@ receivers:
       - type: remove
         field: attributes.time
 
+  # ---------------------------------------------------------------------
+  # Pull-based receivers. Unlike otlp and filelog above, these two go and ask
+  # rather than being sent to -- which is the only way to get numbers out of
+  # components that will never speak OTLP: Postgres and the container runtime
+  # itself. Neither needs a change to any service.
+  #
+  # Both are deliberately slower than the 10s default. A metric is a level
+  # sampled on a clock, and at 10s across eleven containers the sample rate
+  # dominates the storage bill without making any graph more truthful.
+  # ---------------------------------------------------------------------
+
+  # Two instances because the receiver takes one endpoint each, and this stack
+  # runs two unrelated databases. Answers the half of "is the pool about to
+  # fall over" that the in-process pgxpool counter cannot see: pgxpool measures
+  # waits inside discovery-service, this measures what the server thinks is
+  # connected.
+  postgresql/discovery:
+    endpoint: discovery-postgres:5432
+    # Hardcoded in docker-compose.yml rather than read from .env -- see the
+    # comment on the discovery-postgres service for why that is tolerable.
+    username: discovery
+    password: discovery
+    databases: [discovery]
+    collection_interval: 30s
+    tls:
+      # No TLS between containers on oan-internal, and the receiver refuses to
+      # connect rather than silently downgrading, so this has to be explicit.
+      insecure: true
+
+  postgresql/registry:
+    endpoint: sunbird-registry-postgres:5432
+    username: ${env:REGISTRY_DB_USER}
+    password: ${env:REGISTRY_DB_PASSWORD}
+    databases: ["${env:REGISTRY_DB_NAME}"]
+    collection_interval: 30s
+    tls:
+      insecure: true
+
+  # Per-container CPU, memory, network and block IO for everything compose is
+  # running -- the resource envelope that neither a span nor a log line can
+  # describe. Reads the same Docker API `docker stats` does.
+  #
+  # This needs the Docker socket mounted into this container, which is a real
+  # privilege: the socket is root-equivalent on the host, and read-only on the
+  # bind mount does NOT constrain what the API allows. It is defensible here
+  # because this is a local quick-start on a developer machine. Do not carry
+  # this receiver into a deployed environment without replacing it with
+  # something scoped -- cAdvisor, or kubelet's own stats endpoint under
+  # Kubernetes, where this receiver is the wrong tool anyway.
+  docker_stats:
+    endpoint: unix:///var/run/docker.sock
+    collection_interval: 30s
+    # Names only, so a series is keyed by something a human recognises rather
+    # than by 64 hex characters -- the same reason the filelog receiver above
+    # needs the compose `labels` log-opt.
+    container_labels_to_metric_labels:
+      com.docker.compose.service: container.name
+    metrics:
+      container.cpu.utilization:
+        enabled: true
+      container.memory.percent:
+        enabled: true
+
+  # hostmetrics is deliberately NOT enabled, and this is a note rather than an
+  # omission. On Docker Desktop for macOS -- what this stack is developed on --
+  # there is no host to measure from in here: the container runs inside a Linux
+  # VM, so the receiver reports the VM's CPU and memory, not the Mac's. Making
+  # it accurate needs `- /:/hostfs:ro` (the entire root filesystem, read-only)
+  # plus `root_path: /hostfs`, which is a much broader mount than docker.sock
+  # in exchange for a number that is still about the VM. On a Linux host it is
+  # worth enabling; uncomment both this and the mount then.
+  #
+  # hostmetrics:
+  #   collection_interval: 30s
+  #   root_path: /hostfs
+  #   scrapers:
+  #     cpu: {}
+  #     memory: {}
+  #     load: {}
+  #     filesystem: {}
+
 processors:
   memory_limiter:
     check_interval: 5s
@@ -124,6 +205,22 @@ processors:
           - 'set(severity_number, SEVERITY_NUMBER_WARN) where severity_text == "warn" or severity_text == "warning"'
           - 'set(severity_number, SEVERITY_NUMBER_ERROR) where severity_text == "error"'
           - 'set(severity_number, SEVERITY_NUMBER_FATAL) where severity_text == "fatal" or severity_text == "panic"'
+
+  # Pull-based receivers set no service.name -- they have no service to ask.
+  # docker_stats identifies a series by container.name, postgresql by
+  # server.address, and neither lands in the ServiceName column every log and
+  # trace query in this stack filters on. The effect is metrics that exist but
+  # are unfindable by the one key everything else is keyed by.
+  #
+  # `where ... == nil` matters: OTLP metrics from discovery-service already
+  # carry a real service.name and must not be overwritten by the container
+  # they happen to run in.
+  transform/metrics_service_name:
+    metric_statements:
+      - context: resource
+        statements:
+          - 'set(attributes["service.name"], attributes["container.name"]) where attributes["service.name"] == nil and attributes["container.name"] != nil'
+          - 'set(attributes["service.name"], attributes["server.address"]) where attributes["service.name"] == nil and attributes["server.address"] != nil'
 
 extensions:
   # Docker cannot probe this on the otel-collector container -- see the "No
@@ -160,8 +257,8 @@ service:
       processors: [memory_limiter, batch]
       exporters: [clickhouse]
     metrics:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
+      receivers: [otlp, postgresql/discovery, postgresql/registry, docker_stats]
+      processors: [memory_limiter, transform/metrics_service_name, batch]
       exporters: [clickhouse]
     logs:
       receivers: [otlp, filelog/containers]
