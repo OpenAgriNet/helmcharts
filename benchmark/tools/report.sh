@@ -45,9 +45,43 @@ col() {
   head -1 "$JTL" | tr ',' '\n' | grep -nxF "$1" | cut -d: -f1
 }
 
+# One physical line per SAMPLE, whatever JMeter wrote.
+#
+# A .jtl is CSV, and JMeter puts the assertion failure straight into
+# failureMessage -- which for a failed publish is several lines of
+#
+#     Test failed: code expected to equal /
+#     ****** received  : [[[503]]]
+#
+# quoted as a single field. So a failed request occupies seven physical lines
+# where a successful one occupies a single line.
+#
+# Counting lines therefore counts every failure about seven times, and each
+# figure built on that count is wrong in the direction that FLATTERS the run:
+# more requests in the same wall time reads as higher throughput, and the same
+# failures over a larger denominator reads as a lower error rate. On the first
+# 100k publish pass it turned 1,304 requests at 0.67/s with 43% errors into
+# 4,676 requests at 2.45/s with 12% errors. It also dragged the percentiles
+# down, by feeding 1,866 values into a set that holds 1,304.
+#
+# Records are rejoined on QUOTE PARITY rather than by matching a timestamp at
+# the start of a line: a quoted field is closed only once the number of quote
+# characters seen is even, which is the actual CSV rule. Doubled quotes inside
+# a field ("") preserve that parity, so they need no special case.
+records() {
+  tail -n +2 "$JTL" | awk '
+    {
+      buf = (buf == "" ? $0 : buf " " $0)
+      q += gsub(/"/, "\"")
+      if (q % 2 == 0) { print buf; buf = ""; q = 0 }
+    }
+    END { if (buf != "") print buf }
+  '
+}
+
 percentile() {
   local column="$1" p="$2"
-  tail -n +2 "$JTL" | cut -d, -f"$column" | grep -E '^[0-9]+$' | sort -n \
+  records | cut -d, -f"$column" | grep -E '^[0-9]+$' | sort -n \
     | awk -v p="$p" '{ v[NR] = $1 } END {
         if (NR == 0) { print "n/a"; exit }
         i = int((p / 100) * NR + 0.5); if (i < 1) i = 1; if (i > NR) i = NR
@@ -63,11 +97,11 @@ if [ -f "$JTL" ] && [ "$(wc -l < "$JTL")" -gt 1 ]; then
   C_LATENCY=$(col Latency)
   C_TIMESTAMP=$(col timeStamp)
 
-  SAMPLES=$(( $(wc -l < "$JTL") - 1 ))
-  FAILURES=$(tail -n +2 "$JTL" | cut -d, -f"$C_SUCCESS" | grep -cx "false" || true)
+  SAMPLES=$(records | wc -l)
+  FAILURES=$(records | cut -d, -f"$C_SUCCESS" | grep -cx "false" || true)
   ERROR_RATE=$(awk -v f="$FAILURES" -v n="$SAMPLES" 'BEGIN { printf "%.2f", n ? (f / n) * 100 : 0 }')
 
-  WALL=$(tail -n +2 "$JTL" | cut -d, -f"$C_TIMESTAMP" | grep -E '^[0-9]+$' | sort -n \
+  WALL=$(records | cut -d, -f"$C_TIMESTAMP" | grep -E '^[0-9]+$' | sort -n \
     | awk 'NR == 1 { first = $1 } { last = $1 } END { printf "%.1f", (last - first) / 1000 }')
   THROUGHPUT=$(awk -v n="$SAMPLES" -v w="$WALL" 'BEGIN { printf "%.2f", (w > 0) ? n / w : 0 }')
 
