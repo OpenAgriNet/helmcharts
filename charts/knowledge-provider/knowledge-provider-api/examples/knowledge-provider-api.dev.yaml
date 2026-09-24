@@ -1,0 +1,46 @@
+# Example: knowledge-provider-api, dev environment.
+#
+#   helm install knowledge-provider-api charts/knowledge-provider/knowledge-provider-api \
+#     -n knowledge-provider -f charts/knowledge-provider/knowledge-provider-api/examples/knowledge-provider-api.dev.yaml
+#
+# Install order (see the chart's README.md):
+#   1. knowledge-provider-keycloak-db, knowledge-provider-temporal-db (postgresql-cnpg)
+#   2. knowledge-provider-keycloak, knowledge-provider-temporal
+#   3. knowledge-provider-minio, knowledge-provider-qdrant
+#   4. this chart
+#
+# Before installing, create the Secrets this chart references (see README.md,
+# "Secrets") - at minimum knowledge-provider-minio-credentials, matching
+# whatever access/secret key you gave the knowledge-provider-minio release.
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/knowledge-provider
+  tag: "latest"
+  pullSecrets:
+    - ghcr-pull-secret
+
+# Dev runs without auth - no Keycloak client/JWKS wiring needed.
+keycloak:
+  authDisabled: true
+
+envConfig:
+  LOG_LEVEL: "debug"
+  CORS_ORIGINS: "http://localhost:3000,http://localhost:3001"
+  # Dev has no real Mistral/Gemma credentials - fall back to the mock/local
+  # providers so the pipeline still runs end to end.
+  OCR_PROVIDER: "mock"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+ingress:
+  enabled: false
+
+commonLabels:
+  oan.in/environment: dev

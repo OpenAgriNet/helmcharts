@@ -1,0 +1,26 @@
+Thank you for installing {{ .Chart.Name }} (release: {{ .Release.Name }}).
+
+Bharat Vistaar Docs Pipeline Temporal worker (task queue: ocr-pipeline).
+
+Resources in namespace "{{ .Release.Namespace }}":
+  - Deployment/{{ include "knowledge-provider-worker.fullname" . }} ({{ .Values.replicaCount }} replica(s))
+  - ConfigMap/{{ include "knowledge-provider-worker.envConfigMapName" . }}
+{{- if .Values.serviceAccount.enabled }}
+  - ServiceAccount/{{ include "knowledge-provider-worker.serviceAccountName" . }}
+{{- end }}
+
+No Service and no Ingress - this workload has no HTTP listener.
+
+Image in use:
+  {{ include "knowledge-provider-worker.image" . }}
+{{- if not .Values.image.repository }}
+
+WARNING: image.repository is empty. Set image.registry/repository/tag before a
+real deployment, e.g. --set image.repository=openagrinet/knowledge-provider
+{{- end }}
+
+Check the rollout:
+  kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "knowledge-provider-worker.fullname" . }}
+
+Tail worker logs:
+  kubectl -n {{ .Release.Namespace }} logs -f deployment/{{ include "knowledge-provider-worker.fullname" . }}

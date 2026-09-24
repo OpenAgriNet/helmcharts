@@ -1,0 +1,35 @@
+# Example: knowledge-provider-keycloak, dev environment.
+#
+#   helm install knowledge-provider-keycloak-db charts/postgresql-cnpg -n knowledge-provider \
+#     -f charts/postgresql-cnpg/examples/knowledge-provider-keycloak-db.dev.yaml
+#   helm install knowledge-provider-keycloak charts/knowledge-provider/knowledge-provider-keycloak -n knowledge-provider \
+#     -f charts/knowledge-provider/knowledge-provider-keycloak/examples/knowledge-provider-keycloak.dev.yaml
+#
+# Before installing, create:
+#   kubectl create secret generic knowledge-provider-keycloak-admin \
+#     --from-literal=password=<dev-only-password>
+# (knowledge-provider-keycloak-db-app is created automatically by the CNPG
+# release above.)
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/knowledge-provider-keycloak
+  tag: "latest"
+  pullSecrets:
+    - ghcr-pull-secret
+
+hostname: localhost
+
+database:
+  host: knowledge-provider-keycloak-db-rw
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+commonLabels:
+  oan.in/environment: dev

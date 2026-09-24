@@ -1,0 +1,5 @@
+# Minimum values that let `helm template`/`helm lint --strict` run in CI
+# without a live Postgres or any real secrets.
+hostname: docs-pipeline-auth.example.org
+database:
+  host: knowledge-provider-keycloak-db-rw

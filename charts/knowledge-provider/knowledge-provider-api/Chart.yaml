@@ -1,0 +1,24 @@
+apiVersion: v2
+name: knowledge-provider-api
+description: >-
+  Bharat Vistaar Docs Pipeline API - FastAPI service for review-driven
+  document ingestion (OCR, translation, chunking, vector indexing).
+type: application
+version: 0.1.0
+appVersion: "latest"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - knowledge-provider
+  - docs-pipeline
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
+  - https://github.com/OpenAgriNet/knowledge-provider
+dependencies:
+  - name: common
+    version: "0.2.x"
+    repository: "file://../../common"

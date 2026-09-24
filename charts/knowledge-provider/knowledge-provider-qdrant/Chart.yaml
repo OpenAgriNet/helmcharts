@@ -1,0 +1,26 @@
+apiVersion: v2
+name: knowledge-provider-qdrant
+description: >-
+  Qdrant (single-node) - the Bharat Vistaar Docs Pipeline's DEV vector index.
+  PROD Qdrant is always a separately managed deployment, never this chart.
+type: application
+version: 0.1.0
+appVersion: "latest"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - knowledge-provider
+  - docs-pipeline
+  - qdrant
+  - vector-database
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
+  - https://github.com/qdrant/qdrant
+dependencies:
+  - name: common
+    version: "0.2.x"
+    repository: "file://../../common"

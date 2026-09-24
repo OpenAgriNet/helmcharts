@@ -1,0 +1,279 @@
+# ============================================================================
+# knowledge-provider-worker - default values
+#
+# Temporal worker for the Bharat Vistaar Docs Pipeline. Same application image
+# as knowledge-provider-api, running `python -m pipeline.worker` instead of
+# uvicorn - no HTTP port, no Service, no Ingress, no probes (compose defines
+# none for this service either).
+#
+# IMPORTANT: shares the SQLite/documents/books/hfCache volumes with
+# knowledge-provider-api - see README.md before changing persistence.*.
+# ============================================================================
+
+replicaCount: 1
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/knowledge-provider
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# Same image as knowledge-provider-api; only the process differs.
+command:
+  - python
+  - -m
+  - pipeline.worker
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: true
+
+resources:
+  limits:
+    cpu: "1"
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+# No HTTP server in this process - compose defines no healthcheck for worker
+# either. Revisit if the app adds a worker health-check mechanism.
+livenessProbe:
+  enabled: false
+readinessProbe:
+  enabled: false
+startupProbe:
+  enabled: false
+
+podSecurityContext:
+  enabled: false
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  enabled: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+
+# ---------------------------------------------------------------------------
+# Dependency waiting - see knowledge-provider-api/values.yaml for rationale.
+# ---------------------------------------------------------------------------
+waitFor:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: busybox
+    tag: "1.37"
+    pullPolicy: IfNotPresent
+  timeoutSeconds: 300
+  intervalSeconds: 3
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 50m
+      memory: 32Mi
+  temporal: true
+  minio: true
+  qdrant: true
+  extraTcp: []
+  extraHttp: []
+
+extraInitContainers: []
+extraVolumes: []
+extraVolumeMounts: []
+
+# ---------------------------------------------------------------------------
+# In-cluster backing services. Must match the knowledge-provider-api release
+# these values point at (same defaults assume default release names).
+# ---------------------------------------------------------------------------
+temporal:
+  host: knowledge-provider-temporal
+  port: 7233
+
+minio:
+  host: knowledge-provider-minio
+  port: 9000
+  bucket: documents
+
+vectorStore:
+  host: knowledge-provider-qdrant
+  port: 6333
+  collectionName: test_doc_pipeline
+  timeoutSeconds: 30
+
+prodVectorStore:
+  url: "https://dev-vistaar.da.gov.in/qdrant"
+  collectionName: test_doc_pipeline_prod
+  timeoutSeconds: 30
+
+# ---------------------------------------------------------------------------
+# Persistence - NOT owned here. This chart only mounts existing PVCs; it never
+# creates one. Set existingClaim to the exact PVC name the
+# knowledge-provider-api release created (default "<api-release>-sqlite" etc.)
+# See that chart's README, "Shared volumes with knowledge-provider-worker" -
+# this requires a ReadWriteMany-capable StorageClass, since api and worker are
+# separate Pods that may land on different nodes.
+# ---------------------------------------------------------------------------
+persistence:
+  sqlite:
+    enabled: true
+    existingClaim: "knowledge-provider-api-sqlite"
+  documents:
+    enabled: true
+    existingClaim: "knowledge-provider-api-documents"
+  books:
+    enabled: false
+    existingClaim: "knowledge-provider-api-books"
+  hfCache:
+    enabled: true
+    existingClaim: "knowledge-provider-api-hf-cache"
+
+# ============================================================================
+# ENVIRONMENT CONFIGURATION - non-secret, non-derived config.
+# Mirrors knowledge-provider-api's envConfig: compose loads the identical
+# .env file into both api and worker, so this chart keeps parity rather than
+# guessing which vars pipeline/worker.py's import graph actually touches.
+# Full annotated reference: knowledge-provider/ENV.md in the app repo.
+# ============================================================================
+envConfig:
+  LOG_LEVEL: "info"
+  PYTHONUNBUFFERED: "1"
+  DEFAULT_INSTANCE: "default"
+  DISABLE_PROD_SETTING: "false"
+
+  VECTOR_BACKEND: "qdrant"
+  PROD_VECTOR_BACKEND: "qdrant"
+
+  EMBEDDING_PROVIDER: "sentence_transformers"
+  EMBEDDING_MODEL: "intfloat/multilingual-e5-large"
+  EMBEDDING_DIM: "1024"
+  EMBEDDING_VECTOR_SIZE: "1024"
+  EMBEDDING_BASE_URL: ""
+
+  HF_HOME: "/opt/hf-cache"
+  HF_HUB_CACHE: "/opt/hf-cache"
+
+  OCR_PROVIDER: "mistral"
+  OCR_MODEL: "mistral-ocr-latest"
+  MISTRAL_OCR_MODEL: "mistral-ocr-latest"
+  MISTRAL_OCR_API_URL: "https://api.mistral.ai/v1/ocr"
+  OCR_SEGMENT_PAGES: "20"
+  OCR_REQUEST_TIMEOUT_SECONDS: "300"
+
+  AGRINET_GEMMA_BASE_URL: ""
+  AGRINET_GEMMA_MODEL_NAME: "google/gemma-4-31b-it"
+
+  TRANSLATION_PROVIDER: "gemma_vllm"
+  TRANSLATION_MODEL: "google/gemma-4-31b-it"
+  TRANSLATION_VLLM_BASE_URL: ""
+  TRANSLATION_PAGE_CONCURRENCY: "1"
+  TRANSLATION_USE_MAX_COMPLETION_TOKENS: "false"
+  TRANSLATION_TEMPERATURE: "0.0"
+  TRANSLATION_SCRIPT_GATE_ENABLED: "true"
+  TRANSLATION_SCRIPT_MIN_CHARS: "15"
+  TRANSLATION_SCRIPT_MIN_RATIO: "0.05"
+
+  DOMAIN_TAGGING_ENABLED: "true"
+  DOMAIN_TAGGING_PROVIDER: "gemma_vllm"
+  DOMAIN_TAGGING_MODEL: "google/gemma-4-31b-it"
+  DOMAIN_TAGGING_VLLM_BASE_URL: ""
+  DOMAIN_TAGGING_STRICT_TAXONOMY: "true"
+
+  CHUNKING_PROVIDER: "recursive_splitter"
+  CHUNKING_MODEL: "recursive_splitter"
+  CHUNKING_TARGET_CHUNK_TOKENS: "450"
+
+  TEMPORAL_MAX_CONCURRENT_ACTIVITIES: "4"
+
+  # Master Catalog Postgres - BYO, not provisioned by any chart here.
+  MASTER_CATALOG_PG_HOST: ""
+  MASTER_CATALOG_PG_PORT: "5432"
+  MASTER_CATALOG_PG_DB: "master_catalog"
+  MASTER_CATALOG_PG_USER: "master_catalog"
+  MASTER_CATALOG_PG_SSLMODE: "disable"
+
+  # AI-layer Redis (bharat-oan-api) - leave host empty to disable the push.
+  AI_LAYER_REDIS_HOST: ""
+  AI_LAYER_REDIS_PORT: "6379"
+  AI_LAYER_REDIS_DB: "0"
+  MASTER_CATALOG_REDIS_TTL_SECONDS: "172800"
+
+  # Publish to Network (Discovery Service) - worker-only; required, no
+  # feature flag to disable the publishing_to_network stage.
+  DISCOVERY_SERVICE_ENDPOINT: ""
+  NETWORK_SENDER_ID: ""
+  NETWORK_SENDER_URI: ""
+
+envFromSecrets: []
+
+# Same Secret names as knowledge-provider-api's secretEnv - point both charts
+# at the same Secrets rather than creating duplicates.
+secretEnv:
+  MINIO_ACCESS_KEY:
+    name: knowledge-provider-minio-credentials
+    key: access-key
+  MINIO_SECRET_KEY:
+    name: knowledge-provider-minio-credentials
+    key: secret-key
+  VECTOR_DB_API_KEY:
+    name: knowledge-provider-provider-keys
+    key: vector-db-api-key
+    optional: true
+  PROD_VECTOR_DB_API_KEY:
+    name: knowledge-provider-provider-keys
+    key: prod-vector-db-api-key
+    optional: true
+  EMBEDDING_API_KEY:
+    name: knowledge-provider-provider-keys
+    key: embedding-api-key
+    optional: true
+  HF_TOKEN:
+    name: knowledge-provider-provider-keys
+    key: hf-token
+    optional: true
+  MISTRAL_API_KEY:
+    name: knowledge-provider-provider-keys
+    key: mistral-api-key
+    optional: true
+  AGRINET_GEMMA_API_KEY:
+    name: knowledge-provider-provider-keys
+    key: gemma-api-key
+    optional: true
+  DOMAIN_TAGGING_API_KEY:
+    name: knowledge-provider-provider-keys
+    key: domain-tagging-api-key
+    optional: true
+  MASTER_CATALOG_PG_PASSWORD:
+    name: knowledge-provider-master-catalog-db
+    key: password
+    optional: true
+  AI_LAYER_REDIS_PASSWORD:
+    name: knowledge-provider-ai-layer-redis
+    key: password
+    optional: true
+
+extraEnv: []

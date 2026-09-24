@@ -1,0 +1,41 @@
+Thank you for installing {{ .Chart.Name }} (release: {{ .Release.Name }}).
+
+Bharat Vistaar Docs Pipeline MinIO (single-node).
+
+Resources in namespace "{{ .Release.Namespace }}":
+  - Deployment/{{ include "knowledge-provider-minio.fullname" . }} ({{ .Values.replicaCount }} replica(s))
+  - Service/{{ include "knowledge-provider-minio.fullname" . }} (S3 API on {{ .Values.service.port }}, console on {{ .Values.service.consolePort }})
+  - ConfigMap/{{ include "knowledge-provider-minio.envConfigMapName" . }}
+{{- if .Values.serviceAccount.enabled }}
+  - ServiceAccount/{{ include "knowledge-provider-minio.serviceAccountName" . }}
+{{- end }}
+{{- if .Values.persistence.enabled }}
+  - PersistentVolumeClaim/{{ .Values.persistence.existingClaim | default (printf "%s-data" (include "knowledge-provider-minio.fullname" .)) }}
+{{- end }}
+{{- if .Values.bucketInit.enabled }}
+  - Job/{{ printf "%s-bucket-init" (include "knowledge-provider-minio.fullname" .) }} (creates bucket "{{ .Values.bucket }}")
+{{- end }}
+
+Image in use:
+  {{ include "knowledge-provider-minio.image" . }}
+{{- if not .Values.image.repository }}
+
+WARNING: image.repository is empty. Set image.registry/repository/tag before a
+real deployment, e.g. --set image.repository=minio/minio
+{{- end }}
+
+{{- if gt (.Values.replicaCount | int) 1 }}
+
+WARNING: replicaCount is {{ .Values.replicaCount }}. This chart runs
+single-node MinIO against one ReadWriteOnce volume - it is not a distributed
+deployment and more than one replica will not work correctly.
+{{- end }}
+
+Check the rollout:
+  kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "knowledge-provider-minio.fullname" . }}
+
+Check the bucket-init Job:
+  kubectl -n {{ .Release.Namespace }} logs job/{{ printf "%s-bucket-init" (include "knowledge-provider-minio.fullname" .) }}
+
+Reach the S3 API in-cluster:
+  {{ include "knowledge-provider-minio.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}

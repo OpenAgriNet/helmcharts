@@ -1,0 +1,25 @@
+apiVersion: v2
+name: knowledge-provider-ui
+description: >-
+  Bharat Vistaar Docs Pipeline UI - React/Vite operator console, served as a
+  static bundle via nginx.
+type: application
+version: 0.1.0
+appVersion: "latest"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - knowledge-provider
+  - docs-pipeline
+  - ui
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
+  - https://github.com/OpenAgriNet/knowledge-provider
+dependencies:
+  - name: common
+    version: "0.2.x"
+    repository: "file://../../common"

@@ -1,0 +1,50 @@
+# Example: knowledge-provider-keycloak's database, dev environment.
+#
+#   helm install knowledge-provider-keycloak-db charts/postgresql-cnpg \
+#     -n knowledge-provider -f charts/postgresql-cnpg/examples/knowledge-provider-keycloak-db.dev.yaml
+#
+# Other workloads then connect to:
+#   knowledge-provider-keycloak-db-rw.knowledge-provider.svc.cluster.local:5432
+
+fullnameOverride: knowledge-provider-keycloak-db
+
+# Left empty: the CNPG operator's own default PostgreSQL image (publicly
+# pullable, no registry login needed) - verified by installing this chart
+# against a real cluster. Pin a specific image/tag before production use.
+image:
+  registry: ""
+  repository: ""
+  tag: ""
+
+# Dev: single instance, no anti-affinity (fine on a single-node cluster too).
+# Use 2+ with pod anti-affinity anywhere an outage matters.
+instances: 1
+affinity:
+  enablePodAntiAffinity: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+storage:
+  size: 1Gi
+  storageClass: ""
+
+# Skip the separate WAL volume for a throwaway dev instance.
+walStorage:
+  enabled: false
+
+# knowledge-provider-keycloak's database. A cluster gets exactly one of these
+# via bootstrap; ownerSecret left empty lets CNPG generate the password into
+# Secret/knowledge-provider-keycloak-db-app (matches that chart's
+# database.passwordSecret default).
+bootstrap:
+  database: keycloak
+  owner: keycloak
+
+commonLabels:
+  oan.in/environment: dev

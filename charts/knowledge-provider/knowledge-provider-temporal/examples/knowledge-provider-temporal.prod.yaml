@@ -1,0 +1,18 @@
+# Example: knowledge-provider-temporal, prod environment.
+#
+#   helm install knowledge-provider-temporal charts/knowledge-provider/knowledge-provider-temporal \
+#     -n knowledge-provider -f charts/knowledge-provider/knowledge-provider-temporal/examples/knowledge-provider-temporal.prod.yaml
+
+database:
+  host: knowledge-provider-temporal-db-rw
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+commonLabels:
+  oan.in/environment: prod

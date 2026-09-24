@@ -1,0 +1,24 @@
+# Example: knowledge-provider-minio, dev environment.
+#
+#   kubectl create secret generic knowledge-provider-minio-credentials \
+#     --from-literal=access-key=<dev-access-key> \
+#     --from-literal=secret-key=<dev-secret-key>
+#   helm install knowledge-provider-minio charts/knowledge-provider/knowledge-provider-minio \
+#     -n knowledge-provider -f charts/knowledge-provider/knowledge-provider-minio/examples/knowledge-provider-minio.dev.yaml
+#
+# knowledge-provider-api/-worker's MINIO_ACCESS_KEY/MINIO_SECRET_KEY default
+# to this same Secret name/keys - no extra wiring needed on those charts.
+
+persistence:
+  size: 10Gi
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+commonLabels:
+  oan.in/environment: dev

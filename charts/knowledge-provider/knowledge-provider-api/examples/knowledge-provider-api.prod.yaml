@@ -1,0 +1,63 @@
+# Example: knowledge-provider-api, prod environment.
+#
+#   helm install knowledge-provider-api charts/knowledge-provider/knowledge-provider-api \
+#     -n knowledge-provider -f charts/knowledge-provider/knowledge-provider-api/examples/knowledge-provider-api.prod.yaml
+#
+# All secret values below are referenced by name only - create the Secrets
+# out-of-band before installing (see README.md, "Secrets"). Nothing here is a
+# committed secret.
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/knowledge-provider
+  tag: "v0.1.0"
+  pullSecrets:
+    - ghcr-pull-secret
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: registry-sandbox-vistaar.da.gov.in
+      paths:
+        - path: /docs-pipeline-api
+          pathType: Prefix
+
+keycloak:
+  authDisabled: false
+  url: "https://dev-auth-vistaar.da.gov.in/auth"
+  realm: bharat-vistaar
+  clientId: bharat-vistaar
+  adminUsername: admin
+
+envConfig:
+  LOG_LEVEL: "info"
+  CORS_ORIGINS: "https://registry-sandbox-vistaar.da.gov.in"
+  DOCS_PIPELINE_API_URL: "https://registry-sandbox-vistaar.da.gov.in/docs-pipeline-api"
+  DOCS_PIPELINE_UI_URL: "https://registry-sandbox-vistaar.da.gov.in/docs-pipeline"
+  AGRINET_GEMMA_BASE_URL: "https://dev-vistaar.da.gov.in/gemma4"
+  TRANSLATION_VLLM_BASE_URL: "https://dev-vistaar.da.gov.in/gemma4"
+  DOMAIN_TAGGING_VLLM_BASE_URL: "https://dev-vistaar.da.gov.in/gemma4"
+
+prodVectorStore:
+  url: "https://dev-vistaar.da.gov.in/qdrant"
+  collectionName: test_doc_pipeline_prod
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+persistence:
+  sqlite:
+    size: 10Gi
+  documents:
+    size: 50Gi
+  hfCache:
+    size: 30Gi
+
+commonLabels:
+  oan.in/environment: prod
