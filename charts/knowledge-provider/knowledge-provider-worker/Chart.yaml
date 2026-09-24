@@ -1,0 +1,26 @@
+apiVersion: v2
+name: knowledge-provider-worker
+description: >-
+  Bharat Vistaar Docs Pipeline Temporal worker - runs the same application
+  image as knowledge-provider-api, registering workflows/activities on the
+  ocr-pipeline task queue instead of serving HTTP.
+type: application
+version: 0.1.0
+appVersion: "latest"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - knowledge-provider
+  - docs-pipeline
+  - temporal-worker
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
+  - https://github.com/OpenAgriNet/knowledge-provider
+dependencies:
+  - name: common
+    version: "0.2.x"
+    repository: "file://../../common"

@@ -1,0 +1,27 @@
+# Example: knowledge-provider-qdrant, prod environment.
+#
+#   kubectl create secret generic knowledge-provider-qdrant-api-key \
+#     --from-literal=api-key=<key>
+#   helm install knowledge-provider-qdrant charts/knowledge-provider/knowledge-provider-qdrant \
+#     -n knowledge-provider -f charts/knowledge-provider/knowledge-provider-qdrant/examples/knowledge-provider-qdrant.prod.yaml
+#
+# Remember: this is still the DEV index even in a "prod" cluster - PROD
+# Qdrant (knowledge-provider-api's prodVectorStore.*) is always a separately
+# managed deployment outside this chart.
+
+apiKeySecret:
+  name: knowledge-provider-qdrant-api-key
+
+persistence:
+  size: 50Gi
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "4"
+    memory: 4Gi
+
+commonLabels:
+  oan.in/environment: prod

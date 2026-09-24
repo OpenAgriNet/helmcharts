@@ -1,0 +1,20 @@
+# Example: knowledge-provider-qdrant, dev environment.
+#
+#   helm install knowledge-provider-qdrant charts/knowledge-provider/knowledge-provider-qdrant \
+#     -n knowledge-provider -f charts/knowledge-provider/knowledge-provider-qdrant/examples/knowledge-provider-qdrant.dev.yaml
+#
+# No API key, matching docker-compose.yml's dev default.
+
+persistence:
+  size: 5Gi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+commonLabels:
+  oan.in/environment: dev

@@ -1,0 +1,54 @@
+{{- if .Values.bucketInit.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ printf "%s-bucket-init" (include "knowledge-provider-minio.fullname" .) }}
+  labels:
+    {{- include "knowledge-provider-minio.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: hook-succeeded,before-hook-creation
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        {{- include "knowledge-provider-minio.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: bucket-init
+          image: {{ printf "%s/%s:%s" .Values.bucketInit.image.registry .Values.bucketInit.image.repository .Values.bucketInit.image.tag }}
+          imagePullPolicy: {{ .Values.bucketInit.image.pullPolicy }}
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.credentialsSecret.name }}
+                  key: {{ .Values.credentialsSecret.accessKeyKey }}
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.credentialsSecret.name }}
+                  key: {{ .Values.credentialsSecret.secretKeyKey }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              endpoint="http://{{ include "knowledge-provider-minio.fullname" . }}.{{ include "common.namespace" . }}.svc.cluster.local:{{ .Values.service.port }}"
+              deadline=$(( $(date +%s) + 300 ))
+              until mc alias set local "$endpoint" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1; do
+                if [ "$(date +%s)" -ge "$deadline" ]; then
+                  echo "timed out after 300s waiting for MinIO at $endpoint"
+                  exit 1
+                fi
+                echo "waiting for MinIO at $endpoint"
+                sleep 3
+              done
+              mc mb -p "local/{{ .Values.bucket }}" || true
+              echo "bucket {{ .Values.bucket }} ready"
+          resources:
+            {{- toYaml .Values.bucketInit.resources | nindent 12 }}
+{{- end }}

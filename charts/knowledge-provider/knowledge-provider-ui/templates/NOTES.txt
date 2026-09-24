@@ -1,0 +1,33 @@
+Thank you for installing {{ .Chart.Name }} (release: {{ .Release.Name }}).
+
+Bharat Vistaar Docs Pipeline UI.
+
+Resources in namespace "{{ .Release.Namespace }}":
+  - Deployment/{{ include "knowledge-provider-ui.fullname" . }} ({{ .Values.replicaCount }} replica(s))
+  - Service/{{ include "knowledge-provider-ui.fullname" . }} ({{ .Values.service.type }} on port {{ .Values.service.port }})
+  - ConfigMap/{{ include "knowledge-provider-ui.envConfigMapName" . }}
+{{- if .Values.serviceAccount.enabled }}
+  - ServiceAccount/{{ include "knowledge-provider-ui.serviceAccountName" . }}
+{{- end }}
+{{- if .Values.ingress.enabled }}
+  - Ingress/{{ include "knowledge-provider-ui.fullname" . }}
+{{- end }}
+
+Image in use:
+  {{ include "knowledge-provider-ui.image" . }}
+{{- if not .Values.image.repository }}
+
+WARNING: image.repository is empty. Set image.registry/repository/tag before a
+real deployment, e.g. --set image.repository=openagrinet/knowledge-provider-ui
+{{- end }}
+
+REMINDER: VITE_API_BASE / VITE_KEYCLOAK_* / VITE_BASE / VITE_AUTH_ENABLED are
+baked into this image at build time. Changing environment or Keycloak client
+means building and pushing a new image with different --build-arg values, not
+editing this release's values.
+
+Check the rollout:
+  kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "knowledge-provider-ui.fullname" . }}
+
+Reach the service in-cluster:
+  {{ include "knowledge-provider-ui.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}

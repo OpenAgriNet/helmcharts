@@ -1,0 +1,125 @@
+# ============================================================================
+# knowledge-provider-qdrant - default values
+#
+# Single-node Qdrant - the Bharat Vistaar Docs Pipeline's DEV vector index
+# only. PROD Qdrant is always a separately managed deployment (see
+# knowledge-provider-api's prodVectorStore.* values) - this chart is never
+# used for it. Matches docker-compose.yml's single-container setup, not a
+# distributed Qdrant cluster.
+# ============================================================================
+
+replicaCount: 1
+
+image:
+  registry: docker.io
+  repository: qdrant/qdrant
+  tag: "latest"
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+service:
+  type: ClusterIP
+  port: 6333
+  targetPort: 6333
+  annotations: {}
+
+resources:
+  limits:
+    cpu: "2"
+    memory: 2Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /livez
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /readyz
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  enabled: false
+  httpGet:
+    path: /livez
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+podSecurityContext:
+  enabled: false
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  enabled: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+
+extraInitContainers: []
+extraVolumes: []
+extraVolumeMounts: []
+
+# ---------------------------------------------------------------------------
+# Persistence for /qdrant/storage. Single-node, so this must be
+# ReadWriteOnce and this Deployment must stay at replicaCount 1.
+# ---------------------------------------------------------------------------
+persistence:
+  enabled: true
+  existingClaim: ""
+  size: 20Gi
+  storageClassName: ""
+  accessMode: ReadWriteOnce
+
+# Optional API key. Off by default, matching docker-compose.yml (no auth on
+# the bundled DEV instance). Set apiKeySecret.name to require one -
+# knowledge-provider-api/-worker's VECTOR_DB_API_KEY would then need to point
+# at the same Secret/key.
+apiKeySecret:
+  name: ""
+  key: api-key
+
+envConfig: {}
+envFromSecrets: []
+secretEnv: {}
+extraEnv: []

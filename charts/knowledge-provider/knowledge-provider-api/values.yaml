@@ -1,0 +1,375 @@
+# ============================================================================
+# knowledge-provider-api - default values
+#
+# FastAPI service for the Bharat Vistaar Docs Pipeline (review-driven document
+# ingestion: OCR -> translation -> chunking -> vector indexing).
+#
+# IMPORTANT: SQLite is this service's canonical metadata store and is a
+# single-writer database. Do NOT set replicaCount above 1 and do NOT enable
+# autoscaling until the app moves off SQLite - see README.md.
+# ============================================================================
+
+replicaCount: 1
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/knowledge-provider
+  # Leave empty to fall back to Chart.appVersion.
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: true
+
+service:
+  type: ClusterIP
+  port: 8001
+  targetPort: 8001
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: docs-pipeline-api.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: "1"
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  enabled: false
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+podSecurityContext:
+  enabled: false
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  enabled: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+
+# ---------------------------------------------------------------------------
+# Dependency waiting
+#
+# Kubernetes has no equivalent of compose's `depends_on: condition:
+# service_healthy`. Without these init containers the pod starts before
+# Temporal/MinIO/Qdrant are up, fails, and crashloops with backoff.
+# ---------------------------------------------------------------------------
+waitFor:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: busybox
+    tag: "1.37"
+    pullPolicy: IfNotPresent
+  timeoutSeconds: 300
+  intervalSeconds: 3
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 50m
+      memory: 32Mi
+  temporal: true
+  minio: true
+  qdrant: true
+  extraTcp: []
+  extraHttp: []
+
+extraInitContainers: []
+extraVolumes: []
+extraVolumeMounts: []
+
+# ---------------------------------------------------------------------------
+# In-cluster backing services this chart derives TEMPORAL_HOST / MINIO_ENDPOINT
+# / VECTOR_DB_URL from. Defaults assume the sibling knowledge-provider-temporal
+# / knowledge-provider-minio / knowledge-provider-qdrant charts are installed
+# with their default release names in the same namespace - override the
+# host/port pairs if you named those releases differently.
+# ---------------------------------------------------------------------------
+temporal:
+  host: knowledge-provider-temporal
+  port: 7233
+
+minio:
+  host: knowledge-provider-minio
+  port: 9000
+  bucket: documents
+
+# DEV Qdrant only - PROD Qdrant is always external, see prodVectorStore below.
+vectorStore:
+  host: knowledge-provider-qdrant
+  port: 6333
+  collectionName: test_doc_pipeline
+  timeoutSeconds: 30
+
+# PROD Qdrant (Approval-for-Prod promotion target) - never bundled, always a
+# separately managed deployment.
+prodVectorStore:
+  url: "https://dev-vistaar.da.gov.in/qdrant"
+  collectionName: test_doc_pipeline_prod
+  timeoutSeconds: 30
+
+# ---------------------------------------------------------------------------
+# Persistence
+#
+# api and worker mount the SAME sqlite/documents/books/hfCache volumes (see
+# docker-compose.yml). Since they are separate Deployments/Pods here (see this
+# chart's README on the api/worker split), sharing a PVC across them requires
+# a ReadWriteMany-capable StorageClass (NFS, EFS, Longhorn, CephFS, ...).
+#
+# This chart is the "owner": with persistence.<vol>.existingClaim left empty it
+# creates the PVC. Point knowledge-provider-worker's matching
+# persistence.<vol>.existingClaim at the exact PVC name created here (default
+# "<release-name>-sqlite", "-documents", "-books", "-hf-cache").
+# ---------------------------------------------------------------------------
+persistence:
+  sqlite:
+    enabled: true
+    existingClaim: ""
+    size: 5Gi
+    storageClassName: ""
+    accessMode: ReadWriteOnce
+  documents:
+    enabled: true
+    existingClaim: ""
+    size: 20Gi
+    storageClassName: ""
+    accessMode: ReadWriteOnce
+  # Seed/reference documents mounted read-only at /app/books. Off by default -
+  # enable and pre-populate the PVC (e.g. kubectl cp) only if your deployment
+  # relies on locally-seeded books rather than uploads.
+  books:
+    enabled: false
+    existingClaim: ""
+    size: 10Gi
+    storageClassName: ""
+    accessMode: ReadWriteOnce
+  # Hugging Face model cache. Only needed when embeddings.provider (below) is
+  # "sentence_transformers" (local model, downloaded on first use).
+  hfCache:
+    enabled: true
+    existingClaim: ""
+    size: 20Gi
+    storageClassName: ""
+    accessMode: ReadWriteOnce
+
+# ---------------------------------------------------------------------------
+# Keycloak (auth). Derives KEYCLOAK_ISSUER / KEYCLOAK_JWKS_URL from url+realm
+# so the two cannot drift apart. Set authDisabled: true to skip auth entirely
+# (a synthetic local admin is used) - matches AUTH_DISABLED in ENV.md.
+# ---------------------------------------------------------------------------
+keycloak:
+  authDisabled: false
+  url: ""
+  realm: bharat-vistaar
+  audience: ""
+  jwtLeewaySeconds: 30
+  clientId: bharat-vistaar
+  adminBaseUrl: ""
+  adminRealm: bharat-vistaar
+  adminUsername: ""
+  adminTokenRealm: master
+
+# ============================================================================
+# ENVIRONMENT CONFIGURATION - non-secret, non-derived config.
+# Full annotated reference: knowledge-provider/ENV.md in the app repo.
+# NEVER put secrets here - see secretEnv below.
+# ============================================================================
+envConfig:
+  LOG_LEVEL: "info"
+  DEFAULT_INSTANCE: "default"
+  DISABLE_PROD_SETTING: "false"
+
+  CORS_ORIGINS: ""
+  RATE_LIMIT_DEFAULT: "100/minute"
+  RATE_LIMIT_UPLOAD: "10/minute"
+  RATE_LIMIT_OTP: "10/minute"
+
+  VECTOR_BACKEND: "qdrant"
+  PROD_VECTOR_BACKEND: "qdrant"
+
+  EMBEDDING_PROVIDER: "sentence_transformers"
+  EMBEDDING_MODEL: "intfloat/multilingual-e5-large"
+  EMBEDDING_DIM: "1024"
+  EMBEDDING_VECTOR_SIZE: "1024"
+  EMBEDDING_BASE_URL: ""
+
+  HF_HOME: "/opt/hf-cache"
+  HF_HUB_CACHE: "/opt/hf-cache"
+
+  OCR_PROVIDER: "mistral"
+  OCR_MODEL: "mistral-ocr-latest"
+  MISTRAL_OCR_MODEL: "mistral-ocr-latest"
+  MISTRAL_OCR_API_URL: "https://api.mistral.ai/v1/ocr"
+  OCR_SEGMENT_PAGES: "20"
+  OCR_REQUEST_TIMEOUT_SECONDS: "300"
+
+  AGRINET_GEMMA_BASE_URL: ""
+  AGRINET_GEMMA_MODEL_NAME: "google/gemma-4-31b-it"
+
+  TRANSLATION_PROVIDER: "gemma_vllm"
+  TRANSLATION_MODEL: "google/gemma-4-31b-it"
+  TRANSLATION_VLLM_BASE_URL: ""
+  TRANSLATION_PAGE_CONCURRENCY: "1"
+  TRANSLATION_USE_MAX_COMPLETION_TOKENS: "false"
+  TRANSLATION_TEMPERATURE: "0.0"
+  TRANSLATION_SCRIPT_GATE_ENABLED: "true"
+  TRANSLATION_SCRIPT_MIN_CHARS: "15"
+  TRANSLATION_SCRIPT_MIN_RATIO: "0.05"
+
+  DOMAIN_TAGGING_ENABLED: "true"
+  DOMAIN_TAGGING_PROVIDER: "gemma_vllm"
+  DOMAIN_TAGGING_MODEL: "google/gemma-4-31b-it"
+  DOMAIN_TAGGING_VLLM_BASE_URL: ""
+  DOMAIN_TAGGING_STRICT_TAXONOMY: "true"
+
+  CHUNKING_PROVIDER: "recursive_splitter"
+  CHUNKING_MODEL: "recursive_splitter"
+  CHUNKING_TARGET_CHUNK_TOKENS: "450"
+
+  TEMPORAL_MAX_CONCURRENT_ACTIVITIES: "4"
+
+  DOCS_PIPELINE_API_URL: ""
+  DOCS_PIPELINE_UI_URL: ""
+
+  # Master Catalog Postgres - BYO, not provisioned by any chart here.
+  MASTER_CATALOG_PG_HOST: ""
+  MASTER_CATALOG_PG_PORT: "5432"
+  MASTER_CATALOG_PG_DB: "master_catalog"
+  MASTER_CATALOG_PG_USER: "master_catalog"
+  MASTER_CATALOG_PG_SSLMODE: "disable"
+
+  # AI-layer Redis (bharat-oan-api) - leave host empty to disable the push.
+  AI_LAYER_REDIS_HOST: ""
+  AI_LAYER_REDIS_PORT: "6379"
+  AI_LAYER_REDIS_DB: "0"
+  MASTER_CATALOG_REDIS_TTL_SECONDS: "172800"
+
+  # Publish to Network (Discovery Service) - worker-only in practice, but
+  # shipped from the same envConfig as api for a single source of truth.
+  DISCOVERY_SERVICE_ENDPOINT: ""
+  NETWORK_SENDER_ID: ""
+  NETWORK_SENDER_URI: ""
+
+# Names of pre-existing Secrets to inject wholesale via envFrom.
+envFromSecrets: []
+
+# Individual env vars sourced from specific Secret keys. Defaults name the
+# Secrets this chart expects - create them out-of-band before installing (see
+# README.md), or point these at your own existing Secrets/keys.
+secretEnv:
+  MINIO_ACCESS_KEY:
+    name: knowledge-provider-minio-credentials
+    key: access-key
+  MINIO_SECRET_KEY:
+    name: knowledge-provider-minio-credentials
+    key: secret-key
+  VECTOR_DB_API_KEY:
+    name: knowledge-provider-provider-keys
+    key: vector-db-api-key
+    optional: true
+  PROD_VECTOR_DB_API_KEY:
+    name: knowledge-provider-provider-keys
+    key: prod-vector-db-api-key
+    optional: true
+  EMBEDDING_API_KEY:
+    name: knowledge-provider-provider-keys
+    key: embedding-api-key
+    optional: true
+  HF_TOKEN:
+    name: knowledge-provider-provider-keys
+    key: hf-token
+    optional: true
+  MISTRAL_API_KEY:
+    name: knowledge-provider-provider-keys
+    key: mistral-api-key
+    optional: true
+  AGRINET_GEMMA_API_KEY:
+    name: knowledge-provider-provider-keys
+    key: gemma-api-key
+    optional: true
+  DOMAIN_TAGGING_API_KEY:
+    name: knowledge-provider-provider-keys
+    key: domain-tagging-api-key
+    optional: true
+  KEYCLOAK_CLIENT_SECRET:
+    name: knowledge-provider-keycloak-client
+    key: client-secret
+    optional: true
+  KEYCLOAK_ADMIN_PASSWORD:
+    name: knowledge-provider-keycloak-admin
+    key: password
+    optional: true
+  MASTER_CATALOG_PG_PASSWORD:
+    name: knowledge-provider-master-catalog-db
+    key: password
+    optional: true
+  AI_LAYER_REDIS_PASSWORD:
+    name: knowledge-provider-ai-layer-redis
+    key: password
+    optional: true
+
+extraEnv: []

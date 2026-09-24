@@ -1,0 +1,26 @@
+apiVersion: v2
+name: knowledge-provider-minio
+description: >-
+  MinIO object storage (single-node) for the Bharat Vistaar Docs Pipeline -
+  original uploads, normalized files, and stage artifacts.
+type: application
+version: 0.1.0
+appVersion: "latest"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - knowledge-provider
+  - docs-pipeline
+  - minio
+  - object-storage
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
+  - https://github.com/minio/minio
+dependencies:
+  - name: common
+    version: "0.2.x"
+    repository: "file://../../common"

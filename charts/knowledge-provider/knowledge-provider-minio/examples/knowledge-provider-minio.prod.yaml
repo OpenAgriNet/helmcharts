@@ -1,0 +1,22 @@
+# Example: knowledge-provider-minio, prod environment.
+#
+#   helm install knowledge-provider-minio charts/knowledge-provider/knowledge-provider-minio \
+#     -n knowledge-provider -f charts/knowledge-provider/knowledge-provider-minio/examples/knowledge-provider-minio.prod.yaml
+#
+# Create knowledge-provider-minio-credentials before installing (see
+# README.md, "Secrets").
+
+persistence:
+  size: 200Gi
+  storageClassName: ""
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+commonLabels:
+  oan.in/environment: prod

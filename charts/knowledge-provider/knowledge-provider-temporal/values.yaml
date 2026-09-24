@@ -1,0 +1,166 @@
+# ============================================================================
+# knowledge-provider-temporal - default values
+#
+# Temporal workflow engine (temporalio/auto-setup - a single all-in-one
+# binary, matching how docker-compose.yml runs it) for the Bharat Vistaar
+# Docs Pipeline. Orchestration/retries/review-gate signaling only - no
+# content is stored here; state lives entirely in its own Postgres database.
+#
+# Internal-only service: no Ingress, never exposed outside the cluster.
+# ============================================================================
+
+replicaCount: 1
+
+image:
+  registry: docker.io
+  repository: temporalio/auto-setup
+  tag: "latest"
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+service:
+  type: ClusterIP
+  port: 7233
+  targetPort: 7233
+  annotations: {}
+
+resources:
+  limits:
+    cpu: "1"
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+# Matches docker-compose.yml's healthcheck: `tctl --address <host>:7233
+# cluster health`. Run through a shell so $POD_IP expands - the --env docker
+# preset binds the frontend listener to the pod's own IP, not 127.0.0.1 or
+# 0.0.0.0 (verified against a real cluster: neither loopback nor "localhost"
+# ever answers, even once the server is fully healthy and serving on its own
+# IP - see deployment.yaml for how POD_IP is populated via the Downward API).
+livenessProbe:
+  enabled: true
+  exec:
+    command:
+      - sh
+      - -c
+      - tctl --address $POD_IP:7233 cluster health
+  initialDelaySeconds: 30
+  periodSeconds: 20
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  exec:
+    command:
+      - sh
+      - -c
+      - tctl --address $POD_IP:7233 cluster health
+  initialDelaySeconds: 15
+  periodSeconds: 20
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+# First boot creates the schema (temporal + temporal_visibility keyspaces),
+# which is slower than a normal restart.
+startupProbe:
+  enabled: true
+  exec:
+    command:
+      - sh
+      - -c
+      - tctl --address $POD_IP:7233 cluster health
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 10
+  failureThreshold: 30
+
+podSecurityContext:
+  enabled: false
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  enabled: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+
+# ---------------------------------------------------------------------------
+# Dependency waiting
+# ---------------------------------------------------------------------------
+waitFor:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: busybox
+    tag: "1.37"
+    pullPolicy: IfNotPresent
+  timeoutSeconds: 300
+  intervalSeconds: 3
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 50m
+      memory: 32Mi
+  database: true
+  extraTcp: []
+  extraHttp: []
+
+extraInitContainers: []
+extraVolumes: []
+extraVolumeMounts: []
+
+# ---------------------------------------------------------------------------
+# Database. Point database.host at the knowledge-provider-temporal-db
+# postgresql-cnpg release's "-rw" Service. The auto-setup entrypoint always
+# attempts to create the visibility database itself at boot - the connecting
+# role needs CREATEDB granted (see README.md, "The database", for why and how).
+# ---------------------------------------------------------------------------
+database:
+  host: ""
+  port: 5432
+  name: temporal
+  visibilityName: temporal_visibility
+  user: temporal
+  passwordSecret:
+    name: knowledge-provider-temporal-db-app
+    key: password
+
+# ============================================================================
+# ENVIRONMENT CONFIGURATION - everything the image strictly needs is already
+# derived from database.* above. Use this only for additional auto-setup
+# env vars this chart does not model (e.g. DYNAMIC_CONFIG_FILE_PATH).
+# ============================================================================
+envConfig: {}
+
+envFromSecrets: []
+secretEnv: {}
+extraEnv: []

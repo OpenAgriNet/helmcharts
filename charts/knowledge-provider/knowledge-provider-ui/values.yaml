@@ -1,0 +1,124 @@
+# ============================================================================
+# knowledge-provider-ui - default values
+#
+# Bharat Vistaar Docs Pipeline operator console (React/Vite), served as a
+# static bundle via nginx (ui/Dockerfile.prod in the app repo).
+#
+# IMPORTANT: VITE_API_BASE, VITE_KEYCLOAK_*, VITE_BASE and VITE_AUTH_ENABLED
+# are baked into the JS bundle at `docker build` time, NOT read at container
+# runtime. Changing them means building a new image, not editing this
+# values.yaml - see README.md, "Build-time configuration".
+# ============================================================================
+
+replicaCount: 1
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/knowledge-provider-ui
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: docs-pipeline.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 2
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  enabled: false
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 12
+
+# nginx runs as its own non-root user out of the box in the prod image.
+podSecurityContext:
+  enabled: false
+  fsGroup: 101
+  runAsUser: 101
+  runAsGroup: 101
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  enabled: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 101
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+
+# ============================================================================
+# ENVIRONMENT CONFIGURATION
+# Empty by default: this is a static nginx bundle with no runtime config
+# surface - everything it needs (API base path, Keycloak client) is baked in
+# at image build time. See README.md before assuming a values.yaml edit here
+# changes anything the browser sees.
+# ============================================================================
+envConfig: {}
+
+envFromSecrets: []
+secretEnv: {}
+extraEnv: []

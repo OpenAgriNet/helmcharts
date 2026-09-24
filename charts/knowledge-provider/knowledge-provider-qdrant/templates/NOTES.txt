@@ -1,0 +1,40 @@
+Thank you for installing {{ .Chart.Name }} (release: {{ .Release.Name }}).
+
+Bharat Vistaar Docs Pipeline Qdrant (DEV vector index only - single-node).
+
+Resources in namespace "{{ .Release.Namespace }}":
+  - Deployment/{{ include "knowledge-provider-qdrant.fullname" . }} ({{ .Values.replicaCount }} replica(s))
+  - Service/{{ include "knowledge-provider-qdrant.fullname" . }} ({{ .Values.service.type }} on port {{ .Values.service.port }})
+  - ConfigMap/{{ include "knowledge-provider-qdrant.envConfigMapName" . }}
+{{- if .Values.serviceAccount.enabled }}
+  - ServiceAccount/{{ include "knowledge-provider-qdrant.serviceAccountName" . }}
+{{- end }}
+{{- if .Values.persistence.enabled }}
+  - PersistentVolumeClaim/{{ .Values.persistence.existingClaim | default (printf "%s-storage" (include "knowledge-provider-qdrant.fullname" .)) }}
+{{- end }}
+
+Image in use:
+  {{ include "knowledge-provider-qdrant.image" . }}
+{{- if not .Values.image.repository }}
+
+WARNING: image.repository is empty. Set image.registry/repository/tag before a
+real deployment, e.g. --set image.repository=qdrant/qdrant
+{{- end }}
+
+{{- if gt (.Values.replicaCount | int) 1 }}
+
+WARNING: replicaCount is {{ .Values.replicaCount }}. This chart runs
+single-node Qdrant against one ReadWriteOnce volume - it is not a distributed
+deployment and more than one replica will not work correctly.
+{{- end }}
+{{- if not .Values.apiKeySecret.name }}
+
+NOTE: apiKeySecret.name is empty - this instance has no auth, matching
+docker-compose.yml's default. Set it to require an API key.
+{{- end }}
+
+Check the rollout:
+  kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "knowledge-provider-qdrant.fullname" . }}
+
+Reach it in-cluster:
+  {{ include "knowledge-provider-qdrant.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}

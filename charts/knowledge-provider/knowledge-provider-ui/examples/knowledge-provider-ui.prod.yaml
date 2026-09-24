@@ -1,0 +1,36 @@
+# Example: knowledge-provider-ui, prod environment.
+#
+#   helm install knowledge-provider-ui charts/knowledge-provider/knowledge-provider-ui \
+#     -n knowledge-provider -f charts/knowledge-provider/knowledge-provider-ui/examples/knowledge-provider-ui.prod.yaml
+#
+# Assumes an image built with prod --build-arg values (VITE_API_BASE,
+# VITE_KEYCLOAK_URL/REALM/CLIENT_ID, VITE_AUTH_ENABLED=true) baked in - see
+# README.md, "Build-time configuration". This values file cannot change any of
+# that; it only configures how the already-built image is deployed.
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/knowledge-provider-ui
+  tag: "v0.1.0"
+  pullSecrets:
+    - ghcr-pull-secret
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: registry-sandbox-vistaar.da.gov.in
+      paths:
+        - path: /docs-pipeline
+          pathType: Prefix
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+commonLabels:
+  oan.in/environment: prod

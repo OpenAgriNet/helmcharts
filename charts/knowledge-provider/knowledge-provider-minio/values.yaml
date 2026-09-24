@@ -1,0 +1,166 @@
+# ============================================================================
+# knowledge-provider-minio - default values
+#
+# Single-node MinIO for the Bharat Vistaar Docs Pipeline - blob storage for
+# original uploads, normalized files, and stage artifacts. Matches
+# docker-compose.yml's single-container `minio server /data
+# --console-address :9001` setup, not a distributed/HA MinIO deployment.
+# ============================================================================
+
+replicaCount: 1
+
+image:
+  # MinIO stopped publishing minio/minio and minio/mc on Docker Hub for
+  # anonymous pulls (docker.io now returns "pull access denied" even for
+  # pinned tags, discovered while testing this chart against a real
+  # cluster) - quay.io/minio/minio is the current publicly pullable source.
+  registry: quay.io
+  repository: minio/minio
+  tag: "latest"
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+command:
+  - minio
+  - server
+  - /data
+  - --console-address
+  - ":9001"
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+service:
+  type: ClusterIP
+  # S3 API port. consolePort (9001) is the browser console - also exposed on
+  # this Service, in-cluster only; add an Ingress if you need external access.
+  port: 9000
+  targetPort: 9000
+  consolePort: 9001
+  annotations: {}
+
+resources:
+  limits:
+    cpu: "1"
+    memory: 1Gi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /minio/health/live
+    port: http
+  initialDelaySeconds: 20
+  periodSeconds: 20
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /minio/health/ready
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  enabled: false
+  httpGet:
+    path: /minio/health/live
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+podSecurityContext:
+  enabled: false
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  enabled: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+
+extraInitContainers: []
+extraVolumes: []
+extraVolumeMounts: []
+
+# ---------------------------------------------------------------------------
+# Persistence for /data. Single-node, so this must be ReadWriteOnce and this
+# Deployment must stay at replicaCount 1 - there is no clustering here.
+# ---------------------------------------------------------------------------
+persistence:
+  enabled: true
+  existingClaim: ""
+  size: 50Gi
+  storageClassName: ""
+  accessMode: ReadWriteOnce
+
+# The bucket knowledge-provider-api/worker read/write (MINIO_BUCKET). Created
+# by the post-install/post-upgrade Job below, idempotently.
+bucket: documents
+
+# ---------------------------------------------------------------------------
+# Bucket-init Job (helm.sh/hook: post-install,post-upgrade). Runs `mc mb` for
+# `bucket` above and exits - matches docker-compose.yml's `minio-init`
+# service. Deleted automatically on success (hook-succeeded).
+# ---------------------------------------------------------------------------
+bucketInit:
+  enabled: true
+  image:
+    # Same Docker Hub restriction as the main image above - quay.io works.
+    registry: quay.io
+    repository: minio/mc
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+# ---------------------------------------------------------------------------
+# Root credentials. This chart renders no Secret - create it before
+# installing (see README.md, "Secrets"). Same Secret name/keys as
+# knowledge-provider-api/-worker's MINIO_ACCESS_KEY/MINIO_SECRET_KEY, so all
+# three charts share one Secret rather than three copies of the same values.
+# ---------------------------------------------------------------------------
+credentialsSecret:
+  name: knowledge-provider-minio-credentials
+  accessKeyKey: access-key
+  secretKeyKey: secret-key
+
+envConfig: {}
+envFromSecrets: []
+secretEnv: {}
+extraEnv: []

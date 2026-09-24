@@ -1,0 +1,4 @@
+# Minimum values that let `helm template`/`helm lint --strict` run in CI
+# without a live Keycloak/Temporal/MinIO/Qdrant or any real secrets.
+keycloak:
+  authDisabled: true

@@ -1,0 +1,231 @@
+# ============================================================================
+# knowledge-provider-keycloak - default values
+#
+# A custom, modern (Quarkus-based) Keycloak image built from
+# knowledge-provider/keycloak/Dockerfile - bakes in the email-OTP 2FA provider
+# jar and the realm-import JSON, both baked into the image at build time (not
+# mounted by this chart). See README.md for why this is a SEPARATE chart from
+# this repo's existing `keycloak` chart, which is a different (legacy
+# WildFly/Sunbird-RC) Keycloak distribution entirely.
+# ============================================================================
+
+replicaCount: 1
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/knowledge-provider-keycloak
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# Arguments to the image's own ENTRYPOINT (/opt/keycloak/bin/kc.sh) - NOT a
+# command override. --import-realm is a no-op once the realm already exists
+# in the database, so it's safe to always leave on (see docker-compose.yml's
+# comment on this command).
+args:
+  - start
+  - --import-realm
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  annotations: {}
+
+# Modern Keycloak's health endpoints live on a separate management interface,
+# not the main HTTP port. Not exposed via the Service - the kubelet probes the
+# Pod IP directly.
+managementPort: 9000
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: docs-pipeline-auth.local
+      paths:
+        - path: /auth
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: "1"
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+# Probe paths below are prefixed with httpRelativePath ("/auth" by default) -
+# KC_HTTP_RELATIVE_PATH applies to the Quarkus management interface's health
+# endpoints too, not just the main app (verified against a real cluster: the
+# bare /health/* paths 404, only /auth/health/* answers). These are plain
+# values, not computed from httpRelativePath, to reuse the shared
+# common.probes/probeSpec helper - if you change httpRelativePath, update
+# these three paths to match.
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /auth/health/live
+    port: health
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /auth/health/ready
+    port: health
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Keycloak's first boot (realm import + DB migration) is slow. Startup covers
+# it so liveness does not kill the pod mid-boot.
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /auth/health/started
+    port: health
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 60
+
+podSecurityContext:
+  enabled: false
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  enabled: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+
+# ---------------------------------------------------------------------------
+# Dependency waiting
+# ---------------------------------------------------------------------------
+waitFor:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: busybox
+    tag: "1.37"
+    pullPolicy: IfNotPresent
+  timeoutSeconds: 300
+  intervalSeconds: 3
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 50m
+      memory: 32Mi
+  database: true
+  extraTcp: []
+  extraHttp: []
+
+extraInitContainers: []
+extraVolumes: []
+extraVolumeMounts: []
+
+# ---------------------------------------------------------------------------
+# Optional persistence for /opt/keycloak/data. NOT required for correctness -
+# all durable state (realm, users, sessions) lives in Postgres via KC_DB. Off
+# by default; enable only if you want local caches to survive a pod restart.
+# ---------------------------------------------------------------------------
+persistence:
+  enabled: false
+  existingClaim: ""
+  size: 1Gi
+  storageClassName: ""
+  accessMode: ReadWriteOnce
+
+# ---------------------------------------------------------------------------
+# Database. Point this at the knowledge-provider-keycloak-db postgresql-cnpg
+# release (its "-rw" Service). This chart renders no Secret - passwordSecret
+# names one it expects to already exist.
+# ---------------------------------------------------------------------------
+database:
+  host: ""
+  port: 5432
+  name: keycloak
+  user: keycloak
+  sslmode: disable
+  passwordSecret:
+    name: knowledge-provider-keycloak-db-app
+    key: password
+
+# Admin bootstrap credentials for the Keycloak container itself (not an
+# application user - this is the realm-master admin console login).
+admin:
+  username: admin
+  passwordSecret:
+    name: knowledge-provider-keycloak-admin
+    key: password
+
+# Public hostname clients redirect to and tokens are issued for. Required -
+# issuer/redirect URIs are wrong without it.
+hostname: ""
+
+# nginx (or an Ingress) is expected to proxy this path prefix through to the
+# container - see docker-compose.yml's KC_HTTP_RELATIVE_PATH comment.
+httpRelativePath: /auth
+
+# SMTP for the email-OTP 2FA plugin. Also configurable directly in the
+# Keycloak Admin UI after first boot instead - these env vars only seed it.
+# Leave smtp.host empty to skip setting any KC_SPI_EMAIL_SENDER_* var (e.g.
+# when SMTP is already configured in the realm-import JSON baked into the
+# image).
+smtp:
+  host: ""
+  port: 587
+  from: ""
+  fromDisplayName: "BharatVistaar"
+  auth: true
+  starttls: true
+  ssl: false
+  username: ""
+  passwordSecret:
+    name: knowledge-provider-keycloak-smtp
+    key: password
+
+# ============================================================================
+# ENVIRONMENT CONFIGURATION - everything above already covers this image's
+# real configuration surface, so this stays empty by default. Use it for
+# anything this chart does not model as a structured value (e.g. an
+# additional KC_SPI_* setting).
+# ============================================================================
+envConfig: {}
+
+envFromSecrets: []
+secretEnv: {}
+extraEnv: []
