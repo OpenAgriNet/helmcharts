@@ -5,6 +5,79 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-09-23
+
+### Changed
+- **BREAKING.** `routing.rules` is gone. Routing comes from
+  `config/routing-<role>.yaml` in this chart, mounted verbatim, exactly like
+  `config/<role>-config.yaml` beside it.
+
+  Routing is topology rather than environment: the in-cluster targets follow the
+  namespace-per-component convention and are identical in every environment — no
+  environment had ever overridden them. Holding them in values only meant that
+  changing an adapter's steps was a change here while changing its routes was a
+  change in another repository, for the same adapter and the same config
+  directory.
+
+  `routing.config` takes a whole routing file verbatim for a deployment that
+  genuinely differs — pointing the provider adapter at a mock upstream, say.
+
+  To migrate: delete the `routing:` block from your values. If it said anything
+  other than what `config/routing-<role>.yaml` now says, move it to
+  `routing.config`.
+
+### Removed
+- The `adapter-service.routingRules` helper, which validated and rendered those
+  values. Three of its four checks — rules present, url present, endpoints
+  present — stop earning their keep once the file is committed in the chart and
+  visible in review.
+
+  The fourth is kept, as a string check on the file: a `target.url` ending in a
+  slash fails the render, naming the file and the line. That one produces
+  `//discover` at runtime, which reads as a bad gateway rather than as a typo.
+
+## [0.4.0] - 2026-09-22
+
+### Changed
+- **Signing and signature validation are on.** Each hop now has a signer on one
+  side and a validator on the other, which is why this is one change and not
+  three:
+
+  | Module | Steps |
+  |---|---|
+  | consumer | `validateSchema, addRoute, sign` |
+  | network | `validateSign, addRoute` |
+  | provider (select) | `validateSign, validateSchema, <capabilities>` |
+  | provider (publish) | `validateSchema, addRoute, sign` |
+
+  Turning any one of these off on its own breaks the hop it belongs to: drop
+  `sign` on consumer and both network and provider reject every request.
+
+  The network adapter does not sign on the way out, and the provider does not
+  `signAck`, because nothing verifies either: the discovery service's signature
+  middleware is parked rather than mounted, and the consumer has no validation
+  step on the response path. Signing for a verifier that does not exist is a
+  keypair operation per request for nothing.
+
+- **Extended schema validation is on** wherever `validateSchema` runs — consumer
+  and both provider modules. It fetches each resource's own `@context` and
+  validates against it, so a payload can now fail on a network call.
+  `extendedSchema_allowedDomains` is what keeps that fetch from following a
+  payload to an arbitrary host. Note it does not enforce `if/then`, so a pass is
+  not pack conformance.
+
+- **Telemetry is on** in all three roles. This assumes a collector answers at
+  `clickstack-otel-collector.observability.svc.cluster.local:4317`. Without one
+  the exporter logs a connection failure every few seconds — set all three flags
+  back to `false` for a cluster with no collector.
+
+### Known issue
+- `handler.steps`, `otel.*` and `becknSpec.*` in `values.yaml` no longer affect
+  anything. Since 0.3.0 the config is read from `config/<role>-config.yaml` by
+  `.Files.Get`, and only `NOTES.txt` still reads those values — so the
+  post-install message prints a step list the adapter is not running. Fixing it
+  means either deleting the dead values or rendering the config from them.
+
 ## [0.3.1] - 2026-09-18
 
 ### Fixed

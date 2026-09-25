@@ -30,16 +30,20 @@ pluginManager:
 
 plugins:
   # Ships metrics, traces and logs over OTLP/gRPC. All three flags false builds
-  # no exporter at all, which is the right setting for a stack with no collector.
+  # no exporter at all, which is the right setting for a stack with no
+  # collector -- so these are on only because clickstack is deployed alongside.
+  # Turn them back off for a cluster without it: the exporter dials on an
+  # interval and logs a connection failure every few seconds when nothing
+  # answers.
   otelsetup:
     id: otelsetup
     config:
       serviceName: "provider-adapter"
       environment: "dev"
       otlpEndpoint: "clickstack-otel-collector.observability.svc.cluster.local:4317"
-      enableMetrics: "false"
-      enableTracing: "false"
-      enableLogs: "false"
+      enableMetrics: "true"
+      enableTracing: "true"
+      enableLogs: "true"
 
 modules:
   - name: oanProvider
@@ -171,19 +175,47 @@ modules:
           - id: MandiPrice
             config:
               bindingKeys: "agmarknet|openagrinet:MandiPrice"
-              # Agmarknet issues short-lived tokens. The field names are this
-              # provider's spelling, not a standard. tokenTtl is an estimate --
-              # the response carries no expiry -- and a 401 drops the held token.
+              # NO CREDENTIAL, because this environment's agmarknet upstream is
+              # the benchmark mock rather than Agmarknet -- a static nginx with
+              # nothing to authenticate against. See the upstream block in
+              # infra-automation's registry-seed values.
+              #
+              # WHAT THIS REPLACED, and what to put back when the real upstream
+              # returns:
+              #
+              #     authScheme: tokenQuery
+              #     tokenUrl: the AGMARKNET token-url placeholder   <- see below
+              #     tokenUserField: access_name
+              #     tokenUserEnv: AGMARKNET_ACCESS_NAME
+              #     tokenSecretField: password
+              #     tokenSecretEnv: AGMARKNET_PASSWORD
+              #     tokenResponseField: token
+              #     queryName: token
+              #     tokenTtl: 10m
+              #
+              # Agmarknet issues short-lived tokens, so the provider exchanges a
+              # name and password for one and hangs it on the query. tokenTtl is
+              # an estimate -- the response carries no expiry -- and a 401 drops
+              # the held token.
+              #
+              # The placeholder is spelled out rather than written literally
+              # above, because the init container substitutes that marker
+              # ANYWHERE it appears -- including inside a comment. Left intact it
+              # would write the real token URL into a comment in the deployed
+              # ConfigMap, where nobody would think to look for it.
+              #
+              # DROPPED RATHER THAN REPRODUCED. tokenUrl is substituted from the
+              # provider-adapter-keys Secret, which is reflected out of AWS
+              # Secrets Manager; pointing it at a mock would mean editing a
+              # shared secret store to run a benchmark. Serving a token endpoint
+              # from the mock instead would measure an exchange that answers the
+              # same string every time.
+              #
+              # IT ALSO KEEPS THE MEASUREMENT HONEST: a real token is cached for
+              # its TTL, so the exchange happens roughly once per ten minutes and
+              # contributes nothing to a per-request figure either way.
               agmarknet:
-                authScheme: tokenQuery
-                tokenUrl: "__AGMARKNET_TOKEN_URL__"
-                tokenUserField: access_name
-                tokenUserEnv: AGMARKNET_ACCESS_NAME
-                tokenSecretField: password
-                tokenSecretEnv: AGMARKNET_PASSWORD
-                tokenResponseField: token
-                queryName: token
-                tokenTtl: 10m
+                authScheme: none
 
           - id: KnowledgeAdvisory
             config:
@@ -208,13 +240,18 @@ modules:
               # farmer there is no facility when there is.
               searchConcurrency: 1
 
-      # Signing and signature validation are OFF: validateSign and signAck are
-      # absent below, so this tier accepts unsigned traffic and answers
-      # unsigned. Turning it back on means adding the step names here AND on the
-      # other side of the hop at the same time.
+      # This tier VALIDATES the caller's signature and answers UNSIGNED:
+      # validateSign is listed, signAck is not. The caller is the consumer
+      # adapter, which signs -- removing `sign` there rejects every select
+      # arriving here.
+      #
+      # No signAck because nothing verifies the response: the consumer adapter
+      # has no validation step on the way back, so signing it would cost a
+      # keypair operation per request that nobody checks.
       #
       # A plugin declared above but missing from this list is loaded and never runs.
       steps:
+        - validateSign
         - validateSchema
         - WeatherObservation
         - MandiPrice
@@ -292,7 +329,10 @@ modules:
             routingConfig: /app/config/routing-provider.yaml
 
       # No validateSign: the caller is this provider's own catalogue system,
-      # inside its trust boundary. The adapter signs the forwarded request itself.
+      # inside its trust boundary. The adapter signs the forwarded request
+      # itself, and the network adapter validates that signature -- removing
+      # `sign` here rejects every publish.
       steps:
         - validateSchema
         - addRoute
+        - sign
