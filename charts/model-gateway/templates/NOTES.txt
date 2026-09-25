@@ -17,8 +17,9 @@ it did:
 
 Point the assistant at it:
 
-  OPENAI_BASE_URL={{ include "model-gateway.internalURL" . }}/v1
-  DSS_COMPOSER_MODEL=openai:<one of the names below>
+  DSS_GATEWAY_URL={{ include "model-gateway.internalURL" . }}/v1
+  DSS_GATEWAY_API_KEY=<a virtual key issued by this gateway>
+  DSS_COMPOSER_MODEL=<one of the names below>
 
 Names this gateway answers to:
 {{- range .Values.models }}
