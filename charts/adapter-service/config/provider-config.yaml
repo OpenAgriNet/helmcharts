@@ -175,19 +175,47 @@ modules:
           - id: MandiPrice
             config:
               bindingKeys: "agmarknet|openagrinet:MandiPrice"
-              # Agmarknet issues short-lived tokens. The field names are this
-              # provider's spelling, not a standard. tokenTtl is an estimate --
-              # the response carries no expiry -- and a 401 drops the held token.
+              # NO CREDENTIAL, because this environment's agmarknet upstream is
+              # the benchmark mock rather than Agmarknet -- a static nginx with
+              # nothing to authenticate against. See the upstream block in
+              # infra-automation's registry-seed values.
+              #
+              # WHAT THIS REPLACED, and what to put back when the real upstream
+              # returns:
+              #
+              #     authScheme: tokenQuery
+              #     tokenUrl: the AGMARKNET token-url placeholder   <- see below
+              #     tokenUserField: access_name
+              #     tokenUserEnv: AGMARKNET_ACCESS_NAME
+              #     tokenSecretField: password
+              #     tokenSecretEnv: AGMARKNET_PASSWORD
+              #     tokenResponseField: token
+              #     queryName: token
+              #     tokenTtl: 10m
+              #
+              # Agmarknet issues short-lived tokens, so the provider exchanges a
+              # name and password for one and hangs it on the query. tokenTtl is
+              # an estimate -- the response carries no expiry -- and a 401 drops
+              # the held token.
+              #
+              # The placeholder is spelled out rather than written literally
+              # above, because the init container substitutes that marker
+              # ANYWHERE it appears -- including inside a comment. Left intact it
+              # would write the real token URL into a comment in the deployed
+              # ConfigMap, where nobody would think to look for it.
+              #
+              # DROPPED RATHER THAN REPRODUCED. tokenUrl is substituted from the
+              # provider-adapter-keys Secret, which is reflected out of AWS
+              # Secrets Manager; pointing it at a mock would mean editing a
+              # shared secret store to run a benchmark. Serving a token endpoint
+              # from the mock instead would measure an exchange that answers the
+              # same string every time.
+              #
+              # IT ALSO KEEPS THE MEASUREMENT HONEST: a real token is cached for
+              # its TTL, so the exchange happens roughly once per ten minutes and
+              # contributes nothing to a per-request figure either way.
               agmarknet:
-                authScheme: tokenQuery
-                tokenUrl: "__AGMARKNET_TOKEN_URL__"
-                tokenUserField: access_name
-                tokenUserEnv: AGMARKNET_ACCESS_NAME
-                tokenSecretField: password
-                tokenSecretEnv: AGMARKNET_PASSWORD
-                tokenResponseField: token
-                queryName: token
-                tokenTtl: 10m
+                authScheme: none
 
           - id: KnowledgeAdvisory
             config:
