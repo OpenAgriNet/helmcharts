@@ -1,0 +1,102 @@
+# MandiPrice discover queries.
+#
+# Built from the published payloads, so every query asks about markets that
+# exist. Every query carries BOTH a JSONPath filter and a spatial constraint —
+# the shape a real consumer sends.
+
+# --- where things come from -------------------------------------------------
+
+source: data/publish-payload/mandiprice
+output: data/discover-payload/mandiprice
+
+# --- what goes in every query -----------------------------------------------
+
+context:
+  action: discover
+  version: "2.0.0"
+
+schemaContext:
+  - https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld#openagrinet:MandiPrice
+
+# Where the geometry is stored in a published payload. Aim anywhere else and
+# every spatial query matches nothing — and empty is fast, so it looks fine.
+targets: "$.catalogs[*].resources[*].resourceAttributes.coverageAreas[*]"
+
+# --- how many, and which shapes ---------------------------------------------
+
+seed: 20260918
+
+# How many queries to build. Every one is distinct — centres are placed
+# continuously along a border, not at fixed points — so this is the number of
+# DIFFERENT questions a run can ask before JMeter wraps and starts repeating.
+#
+# Size it against the run you intend. Requests sent is roughly
+#
+#     threads / latency x duration
+#
+# so 20 threads for 20 minutes at 100 ms each is about 240,000 requests. At
+# 20,000 queries that run repeats each question a dozen times, spread far apart;
+# at 300 it would repeat each one 800 times and mostly measure a warm cache.
+#
+# Raising it costs about a second per thousand and 800 bytes each on disk.
+queries: 20000
+
+# Circles versus rectangles.
+queryMix:
+  point: 1
+  polygon: 1
+
+# --- how much ground a query covers -----------------------------------------
+
+# Every query returns the same number of resources, so every response is the
+# same size. The generator does not guess an extent: it sorts that commodity's
+# published resources by distance from the query's centre and puts the circle's
+# edge between the last one it wants and the first it does not.
+matches:
+  target: 75
+
+  # How far off target an answer may land.
+  #
+  # Duplicates sit on their market's coordinates, so copies of one market are
+  # all at one point and the reachable counts step by about ten rather than one
+  # at a time. A tolerance below that step rejects nearly every draw.
+  tolerance: 8
+
+  # The answer must come from at least this many catalogs. Centres sit on a line
+  # between two markets either side of a border, but a tight circle can find its
+  # resources without ever crossing — and a query inside one state measures one
+  # catalog.
+  minStates: 2
+
+point:
+  # Queries are centred ANYWHERE on the line between two markets in different
+  # states, no further apart than this. Continuous, which is what makes every
+  # query distinct — a midpoint would give one query per pair, and there are
+  # only 411 pairs.
+  borderWithinMeters: 120000
+
+  # Refuse a query needing a larger circle than this. Without it a thinly traded
+  # commodity produces a query covering half the country, which measures
+  # something other than the rest of the set.
+  maxRadiusMeters: 600000
+
+polygon:
+  # The same cap, for how far a box is pushed out around its centre.
+  maxPaddingMeters: 500000
+
+# --- what a query asks about ------------------------------------------------
+
+filter:
+  expression: >-
+    $.catalogs[*].resources[*] ? (@.resourceAttributes.subjectCategories[*] == "Market"
+    && @.resourceAttributes.informationMode == "OnDemand"
+    && @.resourceAttributes.supportedCommodities[*].code == "{{COMMODITY_CODE}}")
+
+  # Only ask about commodities with at least this many PUBLISHED resources.
+  # Raised automatically to matches.target + 1 — a commodity with fewer
+  # resources than a query wants back can never answer one.
+  #
+  # Counted from the payloads rather than from the metadata. Counting markets
+  # instead left 9 commodities of 247 in play, because the payloads repeat each
+  # market to reach targetResources.
+  minResources: 200

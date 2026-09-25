@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Discover benchmark.
+
+  Posts the queries the query generator produced, giving every request a
+  fresh transaction and message id. Nothing about the target or the load is written
+  here: bench.sh passes it all in with -J properties, so the same plan runs
+  against any environment.
+
+    -Jprotocol -Jhost -Jport -Jpath   where to send requests
+    -JdataDir                         directory holding files.csv and payloads
+    -Jthreads -JrampUp -Jduration     the load
+    -Jloops -Jscheduler               iterations per thread, or run for a time
+    -JstartupDelay -JonSampleError    when to start, what to do on a failure
+    -JconnectTimeout -JresponseTimeout
+    -JthroughputPerMin                0 to let threads run flat out
+
+  Capability-agnostic: this plan posts whatever payload files the corpus
+  directory holds, so MandiPrice and WeatherObservation share it. What differs
+  per capability is the corpus and the config that generated it.
+
+  Built-in components only. No JMeter-Plugins install is needed to run this.
+-->
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="OAN discover benchmark" enabled="true">
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+        <collectionProp name="Arguments.arguments"/>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+
+      <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults" enabled="true">
+        <stringProp name="HTTPSampler.protocol">${__P(protocol,http)}</stringProp>
+        <stringProp name="HTTPSampler.domain">${__P(host,localhost)}</stringProp>
+        <stringProp name="HTTPSampler.port">${__P(port,8080)}</stringProp>
+        <stringProp name="HTTPSampler.connect_timeout">${__P(connectTimeout,10000)}</stringProp>
+        <stringProp name="HTTPSampler.response_timeout">${__P(responseTimeout,120000)}</stringProp>
+        <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+          <collectionProp name="Arguments.arguments"/>
+        </elementProp>
+      </ConfigTestElement>
+      <hashTree/>
+
+      <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+        <collectionProp name="HeaderManager.headers">
+          <elementProp name="" elementType="Header">
+            <stringProp name="Header.name">Content-Type</stringProp>
+            <stringProp name="Header.value">application/json</stringProp>
+          </elementProp>
+        </collectionProp>
+      </HeaderManager>
+      <hashTree/>
+
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="discover" enabled="true">
+        <stringProp name="ThreadGroup.num_threads">${__P(threads,10)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(rampUp,30)}</stringProp>
+        <stringProp name="ThreadGroup.scheduler">${__P(scheduler,true)}</stringProp>
+        <stringProp name="ThreadGroup.duration">${__P(duration,300)}</stringProp>
+        <stringProp name="ThreadGroup.delay">${__P(startupDelay,0)}</stringProp>
+        <stringProp name="ThreadGroup.on_sample_error">${__P(onSampleError,continue)}</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <!--
+            FALSE, and it has to be. With continue_forever=true JMeter IGNORES
+            the loop count entirely and each thread loops until the test is
+            stopped. Alongside scheduler=false, which is what a positive LOOPS
+            selects, the run then has no end condition at all: it sails past the
+            requested count and keeps going until killed by hand.
+
+            Caught on a 6x167 run that should have sent 1,002 requests and was
+            still climbing at 1,207.
+
+            A loops value of -1 still means "forever" to JMeter, so
+            DURATION-bounded runs are unaffected by this.
+          -->
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">${__P(loops,-1)}</stringProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+
+        <!--
+          The query file list the query generator wrote. recycle=true so a run
+          longer than the corpus starts again from the top rather than stopping
+          early, and shareMode=all so threads take different rows instead of
+          every thread sending the same query.
+        -->
+        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="payload list" enabled="true">
+          <stringProp name="filename">${__P(dataDir,data/mandiprice-discover)}/files.csv</stringProp>
+          <stringProp name="variableNames">payload</stringProp>
+          <stringProp name="delimiter">,</stringProp>
+          <boolProp name="ignoreFirstLine">true</boolProp>
+          <boolProp name="quotedData">false</boolProp>
+          <boolProp name="recycle">true</boolProp>
+          <boolProp name="stopThread">false</boolProp>
+          <stringProp name="shareMode">shareMode.all</stringProp>
+        </CSVDataSet>
+        <hashTree/>
+
+        <!--
+          Rate control, using the built-in Constant Throughput Timer so no
+          plugin is required.
+
+          It is a CLOSED model: threads wait for a reply before sending again,
+          so if the service slows down the offered rate falls with it. That
+          flatters a saturated service, and it is the reason the report records
+          target and achieved throughput separately — when they diverge, the
+          service is the reason.
+
+          0 disables the timer and lets threads run flat out.
+        -->
+        <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="rate limit" enabled="true">
+          <stringProp name="throughput">${__P(throughputPerMin,0)}</stringProp>
+          <intProp name="calcMode">2</intProp>
+        </ConstantThroughputTimer>
+        <hashTree/>
+
+        <!--
+          Builds the request body: reads the payload file once and keeps it in
+          memory, then swaps in fresh ids.
+
+          Cached deliberately. Re-reading the file on every request makes
+          the load generator's disk part of the measurement, and the first thing
+          a benchmark must not measure is itself.
+        -->
+        <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="build body" enabled="true">
+          <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="script">import java.util.concurrent.ConcurrentHashMap
+import java.time.Instant
+
+def cache = props.get('payloadCache')
+if (cache == null) {
+    cache = new ConcurrentHashMap()
+    props.put('payloadCache', cache)
+}
+
+def dir = props.get('dataDir') ?: 'data/publish'
+def name = vars.get('payload')
+def body = cache.computeIfAbsent(dir + '/' + name, { key -&gt; new File(key).getText('UTF-8') })
+
+body = body.replace('__TRANSACTION_ID__', UUID.randomUUID().toString())
+           .replace('__MESSAGE_ID__', UUID.randomUUID().toString())
+           .replace('__TIMESTAMP__', Instant.now().toString())
+
+// Replace the sampler's body outright. Passing it through a JMeter variable
+// would re-interpolate the JSON, and a payload containing ${...} would be
+// rewritten on its way to the wire.
+sampler.getArguments().clear()
+def arg = new org.apache.jmeter.protocol.http.util.HTTPArgument('', body, false)
+arg.setAlwaysEncoded(false)
+sampler.getArguments().addArgument(arg)</stringProp>
+        </JSR223PreProcessor>
+        <hashTree/>
+
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST discover" enabled="true">
+          <stringProp name="HTTPSampler.path">${__P(path,/discover)}</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">placeholder, replaced by the preprocessor</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <!--
+            Status only. A discover that matches nothing is still a 200, so an
+            empty result is not a failure here — the query manifest records
+            what each query asked for, which is where an empty answer is
+            explained.
+          -->
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="status is 200" enabled="true">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="49586">200</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">8</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+        </hashTree>
+
+
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
