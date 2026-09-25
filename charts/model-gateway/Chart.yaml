@@ -1,0 +1,29 @@
+apiVersion: v2
+name: model-gateway
+description: >-
+  The single seam every model call passes through. Holds the vendor accounts,
+  decides which model a named step resolves to, enforces a spend limit per step,
+  and records what each call cost. Implemented with LiteLLM; PostgreSQL is its
+  only datastore, and Redis is required once it runs more than one replica.
+type: application
+version: 0.1.0
+# The LiteLLM proxy image. Pinned rather than floating on `main-stable`: the
+# gateway sits in front of every model call, so which build is running has to be
+# a fact about this chart.
+appVersion: "v1.102.1"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - model-gateway
+  - llm
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
+  - https://github.com/BerriAI/litellm
+dependencies:
+  - name: common
+    version: "0.2.x"
+    repository: "file://../common"
