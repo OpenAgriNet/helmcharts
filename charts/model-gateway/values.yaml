@@ -1,0 +1,217 @@
+# ============================================================================
+# model-gateway - default values
+#
+# The single seam every model call passes through (LiteLLM). The assistant asks
+# for a NAME - dss-composer, dss-intent - and this chart decides what that name
+# resolves to. Changing a model is a change to `models` below: a reviewed diff,
+# applied by the reconcile Job, with nothing restarted.
+#
+# Minimum you must set for a real deployment:
+#   - image.registry / image.repository
+#   - database.urlSecret.name        (CNPG writes Secret/<cluster>-app)
+#   - masterKeySecret.name           (the gateway's own admin credential)
+#   - saltKeySecret.name             (encrypts vendor keys - see the warning)
+#   - credentials                    (one per vendor account)
+#   - models                         (one per named step)
+#   - redis.host                     (required once replicaCount > 1)
+# ============================================================================
+
+replicaCount: 2
+
+image:
+  registry: "ghcr.io"
+  repository: "berriai/litellm"
+  # Falls back to Chart.appVersion
+  tag: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: true
+
+service:
+  type: ClusterIP
+  port: 4000
+  targetPort: 4000
+  annotations: {}
+
+# The gateway is reached from inside the cluster only. Its admin API manages
+# every vendor account, so it is not published.
+ingress:
+  enabled: false
+
+# --- datastore ---------------------------------------------------------------
+# Keys, spend history, the model list and the vendor credentials. Back it up,
+# and treat the backup as a secret: it holds vendor keys, encrypted.
+database:
+  urlSecret:
+    name: ""
+    key: uri
+
+# --- secrets -----------------------------------------------------------------
+# This repository renders no Secrets. These name Secrets that already exist.
+
+# The gateway's own admin credential. The assistant does not use it; it holds a
+# virtual key instead.
+masterKeySecret:
+  name: ""
+  key: LITELLM_MASTER_KEY
+
+# Encrypts every vendor key held in the database.
+#
+# Create it ONCE, keep it wherever the other secrets are kept, and NEVER rotate
+# it. Changing it does not fail loudly: everything saved earlier becomes
+# unreadable, the gateway sends nonsense to the vendor, and the vendor replies
+# that the key is invalid. Losing it means re-entering every vendor key.
+saltKeySecret:
+  name: ""
+  key: LITELLM_SALT_KEY
+
+# --- vendor accounts ---------------------------------------------------------
+# One per account, not one per model. Every model on that account shares it.
+# The key itself is never here: `secretName` names a Secret, mounted into the
+# reconcile Job, and `keys` maps a field the gateway wants to a key in it.
+#
+# credentials:
+#   - name: azure-oan
+#     description: Azure OpenAI, OAN account
+#     secretName: model-gateway-azure
+#     keys:
+#       api_key: AZURE_OPENAI_API_KEY
+#     values:
+#       api_base: https://<resource>.services.ai.azure.com/openai/v1
+credentials: []
+
+# --- the model list ----------------------------------------------------------
+# What each name the assistant asks for resolves to. This is the reviewed
+# record of what is running.
+#
+# `model` carries the vendor as its prefix: openai/, anthropic/, gemini/,
+# vertex_ai/, bedrock/, hosted_vllm/. On Azure the part after openai/ is the
+# DEPLOYMENT name, not a model family - the endpoint only answers for
+# deployments that exist.
+#
+# Both prices are required. A model the gateway cannot price is recorded as
+# costing nothing, and a spend limit over nothing never stops anything.
+#
+# Give two entries the same `name` to split traffic between them, with `weight`.
+#
+# models:
+#   - name: dss-composer
+#     id: dss-composer                 # optional; defaults to name
+#     model: openai/gpt-5.6-luna
+#     credential: azure-oan
+#     inputCostPerToken: 0.00000015
+#     outputCostPerToken: 0.00000060
+#     weight: 9                        # optional, for a traffic split
+models: []
+
+# Reject calls to a model with no price, rather than recording them as free.
+blockUnpricedModels: true
+
+# --- the reconcile Job -------------------------------------------------------
+# Runs after every install and upgrade, applies `models` and `credentials`
+# through the gateway's API, and removes anything the chart no longer declares.
+# Nothing restarts.
+reconcile:
+  image:
+    repository: python
+    tag: "3.13-alpine"
+    pullPolicy: IfNotPresent
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  resources:
+    limits:
+      cpu: 200m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# --- admin screen ------------------------------------------------------------
+# Off by default. The model list lives in this chart, and a screen that edits the
+# running gateway is a second source of truth that nothing reviews. Worth
+# enabling in a development environment, where losing the edits does not matter.
+adminUI:
+  enabled: false
+
+# --- rate limits and spend across replicas -----------------------------------
+# Spend and rate limits are counted per process. With more than one replica and
+# no Redis, two pods enforce roughly twice the limit that was asked for - the
+# limits look configured and do not hold. The render fails rather than let that
+# happen quietly.
+redis:
+  host: ""
+  port: 6379
+  passwordSecret:
+    name: ""
+    key: REDIS_PASSWORD
+
+# --- tracing -----------------------------------------------------------------
+# Point this at a collector that drops the gateway's internal spans, not
+# straight at the trace store. The gateway records six to eight spans per model
+# call plus one per database write: unfiltered, one turn went from 22 recorded
+# spans to 71, with database writes appearing under the step that writes the
+# farmer's answer.
+otel:
+  enabled: false
+  exporter: otlp_http
+  endpoint: ""
+
+# The composer streams its answer token by token. A pod that is terminating
+# should finish what it is writing rather than stop mid-sentence.
+terminationGracePeriodSeconds: 60
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  maxUnavailable: ""
+
+resources:
+  limits:
+    cpu: "1"
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 512Mi
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health/liveliness
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /health/readiness
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+podSecurityContext: {}
+securityContext: {}
+
+# Non-secret configuration only.
+envConfig: {}
+envFromSecrets: []
+secretEnv: []
+
+commonAnnotations: {}
+podAnnotations: {}
+podLabels: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
