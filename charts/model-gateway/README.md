@@ -113,5 +113,7 @@ helm upgrade --install model-gateway charts/model-gateway \
 helm test model-gateway
 ```
 
-The assistant is then pointed at it with three values of its own: the four model
-names, `OPENAI_BASE_URL` set to `http://model-gateway:4000/v1`, and a virtual key.
+The assistant is then pointed at it with its own settings: the four names below,
+`DSS_GATEWAY_URL` set to `http://model-gateway:4000/v1`, and `DSS_GATEWAY_API_KEY`
+holding a virtual key this gateway issued. No vendor is named anywhere in the
+assistant — that is what makes a model change a change to this chart alone.
