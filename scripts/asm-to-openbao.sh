@@ -45,11 +45,17 @@ $dry_run || [[ -n "${BAO_TOKEN:-}" ]] || { echo "BAO_TOKEN is required" >&2; exi
 
 names="$(sed -n 's/^[[:space:]]*- name:[[:space:]]*\([^[:space:]]*\).*/\1/p' "$values")"
 
+# The aws CLI's stderr goes here, not into the value: a warning it prints on a
+# successful call would otherwise be prepended to the JSON and fail the check
+# below for every entry.
+aws_err="$(mktemp)"
+trap 'rm -f "$aws_err"' EXIT
+
 failed=0
 for name in $names; do
   key="oan/${env}/${name}"
-  if ! value="$($aws_cli secretsmanager get-secret-value --secret-id "$key" --query SecretString --output text 2>&1)"; then
-    echo "!! $key: could not read from Secrets Manager: $value" >&2
+  if ! value="$($aws_cli secretsmanager get-secret-value --secret-id "$key" --query SecretString --output text 2>"$aws_err")"; then
+    echo "!! $key: could not read from Secrets Manager: $(cat "$aws_err")" >&2
     failed=1
     continue
   fi
@@ -65,8 +71,15 @@ for name in $names; do
     continue
   fi
   # Through stdin, so no value appears in a process list or in shell history.
-  kubectl -n "$namespace" exec -i "$pod" -- env BAO_TOKEN="$BAO_TOKEN" \
-    bao kv put "secret/${key}" - <<<"$value" >/dev/null
+  # Guarded, so one failed write -- a bad token, no write access, a restarting
+  # pod -- is reported and the rest still copy, instead of set -e stopping the
+  # run halfway with no record of which entries made it.
+  if ! kubectl -n "$namespace" exec -i "$pod" -- env BAO_TOKEN="$BAO_TOKEN" \
+      bao kv put "secret/${key}" - <<<"$value" >/dev/null; then
+    echo "!! $key: write to OpenBao failed" >&2
+    failed=1
+    continue
+  fi
   echo "copied $key"
 done
 

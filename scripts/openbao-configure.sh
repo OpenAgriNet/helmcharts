@@ -45,12 +45,35 @@ done
 bao() { kubectl -n "$namespace" exec -i "$pod" -- env BAO_TOKEN="${BAO_TOKEN:-}" bao "$@"; }
 
 # --- 1. init -----------------------------------------------------------------
-initialized="$(bao status -format=json 2>/dev/null | jq -r .initialized || true)"
-if [[ "$initialized" != "true" ]]; then
+# `bao status` exits non-zero while sealed or uninitialised, but still prints
+# JSON. No JSON at all means OpenBao was never reached -- the pod is not running
+# yet (likely straight after `helm install`), or kubectl points elsewhere --
+# and that must not be read as "not initialised". Retry briefly, then stop.
+initialized=""
+for _ in $(seq 1 30); do
+  initialized="$(bao status -format=json 2>/dev/null | jq -r .initialized 2>/dev/null || true)"
+  [[ "$initialized" == "true" || "$initialized" == "false" ]] && break
+  sleep 2
+done
+if [[ "$initialized" != "true" && "$initialized" != "false" ]]; then
+  echo "could not reach OpenBao in pod $namespace/$pod -- is it running, and is kubectl pointed at the right cluster?" >&2
+  exit 1
+fi
+
+if [[ "$initialized" == "false" ]]; then
   [[ -n "$init_out" ]] || { echo "OpenBao is not initialised; pass --init-out <file> to receive the root token and recovery keys" >&2; exit 2; }
   [[ ! -e "$init_out" ]] || { echo "$init_out already exists; refusing to overwrite what may be the only copy of a root token" >&2; exit 2; }
   echo "==> initialising OpenBao"
-  (umask 077; bao operator init -format=json > "$init_out")
+  # Into a temp file, moved into place only on success: a failed init must not
+  # leave an empty $init_out that every re-run then refuses to overwrite.
+  partial="${init_out}.partial.$$"
+  trap 'rm -f "$partial"' EXIT
+  if ! (umask 077; bao operator init -format=json > "$partial"); then
+    echo "bao operator init failed; nothing was written to $init_out" >&2
+    exit 1
+  fi
+  mv "$partial" "$init_out"
+  trap - EXIT
   echo "    root token and recovery keys written to $init_out -- move them off this machine"
 fi
 
