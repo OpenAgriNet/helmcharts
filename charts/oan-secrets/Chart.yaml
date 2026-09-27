@@ -1,0 +1,16 @@
+apiVersion: v2
+name: oan-secrets
+description: >-
+  One ExternalSecret per credential, pulling from OpenBao into a Kubernetes
+  Secret and mirroring it, via Reflector, into every namespace that reads it.
+  This is what turns an OpenBao entry into something a chart can reference by
+  name.
+type: application
+version: 0.1.0
+appVersion: "0.10.7"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
