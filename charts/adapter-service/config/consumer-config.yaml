@@ -3,9 +3,8 @@
 #
 # This file is mounted verbatim. Values that differ per environment are the
 # __ADAPTER_*__ placeholders below, which an init container substitutes from the
-# mounted Secret at pod start -- that Secret is pulled from AWS Secrets Manager
-# by External Secrets Operator, so no key is in this file, in the ConfigMap, or
-# in git.
+# mounted Secret at pod start -- that Secret is pulled from OpenBao by External
+# Secrets Operator, so no key is in this file, in the ConfigMap, or in git.
 appName: "consumer-adapter"
 
 log:

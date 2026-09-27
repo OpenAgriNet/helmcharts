@@ -19,6 +19,9 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`cert-manager`](charts/cert-manager) | application | X.509 certificate management. The official `cert-manager` chart v1.21.2 committed whole and unmodified. Its CRDs are applied out of band — three exceed the annotation size limit. |
 | [`cert-manager-issuers`](charts/cert-manager-issuers) | application | Let's Encrypt `ClusterIssuer`s. Separate from `cert-manager` because one release cannot register a CRD and create an instance of it. |
 | [`clickstack`](charts/clickstack) | application | Observability — ClickHouse, an OTel collector and the HyperDX UI. A verbatim copy of the official upstream chart, with no OAN changes yet. |
+| [`openbao`](charts/openbao) | application | The secret store. The official `openbao` chart 0.29.6 (OpenBao v2.6.3) committed whole and unmodified; OAN's settings are in `examples/openbao.dev.yaml`. |
+| [`openbao-cluster-secret-store`](charts/openbao-cluster-secret-store) | application | The `ClusterSecretStore` that lets External Secrets Operator read OpenBao, logging in with Kubernetes auth. |
+| [`oan-secrets`](charts/oan-secrets) | application | One `ExternalSecret` per credential: pulls `oan/<env>/<name>` from OpenBao into a Secret and mirrors it, via Reflector, to the namespaces that read it. |
 
 ## How they fit together
 
@@ -36,11 +39,14 @@ charts/
 ├── cert-manager-issuers/# Let's Encrypt ClusterIssuers for it
 ├── discovery/           # the Beckn discover-and-publish service
 ├── adapter-service/     # the Beckn adapters — one release per role
-└── clickstack/          # observability — vendored upstream, not yet OAN-shaped
+├── clickstack/          # observability — vendored upstream, not yet OAN-shaped
+├── openbao/             # the secret store — vendored upstream
+├── openbao-cluster-secret-store/ # how ESO reads it
+└── oan-secrets/         # what ESO reads from it
 ```
 
 Every chart depends on `common` via `file://../common`, except `clickstack`,
-`kong` and `cert-manager`: all three are official upstream charts committed
+`kong`, `cert-manager` and `openbao`: all four are official upstream charts committed
 unmodified, so they carry neither the dependency nor the conventions. Each
 README lists what that leaves to override. `cert-manager-issuers` also skips it,
 for a different reason — it renders two custom resources and no workload, so
@@ -55,7 +61,7 @@ Three charts, deployed in this order — the ordering is not optional:
 #    and `keycloak` via a CNPG Database object, each owned by its own role.
 helm install postgres charts/postgresql-cnpg -n postgres -f charts/postgresql-cnpg/examples/postgres.dev.yaml
 # 2. Secrets, before anything that reads them. One Secret per value, pulled from
-#    Secrets Manager and mirrored where a second namespace needs it:
+#    OpenBao and mirrored where a second namespace needs it (see Secrets below):
 #      infra-automation: ./scripts/manage-secrets.py generate --env dev
 # 3. Keycloak — imports the sunbird-rc realm it ships with, on first start
 helm install keycloak    charts/keycloak        -n keycloak -f charts/keycloak/examples/keycloak.dev.yaml
@@ -166,3 +172,73 @@ No secret value belongs in this repository, and **no chart here renders a
 Secret**. Charts reference Secrets by name; creating them is deliberately left
 outside the charts, so that decision is made once rather than per chart. See
 [`CONVENTIONS.md`](CONVENTIONS.md#secrets).
+
+### Bringing up the secret store
+
+OpenBao holds every value; External Secrets Operator copies them into
+Kubernetes Secrets; Reflector mirrors those into the namespaces that read them.
+
+```bash
+# 1. The unseal key. OpenBao's "static" seal reads it on every start, so a
+#    restarted pod unseals itself -- no AWS KMS, no manual unseal. Keep a copy
+#    of unseal.key OFF the cluster: without it the data cannot be decrypted.
+openssl rand -out unseal.key 32
+kubectl create namespace openbao
+kubectl -n openbao create secret generic openbao-unseal-key --from-file=unseal.key=unseal.key
+
+# 2. OpenBao
+helm install openbao charts/openbao -n openbao -f charts/openbao/examples/openbao.dev.yaml
+
+# 3. One-time setup: init (writes the root token and recovery keys to the
+#    file given -- move it to the password manager), KV v2 at secret/,
+#    Kubernetes auth, a read-only policy for oan/<env>/*, and the role ESO uses.
+./scripts/openbao-configure.sh --env dev --init-out ~/openbao-dev-init.json
+
+# 4. The operator, the mirror, and the store they read
+helm install external-secrets charts/external-secrets -n external-secrets --create-namespace
+helm install reflector        charts/reflector        -n reflector        --create-namespace
+helm install openbao-store    charts/openbao-cluster-secret-store
+
+# 5. Write the values, then declare which ones reach the cluster
+kubectl -n openbao exec -it openbao-0 -- bao kv put secret/oan/dev/registry-db username=... password=...
+helm install oan-secrets charts/oan-secrets -n external-secrets
+```
+
+### Checking that it works
+
+| Check | Command | Expect |
+|---|---|---|
+| Chart renders | `helm lint --strict charts/openbao -f charts/openbao/examples/openbao.dev.yaml` | `0 chart(s) failed` |
+| Unsealed | `kubectl -n openbao exec openbao-0 -- bao status` | `Seal Type static`, `Sealed false` |
+| Unseals on restart | `kubectl -n openbao delete pod openbao-0`, then `bao status` again | `Sealed false`, with nobody unsealing it |
+| Audit log on | `kubectl -n openbao exec openbao-0 -- bao audit list` (with `BAO_TOKEN`) | `file/` |
+| ESO can log in | `kubectl get clustersecretstore openbao` | `READY True` |
+| Values arrive | `kubectl -n external-secrets get externalsecret` | every row `SecretSynced` |
+| Mirrored | `kubectl -n registry get secret registry-db` | exists |
+| Policy is tight | an `ExternalSecret` for `oan/prod/...` on the dev cluster | `SecretSyncedError`, "permission denied" |
+
+### Moving a cluster from AWS Secrets Manager
+
+Copy the values -- never regenerate them: Postgres role passwords, the
+admin-api client secret Keycloak stored at import, and the adapter keys the
+registry holds all depend on the current ones. Then switch the existing release
+in place, and diff before against after.
+
+```bash
+./scripts/secrets-snapshot.sh > before.txt              # hashes only, no values
+BAO_TOKEN=<root token> ./scripts/asm-to-openbao.sh --env dev --dry-run
+BAO_TOKEN=<root token> ./scripts/asm-to-openbao.sh --env dev
+helm install openbao-store charts/openbao-cluster-secret-store
+helm upgrade asm-secrets charts/oan-secrets -n external-secrets   # the EXISTING release
+kubectl -n external-secrets get externalsecret           # every row: openbao, SecretSynced
+./scripts/secrets-snapshot.sh > after.txt
+diff before.txt after.txt                                # must be empty
+```
+
+Upgrade the release, do not uninstall it: its ExternalSecrets own their
+Secrets, so an uninstall deletes them until the new chart recreates them. If the
+diff is not empty, `helm rollback asm-secrets -n external-secrets` puts it back
+on Secrets Manager, which is untouched by all of this.
+
+A rotation is `bao kv put` with the new value; it reaches the cluster within
+`refreshInterval` (1h by default), and pods pick it up on their next restart.

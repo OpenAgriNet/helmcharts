@@ -5,6 +5,13 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-09-29
+
+### Changed
+- The role configs' header comments say the keys Secret comes from OpenBao,
+  not AWS Secrets Manager. Comment-only; the Secret's name and keys are
+  unchanged.
+
 ## [0.5.1] - 2026-09-28
 
 ### Fixed

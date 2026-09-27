@@ -3,7 +3,7 @@
 #
 # Mounted verbatim. The __ADAPTER_*__ placeholders are substituted by an init
 # container from the mounted Secret at pod start -- that Secret is pulled from
-# AWS Secrets Manager by External Secrets Operator. Both modules below carry the
+# OpenBao by External Secrets Operator. Both modules below carry the
 # same placeholders and both are substituted: the init container's sed is global.
 #
 # UPSTREAM CREDENTIALS ARE NOT HERE, and not placeholders either. The auth blocks

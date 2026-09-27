@@ -3,7 +3,7 @@
 #
 # Mounted verbatim. The __ADAPTER_*__ placeholders are substituted by an init
 # container from the mounted Secret at pod start -- that Secret is pulled from
-# AWS Secrets Manager by External Secrets Operator, so no key is in this file,
+# OpenBao by External Secrets Operator, so no key is in this file,
 # in the ConfigMap, or in git.
 appName: "network-adapter"
 

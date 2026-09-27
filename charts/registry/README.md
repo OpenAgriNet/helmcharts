@@ -139,7 +139,7 @@ helm install postgres charts/postgresql-cnpg \
 #    Generate the values:
 #      infra-automation: ./scripts/manage-secrets.py generate --env dev
 #
-#    One top-level key per secret, one Secrets Manager entry each. External
+#    One top-level key per secret, one OpenBao KV entry each. External
 #    Secrets Operator pulls each into the namespace that owns it, and
 #    Kubernetes Reflector mirrors the four that a second namespace needs:
 #
