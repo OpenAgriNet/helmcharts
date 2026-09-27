@@ -261,6 +261,11 @@ kubectl -n external-secrets get externalsecret           # every row: openbao, S
 diff before.txt after.txt                                # must be empty
 ```
 
+`asm-secrets` here is the Helm release already running in the cluster; its
+chart, and `asm-cluster-secret-store`, have been removed from this repository.
+The release keeps its name after the upgrade, and `helm rollback` works from
+its stored history, so neither needs the old chart.
+
 Upgrade the release, do not uninstall it: its ExternalSecrets own their
 Secrets, so an uninstall deletes them until the new chart recreates them. If the
 diff is not empty, `helm rollback asm-secrets -n external-secrets` puts it back
