@@ -237,39 +237,68 @@ make publish \
 
 ### 4.1 Settings
 
-| Variable | Used by | Default | Does |
-|---|---|---|---|
-| `URL` | the three run commands | required | where to send requests |
-| `CAPABILITY` | run commands, `data` | `MandiPrice` | which `capabilities/<slug>/` to use |
-| `THREADS` | run commands | `10` | concurrent threads |
-| `RAMP_UP` | run commands | `30` | seconds to start all threads |
-| `DURATION` | run commands | `300` | seconds to run |
-| `LOOPS` | run commands | `-1` | requests per thread; a positive value replaces `DURATION` |
-| `RATE` | run commands | `0` | target requests per minute, 0 is flat out |
-| `CONFIG` | run commands | `na` | short handle for the run directory name |
-| `CONSUMER_CPU` `CONSUMER_MEM` | run commands | — | the consumer adapter |
-| `NETWORK_CPU` `NETWORK_MEM` | run commands | — | the network adapter |
-| `PROVIDER_CPU` `PROVIDER_MEM` | run commands | — | the provider adapter |
-| `DISCOVERY_CPU` `DISCOVERY_MEM` | run commands | — | discovery-service |
-| `DISCOVERY_DB_CPU` `DISCOVERY_DB_MEM` | run commands | — | discovery's Postgres |
-| `REGISTRY_CPU` `REGISTRY_MEM` | run commands | — | the registry |
-| `REGISTRY_DB_CPU` `REGISTRY_DB_MEM` | run commands | — | the registry's Postgres |
-| `SAMPLE` | run commands | `none` | `k8s`, `docker` or `none` |
-| `NAMESPACE` | run commands | — | namespace to sample, for `SAMPLE=k8s` |
-| `SELECTOR` | run commands | — | narrows the sampling; **leave unset to sample every pod in the namespace**, which is usually what you want |
-| `NAMES` | run commands | — | which containers to sample, for `SAMPLE=docker` |
-| `HEALTH` | run commands | — | path timed before the run, as a baseline |
-| `NOTE` | run commands | — | a line kept in the report |
-| `PROGRESS_INTERVAL` | run commands | `300` | seconds between progress lines |
-| `SAMPLE_INTERVAL` | run commands | `5` | seconds between CPU/memory samples |
-| `OUT` | run commands | `./results` | where run directories go |
-| `ARGS` | run commands | — | extra flags passed to the runner |
-| `STARTUP_DELAY` | run commands | `0` | seconds before the first thread |
-| `ON_SAMPLE_ERROR` | run commands | `continue` | `continue`, `stoptest`, `stopthread` |
-| `CONNECT_TIMEOUT` | run commands | `10000` | connect timeout, ms |
-| `RESPONSE_TIMEOUT` | run commands | `120000` | reply timeout, ms |
-| `STATES` | `get-mandi-metadata` | empty, all states | which states to fetch |
-| `FROM_DATE` `TO_DATE` | `get-mandi-metadata` | 2026 | window for the commodity data |
+Only `URL` is required. Everything else has a default.
+
+**Where to send it**
+
+| Variable | Default | What it does |
+|---|---|---|
+| `URL` | required | The host to drive, with no path — the runner appends `/publish`, `/discover` or `/select` itself |
+| `CAPABILITY` | `MandiPrice` | Which `capabilities/<slug>/` to take the payloads and config from |
+| `HEALTH` | — | A path timed once before the load starts, recorded as a baseline round trip. Lets you tell a slow service from a distant one |
+
+**How hard to push**
+
+| Variable | Default | What it does |
+|---|---|---|
+| `THREADS` | `10` | How many requests are in flight at once. Each thread waits for its reply before sending again |
+| `RAMP_UP` | `30` | Seconds to start all the threads, rather than all at once |
+| `DURATION` | `300` | Seconds to keep going. Ignored when `LOOPS` is positive |
+| `LOOPS` | `-1` | Requests per thread. `-1` means keep looping until `DURATION` ends the run; a positive number runs exactly that many per thread however long it takes |
+| `RATE` | `0` | Ceiling on requests per minute. `0` means no ceiling — send as fast as replies come back |
+| `STARTUP_DELAY` | `0` | Seconds to wait before the first thread starts |
+| `CONNECT_TIMEOUT` | `10000` | Milliseconds to wait for the connection to open before giving up on a request |
+| `RESPONSE_TIMEOUT` | `120000` | Milliseconds to wait for the reply. Set it above any timeout in the stack, or the load generator gives up first and you measure your own patience |
+| `ON_SAMPLE_ERROR` | `continue` | What a failed request does to the run. `continue` keeps going and counts it, `stopthread` retires that thread, `stoptest` ends the run |
+
+**What to call it, and what it ran against**
+
+| Variable | Default | What it does |
+|---|---|---|
+| `CONFIG` | `na` | A short handle that goes in the run directory name. This is what distinguishes one row of a matrix from the next, so a directory listing reads as the matrix itself — `disc-db4`, `all-1cpu` |
+| `NOTE` | — | One line kept in the report, for anything the handle cannot carry |
+| `CONSUMER_CPU` `CONSUMER_MEM` | — | Records what the consumer adapter was given. Sets nothing |
+| `NETWORK_CPU` `NETWORK_MEM` | — | Records what the network adapter was given |
+| `PROVIDER_CPU` `PROVIDER_MEM` | — | Records what the provider adapter was given |
+| `DISCOVERY_CPU` `DISCOVERY_MEM` | — | Records what discovery-service was given |
+| `DISCOVERY_DB_CPU` `DISCOVERY_DB_MEM` | — | Records what discovery's Postgres was given |
+| `REGISTRY_CPU` `REGISTRY_MEM` | — | Records what the registry was given |
+| `REGISTRY_DB_CPU` `REGISTRY_DB_MEM` | — | Records what the registry's Postgres was given |
+
+**What to sample while it runs**
+
+| Variable | Default | What it does |
+|---|---|---|
+| `SAMPLE` | `none` | Where CPU and memory come from. `k8s` polls `kubectl top` and needs metrics-server, `docker` polls `docker stats`, `none` collects nothing and the run records throughput and latency only |
+| `NAMESPACE` | — | Which namespace to sample, for `SAMPLE=k8s` |
+| `SELECTOR` | — | Narrows the sampling to matching pods; **leave unset to sample every pod in the namespace**, which is usually what you want |
+| `NAMES` | — | Which containers to sample, for `SAMPLE=docker` |
+| `SAMPLE_INTERVAL` | `5` | Seconds between samples. A spike shorter than this is missed |
+| `PROGRESS_INTERVAL` | `300` | Seconds between progress lines while the run is going |
+
+**Where the output goes**
+
+| Variable | Default | What it does |
+|---|---|---|
+| `OUT` | `./results` | Where run directories are written |
+| `ARGS` | — | Passed to the runner untouched. The one worth knowing is `--record-host`, which writes the real hostname into the report instead of hiding it |
+
+**Fetching provider metadata** — used by `get-mandi-metadata` only
+
+| Variable | Default | What it does |
+|---|---|---|
+| `STATES` | empty | Which states to fetch. Empty fetches all of them, which is what the 100,000-resource target needs |
+| `FROM_DATE` `TO_DATE` | 2026 | The window the commodity mapping is fetched over. A market with no trades in it is skipped |
 
 The limit variables set nothing — you dial the real limits in Helm. They record
 what you dialled, one row per service in the report. Leave unset whatever a
