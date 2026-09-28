@@ -63,6 +63,28 @@ server:
     enabled: true
     size: 2Gi
 
+  # Who may reach the API (8200) and the raft port (8201). ESO is the only
+  # client; the snapshot CronJob and, in HA, the other OpenBao pods sit in this
+  # namespace. `kubectl exec` and `kubectl port-forward` go through the kubelet,
+  # not the pod network, so the scripts and admin access are unaffected. Add a
+  # rule here for anything new that must call OpenBao (e.g. Prometheus).
+  networkPolicy:
+    enabled: true
+    ingress:
+      - from:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: external-secrets
+          - podSelector: {}
+        ports:
+          - port: 8200
+            protocol: TCP
+      - from:
+          - podSelector: {}
+        ports:
+          - port: 8201
+            protocol: TCP
+
   # The static seal key, from the Secret created before install. Mounted
   # read-only and nowhere else.
   volumes:

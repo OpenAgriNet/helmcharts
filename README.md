@@ -217,6 +217,7 @@ helm install openbao-secrets charts/openbao-secrets -n external-secrets
 | Mirrored | `kubectl -n registry get secret registry-db` | exists |
 | Policy is tight | an `ExternalSecret` for `oan/prod/...` on the dev cluster | `SecretSyncedError`, "permission denied" |
 | Store is fenced | an `ExternalSecret` on the `openbao` store in any namespace but `external-secrets` | `SecretSyncedError`, "not allowed from namespace" |
+| Network is fenced | `curl http://openbao.openbao.svc:8200/v1/sys/health` from a pod in `default` | times out |
 
 ### Moving a cluster from AWS Secrets Manager
 
