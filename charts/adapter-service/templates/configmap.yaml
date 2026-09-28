@@ -77,15 +77,25 @@ data:
     {{- if not $routes }}
     {{- fail (printf "%s: no routing. Expected %s in the chart, or `routing.config` set in values. An adapter with no route accepts requests and has nowhere to send them." .Chart.Name $routeFile) }}
     {{- end }}
-    {{- /* The one check worth keeping from the old value-driven render.
-           targetType "url" appends the action to the base, so a trailing slash
+    {{- /* targetType "url" appends the action to the base, so a trailing slash
            produces //discover -- which routes nowhere and reads as a bad
            gateway rather than as a typo. A path is legitimate alongside
-           excludeAction, which is why this tests the slash and not the path. */}}
-    {{- range $line := splitList "\n" $routes }}
-    {{- $trimmed := trim $line }}
-    {{- if and (hasPrefix "url:" $trimmed) (hasSuffix "/" $trimmed) }}
-    {{- fail (printf "%s: %s has a target url ending in a slash (%q). The router appends the action to it, so that produces //discover." $.Chart.Name $routeFile $trimmed) }}
+           excludeAction, which is why this tests the slash and not the path.
+
+           PARSED, NOT GREPPED. A line test on `url:` missed every form the
+           value can legitimately take: a quoted url ends in the quote, a
+           list-item `- url:` fails the prefix, and a trailing comment fails
+           the suffix. Each of those is a slash that reaches the router. */}}
+    {{- $source := ternary "`routing.config` in values" $routeFile (not (empty .Values.routing.config)) }}
+    {{- $parsed := $routes | fromYaml }}
+    {{- if not $parsed.routingRules }}
+    {{- fail (printf "%s: %s parsed to no routingRules. Either it is not valid YAML or the key is misspelt; an adapter with no route accepts requests and has nowhere to send them." $.Chart.Name $source) }}
+    {{- end }}
+    {{- range $i, $rule := $parsed.routingRules }}
+    {{- $url := "" }}
+    {{- if $rule.target }}{{ $url = $rule.target.url | default "" }}{{ end }}
+    {{- if hasSuffix "/" $url }}
+    {{- fail (printf "%s: %s routingRules[%d].target.url ends in a slash (%q). The router appends the action to it, so that produces //discover." $.Chart.Name $source $i $url) }}
     {{- end }}
     {{- end }}
     {{- $routes | nindent 4 }}

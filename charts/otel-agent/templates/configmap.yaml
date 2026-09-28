@@ -8,8 +8,7 @@ metadata:
   name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ .Chart.Name }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "common.labels" . | nindent 4 }}
 data:
   config.yaml: |
     receivers:
@@ -30,9 +29,14 @@ data:
           - pod
           - container
           - node
-        # Attaches limits and requests to the metrics, so a chart can show usage
-        # against what the pod was actually given -- which is the whole point of
-        # a benchmark that varies them.
+        # container.id only, which is an identifier rather than a measurement.
+        #
+        # IT DOES NOT CARRY LIMITS OR REQUESTS, whatever the name suggests.
+        # Usage against what a pod was given comes from the
+        # k8s.container.*_limit_utilization and *_request_utilization metrics,
+        # which are off by default and would have to be enabled under `metrics:`.
+        # Until then a chart shows usage and the limit has to come from the
+        # values that set it.
         extra_metadata_labels:
           - container.id
         k8s_api_config:

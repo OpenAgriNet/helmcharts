@@ -5,6 +5,24 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-09-28
+
+### Fixed
+
+- The trailing-slash guard on routing targets is parsed rather than grepped. It
+  tested lines beginning `url:` and ending `/`, which missed every form the
+  value can legitimately take: a quoted url ends in the quote, a list-item
+  `- url:` fails the prefix, and a trailing comment fails the suffix. Each was a
+  slash that reached the router and produced `//discover`.
+
+  It now reads the routing with `fromYaml` and checks each
+  `routingRules[].target.url`, and fails when the document parses to no rules at
+  all — previously a malformed routing file rendered an adapter with no routes.
+
+- The failure message names the source that was actually used. It always named
+  the chart's `config/routing-<role>.yaml`, even when the routing came from
+  `routing.config` in values, pointing at a file the operator had not edited.
+
 ## [0.5.0] - 2026-09-23
 
 ### Changed
