@@ -84,77 +84,43 @@ still records throughput, latency and errors, and nothing else.
 
 ### 2.3 For select only
 
-Select is the one scenario that leaves the network: the provider adapter calls a
-real API and maps what comes back. Running it against the real one measures that
-API rather than this stack, and puts load on somebody else's service. A stand-in
-is included:
+Select is the one scenario that leaves the network — the provider adapter calls
+a real API. Running it against the real one measures that API, not this stack,
+and puts load on someone else's service. A stand-in is included:
 
 ```bash
 kubectl apply -f mock-upstream/manifest.yaml
 ```
 
-nginx returning one fixed response from a ConfigMap — nothing to build, nothing
-to publish to a registry. `kubectl delete -f` the same file when the run is over;
-it is deliberately outside Argo CD so nothing reconciles it back.
+nginx serving one fixed response from a ConfigMap. `kubectl delete -f` the same
+file afterwards; it sits outside Argo CD so nothing reconciles it back.
 
-Three things in the deployment have to agree with it, and none of them live in
-this directory:
+Three things in the deployment have to match it, none of them in this directory:
 
-- the registry's upstream for the capability must carry the mock's in-cluster
-  address, `http://mock-upstream.mock-upstream.svc.cluster.local`
-- the provider adapter's auth for that binding must be `none`; a mock has no
-  credential to present, and the real scheme fetches a token from a URL held in
-  a Secret
-- the binding's mapping URL must name a tag that still exists — the provider
-  fetches it per binding, and a deleted tag returns 404, which surfaces as a
-  NACK with an internal error that says nothing about mappings
+| | Must be |
+|---|---|
+| the registry's upstream for the capability | `http://mock-upstream.mock-upstream.svc.cluster.local` |
+| the provider's auth for that binding | `none` — a mock has no credential |
+| the binding's mapping URL | a tag that still exists; a deleted one 404s and surfaces as a NACK saying nothing about mappings |
 
-**Changing a value is not enough.** The registry only creates rows it does not
-already have, so the seed job skips anything present and reports "already
-present". Delete the row first, then re-run the seed.
+**Changing a value is not enough.** The seed only creates rows it does not
+already have, and reports "already present" for the rest. Delete the row, then
+re-run the seed.
 
-Send one select by hand before a full run. It should return 200 with resources in
-the body; anything else means one of the three above is still wrong.
+Send one select by hand first. It should return 200 with resources in the body.
 
 ## 3. Prepare the data
-
-Build the payloads once, then run as often as you like.
 
 ```bash
 make data
 ```
 
-About 45 seconds. It produces 100,000 resources and 20,000 discover queries,
-roughly 150 MB — too much for a public repository, so it is generated rather
-than committed.
+About 45 seconds. Produces 100,000 resources and 20,000 discover queries, around
+150 MB — generated rather than committed, because that is too much for a public
+repository.
 
-Generation is **seeded**: rebuilding gives byte-identical files, which is what
-makes two runs comparable. Building needs no credentials and no network.
-
-**Rebuild the payloads.** `data` does all three; the others do one each.
-
-```bash
-make data           CAPABILITY=MandiPrice
-make publish-data   CAPABILITY=MandiPrice
-make discover-data  CAPABILITY=MandiPrice
-make select-data    CAPABILITY=MandiPrice
-```
-
-**Check the payloads match their config.** Rebuilds, then fails if anything
-differs from the digests in `data/CHECKSUMS`.
-
-```bash
-make verify-data CAPABILITY=MandiPrice
-```
-
-**Re-record the digests**, after changing a config, a template or the metadata
-on purpose. Commit `data/CHECKSUMS` along with that change.
-
-```bash
-make checksums CAPABILITY=MandiPrice
-```
-
-### 3.1 How the data fits together
+Seeded, so rebuilding gives byte-identical files and two runs stay comparable.
+Needs no credentials and no network.
 
 ```
 data/<capability>-metadata/   fetched from the provider
@@ -169,17 +135,17 @@ Discover and select are built from what publish produced, so a query cannot ask
 for something unpublished and a select cannot name a resource that does not
 exist.
 
-Generation is seeded: rebuilding gives byte-identical files. That is what makes
-two runs comparable, and it is why the payloads need not be committed —
-`make verify-data` rebuilds and compares against `data/CHECKSUMS`, failing if
-anything differs. Building needs no credentials and no network; only refetching
-the metadata does.
+| Command | Does |
+|---|---|
+| `make data` | all three payload sets |
+| `make publish-data` | one set each |
+| `make discover-data` | |
+| `make select-data` | |
+| `make verify-data` | rebuilds and fails if anything differs from `data/CHECKSUMS` |
+| `make checksums` | re-records the digests, after changing a config or template on purpose. Commit `data/CHECKSUMS` with that change |
 
-If you change a config, a template or the metadata on purpose, re-record the
-digests with `make checksums` and commit that file with the change.
-
-To change how much data, edit `capabilities/<name>/config/`. To change the shape
-of a payload, edit `capabilities/<name>/templates/`.
+All take `CAPABILITY=`. To change how much data, edit `capabilities/<name>/config/`;
+to change the shape of a payload, edit `capabilities/<name>/templates/`.
 
 ### 3.2 Refetching the provider metadata
 
@@ -206,34 +172,26 @@ make get-mandi-metadata \
 
 ## 4. Run a benchmark
 
-`publish`, `discover` or `select` — the same settings for all three.
-
-**Run a benchmark.** `publish`, `discover` or `select` — same settings for all
-three.
+The minimum:
 
 ```bash
-make publish \
-  URL=http://<host>:<port> \
-  CAPABILITY=MandiPrice \
-  THREADS=20 RAMP_UP=30 DURATION=600 \
-  LOOPS=-1 RATE=0 \
-  STARTUP_DELAY=0 ON_SAMPLE_ERROR=continue \
-  CONNECT_TIMEOUT=10000 RESPONSE_TIMEOUT=120000 \
-  CONFIG=all-1cpu \
-  CONSUMER_CPU=1 CONSUMER_MEM=1Gi \
-  NETWORK_CPU=1 NETWORK_MEM=1Gi \
-  PROVIDER_CPU=1 PROVIDER_MEM=1Gi \
-  DISCOVERY_CPU=1 DISCOVERY_MEM=1Gi \
-  DISCOVERY_DB_CPU=1 DISCOVERY_DB_MEM=1Gi \
-  REGISTRY_CPU=1 REGISTRY_MEM=1Gi \
-  REGISTRY_DB_CPU=1 REGISTRY_DB_MEM=1Gi \
-  SAMPLE=k8s NAMESPACE=<namespace> SELECTOR=app=discovery \
-  SAMPLE_INTERVAL=5 PROGRESS_INTERVAL=300 \
-  HEALTH=/healthz \
-  NOTE='1 cpu baseline, mock provider' \
-  OUT=./results \
-  ARGS='--record-host'
+make publish URL=https://<host>
 ```
+
+`publish`, `discover` and `select` take the same settings. A realistic run names
+the load, labels the hardware it ran against, and samples it:
+
+```bash
+make discover URL=https://<host> \
+  THREADS=20 RAMP_UP=10 LOOPS=500 \
+  CONFIG=disc-db4 \
+  DISCOVERY_CPU=1 DISCOVERY_MEM=1Gi \
+  DISCOVERY_DB_CPU=4 DISCOVERY_DB_MEM=4Gi \
+  SAMPLE=k8s NAMESPACE=discovery \
+  NOTE='discovery 1 cpu, database 4'
+```
+
+Everything else is below.
 
 ### 4.1 Settings
 
@@ -243,29 +201,29 @@ Only `URL` is required. Everything else has a default.
 
 | Variable | Default | What it does |
 |---|---|---|
-| `URL` | required | The host to drive, with no path — the runner appends `/publish`, `/discover` or `/select` itself |
-| `CAPABILITY` | `MandiPrice` | Which `capabilities/<slug>/` to take the payloads and config from |
-| `HEALTH` | — | A path timed once before the load starts, recorded as a baseline round trip. Lets you tell a slow service from a distant one |
+| `URL` | required | Host to drive, no path — the runner appends the action |
+| `CAPABILITY` | `MandiPrice` | Which `capabilities/<slug>/` to use |
+| `HEALTH` | — | Path timed before the run, as a baseline round trip |
 
 **How hard to push**
 
 | Variable | Default | What it does |
 |---|---|---|
-| `THREADS` | `10` | How many requests are in flight at once. Each thread waits for its reply before sending again |
-| `RAMP_UP` | `30` | Seconds to start all the threads, rather than all at once |
+| `THREADS` | `10` | Requests in flight at once. Each waits for its reply before sending again |
+| `RAMP_UP` | `30` | Seconds to start all the threads |
 | `DURATION` | `300` | Seconds to keep going. Ignored when `LOOPS` is positive |
-| `LOOPS` | `-1` | Requests per thread. `-1` means keep looping until `DURATION` ends the run; a positive number runs exactly that many per thread however long it takes |
-| `RATE` | `0` | Ceiling on requests per minute. `0` means no ceiling — send as fast as replies come back |
+| `LOOPS` | `-1` | Requests per thread. `-1` loops until `DURATION` ends it; a positive number runs exactly that many, however long it takes |
+| `RATE` | `0` | Ceiling on requests per minute. `0` is flat out |
 | `STARTUP_DELAY` | `0` | Seconds to wait before the first thread starts |
 | `CONNECT_TIMEOUT` | `10000` | Milliseconds to wait for the connection to open before giving up on a request |
-| `RESPONSE_TIMEOUT` | `120000` | Milliseconds to wait for the reply. Set it above any timeout in the stack, or the load generator gives up first and you measure your own patience |
-| `ON_SAMPLE_ERROR` | `continue` | What a failed request does to the run. `continue` keeps going and counts it, `stopthread` retires that thread, `stoptest` ends the run |
+| `RESPONSE_TIMEOUT` | `120000` | Milliseconds to wait for the reply. Keep it above every timeout in the stack, or you measure the load generator giving up |
+| `ON_SAMPLE_ERROR` | `continue` | What a failed request does: `continue` counts it, `stopthread` retires that thread, `stoptest` ends the run |
 
 **What to call it, and what it ran against**
 
 | Variable | Default | What it does |
 |---|---|---|
-| `CONFIG` | `na` | A short handle that goes in the run directory name. This is what distinguishes one row of a matrix from the next, so a directory listing reads as the matrix itself — `disc-db4`, `all-1cpu` |
+| `CONFIG` | `na` | Short handle in the run directory name — `disc-db4`, `all-1cpu`. Makes a directory listing read as the matrix |
 | `NOTE` | — | One line kept in the report, for anything the handle cannot carry |
 | `CONSUMER_CPU` `CONSUMER_MEM` | — | Records what the consumer adapter was given. Sets nothing |
 | `NETWORK_CPU` `NETWORK_MEM` | — | Records what the network adapter was given |
@@ -279,11 +237,11 @@ Only `URL` is required. Everything else has a default.
 
 | Variable | Default | What it does |
 |---|---|---|
-| `SAMPLE` | `none` | Where CPU and memory come from. `k8s` polls `kubectl top` and needs metrics-server, `docker` polls `docker stats`, `none` collects nothing and the run records throughput and latency only |
+| `SAMPLE` | `none` | Where CPU and memory come from. `k8s` polls `kubectl top`, needs metrics-server; `docker` polls `docker stats`; `none` collects neither |
 | `NAMESPACE` | — | Which namespace to sample, for `SAMPLE=k8s` |
 | `SELECTOR` | — | Narrows the sampling to matching pods; **leave unset to sample every pod in the namespace**, which is usually what you want |
 | `NAMES` | — | Which containers to sample, for `SAMPLE=docker` |
-| `SAMPLE_INTERVAL` | `5` | Seconds between samples. A spike shorter than this is missed |
+| `SAMPLE_INTERVAL` | `5` | Seconds between samples. A shorter spike is missed |
 | `PROGRESS_INTERVAL` | `300` | Seconds between progress lines while the run is going |
 
 **Where the output goes**
@@ -291,14 +249,14 @@ Only `URL` is required. Everything else has a default.
 | Variable | Default | What it does |
 |---|---|---|
 | `OUT` | `./results` | Where run directories are written |
-| `ARGS` | — | Passed to the runner untouched. The one worth knowing is `--record-host`, which writes the real hostname into the report instead of hiding it |
+| `ARGS` | — | Passed to the runner untouched. `--record-host` writes the real hostname into the report instead of hiding it |
 
 **Fetching provider metadata** — used by `get-mandi-metadata` only
 
 | Variable | Default | What it does |
 |---|---|---|
-| `STATES` | empty | Which states to fetch. Empty fetches all of them, which is what the 100,000-resource target needs |
-| `FROM_DATE` `TO_DATE` | 2026 | The window the commodity mapping is fetched over. A market with no trades in it is skipped |
+| `STATES` | empty | Which states to fetch. Empty fetches all, which the 100,000-resource target needs |
+| `FROM_DATE` `TO_DATE` | 2026 | Window the commodity mapping is fetched over. A market with no trades in it is skipped |
 
 The limit variables set nothing — you dial the real limits in Helm. They record
 what you dialled, one row per service in the report. Leave unset whatever a
@@ -380,8 +338,7 @@ Runs are never deleted for you. `make clean` only clears the build cache;
 ### 5.1 Reading the numbers
 
 **Response time includes the network.** The load generator sits outside the
-cluster. Pass `HEALTH=` and the report records a baseline round trip, so you can
-tell a slow service from a distant one.
+cluster. Pass `HEALTH=` to record a baseline round trip.
 
 **Throughput is what was achieved, not what was asked for.** Threads wait for a
 reply before sending again, so a slow service receives less traffic.
@@ -389,26 +346,18 @@ reply before sending again, so a slow service receives less traffic.
 **Peak CPU is the highest value seen**, at your sampling interval. A shorter
 spike is missed.
 
-**A 200 does not mean publish succeeded.** Discovery returns 200 with per-catalog
-verdicts in the body. The error rate counts HTTP failures only.
+**A 200 does not mean publish succeeded.** Discovery returns 200 with
+per-catalog verdicts in the body. The error rate counts HTTP failures only.
 
-**CPU and memory can come from either side, and the default is neither.**
-`SAMPLE` defaults to `none`, so a plain run records no resource figures at all.
-
-With `SAMPLE=k8s` the harness samples `kubectl top` itself and writes
-`resources.csv`, which needs metrics-server in the cluster.
-
-If the cluster runs an OpenTelemetry agent collecting per-pod metrics, the
-dashboard has them instead, and they are readable after the run rather than only
-during it — which is what the run window in `report.md` is for. Disk and network
-I/O are collected by neither.
+**CPU and memory come from wherever you pointed `SAMPLE`,** and the default is
+`none` — a plain run records neither. Disk and network I/O are collected by
+nothing.
 
 ### 5.2 Bringing runs back
 
-**Bring runs back from the load machine.** The load generator usually runs
-somewhere else. This copies whole run directories across — `results.jtl`
-included, because that is the evidence; `report.md` is only arithmetic done on
-it.
+The load generator usually runs elsewhere. This copies whole run directories
+across, `results.jtl` included — that is the evidence, `report.md` is only
+arithmetic done on it.
 
 ```bash
 make fetch-results REMOTE=user@host:/path/to/benchmark/results
@@ -417,18 +366,10 @@ make fetch-results REMOTE=user@host:/path/to/benchmark/results
 Runs are named by timestamp, so nothing collides and re-running only brings
 across what is missing.
 
-**Read the results.** `results` is one line per run; `report` prints a whole
-one, newest by default.
-
 ```bash
-make results
-make report
-make report RUN=20260921-101500-1cpu-1Gi-mandiprice-publish
-```
-
-```
-20260921-101500-1cpu-1Gi-mandiprice-publish    1949 reqs  149.92 requests/second  p95 30 ms   err 0.00 %
-20260921-104500-2cpu-2Gi-mandiprice-discover    500 reqs   50.00 requests/second  p95 112 ms  err 2.00 %
+make results                    # one line per run
+make report                     # the newest in full
+make report RUN=<directory>     # a particular one
 ```
 
 ### 5.3 Tidying up
@@ -447,15 +388,13 @@ make clean-results
 
 ## MandiPrice
 
-Commodity prices from agricultural markets, served by Agmarknet.
+Commodity prices from agricultural markets, served by Agmarknet. One catalog per
+state, one resource per **market-commodity pair**.
 
-One catalog per state, one resource per **market-commodity pair**.
-
-That pairing is the important bit. A market trades anywhere from 1 to 80
-commodities, median 4. Publishing a market as one resource carrying all of them
-made every resource a different size — and so made one discover response 5 MB
-and the next 1 MB, from queries matching the same number of things. One
-commodity per resource makes every resource the same shape, within about 2%.
+The pairing matters: a market trades 1 to 80 commodities, median 4. One resource
+per market made every resource a different size, so one discover response came
+back 5 MB and the next 1 MB from queries matching the same number of things. One
+commodity per resource keeps them within about 2% of each other.
 
 ```
 derived 9 catalog(s) from state_name
@@ -467,32 +406,23 @@ skipped 9 market(s) whose coordinates are not plausible
 ```
 
 **Nine catalogs, not thirty-six.** Agmarknet serves master data for 36 states
-but a commodity mapping for only 9 — Maharashtra, Tamil Nadu, Madhya Pradesh,
-Uttar Pradesh, Karnataka, Chhattisgarh, Meghalaya, Andhra Pradesh and Bihar. A
-market with no commodities recorded cannot be a MandiPrice resource, so those
-states contribute nothing and no empty catalog is created for them.
+but a commodity mapping for only 9: Maharashtra, Tamil Nadu, Madhya Pradesh,
+Uttar Pradesh, Karnataka, Chhattisgarh, Meghalaya, Andhra Pradesh and Bihar. The
+rest contribute nothing and get no empty catalog.
 
-`targetResources` in `config/publish.yaml` sets the total. The real pairs are
-repeated to reach it, each state taking a share proportional to what it really
-has, and the total lands on the number exactly. `realPairs` in the manifest says
-how far the real data was stretched — worth reading before quoting a result.
+`targetResources` in `config/publish.yaml` sets the total. Real pairs are
+repeated to reach it, each state taking a proportional share. `realPairs` in the
+manifest says how far the real data was stretched — read it before quoting a
+result.
 
-Those skips are the source data, not a bug. Some markets have no coordinates;
-a few have coordinates that cannot be true, such as a longitude of 703620 or a
-market called "Testing". They are dropped and named rather than corrected.
+The skips are the source data, not a bug: missing coordinates, or impossible
+ones such as a longitude of 703620 or a market called "Testing". They are
+dropped and named rather than corrected.
 
 **Discover queries** carry a commodity filter and a spatial constraint together,
-never one alone. Every query is distinct, and every one returns the same number
-of resources.
-
-Distinct, because a query's centre is placed anywhere on the line between two
-markets either side of a state border — continuously, not at the midpoint. A
-midpoint would give one query per border pair, and there are only 411 pairs.
-
-The same size, because the extent is not guessed. The generator knows every
-published resource from `resources.csv`, sorts that commodity's resources by
-distance from the centre, and puts the circle's edge between the last one it
-wants and the first it does not. Boxes are bisected to the same end.
+never one alone. Every query is distinct, and every one returns about the same
+number of resources — the generator reads the published resources and places the
+circle's edge between the last one it wants and the first it does not.
 
 ```
 20000 queries from 636 border pairs
@@ -503,18 +433,17 @@ wants and the first it does not. Boxes are bisected to the same end.
     distinct queries         20000 of 20000
 ```
 
-The spread that remains is the data's, not the method's: copies of one market
-share its coordinates, so the reachable counts step by about ten rather than one
-at a time. `matches.tolerance` is what absorbs that.
+The remaining spread is the data's: copies of one market share its coordinates,
+so reachable counts step by about ten. `matches.tolerance` absorbs that.
 
 **How many queries do you need?** Requests sent is roughly
-`threads / latency x duration`, so 20 threads for 20 minutes at 100 ms each is
-about 240,000 requests. JMeter recycles the list, so 20,000 queries means each
-question is re-asked about a dozen times, spread far apart. Raise `queries` in
-the config to widen that; it costs about a second per thousand.
+`threads / latency x duration` — 20 threads for 20 minutes at 100 ms is about
+240,000. JMeter recycles the list, so 20,000 queries means each is re-asked
+about a dozen times, far apart. Raise `queries` in the config to widen that; it
+costs about a second per thousand.
 
-**Select requests** each name one published resource, which is one market and
-one commodity that market really trades.
+**Select requests** each name one published resource: one market, one commodity
+that market really trades.
 
 ### Refreshing the data
 
