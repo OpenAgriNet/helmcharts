@@ -211,7 +211,7 @@ helm install openbao-secrets charts/openbao-secrets -n external-secrets
 | Chart renders | `helm lint --strict charts/openbao -f charts/openbao/examples/openbao.dev.yaml` | `0 chart(s) failed` |
 | Unsealed | `kubectl -n openbao exec openbao-0 -- bao status` | `Seal Type static`, `Sealed false` |
 | Unseals on restart | `kubectl -n openbao delete pod openbao-0`, then `bao status` again | `Sealed false`, with nobody unsealing it |
-| Audit log on | `kubectl -n openbao exec openbao-0 -- bao audit list` (with `BAO_TOKEN`) | `file/` |
+| Audit log on | `kubectl -n openbao exec openbao-0 -- bao audit list` (with `BAO_TOKEN`) | `file/` and `stdout/` |
 | ESO can log in | `kubectl get clustersecretstore openbao` | `READY True` |
 | Values arrive | `kubectl -n external-secrets get externalsecret` | every row `SecretSynced` |
 | Mirrored | `kubectl -n registry get secret registry-db` | exists |

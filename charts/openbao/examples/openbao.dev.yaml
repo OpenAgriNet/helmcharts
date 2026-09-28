@@ -110,10 +110,24 @@ server:
       # to the audit volume above. Secret values are HMAC'd, never written in
       # clear. Declared here because OpenBao 2.x refuses to enable an audit
       # device through the API; removing this block disables it on restart.
+      #
+      # TWO devices, on purpose. OpenBao fails closed: a request that no audit
+      # device can record is refused. With the file alone, a full audit volume
+      # (nothing rotates it) would refuse every request -- ESO's reads and
+      # admin logins alike. A request now fails only if BOTH fail, and the
+      # stdout copy reaches the cluster's log pipeline, so the file is the
+      # local fallback rather than the only record.
       audit "file" "file" {
         description = "Every request, to the audit volume"
         options {
           file_path = "/openbao/audit/audit.log"
+        }
+      }
+
+      audit "file" "stdout" {
+        description = "Every request, to the pod log"
+        options {
+          file_path = "stdout"
         }
       }
 
