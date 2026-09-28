@@ -144,6 +144,40 @@ make clean
 make clean-results
 ```
 
+## Select needs an upstream
+
+Select is the one scenario that leaves the network: the provider adapter calls a
+real API and maps what comes back. Running it against the real one measures that
+API rather than this stack, and puts load on somebody else's service. A stand-in
+is included:
+
+```bash
+kubectl apply -f mock-upstream/manifest.yaml
+```
+
+nginx returning one fixed response from a ConfigMap — nothing to build, nothing
+to publish to a registry. `kubectl delete -f` the same file when the run is over;
+it is deliberately outside Argo CD so nothing reconciles it back.
+
+Three things in the deployment have to agree with it, and none of them live in
+this directory:
+
+- the registry's upstream for the capability must carry the mock's in-cluster
+  address, `http://mock-upstream.mock-upstream.svc.cluster.local`
+- the provider adapter's auth for that binding must be `none`; a mock has no
+  credential to present, and the real scheme fetches a token from a URL held in
+  a Secret
+- the binding's mapping URL must name a tag that still exists — the provider
+  fetches it per binding, and a deleted tag returns 404, which surfaces as a
+  NACK with an internal error that says nothing about mappings
+
+**Changing a value is not enough.** The registry only creates rows it does not
+already have, so the seed job skips anything present and reports "already
+present". Delete the row first, then re-run the seed.
+
+Send one select by hand before a full run. It should return 200 with resources in
+the body; anything else means one of the three above is still wrong.
+
 ## Settings
 
 | Variable | Used by | Default | Does |
@@ -191,10 +225,17 @@ depends on the scenario:
 |---|---|
 | publish | consumer → network → discovery → discovery's database |
 | discover | consumer → network → discovery → discovery's database |
-| select | consumer → network → provider → the upstream provider |
+| select | consumer → provider → the upstream provider |
+
+Discover goes through the network adapter; select does not. The consumer adapter
+hands a select straight to the provider.
 
 Every adapter reads the registry to verify its caller, so the registry and its
 database sit in the path of all three.
+
+**Set at least the ones the scenario touches.** These are labels, not settings —
+nothing reads them back. Leave them all unset and the run records no limits at
+all, so the results cannot say what hardware produced them.
 
 `CONFIG` is a short handle for the whole configuration, because seven services'
 limits will not fit in a directory name:
@@ -242,7 +283,7 @@ was tested. Inside:
 |---|---|
 | `report.md` | the summary, read this one |
 | `results.jtl` | every request, as JMeter recorded it |
-| `resources.csv` | CPU and memory samples |
+| `resources.csv` | CPU and memory samples — only when `SAMPLE` is set; the default is `none` |
 | `progress.log` | the progress lines, every `PROGRESS_INTERVAL` seconds |
 | `html/index.html` | JMeter's dashboard, with charts |
 | `run.env` | the settings this run used |
@@ -265,9 +306,16 @@ spike is missed.
 **A 200 does not mean publish succeeded.** Discovery returns 200 with per-catalog
 verdicts in the body. The error rate counts HTTP failures only.
 
-**The dashboard has no CPU or memory yet.** This stack's collector does not
-collect container metrics. The report's figures come from the harness sampling
-`kubectl top` directly. Disk and network I/O are collected nowhere.
+**CPU and memory can come from either side, and the default is neither.**
+`SAMPLE` defaults to `none`, so a plain run records no resource figures at all.
+
+With `SAMPLE=k8s` the harness samples `kubectl top` itself and writes
+`resources.csv`, which needs metrics-server in the cluster.
+
+If the cluster runs an OpenTelemetry agent collecting per-pod metrics, the
+dashboard has them instead, and they are readable after the run rather than only
+during it — which is what the run window in `report.md` is for. Disk and network
+I/O are collected by neither.
 
 ## The data
 
