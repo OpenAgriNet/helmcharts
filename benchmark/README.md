@@ -1,150 +1,88 @@
 # Benchmark
 
 Load tests for the OAN network layer: how much it handles, how fast it answers,
-and what it costs in CPU and memory.
-
-Build the payloads once, then run.
+and what it costs in CPU and memory. Three scenarios — publish, discover and
+select — driven by JMeter against a deployed stack.
 
 ```bash
 make dependency-check                    # is everything installed?
 make data                                # build the payloads, about 45 seconds
-make publish  URL=http://<host>:<port>
-make discover URL=http://<host>:<port>
-make select   URL=http://<host>:<port>
+make publish  URL=https://<host>
+make discover URL=https://<host>
+make select   URL=https://<host>
 ```
-
-`make data` produces 100,000 resources and 20,000 discover queries, roughly
-150 MB. That is too much to keep in a public repository, so it is generated
-rather than committed — but it is deterministic, and `make verify-data` proves
-what you built against the digests in `data/CHECKSUMS`.
 
 `make` on its own prints the menu.
 
-## What you need
+## Layout
+
+```
+benchmark/
+├── Makefile
+├── capabilities/            one folder per capability
+│   └── mandiprice/
+│       ├── config/             publish.yaml, discover.yaml, select.yaml
+│       ├── templates/          catalog.json, select.json
+│       └── tools/
+│           ├── fetch-metadata/
+│           ├── prepare-publish-data/
+│           ├── prepare-discover-data/
+│           └── prepare-select-data/
+├── tools/                  shared by every capability
+│   ├── run-benchmark.sh
+│   ├── report.sh
+│   ├── sample_resources.sh
+│   └── jmeter-jmx/             publish.jmx, discover.jmx, select.jmx
+├── data/
+│   ├── mandiPrice-metadata/    committed: the input, fetched from Agmarknet
+│   ├── CHECKSUMS               committed: a digest per generated file
+│   └── *-payload/              gitignored: built by `make data`
+└── results/                gitignored
+```
+
+`mock-upstream/` holds a stand-in for select's upstream API. It is applied by
+hand and is not part of any chart — see [Prerequisites](#prerequisites).
+
+## Prerequisites
+
+### On the machine you run from
 
 | | Why |
 |---|---|
 | Go 1.22+ | builds the data tools |
 | JMeter 5.6+ | drives the load, must be on your PATH |
-| `kubectl` + metrics-server, or Docker | reads CPU and memory during a run |
 | `curl`, `python3` | baseline timing, reading the payload manifest |
+| `kubectl` | only if you want the harness to sample CPU and memory itself |
 
-No JMeter plugins needed.
+No JMeter plugins needed. `make dependency-check` reports what is missing.
 
-## Commands
+### The deployed stack
 
-Every command, with everything it accepts. Only `URL` is required anywhere;
-all the rest have defaults.
+Everything in the path of the scenario you are running has to be up and
+reachable: the adapters, discovery and its database, and the registry seeded
+with the adapter identities. Every adapter resolves its caller against the
+registry on each request, so the registry is in the path of all three scenarios
+even though no scenario addresses it directly.
 
-**Check the machine is ready.** Takes nothing.
+**No hostname is committed anywhere.** The target is a `URL=` argument, the pods
+to sample are `NAMESPACE=` and `SELECTOR=`, and the report hides the host unless
+you pass `--record-host`. So the ingress can be anything you like, as long as it
+routes the three paths to the right place:
 
-```bash
-make dependency-check
-```
+| Path | Goes to |
+|---|---|
+| `/publish` | the provider adapter |
+| `/discover` | the consumer adapter |
+| `/select` | the consumer adapter |
 
-**Run a benchmark.** `publish`, `discover` or `select` — same settings for all
-three.
+Point `URL=` at that host with no path — the runner appends the action itself.
 
-```bash
-make publish \
-  URL=http://<host>:<port> \
-  CAPABILITY=MandiPrice \
-  THREADS=20 RAMP_UP=30 DURATION=600 \
-  LOOPS=-1 RATE=0 \
-  STARTUP_DELAY=0 ON_SAMPLE_ERROR=continue \
-  CONNECT_TIMEOUT=10000 RESPONSE_TIMEOUT=120000 \
-  CONFIG=all-1cpu \
-  CONSUMER_CPU=1 CONSUMER_MEM=1Gi \
-  NETWORK_CPU=1 NETWORK_MEM=1Gi \
-  PROVIDER_CPU=1 PROVIDER_MEM=1Gi \
-  DISCOVERY_CPU=1 DISCOVERY_MEM=1Gi \
-  DISCOVERY_DB_CPU=1 DISCOVERY_DB_MEM=1Gi \
-  REGISTRY_CPU=1 REGISTRY_MEM=1Gi \
-  REGISTRY_DB_CPU=1 REGISTRY_DB_MEM=1Gi \
-  SAMPLE=k8s NAMESPACE=<namespace> SELECTOR=app=discovery \
-  SAMPLE_INTERVAL=5 PROGRESS_INTERVAL=300 \
-  HEALTH=/healthz \
-  NOTE='1 cpu baseline, mock provider' \
-  OUT=./results \
-  ARGS='--record-host'
-```
+**Good to have, not required:** something collecting per-pod CPU and memory.
+Either metrics-server, which lets the harness sample `kubectl top` itself with
+`SAMPLE=k8s`, or an OpenTelemetry agent feeding a dashboard. With neither, a run
+still records throughput, latency and errors, and nothing else.
 
-**Rebuild the payloads.** `data` does all three; the others do one each.
-
-```bash
-make data           CAPABILITY=MandiPrice
-make publish-data   CAPABILITY=MandiPrice
-make discover-data  CAPABILITY=MandiPrice
-make select-data    CAPABILITY=MandiPrice
-```
-
-**Check the payloads match their config.** Rebuilds, then fails if anything
-differs from the digests in `data/CHECKSUMS`.
-
-```bash
-make verify-data CAPABILITY=MandiPrice
-```
-
-**Re-record the digests**, after changing a config, a template or the metadata
-on purpose. Commit `data/CHECKSUMS` along with that change.
-
-```bash
-make checksums CAPABILITY=MandiPrice
-```
-
-**Refetch provider data.** Needs credentials in the environment.
-
-```bash
-export AGMARKNET_TOKEN_URL=...      # exchanges credentials for a token
-export AGMARKNET_MASTER_URL=...     # states, districts, markets, commodities
-export AGMARKNET_MAPPING_URL=...    # which commodities each market trades
-export AGMARKNET_ACCESS_NAME=...
-export AGMARKNET_PASSWORD=...
-export AGMARKNET_TOKEN=...          # optional, skips the exchange
-
-# STATES empty fetches every state, which is what the 100,000-resource
-# target needs. Narrow it only for a smaller run.
-make get-mandi-metadata \
-  STATES='' \
-  FROM_DATE=01-01-2026 \
-  TO_DATE=01-12-2026
-```
-
-**Bring runs back from the load machine.** The load generator usually runs
-somewhere else. This copies whole run directories across — `results.jtl`
-included, because that is the evidence; `report.md` is only arithmetic done on
-it.
-
-```bash
-make fetch-results REMOTE=user@host:/path/to/benchmark/results
-```
-
-Runs are named by timestamp, so nothing collides and re-running only brings
-across what is missing.
-
-**Read the results.** `results` is one line per run; `report` prints a whole
-one, newest by default.
-
-```bash
-make results
-make report
-make report RUN=20260921-101500-1cpu-1Gi-mandiprice-publish
-```
-
-```
-20260921-101500-1cpu-1Gi-mandiprice-publish    1949 reqs  149.92 requests/second  p95 30 ms   err 0.00 %
-20260921-104500-2cpu-2Gi-mandiprice-discover    500 reqs   50.00 requests/second  p95 112 ms  err 2.00 %
-```
-
-**Tidy up.** Both take nothing. `clean` does not touch runs or payloads;
-`clean-results` lists what it will delete and asks first.
-
-```bash
-make clean
-make clean-results
-```
-
-## Select needs an upstream
+### For select only
 
 Select is the one scenario that leaves the network: the provider adapter calls a
 real API and maps what comes back. Running it against the real one measures that
@@ -178,7 +116,126 @@ present". Delete the row first, then re-run the seed.
 Send one select by hand before a full run. It should return 200 with resources in
 the body; anything else means one of the three above is still wrong.
 
-## Settings
+## Prepare the data
+
+Build the payloads once, then run as often as you like.
+
+```bash
+make data
+```
+
+About 45 seconds. It produces 100,000 resources and 20,000 discover queries,
+roughly 150 MB — too much for a public repository, so it is generated rather
+than committed.
+
+Generation is **seeded**: rebuilding gives byte-identical files, which is what
+makes two runs comparable. Building needs no credentials and no network.
+
+**Rebuild the payloads.** `data` does all three; the others do one each.
+
+```bash
+make data           CAPABILITY=MandiPrice
+make publish-data   CAPABILITY=MandiPrice
+make discover-data  CAPABILITY=MandiPrice
+make select-data    CAPABILITY=MandiPrice
+```
+
+**Check the payloads match their config.** Rebuilds, then fails if anything
+differs from the digests in `data/CHECKSUMS`.
+
+```bash
+make verify-data CAPABILITY=MandiPrice
+```
+
+**Re-record the digests**, after changing a config, a template or the metadata
+on purpose. Commit `data/CHECKSUMS` along with that change.
+
+```bash
+make checksums CAPABILITY=MandiPrice
+```
+
+### How the data fits together
+
+```
+data/<capability>-metadata/   fetched from the provider
+        ▼
+data/publish-payload/         catalogs and resources
+        ▼
+data/discover-payload/        queries
+data/select-payload/          select requests
+```
+
+Discover and select are built from what publish produced, so a query cannot ask
+for something unpublished and a select cannot name a resource that does not
+exist.
+
+Generation is seeded: rebuilding gives byte-identical files. That is what makes
+two runs comparable, and it is why the payloads need not be committed —
+`make verify-data` rebuilds and compares against `data/CHECKSUMS`, failing if
+anything differs. Building needs no credentials and no network; only refetching
+the metadata does.
+
+If you change a config, a template or the metadata on purpose, re-record the
+digests with `make checksums` and commit that file with the change.
+
+To change how much data, edit `capabilities/<name>/config/`. To change the shape
+of a payload, edit `capabilities/<name>/templates/`.
+
+### Refetching the provider metadata
+
+Only needed to refresh the input the payloads are built from. This is the one
+step that needs credentials and network access.
+
+**Refetch provider data.** Needs credentials in the environment.
+
+```bash
+export AGMARKNET_TOKEN_URL=...      # exchanges credentials for a token
+export AGMARKNET_MASTER_URL=...     # states, districts, markets, commodities
+export AGMARKNET_MAPPING_URL=...    # which commodities each market trades
+export AGMARKNET_ACCESS_NAME=...
+export AGMARKNET_PASSWORD=...
+export AGMARKNET_TOKEN=...          # optional, skips the exchange
+
+# STATES empty fetches every state, which is what the 100,000-resource
+# target needs. Narrow it only for a smaller run.
+make get-mandi-metadata \
+  STATES='' \
+  FROM_DATE=01-01-2026 \
+  TO_DATE=01-12-2026
+```
+
+## Run a benchmark
+
+`publish`, `discover` or `select` — the same settings for all three.
+
+**Run a benchmark.** `publish`, `discover` or `select` — same settings for all
+three.
+
+```bash
+make publish \
+  URL=http://<host>:<port> \
+  CAPABILITY=MandiPrice \
+  THREADS=20 RAMP_UP=30 DURATION=600 \
+  LOOPS=-1 RATE=0 \
+  STARTUP_DELAY=0 ON_SAMPLE_ERROR=continue \
+  CONNECT_TIMEOUT=10000 RESPONSE_TIMEOUT=120000 \
+  CONFIG=all-1cpu \
+  CONSUMER_CPU=1 CONSUMER_MEM=1Gi \
+  NETWORK_CPU=1 NETWORK_MEM=1Gi \
+  PROVIDER_CPU=1 PROVIDER_MEM=1Gi \
+  DISCOVERY_CPU=1 DISCOVERY_MEM=1Gi \
+  DISCOVERY_DB_CPU=1 DISCOVERY_DB_MEM=1Gi \
+  REGISTRY_CPU=1 REGISTRY_MEM=1Gi \
+  REGISTRY_DB_CPU=1 REGISTRY_DB_MEM=1Gi \
+  SAMPLE=k8s NAMESPACE=<namespace> SELECTOR=app=discovery \
+  SAMPLE_INTERVAL=5 PROGRESS_INTERVAL=300 \
+  HEALTH=/healthz \
+  NOTE='1 cpu baseline, mock provider' \
+  OUT=./results \
+  ARGS='--record-host'
+```
+
+### Settings
 
 | Variable | Used by | Default | Does |
 |---|---|---|---|
@@ -264,7 +321,7 @@ and the report shows both. If they disagree, the label is wrong:
 | discovery-postgres | 1/1Gi       | 2/2Gi       |
 ```
 
-## What a run produces
+## After a run
 
 One directory per run, under `results/`, named for when it ran and what it ran
 against:
@@ -317,66 +374,49 @@ dashboard has them instead, and they are readable after the run rather than only
 during it — which is what the run window in `report.md` is for. Disk and network
 I/O are collected by neither.
 
-## The data
+### Bringing runs back
 
-```
-data/<capability>-metadata/   fetched from the provider
-        ▼
-data/publish-payload/         catalogs and resources
-        ▼
-data/discover-payload/        queries
-data/select-payload/          select requests
-```
+**Bring runs back from the load machine.** The load generator usually runs
+somewhere else. This copies whole run directories across — `results.jtl`
+included, because that is the evidence; `report.md` is only arithmetic done on
+it.
 
-Discover and select are built from what publish produced, so a query cannot ask
-for something unpublished and a select cannot name a resource that does not
-exist.
-
-Generation is seeded: rebuilding gives byte-identical files. That is what makes
-two runs comparable, and it is why the payloads need not be committed —
-`make verify-data` rebuilds and compares against `data/CHECKSUMS`, failing if
-anything differs. Building needs no credentials and no network; only refetching
-the metadata does.
-
-If you change a config, a template or the metadata on purpose, re-record the
-digests with `make checksums` and commit that file with the change.
-
-To change how much data, edit `capabilities/<name>/config/`. To change the shape
-of a payload, edit `capabilities/<name>/templates/`.
-
-## Layout
-
-```
-benchmark/
-├── Makefile
-├── capabilities/            one folder per capability
-│   └── mandiprice/
-│       ├── config/             publish.yaml, discover.yaml, select.yaml
-│       ├── templates/          catalog.json, select.json
-│       └── tools/
-│           ├── fetch-metadata/
-│           ├── prepare-publish-data/
-│           ├── prepare-discover-data/
-│           └── prepare-select-data/
-├── tools/                  shared by every capability
-│   ├── run-benchmark.sh
-│   ├── report.sh
-│   ├── sample_resources.sh
-│   └── jmeter-jmx/             publish.jmx, discover.jmx, select.jmx
-├── data/
-│   ├── mandiPrice-metadata/    committed: the input, fetched from Agmarknet
-│   ├── CHECKSUMS               committed: a digest per generated file
-│   └── *-payload/              gitignored: built by `make data`
-└── results/                gitignored
+```bash
+make fetch-results REMOTE=user@host:/path/to/benchmark/results
 ```
 
-Nothing environment-specific is committed. The target is a `URL=` argument, pods
-to sample are `NAMESPACE=` and `SELECTOR=`, and the report hides the hostname
-unless you pass `--record-host`.
+Runs are named by timestamp, so nothing collides and re-running only brings
+across what is missing.
+
+**Read the results.** `results` is one line per run; `report` prints a whole
+one, newest by default.
+
+```bash
+make results
+make report
+make report RUN=20260921-101500-1cpu-1Gi-mandiprice-publish
+```
+
+```
+20260921-101500-1cpu-1Gi-mandiprice-publish    1949 reqs  149.92 requests/second  p95 30 ms   err 0.00 %
+20260921-104500-2cpu-2Gi-mandiprice-discover    500 reqs   50.00 requests/second  p95 112 ms  err 2.00 %
+```
+
+### Tidying up
+
+**Tidy up.** Both take nothing. `clean` does not touch runs or payloads;
+`clean-results` lists what it will delete and asks first.
+
+```bash
+make clean
+make clean-results
+```
 
 ---
 
-# MandiPrice
+# Reference
+
+## MandiPrice
 
 Commodity prices from agricultural markets, served by Agmarknet.
 
@@ -485,7 +525,7 @@ the ones a payload uses.
 
 ---
 
-# Adding a capability
+## Adding a capability
 
 Each capability brings its own data preparation, because payload shapes differ
 too much to share one tool.
