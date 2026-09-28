@@ -29,6 +29,7 @@ benchmark/
 │   ├── report.sh
 │   ├── sample_resources.sh
 │   └── jmeter-jmx/             publish.jmx, discover.jmx, select.jmx
+├── mock-upstream/          a stand-in for select's upstream, applied by hand
 ├── data/
 │   ├── mandiPrice-metadata/    committed: the input, fetched from Agmarknet
 │   ├── CHECKSUMS               committed: a digest per generated file
@@ -36,8 +37,7 @@ benchmark/
 └── results/                gitignored
 ```
 
-`mock-upstream/` holds a stand-in for select's upstream API. It is applied by
-hand and is not part of any chart — see [Prerequisites](#prerequisites).
+`mock-upstream/` is not part of any chart — see [2.3](#23-for-select-only).
 
 ## 2. Prerequisites
 
@@ -264,11 +264,8 @@ Only `URL` is required. Everything else has a default.
 | `STATES` | empty | Which states to fetch. Empty fetches all, which the 100,000-resource target needs |
 | `FROM_DATE` `TO_DATE` | 2026 | Window the commodity mapping is fetched over. A market with no trades in it is skipped |
 
-The limit variables set nothing — you dial the real limits in Helm. They record
-what you dialled, one row per service in the report. Leave unset whatever a
-scenario does not touch.
-
-The deployment has three adapters with different jobs, so which limits matter
+**The limit variables set nothing.** You dial the real limits in Helm; these
+record what you dialled, one row per service in the report. Which ones matter
 depends on the scenario:
 
 | Scenario | Path |
@@ -277,42 +274,12 @@ depends on the scenario:
 | discover | consumer → network → discovery → discovery's database |
 | select | consumer → provider → the upstream provider |
 
-Discover goes through the network adapter; select does not. The consumer adapter
-hands a select straight to the provider.
+Discover goes through the network adapter; select does not. Every adapter reads
+the registry to verify its caller, so the registry and its database sit in the
+path of all three.
 
-Every adapter reads the registry to verify its caller, so the registry and its
-database sit in the path of all three.
-
-**Set at least the ones the scenario touches.** These are labels, not settings —
-nothing reads them back. Leave them all unset and the run records no limits at
-all, so the results cannot say what hardware produced them.
-
-`CONFIG` is a short handle for the whole configuration, because seven services'
-limits will not fit in a directory name:
-
-```
-results/20260922-101500-all-1cpu-mandiprice-discover/
-```
-
-The sampler writes its own file, `resources.csv`, one row per pod per sample,
-and the report averages and peaks it per pod:
-
-```
-| Component            | CPU mean | CPU peak | Mem mean | Mem peak |
-| network-adapter      |      679 |      972 |      248 |      309 |
-| discovery-service    |      860 |     1087 |      366 |      478 |
-| discovery-postgres   |     1224 |     1889 |      656 |      899 |
-```
-
-With `SAMPLE=k8s` the runner also asks the cluster what the pods *actually* have,
-and the report shows both. If they disagree, the label is wrong:
-
-```
-| Service            | As labelled | As deployed |
-| network-adapter    | 1/1Gi       | 500m/512Mi  |
-| discovery-service  | 1/1Gi       | 1/512Mi     |
-| discovery-postgres | 1/1Gi       | 2/2Gi       |
-```
+Leave them all unset and the run records no limits at all, so the results cannot
+say what hardware produced them.
 
 ## 5. After a run
 
@@ -338,8 +305,25 @@ was tested. Inside:
 | `html/index.html` | JMeter's dashboard, with charts |
 | `run.env` | the settings this run used |
 
-Runs are never deleted for you. `make clean` only clears the build cache;
-`make clean-results` asks before deleting.
+With `SAMPLE` set, `resources.csv` holds one row per pod per sample, and the
+report averages and peaks it:
+
+```
+| Component            | CPU mean | CPU peak | Mem mean | Mem peak |
+| network-adapter      |      679 |      972 |      248 |      309 |
+| discovery-service    |      860 |     1087 |      366 |      478 |
+| discovery-postgres   |     1224 |     1889 |      656 |      899 |
+```
+
+With `SAMPLE=k8s` it also asks the cluster what the pods *actually* have and
+shows both. If they disagree, the label is wrong:
+
+```
+| Service            | As labelled | As deployed |
+| network-adapter    | 1/1Gi       | 500m/512Mi  |
+| discovery-service  | 1/1Gi       | 1/512Mi     |
+| discovery-postgres | 1/1Gi       | 2/2Gi       |
+```
 
 ### 5.1 Reading the numbers
 
@@ -380,8 +364,8 @@ make report RUN=<directory>     # a particular one
 
 ### 5.3 Tidying up
 
-**Tidy up.** Both take nothing. `clean` does not touch runs or payloads;
-`clean-results` lists what it will delete and asks first.
+`clean` does not touch runs or payloads. `clean-results` lists what it will
+delete and asks first.
 
 ```bash
 make clean
@@ -453,31 +437,16 @@ costs about a second per thousand.
 **Select requests** each name one published resource: one market, one commodity
 that market really trades.
 
-**Refreshing the data**
+**What the metadata holds** — written by [3.1](#31-refetch-the-provider-metadata)
+to `data/mandiPrice-metadata/mandi-metadata.json`: states, districts, markets,
+commodities, and which commodities each market trades. The last of those comes
+from a mapping endpoint, one call per state, over a date window.
 
-```bash
-make get-mandi-metadata
-```
-
-Writes `data/mandiPrice-metadata/mandi-metadata.json`: states, districts,
-markets, commodities, and which commodities each market trades. Needs the
-credentials above.
-
-`STATES` is empty by default, which fetches **all** of them — that is what the
-100,000-resource target needs: all-India yields about 19k real pairs against
-10k for five states, which halves how far the data is stretched.
-Narrow it with `STATES='Karnataka,Kerala'`. The catalogs follow whatever was
-fetched: `config/publish.yaml` lists no entries, so one catalog is derived per
-state present in the metadata.
-
-The last part comes from a mapping endpoint, one call per state, over a date
-window:
-
-```bash
-make get-mandi-metadata FROM_DATE=01-01-2026 TO_DATE=01-12-2026
-```
-
-A market with no trades in that window gets no commodities and is skipped.
+- all-India yields about 19k real pairs against 10k for five states, which
+  halves how far the data is stretched — hence `STATES=''`
+- narrow it with `STATES='Karnataka,Kerala'`
+- catalogs follow whatever was fetched: `config/publish.yaml` lists no entries,
+  so one catalog is derived per state present in the metadata
 
 **Known quirks**
 
@@ -510,7 +479,7 @@ Then:
 
 ```bash
 make data     CAPABILITY=<Name>
-make discover CAPABILITY=<Name> URL=http://<host>:<port>
+make discover CAPABILITY=<Name> URL=https://<host>
 ```
 
 The runner, the JMeter plans, the sampler and the report do not change. A plan
