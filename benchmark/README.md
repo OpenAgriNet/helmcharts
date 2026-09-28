@@ -118,20 +118,10 @@ Send one select by hand first. It should return 200 with resources in the body.
 
 ## 3. Prepare the data
 
-```bash
-make data
 ```
-
-- about 45 seconds
-- 100,000 resources and 20,000 discover queries, around 150 MB
-- generated rather than committed: too much for a public repository
-- seeded, so rebuilding gives byte-identical files and two runs stay comparable
-- needs no credentials and no network
-
-```
-data/<capability>-metadata/   fetched from the provider
+data/<capability>-metadata/   fetched from the provider     <- 3.1, rarely
         ▼
-data/publish-payload/         catalogs and resources
+data/publish-payload/         catalogs and resources        <- 3.2, once
         ▼
 data/discover-payload/        queries
 data/select-payload/          select requests
@@ -141,24 +131,10 @@ Discover and select are built from what publish produced, so a query cannot ask
 for something unpublished and a select cannot name a resource that does not
 exist.
 
-| Command | Does |
-|---|---|
-| `make data` | all three payload sets |
-| `make publish-data` | one set each |
-| `make discover-data` | |
-| `make select-data` | |
-| `make verify-data` | rebuilds and fails if anything differs from `data/CHECKSUMS` |
-| `make checksums` | re-records the digests, after changing a config or template on purpose. Commit `data/CHECKSUMS` with that change |
+### 3.1 Refetch the provider metadata
 
-All take `CAPABILITY=`. To change how much data, edit `capabilities/<name>/config/`;
-to change the shape of a payload, edit `capabilities/<name>/templates/`.
-
-### 3.1 Refetching the provider metadata
-
-Only needed to refresh the input the payloads are built from. This is the one
-step that needs credentials and network access.
-
-**Refetch provider data.** Needs credentials in the environment.
+**Skip this unless the input needs refreshing** — the metadata is committed, and
+this is the only step needing credentials and network access.
 
 ```bash
 export AGMARKNET_TOKEN_URL=...      # exchanges credentials for a token
@@ -175,6 +151,30 @@ make get-mandi-metadata \
   FROM_DATE=01-01-2026 \
   TO_DATE=01-12-2026
 ```
+
+### 3.2 Build the payloads
+
+```bash
+make data
+```
+
+- about 45 seconds
+- 100,000 resources and 20,000 discover queries, around 150 MB
+- generated rather than committed: too much for a public repository
+- seeded, so rebuilding gives byte-identical files and two runs stay comparable
+- needs no credentials and no network
+
+| Command | Does |
+|---|---|
+| `make data` | all three payload sets |
+| `make publish-data` | one set each |
+| `make discover-data` | |
+| `make select-data` | |
+| `make verify-data` | rebuilds and fails if anything differs from `data/CHECKSUMS` |
+| `make checksums` | re-records the digests, after changing a config or template on purpose. Commit `data/CHECKSUMS` with that change |
+
+All take `CAPABILITY=`. To change how much data, edit `capabilities/<name>/config/`;
+to change the shape of a payload, edit `capabilities/<name>/templates/`.
 
 ## 4. Run a benchmark
 
