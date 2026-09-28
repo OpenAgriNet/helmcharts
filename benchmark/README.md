@@ -4,14 +4,6 @@ Load tests for the OAN network layer: how much it handles, how fast it answers,
 and what it costs in CPU and memory. Three scenarios — publish, discover and
 select — driven by JMeter against a deployed stack.
 
-```bash
-make dependency-check                    # is everything installed?
-make data                                # build the payloads, about 45 seconds
-make publish  URL=https://<host>
-make discover URL=https://<host>
-make select   URL=https://<host>
-```
-
 `make` on its own prints the menu.
 
 ## Layout
@@ -54,7 +46,11 @@ hand and is not part of any chart — see [Prerequisites](#prerequisites).
 | `curl`, `python3` | baseline timing, reading the payload manifest |
 | `kubectl` | only if you want the harness to sample CPU and memory itself |
 
-No JMeter plugins needed. `make dependency-check` reports what is missing.
+No JMeter plugins needed. Check what is missing before anything else:
+
+```bash
+make dependency-check
+```
 
 ### The deployed stack
 
