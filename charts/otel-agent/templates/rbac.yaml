@@ -1,7 +1,7 @@
 {{/*
-Its own ServiceAccount, unlike the collector-rbac release which grants the
-account clickstack's collector already uses. This chart owns its workload, so it
-owns its identity.
+Its own ServiceAccount. This chart owns its workload, so it owns its identity
+-- rather than granting an account something else already runs as, which is how
+a permission meant for one pod ends up held by every pod in the namespace.
 
 nodes/stats is what kubeletstats reads. nodes, pods and namespaces are for the
 metadata the receiver attaches through k8s_api_config — without them the metrics
