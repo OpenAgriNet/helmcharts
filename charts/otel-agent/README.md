@@ -26,11 +26,15 @@ Its own ServiceAccount, created by this chart, bound to a ClusterRole granting
 | Resource | For |
 |---|---|
 | `nodes/stats` | the metrics themselves |
-| `nodes`, `pods`, `namespaces` | the metadata the receiver attaches, via `k8s_api_config` — without it metrics arrive with no pod or namespace name |
+| `nodes/pods` | the kubelet's `/pods` endpoint, called because `extra_metadata_labels` is set |
+| `nodes`, `pods`, `namespaces` | the metadata the receiver attaches via `k8s_api_config` — without it metrics arrive with no pod or namespace name |
 
-**Not `nodes/proxy`.** The receiver dials each kubelet directly on `:10250`, so
-it never uses the API server proxy. That verb also permits `exec` through the
-kubelet, which is not something a metrics agent should hold.
+**`nodes/pods`, not `nodes/proxy`.** The kubelet accepts either for `/pods`, but
+`nodes/proxy` also reaches every other kubelet endpoint, `exec` among them.
+
+The `pods` and `namespaces` grants do not cover this: they are checked by the
+API server, and the kubelet authorizes on its own path. Without `nodes/pods`
+every scrape fails with `Forbidden ... subresource(s)=[pods proxy]`.
 
 ## Installing
 

@@ -5,17 +5,19 @@ All notable changes to the `otel-agent` chart.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.1] - 2026-09-28
-
-### Removed
-
-- `nodes/proxy` from the ClusterRole. The kubeletstats receiver dials each
-  kubelet directly on `:10250` and never uses the API server proxy, so the verb
-  was unused — and it is the one that permits `exec` through the kubelet. The
-  grant arrived by copying a scrape that did go through the proxy; that scrape
-  has since been deleted.
+## [0.1.2] - 2026-09-28
 
 ### Changed
+
+- `nodes/proxy` swapped for `nodes/pods` in the ClusterRole. Both satisfy the
+  kubelet for the `/pods` endpoint the receiver calls when
+  `extra_metadata_labels` is set, but `nodes/proxy` also reaches every other
+  kubelet endpoint, `exec` among them. `nodes/pods` is the narrow half.
+
+  `nodes/pods` is required, not optional: without it every scrape fails with
+  `Forbidden (verb=get, resource=nodes, subresource(s)=[pods proxy])`. The
+  `pods` and `namespaces` grants are for the API server and do not satisfy the
+  kubelet, which authorizes on a different path.
 
 - Adopted `common`: the chart now depends on it and takes its labels from
   `common.labels` and `common.selectorLabels` rather than hand-rolling

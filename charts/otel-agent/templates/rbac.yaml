@@ -8,10 +8,19 @@ metadata the receiver attaches through k8s_api_config — without them the metri
 arrive with no pod or namespace name on them, which is the same as not having
 them.
 
-NO nodes/proxy. That verb reaches arbitrary kubelet endpoints, exec among them,
-and this receiver never needs it: it dials the kubelet directly on :10250 rather
-than through the API server proxy. It was granted here by copying a scrape that
-did go through the proxy, and that scrape is gone.
+nodes/pods is what the kubelet demands for its own /pods endpoint, which the
+receiver calls because extra_metadata_labels is set. VERIFIED THE HARD WAY:
+without it every scrape fails with
+
+  Forbidden (user=system:serviceaccount:observability:otel-agent,
+             verb=get, resource=nodes, subresource(s)=[pods proxy])
+
+The `pods` and `namespaces` grants above are for the API server and do not
+satisfy the kubelet; this is a different authorization path.
+
+NO nodes/proxy. The kubelet accepts either subresource for that endpoint, but
+nodes/proxy also reaches every other kubelet endpoint, exec among them.
+nodes/pods is the narrow half of the choice.
 */}}
 apiVersion: v1
 kind: ServiceAccount
@@ -29,7 +38,7 @@ metadata:
     {{- include "common.labels" . | nindent 4 }}
 rules:
   - apiGroups: [""]
-    resources: ["nodes", "nodes/stats", "pods", "namespaces"]
+    resources: ["nodes", "nodes/stats", "nodes/pods", "pods", "namespaces"]
     verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
