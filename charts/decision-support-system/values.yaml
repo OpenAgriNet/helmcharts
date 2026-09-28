@@ -110,6 +110,14 @@ azureOpenai:
 
 # OPENAI_API_KEY / OPENAI_BASE_URL, for any models.* value that is NOT
 # `azure:...`. baseUrl is optional - unset uses api.openai.com.
+#
+# This is also the knob for a self-hosted model served behind an
+# OpenAI-compatible gateway (e.g. LiteLLM in front of a GPU-hosted model) -
+# point baseUrl at that gateway's URL and apiKeySecret at whatever key the
+# gateway issues (a LiteLLM virtual key, not an OpenAI one). Nothing else
+# about the request path changes: the SDK still sees an `openai:<model>`
+# string and a base URL, it does not know or care that the far end is
+# self-hosted. See examples/decision-support-system.litellm.yaml.
 openai:
   baseUrl: ""
   apiKeySecret:

@@ -18,12 +18,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   invocation wiring), `schemaPacks.*`, `azureOpenai.*`/`openai.*`,
   `tracing.*` (OTLP). Everything else in `src/dss/config/settings.py` is left
   to free-form `envConfig`.
-- Render-time guards (`_helpers.tpl`) for the two footguns the app itself
-  only catches at process boot: an `azure:` model with no
-  `azureOpenai.endpoint`/`apiKeySecret`, and a provider network with only one
-  of `discoveryBaseUrl`/`invocationBaseUrl` set (which the app silently
-  treats as fully unwired rather than failing, per
-  `Settings.network_enabled`).
+- Render-time guards (`_helpers.tpl`) for the footguns the app itself only
+  catches at process boot, one agent at a time: an `azure:` model with no
+  `azureOpenai.endpoint`/`apiKeySecret`, a non-`azure:` (openai:) model with
+  no `openai.apiKeySecret`, and a provider network with only one of
+  `discoveryBaseUrl`/`invocationBaseUrl` set (which the app silently treats
+  as fully unwired rather than failing, per `Settings.network_enabled`).
+  `ci/lint-values.yaml` now supplies `openai.apiKeySecret` so the chart's own
+  `openai:` defaults still lint/render.
+- `examples/decision-support-system.litellm.yaml`: the `openai:` model path
+  repointed at a self-hosted, GPU-hosted model served through a LiteLLM
+  proxy via `openai.baseUrl`, rather than api.openai.com. No template change
+  needed — LiteLLM's proxy speaks the OpenAI API, so this was already
+  possible; it just was not documented anywhere in the chart.
 - `emptyDir` volumes for the schema-pack cache and the evidence directory -
   both explicitly ephemeral, matching the app's own documented design
   (`docs/RUNNING.md`: evidence is "a stand-in" for an API that does not exist
@@ -46,3 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   answered_streaming.json` (the body CI actually validates responses
   against) has it right. NOTES.txt now points at that file instead of
   inlining a body that can drift again.
+- `appVersion` was `1.0.0`, which does not match any tag the app repo has
+  actually cut; corrected to `v0.1.0`. `examples/decision-support-system.dev.yaml`
+  hardcoded `image.tag: "1.0.0"` for the same wrong version and is corrected
+  to `"v0.1.0"` too.

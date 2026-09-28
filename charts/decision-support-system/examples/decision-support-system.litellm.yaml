@@ -1,0 +1,42 @@
+# Example: the DSS reasoning runtime, backed by a self-hosted GPU model
+# exposed through a LiteLLM proxy instead of OpenAI or Azure OpenAI.
+#
+#   kubectl -n dss create secret generic dss-litellm \
+#     --from-literal=api-key=<the LiteLLM virtual key>
+#   kubectl -n dss create secret docker-registry ghcr -n dss \
+#     --docker-server=ghcr.io --docker-username=<user> \
+#     --docker-password=<a PAT with read:packages>
+#
+#   helm install decision-support-system charts/decision-support-system \
+#     -n dss -f charts/decision-support-system/examples/decision-support-system.litellm.yaml
+#
+# LiteLLM's proxy speaks the OpenAI API, so this is the plain `openai:` path
+# with baseUrl repointed at the gateway - see values.yaml's `openai` block.
+# There is no separate `litellm:` model prefix; the app's SDK does not
+# distinguish a self-hosted backend from api.openai.com.
+
+image:
+  pullSecrets:
+    - ghcr
+
+models:
+  intent: "openai:<litellm-model-name>"
+  moderation: "openai:<litellm-model-name>"
+  planner: "openai:<litellm-model-name>"
+  composer: "openai:<litellm-model-name>"
+
+openai:
+  # The LiteLLM proxy's public URL, not api.openai.com.
+  baseUrl: "https://<litellm-gateway-host>/v1"
+  apiKeySecret:
+    name: dss-litellm
+    key: api-key
+
+schemaPacks:
+  ref: schema-packs-v0.1
+
+ingress:
+  enabled: false
+
+tests:
+  enabled: true

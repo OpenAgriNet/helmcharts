@@ -50,6 +50,20 @@ at render time surfaces every missing one at once, before anything is applied.
 {{- end }}
 
 {{/*
+Emits "true" when at least one of the four agents is NOT bound to an azure:...
+model - i.e. it takes the app's openai: default (or an explicit openai:
+prefix), in which case OPENAI_API_KEY becomes required. Mirrors
+decision-support-system.usesAzure above: same reasoning, same failure mode,
+just the other branch of the per-agent prefix.
+*/}}
+{{- define "decision-support-system.usesOpenai" -}}
+{{- $m := .Values.models -}}
+{{- if or (not (hasPrefix "azure:" $m.intent)) (not (hasPrefix "azure:" $m.moderation)) (not (hasPrefix "azure:" $m.planner)) (not (hasPrefix "azure:" $m.composer)) -}}
+{{- true -}}
+{{- end -}}
+{{- end }}
+
+{{/*
 Everything the service needs that this chart derives from its structured
 values, as container env entries. These take precedence over the envConfig
 ConfigMap injected with envFrom.
@@ -74,6 +88,11 @@ ConfigMap injected with envFrom.
 {{- end }}
 {{- if and $net.invocationBaseUrl (not $net.discoveryBaseUrl) }}
 {{- fail (printf "%s: network.invocationBaseUrl is set but network.discoveryBaseUrl is not. Settings.network_enabled requires both or neither - see the discoveryBaseUrl check above for why this is caught here rather than left to degrade silently." .Chart.Name) }}
+{{- end }}
+{{- if include "decision-support-system.usesOpenai" . }}
+{{- if not $openai.apiKeySecret.name }}
+{{- fail (printf "%s: a models.* value does not use the azure: prefix, so it is routed through OpenAI's SDK, which requires openai.apiKeySecret.{name,key} - it becomes OPENAI_API_KEY. This chart renders no Secrets; create one out of band." .Chart.Name) }}
+{{- end }}
 {{- end }}
 - name: DSS_INTENT_MODEL
   value: {{ $m.intent | quote }}

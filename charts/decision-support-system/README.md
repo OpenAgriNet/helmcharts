@@ -55,8 +55,17 @@ Four agents, each its own model string, set through `models.{intent,moderation,p
 
 One agent can be on Azure while another is on OpenAI. The chart fails the
 render if any `models.*` value starts `azure:` and `azureOpenai.*` is not
-fully set — the app itself only catches this at process boot
-(`entrypoint/composition.py::_resolve_model`), one agent at a time.
+fully set, and equally if any `models.*` value does NOT start `azure:` and
+`openai.apiKeySecret` is not set — the app itself only catches either at
+process boot (`entrypoint/composition.py::_resolve_model`), one agent at a
+time.
+
+`openai:<model>` is not limited to api.openai.com: `openai.baseUrl` repoints
+it at any OpenAI-compatible endpoint, including a self-hosted, GPU-hosted
+model served through a LiteLLM proxy. The SDK sees an `openai:<model>` string
+and a base URL either way; it has no separate code path for a self-hosted
+backend. See
+[`examples/decision-support-system.litellm.yaml`](examples/decision-support-system.litellm.yaml).
 
 ### The provider network is all-or-nothing
 
