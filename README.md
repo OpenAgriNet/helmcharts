@@ -191,7 +191,8 @@ helm install openbao charts/openbao -n openbao -f charts/openbao/examples/openba
 
 # 3. One-time setup: init (writes the root token and recovery keys to the
 #    file given -- move it to the password manager), KV v2 at secret/,
-#    Kubernetes auth, a read-only policy for oan/<env>/*, and the role ESO uses.
+#    Kubernetes auth, a read-only policy for oan/<env>/*, the role ESO uses,
+#    and the role the backup CronJob uses.
 ./scripts/openbao-configure.sh --env dev --init-out ~/openbao-dev-init.json
 
 # 4. The operator, the mirror, and the store they read
@@ -218,6 +219,21 @@ helm install openbao-secrets charts/openbao-secrets -n external-secrets
 | Policy is tight | an `ExternalSecret` for `oan/prod/...` on the dev cluster | `SecretSyncedError`, "permission denied" |
 | Store is fenced | an `ExternalSecret` on the `openbao` store in any namespace but `external-secrets` | `SecretSyncedError`, "not allowed from namespace" |
 | Network is fenced | `curl http://openbao.openbao.svc:8200/v1/sys/health` from a pod in `default` | times out |
+| Backups work | `kubectl -n openbao create job snap-now --from=cronjob/openbao-snapshot` | a new `bao_<date>.snapshot` in the bucket |
+
+### Backups and restore
+
+The snapshot CronJob (`snapshotAgent`, off in dev until a bucket exists -- see
+`openbao.dev.yaml`) uploads a raft snapshot of the whole store every hour. A
+snapshot can only be opened with the unseal key it was taken under, so keep the
+key with the snapshots, off the cluster. To restore, into a fresh OpenBao that
+mounts that same key:
+
+```bash
+bao operator init                                   # a fresh store needs initialising first
+bao operator raft snapshot restore -force bao_<date>.snapshot   # with that init's root token
+# From here the ORIGINAL store's root token and data are back; the fresh one's are gone.
+```
 
 ### Moving a cluster from AWS Secrets Manager
 

@@ -17,6 +17,9 @@
 #      else.
 #   5. Creates role external-secrets, bound to the external-secrets
 #      ServiceAccount, with that policy.
+#   6. Writes policy snapshot (read on sys/storage/raft/snapshot, nothing
+#      else) and role snapshot, bound to the chart's snapshot-agent
+#      ServiceAccount, for the backup CronJob.
 #
 # Needs kubectl pointed at the cluster, and jq.
 set -euo pipefail
@@ -27,6 +30,7 @@ pod="openbao-0"
 init_out=""
 eso_sa="external-secrets"
 eso_ns="external-secrets"
+snapshot_sa="openbao-snapshot"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -36,6 +40,7 @@ while [[ $# -gt 0 ]]; do
     --init-out) init_out="$2"; shift 2 ;;
     --eso-sa) eso_sa="$2"; shift 2 ;;
     --eso-namespace) eso_ns="$2"; shift 2 ;;
+    --snapshot-sa) snapshot_sa="$2"; shift 2 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -122,6 +127,22 @@ bao write auth/kubernetes/role/external-secrets \
   bound_service_account_namespaces="$eso_ns" \
   token_policies="$policy" \
   token_ttl=1h >/dev/null
+
+# --- 6. snapshot role --------------------------------------------------------
+# For the chart's snapshotAgent CronJob. Created whether or not the CronJob is
+# enabled yet, so turning backups on is only a values change. A snapshot is the
+# whole store (encrypted by the seal), so this grants read on that one endpoint.
+echo "==> writing policy and role snapshot"
+bao policy write snapshot - <<EOF
+path "sys/storage/raft/snapshot" {
+  capabilities = ["read"]
+}
+EOF
+bao write auth/kubernetes/role/snapshot \
+  bound_service_account_names="$snapshot_sa" \
+  bound_service_account_namespaces="$namespace" \
+  token_policies=snapshot \
+  token_ttl=10m >/dev/null
 
 echo "done. Write secrets with:"
 echo "  kubectl -n $namespace exec -it $pod -- bao kv put secret/oan/${env}/<name> key=value ..."

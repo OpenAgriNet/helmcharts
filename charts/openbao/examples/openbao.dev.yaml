@@ -166,3 +166,27 @@ server:
 ui:
   enabled: true
   serviceType: ClusterIP
+
+# BACKUPS. A CronJob that takes a raft snapshot every hour and uploads it to
+# S3-compatible storage (AWS S3, MinIO, ...). Without it the data lives on one
+# PVC and nowhere else. Off until the bucket exists -- on without one, the job
+# just fails every hour. To turn it on:
+#   1. Create the bucket, and a Secret with AWS_ACCESS_KEY_ID and
+#      AWS_SECRET_ACCESS_KEY in the openbao namespace, named as below.
+#   2. Run scripts/openbao-configure.sh (it creates the "snapshot" role and a
+#      policy allowing only the snapshot read).
+#   3. Set enabled: true and s3Host / s3Bucket / s3Uri, and helm upgrade. For
+#      an http endpoint (an in-cluster MinIO, say) add s3cmdExtraFlag: --no-ssl.
+# A snapshot is encrypted by the seal: restoring one needs the unseal key it
+# was taken under. Keep the two together, off the cluster.
+snapshotAgent:
+  enabled: false
+  schedule: "0 * * * *"
+  s3CredentialsSecret: openbao-snapshot-s3
+  config:
+    s3Host: s3.ap-south-1.amazonaws.com
+    s3Bucket: oan-openbao-snapshots-dev
+    s3Uri: s3://oan-openbao-snapshots-dev
+    s3ExpireDays: "14"
+    baoAuthPath: kubernetes
+    baoRole: snapshot
