@@ -52,8 +52,9 @@ server:
       memory: 512Mi
 
   # Raft, not the chart's default "file" backend: the same storage an HA cluster
-  # uses, so going to three replicas later is a replica-count change rather than
-  # a data migration.
+  # uses, so going to three replicas later needs no data migration. It is not
+  # just a replica count, though: HA moves the config to server.ha.raft, adds
+  # retry_join and service registration -- see openbao.prod.yaml.
   dataStorage:
     enabled: true
     size: 5Gi
@@ -62,6 +63,13 @@ server:
   auditStorage:
     enabled: true
     size: 2Gi
+
+  # The chart's default is OnDelete: `helm upgrade` changes the StatefulSet but
+  # leaves the running pod alone, so a new config or image only takes effect
+  # once someone runs `kubectl -n openbao delete pod openbao-0`. Harmless with
+  # the static seal (the pod unseals itself on restart), but easy to miss:
+  # Argo CD shows the app Synced either way.
+  updateStrategyType: OnDelete
 
   # Who may reach the API (8200) and the raft port (8201). ESO is the only
   # client; the snapshot CronJob and, in HA, the other OpenBao pods sit in this

@@ -19,7 +19,7 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`cert-manager`](charts/cert-manager) | application | X.509 certificate management. The official `cert-manager` chart v1.21.2 committed whole and unmodified. Its CRDs are applied out of band — three exceed the annotation size limit. |
 | [`cert-manager-issuers`](charts/cert-manager-issuers) | application | Let's Encrypt `ClusterIssuer`s. Separate from `cert-manager` because one release cannot register a CRD and create an instance of it. |
 | [`clickstack`](charts/clickstack) | application | Observability — ClickHouse, an OTel collector and the HyperDX UI. A verbatim copy of the official upstream chart, with no OAN changes yet. |
-| [`openbao`](charts/openbao) | application | The secret store. The official `openbao` chart 0.29.6 (OpenBao v2.6.3) committed whole and unmodified; OAN's settings are in `examples/openbao.dev.yaml`. |
+| [`openbao`](charts/openbao) | application | The secret store. The official `openbao` chart 0.29.6 (OpenBao v2.6.3) committed whole and unmodified; OAN's settings are in `examples/openbao.dev.yaml` (one pod) and `examples/openbao.prod.yaml` (three-pod raft cluster). |
 | [`openbao-cluster-secret-store`](charts/openbao-cluster-secret-store) | application | The `ClusterSecretStore` that lets External Secrets Operator read OpenBao, logging in with Kubernetes auth. |
 | [`openbao-secrets`](charts/openbao-secrets) | application | One `ExternalSecret` per credential: pulls `oan/<env>/<name>` from OpenBao into a Secret and mirrors it, via Reflector, to the namespaces that read it. |
 
@@ -186,7 +186,9 @@ openssl rand -out unseal.key 32
 kubectl create namespace openbao
 kubectl -n openbao create secret generic openbao-unseal-key --from-file=unseal.key=unseal.key
 
-# 2. OpenBao
+# 2. OpenBao. openbao.dev.yaml is one pod; production uses openbao.prod.yaml,
+#    three pods in a raft cluster on three nodes -- start prod that way rather
+#    than converting a running single node later.
 helm install openbao charts/openbao -n openbao -f charts/openbao/examples/openbao.dev.yaml
 
 # 3. One-time setup: init (writes the root token and recovery keys to the
@@ -220,6 +222,12 @@ helm install openbao-secrets charts/openbao-secrets -n external-secrets
 | Store is fenced | an `ExternalSecret` on the `openbao` store in any namespace but `external-secrets` | `SecretSyncedError`, "not allowed from namespace" |
 | Network is fenced | `curl http://openbao.openbao.svc:8200/v1/sys/health` from a pod in `default` | times out |
 | Backups work | `kubectl -n openbao create job snap-now --from=cronjob/openbao-snapshot` | a new `bao_<date>.snapshot` in the bucket |
+| HA formed (prod) | `bao operator raft list-peers` (with `BAO_TOKEN`) | three voters, one `leader` |
+
+A config or image change reaches OpenBao only when its pod is deleted: the
+chart's update strategy is `OnDelete`, and Argo CD shows the app Synced either
+way. In prod, delete the standbys first and the active pod
+(`openbao-active=true`) last, one at a time.
 
 ### Backups and restore
 
