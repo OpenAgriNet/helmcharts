@@ -10,7 +10,7 @@
 # halves are registered in the registry. A regenerated value is a different
 # value, and each of those fails in its own way.
 #
-# Reads oan/<env>/<name> from Secrets Manager for every name in oan-secrets'
+# Reads oan/<env>/<name> from Secrets Manager for every name in openbao-secrets'
 # values, and writes the same JSON object to secret/oan/<env>/<name> in
 # OpenBao. Then compare with scripts/secrets-snapshot.sh before and after the
 # switch.
@@ -26,7 +26,7 @@ env=""
 namespace="openbao"
 pod="openbao-0"
 dry_run=false
-values="charts/oan-secrets/values.yaml"
+values="charts/openbao-secrets/values.yaml"
 aws_cli="${AWS_CLI:-aws}"
 
 while [[ $# -gt 0 ]]; do

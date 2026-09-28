@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Fingerprint every Secret oan-secrets (or asm-secrets) manages, in every
+# Fingerprint every Secret openbao-secrets (or asm-secrets) manages, in every
 # namespace it reaches, so two runs can be diffed. Prints namespace/Secret, key
 # and a sha256 of each value -- never the value itself.
 #
@@ -16,7 +16,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-python3 - "${1:-charts/oan-secrets/values.yaml}" <<'EOF'
+python3 - "${1:-charts/openbao-secrets/values.yaml}" <<'EOF'
 import base64, hashlib, json, re, subprocess, sys
 
 # The secrets: list, read without a YAML library -- name, then namespaces: [..].

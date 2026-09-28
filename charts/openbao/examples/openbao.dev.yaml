@@ -2,7 +2,7 @@
 # openbao -- dev
 #
 # The secret store every OAN credential lives in. External Secrets Operator
-# reads it (see openbao-cluster-secret-store and oan-secrets); nothing else
+# reads it (see openbao-cluster-secret-store and openbao-secrets); nothing else
 # should need to.
 #
 #   helm install openbao charts/openbao -n openbao --create-namespace \

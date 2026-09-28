@@ -2,10 +2,11 @@
 # openbao-cluster-secret-store
 #
 # One ClusterSecretStore, cluster-scoped, naming the OpenBao the operator reads.
-# `oan-secrets` then declares what to read from it.
+# `openbao-secrets` then declares what to read from it.
 #
-# Split from oan-secrets deliberately: the store is a property of the CLUSTER
-# (which OpenBao, which mount, which role) and changes when the cluster does.
+# Split from openbao-secrets deliberately: the store is a property of the
+# CLUSTER (which OpenBao, which mount, which role) and changes when the cluster
+# does.
 # The secrets are a property of the APPLICATION and change when a service does.
 # One chart for both would tie an auth change to a service change.
 # ============================================================================

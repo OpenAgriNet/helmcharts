@@ -1,5 +1,5 @@
 apiVersion: v2
-name: oan-secrets
+name: openbao-secrets
 description: >-
   One ExternalSecret per credential, pulling from OpenBao into a Kubernetes
   Secret and mirroring it, via Reflector, into every namespace that reads it.

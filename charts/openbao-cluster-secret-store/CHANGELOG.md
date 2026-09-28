@@ -14,5 +14,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `external-secrets` ServiceAccount.
 
   Replaces `asm-cluster-secret-store`, which points at AWS Secrets Manager
-  through IRSA. `oan-secrets` reads the same keys through it,
+  through IRSA. `openbao-secrets` reads the same keys through it,
   `oan/<env>/<name>`, that `asm-secrets` read through that one.

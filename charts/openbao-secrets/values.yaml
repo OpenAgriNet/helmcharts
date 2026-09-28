@@ -1,5 +1,5 @@
 # ============================================================================
-# oan-secrets
+# openbao-secrets
 #
 # One ExternalSecret per credential. Each pulls an OpenBao KV entry into a
 # Kubernetes Secret in this release's namespace, and Reflector mirrors it into

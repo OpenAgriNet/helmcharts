@@ -21,7 +21,7 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`clickstack`](charts/clickstack) | application | Observability — ClickHouse, an OTel collector and the HyperDX UI. A verbatim copy of the official upstream chart, with no OAN changes yet. |
 | [`openbao`](charts/openbao) | application | The secret store. The official `openbao` chart 0.29.6 (OpenBao v2.6.3) committed whole and unmodified; OAN's settings are in `examples/openbao.dev.yaml`. |
 | [`openbao-cluster-secret-store`](charts/openbao-cluster-secret-store) | application | The `ClusterSecretStore` that lets External Secrets Operator read OpenBao, logging in with Kubernetes auth. |
-| [`oan-secrets`](charts/oan-secrets) | application | One `ExternalSecret` per credential: pulls `oan/<env>/<name>` from OpenBao into a Secret and mirrors it, via Reflector, to the namespaces that read it. |
+| [`openbao-secrets`](charts/openbao-secrets) | application | One `ExternalSecret` per credential: pulls `oan/<env>/<name>` from OpenBao into a Secret and mirrors it, via Reflector, to the namespaces that read it. |
 
 ## How they fit together
 
@@ -42,7 +42,7 @@ charts/
 ├── clickstack/          # observability — vendored upstream, not yet OAN-shaped
 ├── openbao/             # the secret store — vendored upstream
 ├── openbao-cluster-secret-store/ # how ESO reads it
-└── oan-secrets/         # what ESO reads from it
+└── openbao-secrets/     # what ESO reads from it
 ```
 
 Every chart depends on `common` via `file://../common`, except `clickstack`,
@@ -201,7 +201,7 @@ helm install openbao-store    charts/openbao-cluster-secret-store
 
 # 5. Write the values, then declare which ones reach the cluster
 kubectl -n openbao exec -it openbao-0 -- bao kv put secret/oan/dev/registry-db username=... password=...
-helm install oan-secrets charts/oan-secrets -n external-secrets
+helm install openbao-secrets charts/openbao-secrets -n external-secrets
 ```
 
 ### Checking that it works
@@ -229,7 +229,7 @@ in place, and diff before against after.
 BAO_TOKEN=<root token> ./scripts/asm-to-openbao.sh --env dev --dry-run
 BAO_TOKEN=<root token> ./scripts/asm-to-openbao.sh --env dev
 helm install openbao-store charts/openbao-cluster-secret-store
-helm upgrade asm-secrets charts/oan-secrets -n external-secrets   # the EXISTING release
+helm upgrade asm-secrets charts/openbao-secrets -n external-secrets   # the EXISTING release
 kubectl -n external-secrets get externalsecret           # every row: openbao, SecretSynced
 ./scripts/secrets-snapshot.sh > after.txt
 diff before.txt after.txt                                # must be empty
