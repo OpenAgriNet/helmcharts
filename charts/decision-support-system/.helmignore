@@ -1,0 +1,13 @@
+# Patterns to ignore when building packages.
+.DS_Store
+.git/
+.gitignore
+*.tmproj
+.vscode/
+.idea/
+*.swp
+*.bak
+*.orig
+
+# Example values are documentation, not part of the package
+examples/

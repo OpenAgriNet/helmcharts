@@ -1,0 +1,97 @@
+# Example: the DSS reasoning runtime, production.
+#
+#   helm install decision-support-system charts/decision-support-system \
+#     -n dss -f charts/decision-support-system/examples/decision-support-system.prod.yaml
+#
+# Prefer a DIGEST over a tag: a tag can be repointed at different bits, a
+# digest cannot, which is what makes a rollback land on the same image it did
+# before.
+image:
+  digest: "" # sha256:...
+  pullSecrets:
+    - ghcr
+
+replicaCount: 3
+
+logLevel: info
+
+models:
+  intent: "azure:<production-deployment-id>"
+  moderation: "azure:<production-deployment-id>"
+  planner: "azure:<production-deployment-id>"
+  composer: "azure:<production-deployment-id>"
+
+azureOpenai:
+  endpoint: "https://<resource>.services.ai.azure.com/openai/v1"
+  apiKeySecret:
+    name: dss-azure-openai
+    key: api-key
+
+# The real OAN network. Both required together - see README.md, "The
+# provider network is all-or-nothing".
+network:
+  discoveryBaseUrl: "http://discovery.oan-discovery.svc.cluster.local:8080"
+  invocationBaseUrl: "http://discovery.oan-discovery.svc.cluster.local:8080"
+  senderId: "consumer.oan.prod"
+  receiverId: "oan"
+
+schemaPacks:
+  ref: schema-packs-v0.1
+  # Recommended once several pods restart independently against a fresh
+  # emptyDir - each fetches on its own, and unauthenticated GitHub API calls
+  # are capped at 60/hour.
+  githubTokenSecret:
+    name: dss-github
+    key: token
+
+# Point at wherever this cluster's Langfuse (or Collector) actually lives.
+# DSS_TRACE_INCLUDE_MESSAGE_CONTENT is never set here - see values.yaml, it
+# puts the farmer's query and answer in every span, forbidden in a deployment.
+tracing:
+  otlpEndpoint: "http://otel-collector.observability.svc.cluster.local:4318"
+  headersSecret:
+    name: dss-langfuse
+    key: otlp-headers
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: "2"
+    memory: 1Gi
+
+ingress:
+  enabled: false
+
+# Safe with 3 replicas: at most one pod is disrupted at a time.
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+  minAvailable: ""
+
+# Spread across nodes, so one node's loss is not the whole service.
+# `preferred` rather than `required`: a hard rule leaves pods Pending when the
+# cluster has fewer nodes than replicas, turning a scale-up into an outage.
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: decision-support-system
+              app.kubernetes.io/instance: decision-support-system
+
+# Left OFF deliberately, same as replicaCount: 3 above - pick one capacity
+# model, not both fighting on every reconcile. Turn this on and drop
+# replicaCount instead once real traffic data justifies it.
+autoscaling:
+  enabled: false
+
+tests:
+  enabled: true
+
+commonLabels:
+  oan.in/environment: prod

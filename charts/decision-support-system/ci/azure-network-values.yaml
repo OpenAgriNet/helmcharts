@@ -1,0 +1,35 @@
+# Exercises the two branches ci/lint-values.yaml does not: an azure: model
+# (requires azureOpenai.* - see _helpers.tpl's usesAzure guard) and a fully
+# wired provider network (requires both discoveryBaseUrl and
+# invocationBaseUrl, or the render fails - see the network guard).
+models:
+  intent: "azure:gpt-4o-mini"
+  moderation: "openai:gpt-4o-mini"
+  planner: "azure:gpt-4o-mini"
+  composer: "openai:gpt-4o-mini"
+
+azureOpenai:
+  endpoint: "https://example.services.ai.azure.com/openai/v1"
+  apiKeySecret:
+    name: dss-azure-openai
+    key: api-key
+
+openai:
+  apiKeySecret:
+    name: dss-openai
+    key: api-key
+
+network:
+  discoveryBaseUrl: "http://oan-discovery.oan-discovery.svc.cluster.local:8080"
+  invocationBaseUrl: "http://oan-discovery.oan-discovery.svc.cluster.local:8080"
+
+schemaPacks:
+  githubTokenSecret:
+    name: dss-github
+    key: token
+
+tracing:
+  otlpEndpoint: "http://otel-collector.observability.svc.cluster.local:4318"
+  headersSecret:
+    name: dss-langfuse
+    key: otlp-headers

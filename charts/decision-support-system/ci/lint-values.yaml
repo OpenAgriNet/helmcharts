@@ -1,0 +1,13 @@
+# The chart's own defaults (openai:gpt-4o-mini everywhere, network unwired)
+# otherwise render with no overrides - this file exists so CI renders a case
+# with the private registry pull secret, matching how it is actually
+# installed, plus the OPENAI_API_KEY secret reference the openai: default
+# requires (decision-support-system.usesOpenai guard in _helpers.tpl).
+image:
+  pullSecrets:
+    - ghcr
+
+openai:
+  apiKeySecret:
+    name: dss-openai
+    key: api-key
