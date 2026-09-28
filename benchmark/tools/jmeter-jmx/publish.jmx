@@ -145,6 +145,25 @@ body = body.replace('__TRANSACTION_ID__', UUID.randomUUID().toString())
            .replace('__MESSAGE_ID__', UUID.randomUUID().toString())
            .replace('__TIMESTAMP__', Instant.now().toString())
 
+// BENCH_FRESH_IDS makes every request publish into a catalog of its own.
+//
+// Off by default, and deliberately: the ordinary run republishes into the same
+// catalogs, which is what a provider actually does and what the numbers are
+// meant to describe. Set it to measure publish WITHOUT the contention that
+// causes -- every request then takes a row lock nobody else wants, merges into
+// an empty catalog, and rebuilds only its own resources.
+//
+// One token per request, appended to every id in the payload. Applying it to
+// the prefixes rather than to whole ids keeps the document internally
+// consistent: publishDirectives[].catalogId still names its catalog, and an
+// offer's resourceIds still name resources that are in the same request.
+def fresh = System.getenv('BENCH_FRESH_IDS')
+if (fresh) {
+    def uniq = UUID.randomUUID().toString().replace('-', '').substring(0, 12)
+    body = body.replace('catalog:', 'catalog:' + uniq + '-')
+               .replace('resource:', 'resource:' + uniq + '-')
+}
+
 // Replace the sampler's body outright. Passing it through a JMeter variable
 // would re-interpolate the JSON, and a payload containing ${...} would be
 // rewritten on its way to the wire.
