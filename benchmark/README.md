@@ -4,9 +4,13 @@ Load tests for the OAN network layer: how much it handles, how fast it answers,
 and what it costs in CPU and memory. Three scenarios — publish, discover and
 select — driven by JMeter against a deployed stack.
 
+Sections 1 to 5 are in the order you go through them: check what is here,
+get the prerequisites in place, build the data, run, read the results.
+Reference at the end is background, not a step.
+
 `make` on its own prints the menu.
 
-## Layout
+## 1. Layout
 
 ```
 benchmark/
@@ -35,9 +39,9 @@ benchmark/
 `mock-upstream/` holds a stand-in for select's upstream API. It is applied by
 hand and is not part of any chart — see [Prerequisites](#prerequisites).
 
-## Prerequisites
+## 2. Prerequisites
 
-### On the machine you run from
+### 2.1 On the machine you run from
 
 | | Why |
 |---|---|
@@ -52,7 +56,7 @@ No JMeter plugins needed. Check what is missing before anything else:
 make dependency-check
 ```
 
-### The deployed stack
+### 2.2 The deployed stack
 
 Everything in the path of the scenario you are running has to be up and
 reachable: the adapters, discovery and its database, and the registry seeded
@@ -78,7 +82,7 @@ Either metrics-server, which lets the harness sample `kubectl top` itself with
 `SAMPLE=k8s`, or an OpenTelemetry agent feeding a dashboard. With neither, a run
 still records throughput, latency and errors, and nothing else.
 
-### For select only
+### 2.3 For select only
 
 Select is the one scenario that leaves the network: the provider adapter calls a
 real API and maps what comes back. Running it against the real one measures that
@@ -112,7 +116,7 @@ present". Delete the row first, then re-run the seed.
 Send one select by hand before a full run. It should return 200 with resources in
 the body; anything else means one of the three above is still wrong.
 
-## Prepare the data
+## 3. Prepare the data
 
 Build the payloads once, then run as often as you like.
 
@@ -150,7 +154,7 @@ on purpose. Commit `data/CHECKSUMS` along with that change.
 make checksums CAPABILITY=MandiPrice
 ```
 
-### How the data fits together
+### 3.1 How the data fits together
 
 ```
 data/<capability>-metadata/   fetched from the provider
@@ -177,7 +181,7 @@ digests with `make checksums` and commit that file with the change.
 To change how much data, edit `capabilities/<name>/config/`. To change the shape
 of a payload, edit `capabilities/<name>/templates/`.
 
-### Refetching the provider metadata
+### 3.2 Refetching the provider metadata
 
 Only needed to refresh the input the payloads are built from. This is the one
 step that needs credentials and network access.
@@ -200,7 +204,7 @@ make get-mandi-metadata \
   TO_DATE=01-12-2026
 ```
 
-## Run a benchmark
+## 4. Run a benchmark
 
 `publish`, `discover` or `select` — the same settings for all three.
 
@@ -231,7 +235,7 @@ make publish \
   ARGS='--record-host'
 ```
 
-### Settings
+### 4.1 Settings
 
 | Variable | Used by | Default | Does |
 |---|---|---|---|
@@ -317,7 +321,7 @@ and the report shows both. If they disagree, the label is wrong:
 | discovery-postgres | 1/1Gi       | 2/2Gi       |
 ```
 
-## After a run
+## 5. After a run
 
 One directory per run, under `results/`, named for when it ran and what it ran
 against:
@@ -344,7 +348,7 @@ was tested. Inside:
 Runs are never deleted for you. `make clean` only clears the build cache;
 `make clean-results` asks before deleting.
 
-### Reading the numbers
+### 5.1 Reading the numbers
 
 **Response time includes the network.** The load generator sits outside the
 cluster. Pass `HEALTH=` and the report records a baseline round trip, so you can
@@ -370,7 +374,7 @@ dashboard has them instead, and they are readable after the run rather than only
 during it — which is what the run window in `report.md` is for. Disk and network
 I/O are collected by neither.
 
-### Bringing runs back
+### 5.2 Bringing runs back
 
 **Bring runs back from the load machine.** The load generator usually runs
 somewhere else. This copies whole run directories across — `results.jtl`
@@ -398,7 +402,7 @@ make report RUN=20260921-101500-1cpu-1Gi-mandiprice-publish
 20260921-104500-2cpu-2Gi-mandiprice-discover    500 reqs   50.00 requests/second  p95 112 ms  err 2.00 %
 ```
 
-### Tidying up
+### 5.3 Tidying up
 
 **Tidy up.** Both take nothing. `clean` does not touch runs or payloads;
 `clean-results` lists what it will delete and asks first.
