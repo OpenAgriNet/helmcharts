@@ -58,16 +58,21 @@ make dependency-check
 
 ### 2.2 The deployed stack
 
-Everything in the path of the scenario you are running has to be up and
-reachable: the adapters, discovery and its database, and the registry seeded
-with the adapter identities. Every adapter resolves its caller against the
-registry on each request, so the registry is in the path of all three scenarios
-even though no scenario addresses it directly.
+Up and reachable before any run:
 
-**No hostname is committed anywhere.** The target is a `URL=` argument, the pods
-to sample are `NAMESPACE=` and `SELECTOR=`, and the report hides the host unless
-you pass `--record-host`. So the ingress can be anything you like, as long as it
-routes the three paths to the right place:
+- the adapters
+- discovery and its database
+- the registry, seeded with the adapter identities — every adapter resolves its
+  caller against it on every request, so it is in the path of all three
+  scenarios even though none addresses it directly
+
+**No hostname is committed anywhere.**
+
+- the target is a `URL=` argument
+- the pods to sample are `NAMESPACE=` and `SELECTOR=`
+- the report hides the host unless you pass `--record-host`
+
+So the ingress can be anything, as long as it routes:
 
 | Path | Goes to |
 |---|---|
@@ -75,12 +80,14 @@ routes the three paths to the right place:
 | `/discover` | the consumer adapter |
 | `/select` | the consumer adapter |
 
-Point `URL=` at that host with no path — the runner appends the action itself.
+Point `URL=` at that host with no path — the runner appends the action.
 
-**Good to have, not required:** something collecting per-pod CPU and memory.
-Either metrics-server, which lets the harness sample `kubectl top` itself with
-`SAMPLE=k8s`, or an OpenTelemetry agent feeding a dashboard. With neither, a run
-still records throughput, latency and errors, and nothing else.
+**Good to have, not required** — something collecting per-pod CPU and memory:
+
+- metrics-server, so the harness can sample `kubectl top` with `SAMPLE=k8s`
+- or an OpenTelemetry agent feeding a dashboard
+
+With neither, a run records throughput, latency and errors, and nothing else.
 
 ### 2.3 For select only
 
@@ -115,12 +122,11 @@ Send one select by hand first. It should return 200 with resources in the body.
 make data
 ```
 
-About 45 seconds. Produces 100,000 resources and 20,000 discover queries, around
-150 MB — generated rather than committed, because that is too much for a public
-repository.
-
-Seeded, so rebuilding gives byte-identical files and two runs stay comparable.
-Needs no credentials and no network.
+- about 45 seconds
+- 100,000 resources and 20,000 discover queries, around 150 MB
+- generated rather than committed: too much for a public repository
+- seeded, so rebuilding gives byte-identical files and two runs stay comparable
+- needs no credentials and no network
 
 ```
 data/<capability>-metadata/   fetched from the provider
@@ -147,7 +153,7 @@ exist.
 All take `CAPABILITY=`. To change how much data, edit `capabilities/<name>/config/`;
 to change the shape of a payload, edit `capabilities/<name>/templates/`.
 
-### 3.2 Refetching the provider metadata
+### 3.1 Refetching the provider metadata
 
 Only needed to refresh the input the payloads are built from. This is the one
 step that needs credentials and network access.
@@ -384,17 +390,20 @@ make clean-results
 
 ---
 
-# Reference
+## Reference
 
-## MandiPrice
+### MandiPrice
 
 Commodity prices from agricultural markets, served by Agmarknet. One catalog per
 state, one resource per **market-commodity pair**.
 
-The pairing matters: a market trades 1 to 80 commodities, median 4. One resource
-per market made every resource a different size, so one discover response came
-back 5 MB and the next 1 MB from queries matching the same number of things. One
-commodity per resource keeps them within about 2% of each other.
+The pairing matters:
+
+- a market trades 1 to 80 commodities, median 4
+- one resource per market made every resource a different size — one discover
+  response came back 5 MB and the next 1 MB, from queries matching the same
+  number of things
+- one commodity per resource keeps them within about 2% of each other
 
 ```
 derived 9 catalog(s) from state_name
@@ -410,14 +419,13 @@ but a commodity mapping for only 9: Maharashtra, Tamil Nadu, Madhya Pradesh,
 Uttar Pradesh, Karnataka, Chhattisgarh, Meghalaya, Andhra Pradesh and Bihar. The
 rest contribute nothing and get no empty catalog.
 
-`targetResources` in `config/publish.yaml` sets the total. Real pairs are
-repeated to reach it, each state taking a proportional share. `realPairs` in the
-manifest says how far the real data was stretched — read it before quoting a
-result.
-
-The skips are the source data, not a bug: missing coordinates, or impossible
-ones such as a longitude of 703620 or a market called "Testing". They are
-dropped and named rather than corrected.
+- `targetResources` in `config/publish.yaml` sets the total
+- real pairs are repeated to reach it, each state taking a proportional share
+- `realPairs` in the manifest says how far the real data was stretched — read it
+  before quoting a result
+- the skips are the source data, not a bug: missing coordinates, or impossible
+  ones such as a longitude of 703620 or a market called "Testing". Dropped and
+  named rather than corrected
 
 **Discover queries** carry a commodity filter and a spatial constraint together,
 never one alone. Every query is distinct, and every one returns about the same
@@ -445,7 +453,7 @@ costs about a second per thousand.
 **Select requests** each name one published resource: one market, one commodity
 that market really trades.
 
-### Refreshing the data
+**Refreshing the data**
 
 ```bash
 make get-mandi-metadata
@@ -471,7 +479,7 @@ make get-mandi-metadata FROM_DATE=01-01-2026 TO_DATE=01-12-2026
 
 A market with no trades in that window gets no commodities and is skipped.
 
-### Known quirks
+**Known quirks**
 
 **Coverage is uneven.** Gujarat has no mapping data at all, which is why Madhya
 Pradesh is used instead. Andhra Pradesh has four markets.
@@ -483,7 +491,7 @@ the ones a payload uses.
 
 ---
 
-## Adding a capability
+### Adding a capability
 
 Each capability brings its own data preparation, because payload shapes differ
 too much to share one tool.
