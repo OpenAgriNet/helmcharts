@@ -24,6 +24,15 @@ server: http://openbao.openbao.svc.cluster.local:8200
 path: secret
 version: v2
 
+# The namespaces whose ExternalSecrets may use this store. ESO logs in to
+# OpenBao as its own ServiceAccount whatever namespace an ExternalSecret is in,
+# so the OpenBao policy cannot tell them apart; without this, an ExternalSecret
+# in ANY namespace could read every oan/<env>/* credential. openbao-secrets is
+# installed in external-secrets. An ExternalSecret elsewhere fails with
+# "not allowed to use this store" -- add its namespace here if it should read.
+allowedNamespaces:
+  - external-secrets
+
 # ---------------------------------------------------------------------------
 # Authentication
 #

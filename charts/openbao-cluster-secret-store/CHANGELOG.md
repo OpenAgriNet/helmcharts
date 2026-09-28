@@ -16,3 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Replaces `asm-cluster-secret-store`, which points at AWS Secrets Manager
   through IRSA. `openbao-secrets` reads the same keys through it,
   `oan/<env>/<name>`, that `asm-secrets` read through that one.
+- `allowedNamespaces` (default `[external-secrets]`), rendered as the store's
+  `spec.conditions`. ESO logs in to OpenBao as itself whichever namespace an
+  ExternalSecret is in, so without it an ExternalSecret in any namespace could
+  read every credential. Required: the chart fails to render with it empty.
