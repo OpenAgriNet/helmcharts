@@ -6,12 +6,12 @@
 # Install order (see the chart's README.md):
 #   1. knowledge-provider-keycloak-db, knowledge-provider-temporal-db (postgresql-cnpg)
 #   2. knowledge-provider-keycloak, knowledge-provider-temporal
-#   3. knowledge-provider-minio, knowledge-provider-qdrant
+#   3. minio, qdrant (charts/minio, charts/qdrant - shared infra)
 #   4. this chart
 #
 # Before installing, create the Secrets this chart references (see README.md,
 # "Secrets") - at minimum knowledge-provider-minio-credentials, matching
-# whatever access/secret key you gave the knowledge-provider-minio release.
+# whatever access/secret key you gave the minio release.
 
 image:
   registry: ghcr.io

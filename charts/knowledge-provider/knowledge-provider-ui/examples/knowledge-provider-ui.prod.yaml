@@ -8,10 +8,15 @@
 # README.md, "Build-time configuration". This values file cannot change any of
 # that; it only configures how the already-built image is deployed.
 
+# NOTE: the app was rebased from "docs-pipeline" to "knowledge-provider" -
+# the image now serves the SPA at /knowledge-provider/ instead of
+# /docs-pipeline/ (verified directly against both images' nginx configs).
+# `main` is the only published tag with that base path; no versioned release
+# has been cut since the rebase.
 image:
   registry: ghcr.io
   repository: openagrinet/knowledge-provider-ui
-  tag: "v0.1.0"
+  tag: "main"
   pullSecrets:
     - ghcr-pull-secret
 
@@ -21,7 +26,7 @@ ingress:
   hosts:
     - host: registry-sandbox-vistaar.da.gov.in
       paths:
-        - path: /docs-pipeline
+        - path: /knowledge-provider
           pathType: Prefix
 
 resources:

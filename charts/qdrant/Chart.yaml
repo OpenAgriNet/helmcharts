@@ -1,8 +1,9 @@
 apiVersion: v2
-name: knowledge-provider-api
+name: qdrant
 description: >-
-  Bharat Vistaar Docs Pipeline API - FastAPI service for review-driven
-  document ingestion (OCR, translation, chunking, vector indexing).
+  Qdrant (single-node) - shared OAN vector index infrastructure. Currently
+  consumed by knowledge-provider as its DEV vector store; PROD Qdrant is
+  always a separately managed deployment, never this chart.
 type: application
 version: 0.2.0
 appVersion: "latest"
@@ -12,13 +13,13 @@ maintainers:
 keywords:
   - oan
   - openagrinet
-  - knowledge-provider
-  - docs-pipeline
+  - qdrant
+  - vector-database
 home: https://github.com/OpenAgriNet/helmcharts
 sources:
   - https://github.com/OpenAgriNet/helmcharts
-  - https://github.com/OpenAgriNet/knowledge-provider
+  - https://github.com/qdrant/qdrant
 dependencies:
   - name: common
     version: "0.2.x"
-    repository: "file://../../common"
+    repository: "file://../common"

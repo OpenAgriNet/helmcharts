@@ -1,8 +1,9 @@
 apiVersion: v2
-name: knowledge-provider-api
+name: minio
 description: >-
-  Bharat Vistaar Docs Pipeline API - FastAPI service for review-driven
-  document ingestion (OCR, translation, chunking, vector indexing).
+  MinIO object storage (single-node) - shared OAN blob storage
+  infrastructure. Currently consumed by knowledge-provider for original
+  uploads, normalized files, and stage artifacts.
 type: application
 version: 0.2.0
 appVersion: "latest"
@@ -12,13 +13,13 @@ maintainers:
 keywords:
   - oan
   - openagrinet
-  - knowledge-provider
-  - docs-pipeline
+  - minio
+  - object-storage
 home: https://github.com/OpenAgriNet/helmcharts
 sources:
   - https://github.com/OpenAgriNet/helmcharts
-  - https://github.com/OpenAgriNet/knowledge-provider
+  - https://github.com/minio/minio
 dependencies:
   - name: common
     version: "0.2.x"
-    repository: "file://../../common"
+    repository: "file://../common"

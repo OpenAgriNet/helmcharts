@@ -5,7 +5,7 @@ description: >-
   image as knowledge-provider-api, registering workflows/activities on the
   ocr-pipeline task queue instead of serving HTTP.
 type: application
-version: 0.1.0
+version: 0.2.0
 appVersion: "latest"
 maintainers:
   - name: OpenAgriNet Engineering Team

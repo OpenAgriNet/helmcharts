@@ -35,9 +35,9 @@ helm install knowledge-provider-temporal-db charts/postgresql-cnpg -n knowledge-
 helm install knowledge-provider-keycloak charts/knowledge-provider/knowledge-provider-keycloak -n knowledge-provider -f ...
 helm install knowledge-provider-temporal charts/knowledge-provider/knowledge-provider-temporal -n knowledge-provider -f ...
 
-# 3. Object storage and DEV vector index
-helm install knowledge-provider-minio charts/knowledge-provider/knowledge-provider-minio -n knowledge-provider -f ...
-helm install knowledge-provider-qdrant charts/knowledge-provider/knowledge-provider-qdrant -n knowledge-provider -f ...
+# 3. Object storage and DEV vector index (shared infra, top-level charts)
+helm install minio charts/minio -n knowledge-provider -f ...
+helm install qdrant charts/qdrant -n knowledge-provider -f ...
 
 # 4. This chart
 helm install knowledge-provider-api charts/knowledge-provider/knowledge-provider-api -n knowledge-provider \
@@ -105,7 +105,7 @@ None are rendered. Defaults in `secretEnv` name the Secrets this chart expects
 
 | Secret (default name) | Keys |
 |---|---|
-| `knowledge-provider-minio-credentials` | `access-key`, `secret-key` — must match the `knowledge-provider-minio` release |
+| `knowledge-provider-minio-credentials` | `access-key`, `secret-key` — must match the `minio` release (`charts/minio`) |
 | `knowledge-provider-provider-keys` | `vector-db-api-key`, `prod-vector-db-api-key`, `embedding-api-key`, `hf-token`, `mistral-api-key`, `gemma-api-key`, `domain-tagging-api-key` (all optional — omit a key and that env var is simply unset) |
 | `knowledge-provider-keycloak-client` | `client-secret` |
 | `knowledge-provider-keycloak-admin` | `password` |

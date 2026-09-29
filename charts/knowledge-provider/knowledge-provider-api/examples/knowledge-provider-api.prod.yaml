@@ -34,7 +34,7 @@ envConfig:
   LOG_LEVEL: "info"
   CORS_ORIGINS: "https://registry-sandbox-vistaar.da.gov.in"
   DOCS_PIPELINE_API_URL: "https://registry-sandbox-vistaar.da.gov.in/docs-pipeline-api"
-  DOCS_PIPELINE_UI_URL: "https://registry-sandbox-vistaar.da.gov.in/docs-pipeline"
+  DOCS_PIPELINE_UI_URL: "https://registry-sandbox-vistaar.da.gov.in/knowledge-provider"
   AGRINET_GEMMA_BASE_URL: "https://dev-vistaar.da.gov.in/gemma4"
   TRANSLATION_VLLM_BASE_URL: "https://dev-vistaar.da.gov.in/gemma4"
   DOMAIN_TAGGING_VLLM_BASE_URL: "https://dev-vistaar.da.gov.in/gemma4"

@@ -108,19 +108,20 @@ extraVolumeMounts: []
 
 # ---------------------------------------------------------------------------
 # In-cluster backing services. Must match the knowledge-provider-api release
-# these values point at (same defaults assume default release names).
+# these values point at (same defaults assume default release names - see
+# knowledge-provider-api/values.yaml for where each chart lives).
 # ---------------------------------------------------------------------------
 temporal:
   host: knowledge-provider-temporal
   port: 7233
 
 minio:
-  host: knowledge-provider-minio
+  host: minio
   port: 9000
   bucket: documents
 
 vectorStore:
-  host: knowledge-provider-qdrant
+  host: qdrant
   port: 6333
   collectionName: test_doc_pipeline
   timeoutSeconds: 30

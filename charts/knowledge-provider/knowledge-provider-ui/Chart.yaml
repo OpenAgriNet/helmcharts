@@ -4,7 +4,7 @@ description: >-
   Bharat Vistaar Docs Pipeline UI - React/Vite operator console, served as a
   static bundle via nginx.
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "latest"
 maintainers:
   - name: OpenAgriNet Engineering Team

@@ -5,6 +5,20 @@ All notable changes to the `knowledge-provider-api` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-09-29
+
+### Changed
+- **Breaking:** `minio.host` default changed from `knowledge-provider-minio`
+  to `minio`, and `vectorStore.host` default changed from
+  `knowledge-provider-qdrant` to `qdrant` — the MinIO and Qdrant charts moved
+  to top-level `charts/minio`/`charts/qdrant` as shared OAN infrastructure and
+  now default to release names `minio`/`qdrant` (see those charts'
+  CHANGELOGs). Re-point `minio.host`/`vectorStore.host` if you keep the old
+  release names.
+- `examples/knowledge-provider-api.prod.yaml`: `envConfig.DOCS_PIPELINE_UI_URL`
+  updated from `.../docs-pipeline` to `.../knowledge-provider`, matching the
+  UI chart's ingress path fix (see `knowledge-provider-ui`'s CHANGELOG).
+
 ## [0.1.0] - 2026-09-21
 
 ### Added
