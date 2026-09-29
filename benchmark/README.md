@@ -160,6 +160,8 @@ make data
 
 - about 45 seconds
 - 100,000 resources and 20,000 discover queries, around 150 MB
+- the 100,000 publish resources arrive as **1,002 payload files**, one request each, so a single pass over the set is 1,002 requests
+- a run asking for more than that starts the list again from the top, publishing the set more than once
 - generated rather than committed: too much for a public repository
 - seeded, so rebuilding gives byte-identical files and two runs stay comparable
 - needs no credentials and no network
@@ -218,8 +220,9 @@ Only `URL` is required. Everything else has a default.
 | `THREADS` | `10` | Requests in flight at once. Each waits for its reply before sending again |
 | `RAMP_UP` | `30` | Seconds to start all the threads |
 | `DURATION` | `300` | Seconds to keep going. Ignored when `LOOPS` is positive |
-| `LOOPS` | `-1` | Requests per thread. `-1` loops until `DURATION` ends it; a positive number runs exactly that many, however long it takes |
+| `LOOPS` | `-1` | Requests **per thread** — a run sends `LOOPS` × `THREADS` in all, so 10 threads and 501 loops is 5,010 requests. `-1` loops until `DURATION` ends it; a positive number runs exactly that many, however long it takes |
 | `RATE` | `0` | Ceiling on requests per minute. `0` is flat out |
+| `FRESH_IDS` | `no` | Publish only. `yes` rewrites the catalog and resource ids in every payload, so no two requests write to the same catalog. `no` leaves them as generated, so requests contend for the catalogs already stored — the realistic case, and much slower. The report records which was used |
 | `STARTUP_DELAY` | `0` | Seconds to wait before the first thread starts |
 | `CONNECT_TIMEOUT` | `10000` | Milliseconds to wait for the connection to open before giving up on a request |
 | `RESPONSE_TIMEOUT` | `120000` | Milliseconds to wait for the reply. Keep it above every timeout in the stack, or you measure the load generator giving up |

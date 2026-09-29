@@ -29,6 +29,7 @@ RAMP_UP=30
 DURATION=300
 RATE_PER_MIN=0
 LOOPS=-1
+FRESH_IDS=no
 STARTUP_DELAY=0
 ON_SAMPLE_ERROR=continue
 CONNECT_TIMEOUT=10000
@@ -79,6 +80,12 @@ Load:
                         a positive number switches the run to iteration-count
                         mode and turns the scheduler off, so every thread
                         finishes its loops however long that takes
+  --fresh-ids           publish only. Rewrite the catalog and resource ids in
+                        every payload so no two requests write to the same
+                        catalog. Off by default, which is the realistic case:
+                        requests contend for the catalogs already stored. Turn
+                        it on to measure publish without that contention. The
+                        report and run.env both say which it was
   --startup-delay SEC   wait before the first thread starts  (default 0)
   --on-sample-error W   continue | stoptest | stopthread    (default continue)
   --connect-timeout MS  TCP connect timeout                 (default 10000)
@@ -115,6 +122,7 @@ while [ $# -gt 0 ]; do
     --duration)        DURATION="$2"; shift 2 ;;
     --rate-per-min)    RATE_PER_MIN="$2"; shift 2 ;;
     --loops)           LOOPS="$2"; shift 2 ;;
+    --fresh-ids)       FRESH_IDS="yes"; shift ;;
     --startup-delay)   STARTUP_DELAY="$2"; shift 2 ;;
     --on-sample-error) ON_SAMPLE_ERROR="$2"; shift 2 ;;
     --connect-timeout) CONNECT_TIMEOUT="$2"; shift 2 ;;
@@ -323,6 +331,7 @@ rampUp=$RAMP_UP
 duration=$DURATION
 ratePerMin=$RATE_PER_MIN
 loops=$LOOPS
+freshIds=$FRESH_IDS
 scheduler=$SCHEDULER
 connectTimeout=$CONNECT_TIMEOUT
 responseTimeout=$RESPONSE_TIMEOUT
@@ -346,6 +355,7 @@ jmeter -n -t "$PLAN" \
   -Jthreads="$THREADS" -JrampUp="$RAMP_UP" -Jduration="$DURATION" \
   -JthroughputPerMin="$JMETER_RATE" \
   -Jloops="$LOOPS" -Jscheduler="$SCHEDULER" \
+  -JfreshIds="$FRESH_IDS" \
   -JstartupDelay="$STARTUP_DELAY" -JonSampleError="$ON_SAMPLE_ERROR" \
   -JconnectTimeout="$CONNECT_TIMEOUT" -JresponseTimeout="$RESPONSE_TIMEOUT" \
   -Jsummariser.interval="$PROGRESS_INTERVAL" \

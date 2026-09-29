@@ -174,10 +174,19 @@ fi
   echo "| Target | \`$(get host):$(get port)$(get path)\` |"
   echo "| Baseline round trip | $(get baseline) |"
   if [ "$(get scheduler)" = "false" ]; then
-    echo "| Load | $(get threads) threads, ramp-up $(get rampUp)s, $(get loops) loops each |"
+    # Loops are counted PER THREAD, so the total is the product. Spelled out
+    # here because a reader seeing "501 loops" reasonably reads it as the size
+    # of the run, when the run is that many times the thread count.
+    echo "| Load | $(get threads) threads, ramp-up $(get rampUp)s, $(get loops) loops each — $(( $(get threads) * $(get loops) )) requests |"
   else
     echo "| Load | $(get threads) threads, ramp-up $(get rampUp)s, duration $(get duration)s |"
   fi
+  # Publish only, and only worth a row when the plan supports it. Two runs that
+  # differ here measure different things and are not comparable.
+  case "$(get freshIds)" in
+    yes|true|1) echo "| Catalog ids | rewritten per request — no two requests share a catalog |" ;;
+    no|false|0) echo "| Catalog ids | as published — requests contend for the stored catalogs |" ;;
+  esac
   if [ "$(get ratePerMin)" = "0" ]; then
     echo "| Target rate | none — threads run flat out |"
   else

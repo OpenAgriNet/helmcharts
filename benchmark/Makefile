@@ -103,12 +103,18 @@ HEALTH ?=
 # whether the adapter was pointed at a mock provider or the real one.
 NOTE ?=
 
+# Publish only. yes gives every request its own catalog, so requests never
+# contend for a stored catalog. Off measures publish as a provider actually
+# does it. The report says which, so two runs are never confused.
+FRESH_IDS ?= no
+
 # Extra arguments passed straight through, e.g. ARGS="--record-host"
 ARGS ?=
 
 BENCH_ARGS = --capability $(CAPABILITY) --url $(URL) \
              --threads $(THREADS) --ramp-up $(RAMP_UP) --duration $(DURATION) \
              --rate-per-min $(RATE) --loops $(LOOPS) \
+             $(if $(filter yes true 1,$(FRESH_IDS)),--fresh-ids) \
              --startup-delay $(STARTUP_DELAY) --on-sample-error $(ON_SAMPLE_ERROR) \
              --connect-timeout $(CONNECT_TIMEOUT) --response-timeout $(RESPONSE_TIMEOUT) \
              --config $(CONFIG) \
