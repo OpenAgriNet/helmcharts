@@ -1,0 +1,253 @@
+# A stand-in for the Agmarknet Vistaar upstream, for the select benchmark.
+#
+#     kubectl apply -f benchmark/mock-upstream/manifest.yaml
+#
+# WHY A MOCK AT ALL. Select is the one action that leaves the network: the
+# provider adapter calls a real API and maps what comes back. Benchmarking
+# against the real Agmarknet would measure Agmarknet -- its latency, its rate
+# limits, its outages -- and would put real load on someone else's service. The
+# question here is what the ADAPTERS can carry, so the upstream is made as close
+# to free as possible and gets out of the way.
+#
+# NGINX RETURNING A FILE, not a program. There is nothing to build, nothing to
+# publish to a registry, and no per-request work beyond reading a warm page from
+# cache -- which is as light as this gets. A Go mock would have to be built into
+# an image and pushed before the cluster could pull it.
+#
+# APPLIED BY HAND, deliberately outside ArgoCD. It belongs to the benchmark
+# rather than to the environment, and it should not be reconciled back after the
+# run is over. Delete it the same way:
+#
+#     kubectl delete -f benchmark/mock-upstream/manifest.yaml
+#
+# TWO COMPANION CHANGES are needed before select resolves here. Neither is in
+# this file, because neither belongs to the benchmark:
+#
+#   1. The registry's `agmarknet` upstream must carry this Service as its
+#      baseUrl. The seed job only CREATES -- its ensure() skips anything already
+#      present -- so the registry rows have to be dropped and reseeded for a new
+#      baseUrl to take. discovery-db is a separate CNPG cluster and is not
+#      touched by that, so the 100,000 published resources survive.
+#
+#   2. The provider adapter's auth for `agmarknet|openagrinet:MandiPrice` must
+#      become `authScheme: none`. It is `tokenQuery` today, which fetches a
+#      token from a URL held in the provider-adapter-keys Secret -- reflected
+#      out of AWS Secrets Manager, and not something a benchmark should be
+#      rewriting. A mock needs no credential, so the exchange is dropped rather
+#      than reproduced.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mock-upstream
+  labels:
+    oan.in/environment: dev
+    oan.in/purpose: benchmark
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mock-upstream
+  namespace: mock-upstream
+data:
+  nginx.conf: |
+    # Tuned for one job: hand back the same bytes as fast as the socket allows.
+    worker_processes auto;
+    events {
+      worker_connections 4096;
+    }
+    http {
+      # OFF ON PURPOSE. At a few hundred requests a second a log line per
+      # request is the most expensive thing this server would do, and nobody
+      # reads it -- the run is measured at the load generator.
+      access_log off;
+      sendfile on;
+      tcp_nopush on;
+      keepalive_requests 100000;
+      keepalive_timeout 75s;
+
+      server {
+        # 8080, not 80: the container runs unprivileged and cannot bind a
+        # port below 1024.
+        listen 8080 backlog=4096;
+        root /www;
+
+        # The one path the binding names. Exact match rather than a prefix, so
+        # a typo in the registry surfaces as a 404 here instead of quietly
+        # being served the same answer.
+        location = /v1/fetch-agmarknet-vistaar {
+          default_type application/json;
+          try_files /response.json =404;
+        }
+
+        location = /healthz {
+          return 200 "ok\n";
+        }
+
+        # Anything else is a misconfiguration worth seeing.
+        location / {
+          return 404;
+        }
+      }
+    }
+
+  # The answer, byte for byte, for every request.
+  #
+  # STATIC IS SOUND HERE, and not just convenient: the mapping never checks that
+  # the response describes what was asked for. Its guard demands, per record, an
+  # `Arrival Date` that converts to yyyy-mm-dd, a `Price Unit`, and at least one
+  # usable price among the fields the caller wanted. Nothing ties a record back
+  # to the query, so one fixed answer exercises the same mapping work as a
+  # computed one.
+  #
+  # THE SHAPE IS THE REAL API'S, awkwardly so, and that is the point:
+  #
+  #   - a BARE ARRAY, not an object with a data key
+  #   - Title Case keys WITH SPACES -- `Modal Price`, not modalPrice -- which
+  #     the mapping has to reach with backticks
+  #   - prices as STRINGS, which it has to push through $number()
+  #
+  # A tidier mock would let a mapping pass here and fail against Agmarknet.
+  #
+  # ALL THREE PRICES ARE SET. $fields falls back to
+  # ["Minimum", "Maximum", "Modal"] when a request names no supportedPriceFields,
+  # and a record is dropped unless it can serve a field that was asked for -- so
+  # carrying all three means no request loses records for the wrong reason.
+  #
+  # THREE RECORDS, because the mapping emits one resource per record and the
+  # response size is part of what is being measured. Three is what a short date
+  # range really returns.
+  response.json: |
+    [
+      {
+        "Grade": "FAQ",
+        "Group": "Cereals",
+        "State": "CG",
+        "Market": "Mock APMC",
+        "Variety": "Common",
+        "District": "Balodabazar",
+        "Commodity": "Paddy(Dhan)(Common)",
+        "Min Price": "1750",
+        "Max Price": "1950",
+        "Modal Price": "1850",
+        "Price Unit": "Rs./Qtl",
+        "Arrival Date": "22-09-2026"
+      },
+      {
+        "Grade": "FAQ",
+        "Group": "Cereals",
+        "State": "CG",
+        "Market": "Mock APMC",
+        "Variety": "Common",
+        "District": "Balodabazar",
+        "Commodity": "Paddy(Dhan)(Common)",
+        "Min Price": "1775",
+        "Max Price": "1975",
+        "Modal Price": "1875",
+        "Price Unit": "Rs./Qtl",
+        "Arrival Date": "23-09-2026"
+      },
+      {
+        "Grade": "FAQ",
+        "Group": "Cereals",
+        "State": "CG",
+        "Market": "Mock APMC",
+        "Variety": "Common",
+        "District": "Balodabazar",
+        "Commodity": "Paddy(Dhan)(Common)",
+        "Min Price": "1800",
+        "Max Price": "2000",
+        "Modal Price": "1900",
+        "Price Unit": "Rs./Qtl",
+        "Arrival Date": "24-09-2026"
+      }
+    ]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-upstream
+  namespace: mock-upstream
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-upstream
+  template:
+    metadata:
+      labels:
+        app: mock-upstream
+    spec:
+      containers:
+        - name: nginx
+          # Pinned, not :alpine. A benchmark that cannot be repeated because the
+          # tag moved underneath it is not a benchmark.
+          image: nginx:1.27.3-alpine
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+            - name: config
+              mountPath: /www/response.json
+              subPath: response.json
+              readOnly: true
+            # nginx writes its pid and temp bodies even when it serves only
+            # static files, so these two cannot be read-only.
+            - name: cache
+              mountPath: /var/cache/nginx
+            - name: run
+              mountPath: /var/run
+          # DELIBERATELY GENEROUS for what it does. The mock must never be the
+          # thing that saturates -- if it were, the run would measure nginx and
+          # read as an adapter ceiling. A whole core to serve one cached file
+          # means the adapters are the only candidates left.
+          resources:
+            requests:
+              cpu: "1"
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 101          # the nginx user in this image
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: config
+          configMap:
+            name: mock-upstream
+        - name: cache
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-upstream
+  namespace: mock-upstream
+spec:
+  selector:
+    app: mock-upstream
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  # No ingress. Nothing outside the cluster should reach this, and the provider
+  # adapter resolves it by its in-cluster name:
+  #
+  #     http://mock-upstream.mock-upstream.svc.cluster.local
+  #
+  # which is what goes into the registry's agmarknet baseUrl.
+  type: ClusterIP

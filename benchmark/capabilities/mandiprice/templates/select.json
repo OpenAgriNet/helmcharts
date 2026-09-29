@@ -1,0 +1,76 @@
+{
+  "_comment": [
+    "Payload SHAPE for the MandiPrice select benchmark, modelled on",
+    "quick-start/capability-examples/MandiPrice/select/select.json.",
+    "",
+    "The generator does not understand these fields. It picks one published",
+    "resource and one commodity that resource actually trades, then substitutes",
+    "placeholders -- so changing the shape here needs no code change.",
+    "",
+    "  {{RESOURCE_ID}}                        the resource being selected",
+    "  {{MARKET_NAME}} {{DISTRICT}} {{STATE}} copied from what was published",
+    "  {{COMMODITY_CODE}} {{COMMODITY_NAME}}  one commodity that market trades",
+    "  {{RESOURCE_CONTEXT}} {{RESOURCE_TYPE}} copied from what was published",
+    "  {{VALID_FROM}} {{VALID_TO}}            copied from what was published",
+    "  {{PROVIDER_ID}} {{OFFER_ID}}           from the config",
+    "  {{NUM:COUNT}}                          quantity, as a JSON number"
+  ],
+
+  "contract": {
+    "status": {
+      "code": "ACTIVE",
+      "name": "active"
+    },
+    "commitments": [
+      {
+        "status": {
+          "descriptor": {
+            "code": "ACTIVE",
+            "name": "active"
+          }
+        },
+        "resources": [
+          {
+            "id": "{{RESOURCE_ID}}",
+            "quantity": {
+              "count": "{{NUM:COUNT}}"
+            },
+            "resourceAttributes": {
+              "@context": "{{RESOURCE_CONTEXT}}",
+              "@type": "{{RESOURCE_TYPE}}",
+              "informationMode": "OnDemand",
+              "subjectCategories": ["Market"],
+              "supportedCommodities": [
+                {
+                  "code": "{{COMMODITY_CODE}}",
+                  "name": "{{COMMODITY_NAME}}"
+                }
+              ],
+              "supportedPriceFields": ["Minimum", "Maximum", "Modal"],
+              "market": {
+                "marketName": "{{MARKET_NAME}}",
+                "district": "{{DISTRICT}}",
+                "state": "{{STATE}}"
+              },
+              "validity": {
+                "startsAt": "{{VALID_FROM}}",
+                "endsAt": "{{VALID_TO}}"
+              }
+            }
+          }
+        ],
+        "offer": {
+          "id": "{{OFFER_ID}}",
+          "resourceIds": ["{{RESOURCE_ID}}"],
+          "provider": {
+            "id": "{{PROVIDER_ID}}",
+            "descriptor": {
+              "code": "AGMARKNET",
+              "name": "Agmarknet Vistaar"
+            }
+          }
+        }
+      }
+    ]
+  }
+}
