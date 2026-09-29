@@ -11,7 +11,8 @@
 #   - server.ha with raft, three replicas. Raft needs a majority, so three
 #     survive one loss; two would survive none.
 #   - retry_join: pods 1 and 2 find pod 0 and join it on their own. Only
-#     openbao-0 is ever initialised (scripts/openbao-configure.sh targets it).
+#     openbao-0 is ever initialised (infra-automation's
+#     scripts/openbao-configure.sh targets it).
 #   - service_registration "kubernetes": labels each pod active or standby, so
 #     the openbao-active Service reaches the leader. Standbys forward requests,
 #     so ESO and the scripts may talk to any pod.

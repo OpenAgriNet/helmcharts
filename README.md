@@ -194,8 +194,10 @@ helm install openbao charts/openbao -n openbao -f charts/openbao/examples/openba
 # 3. One-time setup: init (writes the root token and recovery keys to the
 #    file given -- move it to the password manager), KV v2 at secret/,
 #    Kubernetes auth, a read-only policy for oan/<env>/*, the role ESO uses,
-#    and the role the backup CronJob uses.
-./scripts/openbao-configure.sh --env dev --init-out ~/openbao-dev-init.json
+#    and the role the backup CronJob uses. The script lives in the
+#    infra-automation repository, which owns cluster bring-up; its
+#    install-services.sh runs it as part of a deploy.
+../infra-automation/scripts/openbao-configure.sh --env dev --init-out ~/openbao-dev-init.json
 
 # 4. The operator, the mirror, and the store they read
 helm install external-secrets charts/external-secrets -n external-secrets --create-namespace
