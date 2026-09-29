@@ -82,9 +82,10 @@ value, mirrored.
 
 `infra-automation`'s `scripts/manage-secrets.py` emits each value exactly once, in
 YAML, as the input to
-AWS Secrets Manager -- one top-level key per secret, one Secrets Manager entry
-each. From there External Secrets Operator pulls it into the owning namespace
-and Reflector mirrors it onward.
+OpenBao -- one top-level key per secret, one KV entry each, at
+`secret/oan/<env>/<name>`. From there External Secrets Operator pulls it into the
+owning namespace (`openbao-secrets`, through the store
+`openbao-cluster-secret-store` creates) and Reflector mirrors it onward.
 
 One consequence is easy to miss. CNPG's generated app Secret carries a ready-made
 `uri`, but it names the **bare** in-namespace host, so it does not resolve from

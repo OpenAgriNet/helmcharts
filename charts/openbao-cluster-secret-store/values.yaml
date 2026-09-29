@@ -1,0 +1,58 @@
+# ============================================================================
+# openbao-cluster-secret-store
+#
+# One ClusterSecretStore, cluster-scoped, naming the OpenBao the operator reads.
+# `openbao-secrets` then declares what to read from it.
+#
+# Split from openbao-secrets deliberately: the store is a property of the
+# CLUSTER (which OpenBao, which mount, which role) and changes when the cluster
+# does.
+# The secrets are a property of the APPLICATION and change when a service does.
+# One chart for both would tie an auth change to a service change.
+# ============================================================================
+
+# Referenced by every ExternalSecret as secretStoreRef.name.
+name: openbao
+
+# The OpenBao API, as the operator pod reaches it. The in-cluster Service the
+# openbao chart creates, in the openbao namespace.
+server: http://openbao.openbao.svc.cluster.local:8200
+
+# The KV mount the secrets live under, and its engine version. ESO reads
+# <path>/data/<key> for v2, so a v1/v2 mismatch fails as "secret not found"
+# rather than as a version error.
+path: secret
+version: v2
+
+# The namespaces whose ExternalSecrets may use this store. ESO logs in to
+# OpenBao as its own ServiceAccount whatever namespace an ExternalSecret is in,
+# so the OpenBao policy cannot tell them apart; without this, an ExternalSecret
+# in ANY namespace could read every oan/<env>/* credential. openbao-secrets is
+# installed in external-secrets. An ExternalSecret elsewhere fails with
+# "not allowed to use this store" -- add its namespace here if it should read.
+allowedNamespaces:
+  - external-secrets
+
+# ---------------------------------------------------------------------------
+# Authentication
+#
+# Kubernetes auth: the operator presents its own ServiceAccount token and
+# OpenBao checks it with the Kubernetes API. No credential is stored in the
+# cluster for this.
+#
+# The OpenBao role must be bound to exactly this ServiceAccount, with a policy
+# that allows only `read` on <path>/data/oan/<env>/*. Read-only: nothing in the
+# cluster should be able to write to the store, since the store is the source of
+# truth and the cluster is a copy. scripts/openbao-configure.sh sets that up.
+# ---------------------------------------------------------------------------
+auth:
+  # The auth method's mount path in OpenBao.
+  mountPath: kubernetes
+  # The OpenBao role the operator logs in as.
+  role: external-secrets
+  # The ServiceAccount the external-secrets release created.
+  serviceAccount:
+    name: external-secrets
+    namespace: external-secrets
+
+commonLabels: {}

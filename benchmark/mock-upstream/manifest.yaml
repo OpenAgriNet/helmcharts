@@ -31,9 +31,8 @@
 #
 #   2. The provider adapter's auth for `agmarknet|openagrinet:MandiPrice` must
 #      become `authScheme: none`. It is `tokenQuery` today, which fetches a
-#      token from a URL held in the provider-adapter-keys Secret -- reflected
-#      out of AWS Secrets Manager, and not something a benchmark should be
-#      rewriting. A mock needs no credential, so the exchange is dropped rather
+#      token from a URL held in the provider-adapter-keys Secret -- synced
+#      from OpenBao, and not something a benchmark should be rewriting. A mock needs no credential, so the exchange is dropped rather
 #      than reproduced.
 ---
 apiVersion: v1

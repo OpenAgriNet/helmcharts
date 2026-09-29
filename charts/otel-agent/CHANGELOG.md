@@ -5,6 +5,13 @@ All notable changes to the `otel-agent` chart.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-09-29
+
+### Changed
+
+- The ingestion-key Secret's comment says the rest of the secrets come from
+  OpenBao, not AWS Secrets Manager. Comment-only; nothing rendered changes.
+
 ## [0.1.2] - 2026-09-28
 
 ### Changed
