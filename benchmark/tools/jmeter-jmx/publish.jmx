@@ -169,6 +169,21 @@ if (fresh in ['yes', 'true', '1']) {
                .replace('resource:', 'resource:' + uniq + '-')
 }
 
+// --update-mode rewrites the publish directives, so one payload set serves
+// both modes and the two runs differ by this field alone.
+//
+// Empty leaves the payload as the generator wrote it. The generator writes
+// MERGE, which is also what the service assumes when the field is absent.
+//
+// Matched on the pair rather than on the word: "MERGE" as a bare string could
+// appear in a resource description one day, and rewriting that would change
+// the data instead of the directive. The alternation covers both values, so
+// this does not depend on which one the payloads happen to carry.
+def updateMode = props.get('updateMode')
+if (updateMode in ['MERGE', 'FULL']) {
+    body = body.replaceAll(/"updateMode":"(MERGE|FULL)"/, '"updateMode":"' + updateMode + '"')
+}
+
 // Replace the sampler's body outright. Passing it through a JMeter variable
 // would re-interpolate the JSON, and a payload containing ${...} would be
 // rewritten on its way to the wire.

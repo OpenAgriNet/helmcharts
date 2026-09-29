@@ -183,6 +183,10 @@ fi
   fi
   # Publish only, and only worth a row when the plan supports it. Two runs that
   # differ here measure different things and are not comparable.
+  case "$(get updateMode)" in
+    MERGE|FULL) echo "| Update mode | $(get updateMode), set for this run |" ;;
+    *) [ "$(get scenario)" = "publish" ] && echo "| Update mode | as generated (MERGE) |" ;;
+  esac
   case "$(get freshIds)" in
     yes|true|1) echo "| Catalog ids | rewritten per request — no two requests share a catalog |" ;;
     no|false|0) echo "| Catalog ids | as published — requests contend for the stored catalogs |" ;;
