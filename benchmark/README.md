@@ -222,6 +222,7 @@ Only `URL` is required. Everything else has a default.
 | `DURATION` | `300` | Seconds to keep going. Ignored when `LOOPS` is positive |
 | `LOOPS` | `-1` | Requests **per thread** — a run sends `LOOPS` × `THREADS` in all, so 10 threads and 501 loops is 5,010 requests. `-1` loops until `DURATION` ends it; a positive number runs exactly that many, however long it takes |
 | `RATE` | `0` | Ceiling on requests per minute. `0` is flat out |
+| `UPDATE_MODE` | — | Publish only. `MERGE` or `FULL`, rewriting the publish directives as each request goes out, so one payload set serves both modes. Empty leaves them as generated, which is `MERGE`. `FULL` replaces a catalog outright and deletes what a request omits — since the data splits each catalog across many requests, the stored catalog never grows under `FULL` the way it does under `MERGE`, so the two are not like for like |
 | `FRESH_IDS` | `no` | Publish only. `yes` rewrites the catalog and resource ids in every payload, so no two requests write to the same catalog. `no` leaves them as generated, so requests contend for the catalogs already stored — the realistic case, and much slower. The report records which was used |
 | `STARTUP_DELAY` | `0` | Seconds to wait before the first thread starts |
 | `CONNECT_TIMEOUT` | `10000` | Milliseconds to wait for the connection to open before giving up on a request |

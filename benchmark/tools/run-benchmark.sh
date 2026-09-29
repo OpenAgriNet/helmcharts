@@ -30,6 +30,7 @@ DURATION=300
 RATE_PER_MIN=0
 LOOPS=-1
 FRESH_IDS=no
+UPDATE_MODE=""
 STARTUP_DELAY=0
 ON_SAMPLE_ERROR=continue
 CONNECT_TIMEOUT=10000
@@ -86,6 +87,12 @@ Load:
                         requests contend for the catalogs already stored. Turn
                         it on to measure publish without that contention. The
                         report and run.env both say which it was
+  --update-mode MODE    publish only. MERGE or FULL, rewriting the publish
+                        directives as the request goes out. Unset leaves the
+                        payloads as generated, which is MERGE. FULL replaces a
+                        catalog outright and deletes what the request omits, so
+                        it is a different amount of work per request, not a
+                        different spelling of the same one
   --startup-delay SEC   wait before the first thread starts  (default 0)
   --on-sample-error W   continue | stoptest | stopthread    (default continue)
   --connect-timeout MS  TCP connect timeout                 (default 10000)
@@ -123,6 +130,7 @@ while [ $# -gt 0 ]; do
     --rate-per-min)    RATE_PER_MIN="$2"; shift 2 ;;
     --loops)           LOOPS="$2"; shift 2 ;;
     --fresh-ids)       FRESH_IDS="yes"; shift ;;
+    --update-mode)     UPDATE_MODE="$2"; shift 2 ;;
     --startup-delay)   STARTUP_DELAY="$2"; shift 2 ;;
     --on-sample-error) ON_SAMPLE_ERROR="$2"; shift 2 ;;
     --connect-timeout) CONNECT_TIMEOUT="$2"; shift 2 ;;
@@ -141,6 +149,11 @@ while [ $# -gt 0 ]; do
     *) echo "unknown argument: $1" >&2; usage >&2; exit 1 ;;
   esac
 done
+
+case "$UPDATE_MODE" in
+  ""|MERGE|FULL) ;;
+  *) echo "--update-mode must be MERGE or FULL, not $UPDATE_MODE" >&2; exit 1 ;;
+esac
 
 ENDPOINT_PATH="${ENDPOINT_PATH:-/$SCENARIO}"
 
@@ -332,6 +345,7 @@ duration=$DURATION
 ratePerMin=$RATE_PER_MIN
 loops=$LOOPS
 freshIds=$FRESH_IDS
+updateMode=$UPDATE_MODE
 scheduler=$SCHEDULER
 connectTimeout=$CONNECT_TIMEOUT
 responseTimeout=$RESPONSE_TIMEOUT
@@ -355,7 +369,7 @@ jmeter -n -t "$PLAN" \
   -Jthreads="$THREADS" -JrampUp="$RAMP_UP" -Jduration="$DURATION" \
   -JthroughputPerMin="$JMETER_RATE" \
   -Jloops="$LOOPS" -Jscheduler="$SCHEDULER" \
-  -JfreshIds="$FRESH_IDS" \
+  -JfreshIds="$FRESH_IDS" -JupdateMode="$UPDATE_MODE" \
   -JstartupDelay="$STARTUP_DELAY" -JonSampleError="$ON_SAMPLE_ERROR" \
   -JconnectTimeout="$CONNECT_TIMEOUT" -JresponseTimeout="$RESPONSE_TIMEOUT" \
   -Jsummariser.interval="$PROGRESS_INTERVAL" \
