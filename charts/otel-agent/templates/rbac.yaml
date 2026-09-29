@@ -1,0 +1,57 @@
+{{/*
+Its own ServiceAccount. This chart owns its workload, so it owns its identity
+-- rather than granting an account something else already runs as, which is how
+a permission meant for one pod ends up held by every pod in the namespace.
+
+nodes/stats is what kubeletstats reads. nodes, pods and namespaces are for the
+metadata the receiver attaches through k8s_api_config — without them the metrics
+arrive with no pod or namespace name on them, which is the same as not having
+them.
+
+nodes/pods is what the kubelet demands for its own /pods endpoint, which the
+receiver calls because extra_metadata_labels is set. VERIFIED THE HARD WAY:
+without it every scrape fails with
+
+  Forbidden (user=system:serviceaccount:observability:otel-agent,
+             verb=get, resource=nodes, subresource(s)=[pods proxy])
+
+The `pods` and `namespaces` grants above are for the API server and do not
+satisfy the kubelet; this is a different authorization path.
+
+NO nodes/proxy. The kubelet accepts either subresource for that endpoint, but
+nodes/proxy also reaches every other kubelet endpoint, exec among them.
+nodes/pods is the narrow half of the choice.
+*/}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/stats", "nodes/pods", "pods", "namespaces"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Release.Name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Release.Name }}
+    namespace: {{ .Release.Namespace }}

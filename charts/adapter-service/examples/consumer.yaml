@@ -46,15 +46,9 @@ handler:
     - addRoute
     - sign
 
-routing:
-  rules:
-    - version: "2.0.0"
-      targetType: url
-      target:
-        url: http://network-adapter:9201
-      endpoints:
-        - discover
-        - publish
+# Routing is no longer a value: it comes from config/routing-<role>.yaml in
+# the chart, like the adapter config. Set `routing.config` to a whole routing
+# file only if this deployment must differ.
 
 waitFor:
   enabled: false
