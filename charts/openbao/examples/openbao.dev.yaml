@@ -181,8 +181,8 @@ ui:
 # just fails every hour. To turn it on:
 #   1. Create the bucket, and a Secret with AWS_ACCESS_KEY_ID and
 #      AWS_SECRET_ACCESS_KEY in the openbao namespace, named as below.
-#   2. Run scripts/openbao-configure.sh (it creates the "snapshot" role and a
-#      policy allowing only the snapshot read).
+#   2. Run scripts/openbao-configure.sh in infra-automation (it creates the
+#      "snapshot" role and a policy allowing only the snapshot read).
 #   3. Set enabled: true and s3Host / s3Bucket / s3Uri, and helm upgrade. For
 #      an http endpoint (an in-cluster MinIO, say) add s3cmdExtraFlag: --no-ssl.
 # A snapshot is encrypted by the seal: restoring one needs the unseal key it

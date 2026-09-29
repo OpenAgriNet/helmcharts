@@ -43,7 +43,8 @@ allowedNamespaces:
 # The OpenBao role must be bound to exactly this ServiceAccount, with a policy
 # that allows only `read` on <path>/data/oan/<env>/*. Read-only: nothing in the
 # cluster should be able to write to the store, since the store is the source of
-# truth and the cluster is a copy. scripts/openbao-configure.sh sets that up.
+# truth and the cluster is a copy. scripts/openbao-configure.sh in
+# infra-automation sets that up.
 # ---------------------------------------------------------------------------
 auth:
   # The auth method's mount path in OpenBao.
