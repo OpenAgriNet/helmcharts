@@ -1,0 +1,99 @@
+# OpenBao on its own, for running and trying the secret store locally.
+#
+# The same server the Helm chart runs (charts/openbao, examples/openbao.dev.yaml):
+# the same image, raft storage, the static seal, and a file audit log. So what
+# works against this works against the cluster, with the same paths --
+# secret/oan/<env>/<name>.
+#
+# Use bin/openbao.sh rather than `docker compose` directly; it does the one-time
+# init and the KV mount, which Compose cannot:
+#
+#   bin/openbao.sh up        start it; init + mount KV on the first run
+#   bin/openbao.sh seed      load the sample secrets into secret/oan/dev/
+#   bin/openbao.sh status    sealed? initialised? which seal?
+#   bin/openbao.sh down      stop it, keep the data
+#   bin/openbao.sh destroy   stop it, DELETE the data and the unseal key
+#
+# ---------------------------------------------------------------- unsealing
+#
+# The static seal: a 32-byte key in a file, read on every start, so OpenBao
+# unseals itself -- no one types unseal keys after a restart. unseal-key below
+# writes that key once into its own volume, the first time only, and never
+# replaces it: a new key cannot open data sealed with the old one.
+#
+# The key is in a Docker volume, not in this directory, so it cannot be
+# committed by accident. Losing the volume loses the data for good; `bin/openbao.sh
+# backup-key` copies it out.
+#
+# ------------------------------------------------------------ what is public
+#
+# Nothing. 8200 is published on 127.0.0.1 only, and TLS is off, which is fine
+# on loopback and nowhere else.
+
+name: oan-openbao
+
+services:
+  # One-shot: create the unseal key if the volume does not have one yet, then
+  # exit. Runs as root only to hand the file to the openbao user (uid 100) --
+  # the server itself drops to that user.
+  unseal-key:
+    image: ${OPENBAO_IMAGE:-quay.io/openbao/openbao:2.6.3}
+    container_name: openbao-unseal-key
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        if [ -s /openbao/unseal/unseal.key ]; then
+          echo "unseal key present, leaving it alone"
+        else
+          umask 077
+          head -c 32 /dev/urandom > /openbao/unseal/unseal.key
+          echo "unseal key created"
+        fi
+        chown 100:1000 /openbao/unseal /openbao/unseal/unseal.key
+        chmod 0500 /openbao/unseal
+        chmod 0400 /openbao/unseal/unseal.key
+    user: "0:0"
+    volumes:
+      - openbao-unseal:/openbao/unseal
+    restart: "no"
+
+  openbao:
+    image: ${OPENBAO_IMAGE:-quay.io/openbao/openbao:2.6.3}
+    container_name: openbao
+    depends_on:
+      unseal-key:
+        condition: service_completed_successfully
+    # The config is mounted outside /openbao/config on purpose: the image's
+    # entrypoint chowns that directory to uid 100 when it is bind-mounted, which
+    # would chown this repo's files on the host.
+    command: ["bao", "server", "-config=/etc/openbao/openbao.hcl"]
+    environment:
+      # For `docker compose exec openbao bao ...`, which otherwise tries https.
+      BAO_ADDR: http://127.0.0.1:8200
+    ports:
+      - "127.0.0.1:${OPENBAO_PORT:-8200}:8200"
+    volumes:
+      - ./config/openbao.hcl:/etc/openbao/openbao.hcl:ro
+      # /openbao/file and /openbao/logs are the image's own directories, owned
+      # by the openbao user, so the volumes start out writable by it.
+      - openbao-data:/openbao/file
+      - openbao-audit:/openbao/logs
+      - openbao-unseal:/openbao/unseal:ro
+    # Lets OpenBao lock its memory so secrets are never swapped to disk.
+    cap_add:
+      - IPC_LOCK
+    # 0 = initialised and unsealed. Unhealthy until `bin/openbao.sh up` has
+    # initialised it the first time.
+    healthcheck:
+      test: ["CMD", "bao", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  openbao-data:
+  openbao-audit:
+  openbao-unseal:

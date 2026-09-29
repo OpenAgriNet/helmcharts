@@ -1,0 +1,60 @@
+{
+  "_comment": "Placeholder values for local testing only -- every one is public. One entry per secret in charts/oan-secrets/values.yaml, with the keys the charts read. bin/openbao.sh seed writes each to secret/oan/<env>/<name>.",
+  "registry-db": {
+    "username": "registry",
+    "password": "sample-registry-db-password"
+  },
+  "keycloak-db": {
+    "username": "keycloak",
+    "password": "sample-keycloak-db-password"
+  },
+  "discovery-db": {
+    "username": "discovery",
+    "password": "sample-discovery-db-password",
+    "uri": "postgresql://discovery:sample-discovery-db-password@discovery-postgres:5432/discovery"
+  },
+  "postgres-superuser": {
+    "username": "postgres",
+    "password": "sample-postgres-superuser-password"
+  },
+  "keycloak-admin": {
+    "keycloakAdminPassword": "sample-keycloak-admin-password"
+  },
+  "keycloak-admin-api": {
+    "keycloakAdminClientSecret": "sample-admin-api-client-secret"
+  },
+  "registry-seed": {
+    "registrySeedPassword": "sample-registry-seed-password"
+  },
+  "registry-default-user": {
+    "registryDefaultUserPassword": "sample-default-user-password"
+  },
+  "consumer-adapter-keys": {
+    "subscriberId": "consumer.local",
+    "keyId": "sample-consumer-key-id",
+    "signingPrivateKey": "sample-consumer-signing-private",
+    "signingPublicKey": "sample-consumer-signing-public",
+    "encrPrivateKey": "sample-consumer-encr-private",
+    "encrPublicKey": "sample-consumer-encr-public"
+  },
+  "network-adapter-keys": {
+    "subscriberId": "network.local",
+    "keyId": "sample-network-key-id",
+    "signingPrivateKey": "sample-network-signing-private",
+    "signingPublicKey": "sample-network-signing-public",
+    "encrPrivateKey": "sample-network-encr-private",
+    "encrPublicKey": "sample-network-encr-public"
+  },
+  "provider-adapter-keys": {
+    "subscriberId": "provider.local",
+    "keyId": "sample-provider-key-id",
+    "signingPrivateKey": "sample-provider-signing-private",
+    "signingPublicKey": "sample-provider-signing-public",
+    "encrPrivateKey": "sample-provider-encr-private",
+    "encrPublicKey": "sample-provider-encr-public"
+  },
+  "provider-upstream": {
+    "agmarknetTokenUrl": "http://mock-agmarknet:8080/token",
+    "vistaarTokenUrl": "http://mock-vistaar:8080/token"
+  }
+}

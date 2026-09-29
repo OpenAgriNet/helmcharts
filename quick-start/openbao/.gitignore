@@ -1,0 +1,4 @@
+# The root token and recovery keys from `bin/openbao.sh up`, and anything
+# moved aside by destroy. Never commit them.
+init.json
+init.json.*
