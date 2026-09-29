@@ -205,8 +205,8 @@ modules:
               # ConfigMap, where nobody would think to look for it.
               #
               # DROPPED RATHER THAN REPRODUCED. tokenUrl is substituted from the
-              # provider-adapter-keys Secret, which is reflected out of AWS
-              # Secrets Manager; pointing it at a mock would mean editing a
+              # provider-adapter-keys Secret, which is synced from OpenBao;
+              # pointing it at a mock would mean editing a
               # shared secret store to run a benchmark. Serving a token endpoint
               # from the mock instead would measure an exchange that answers the
               # same string every time.

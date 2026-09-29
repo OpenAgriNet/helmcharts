@@ -9,8 +9,9 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Changed
 - The role configs' header comments say the keys Secret comes from OpenBao,
-  not AWS Secrets Manager. Comment-only; the Secret's name and keys are
-  unchanged.
+  not AWS Secrets Manager, and so does the provider config's note on why the
+  benchmark drops the agmarknet token exchange. Comment-only; the Secret's name
+  and keys are unchanged.
 
 ## [0.5.1] - 2026-09-28
 
