@@ -108,6 +108,10 @@ NOTE ?=
 # does it. The report says which, so two runs are never confused.
 FRESH_IDS ?= no
 
+# Publish only. MERGE or FULL, rewriting the publish directives as each
+# request goes out. Empty leaves the payloads as generated, which is MERGE.
+UPDATE_MODE ?=
+
 # Extra arguments passed straight through, e.g. ARGS="--record-host"
 ARGS ?=
 
@@ -115,6 +119,7 @@ BENCH_ARGS = --capability $(CAPABILITY) --url $(URL) \
              --threads $(THREADS) --ramp-up $(RAMP_UP) --duration $(DURATION) \
              --rate-per-min $(RATE) --loops $(LOOPS) \
              $(if $(filter yes true 1,$(FRESH_IDS)),--fresh-ids) \
+             $(if $(UPDATE_MODE),--update-mode $(UPDATE_MODE)) \
              --startup-delay $(STARTUP_DELAY) --on-sample-error $(ON_SAMPLE_ERROR) \
              --connect-timeout $(CONNECT_TIMEOUT) --response-timeout $(RESPONSE_TIMEOUT) \
              --config $(CONFIG) \
