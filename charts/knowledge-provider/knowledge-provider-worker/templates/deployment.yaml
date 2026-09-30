@@ -1,0 +1,136 @@
+apiVersion: {{ include "common.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include "knowledge-provider-worker.fullname" . }}
+  labels:
+    {{- include "knowledge-provider-worker.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "knowledge-provider-worker.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "knowledge-provider-worker.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/env-config: {{ include "common.checksumAnnotation" . }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.serviceAccount.enabled }}
+      serviceAccountName: {{ include "knowledge-provider-worker.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- end }}
+      {{- with (include "common.imagePullSecrets" . | trim) }}
+      {{- . | nindent 6 }}
+      {{- end }}
+      {{- with (include "common.podSecurityContext" .) }}
+      securityContext:
+        {{- . | nindent 8 }}
+      {{- end }}
+      {{- $init := include "knowledge-provider-worker.waitFor" . | trim }}
+      {{- $extraInit := "" }}
+      {{- with .Values.extraInitContainers }}
+      {{- $extraInit = toYaml . | trim }}
+      {{- end }}
+      {{- if or $init $extraInit }}
+      initContainers:
+        {{- with $init }}
+        {{- . | nindent 8 }}
+        {{- end }}
+        {{- with $extraInit }}
+        {{- . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ include "knowledge-provider-worker.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with (include "common.securityContext" .) }}
+          securityContext:
+            {{- . | nindent 12 }}
+          {{- end }}
+          env:
+            {{- include "knowledge-provider-worker.env" . | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "knowledge-provider-worker.envConfigMapName" . }}
+            {{- range .Values.envFromSecrets }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
+          {{- with (include "common.probes" . | trim) }}
+          {{- . | nindent 10 }}
+          {{- end }}
+          resources:
+            {{- include "common.resources" . | nindent 12 }}
+          volumeMounts:
+            {{- if .Values.persistence.sqlite.enabled }}
+            - name: sqlite
+              mountPath: /data
+            {{- end }}
+            {{- if .Values.persistence.documents.enabled }}
+            - name: documents
+              mountPath: /data/documents
+            {{- end }}
+            {{- if .Values.persistence.books.enabled }}
+            - name: books
+              mountPath: /app/books
+              readOnly: true
+            {{- end }}
+            {{- if .Values.persistence.hfCache.enabled }}
+            - name: hf-cache
+              mountPath: /opt/hf-cache
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        {{- if .Values.persistence.sqlite.enabled }}
+        - name: sqlite
+          persistentVolumeClaim:
+            claimName: {{ required "persistence.sqlite.existingClaim is required - point it at the PVC knowledge-provider-api created" .Values.persistence.sqlite.existingClaim }}
+        {{- end }}
+        {{- if .Values.persistence.documents.enabled }}
+        - name: documents
+          persistentVolumeClaim:
+            claimName: {{ required "persistence.documents.existingClaim is required - point it at the PVC knowledge-provider-api created" .Values.persistence.documents.existingClaim }}
+        {{- end }}
+        {{- if .Values.persistence.books.enabled }}
+        - name: books
+          persistentVolumeClaim:
+            claimName: {{ required "persistence.books.existingClaim is required - point it at the PVC knowledge-provider-api created" .Values.persistence.books.existingClaim }}
+        {{- end }}
+        {{- if .Values.persistence.hfCache.enabled }}
+        - name: hf-cache
+          persistentVolumeClaim:
+            claimName: {{ required "persistence.hfCache.existingClaim is required - point it at the PVC knowledge-provider-api created" .Values.persistence.hfCache.existingClaim }}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

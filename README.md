@@ -10,6 +10,8 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`template`](charts/template) | application | Complete, working starter chart built on `common`. Copy it to bootstrap a service chart. |
 | [`postgresql-cnpg`](charts/postgresql-cnpg) | application | CloudNativePG-managed PostgreSQL cluster. One release per database. Requires the CNPG operator. |
 | [`postgresql-migration`](charts/postgresql-migration) | application | Flyway migrations as a Job. Creates the per-service databases and applies versioned SQL. |
+| [`qdrant`](charts/qdrant) | application | Single-node Qdrant — shared vector-index infrastructure. Currently used by `knowledge-provider` as its DEV vector store. |
+| [`minio`](charts/minio) | application | Single-node MinIO — shared blob-storage infrastructure. Currently used by `knowledge-provider`. |
 | [`keycloak`](charts/keycloak) | application | Auth for the registry, on the Sunbird RC Keycloak image. Imports the realm the registry expects. |
 | [`registry`](charts/registry) | application | The OAN participant registry, on Sunbird RC core. Needs `postgresql-cnpg` and `keycloak`. |
 | [`discovery`](charts/discovery) | application | The OAN Beckn discover-and-publish service. Needs `postgresql-cnpg` **with pgvector**. |
@@ -31,6 +33,8 @@ charts/
 ├── template/        # starter chart — copy this to build a service chart
 ├── postgresql-cnpg/     # data store
 ├── postgresql-migration/# schema migrations (Flyway Job)
+├── qdrant/               # shared vector-index infrastructure
+├── minio/                # shared blob-storage infrastructure
 ├── keycloak/            # auth for the registry
 ├── registry/            # the participant registry
 ├── registry-seed/       # seeds it, as a Job
