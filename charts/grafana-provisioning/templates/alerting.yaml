@@ -1,0 +1,28 @@
+{{- /*
+One ConfigMap per enabled entry in .Values.alerting.files, holding
+alerting/<name>.yaml byte for byte, for the grafana chart's alerts sidecar.
+
+.Files.Get and NOT tpl: the rules carry Grafana's own annotation templates
+({{ $labels.service }}, {{ $values.A.Value }}), which Helm would try to render
+and fail on. Grafana, not Helm, is what evaluates them.
+*/ -}}
+{{- range $name, $cfg := .Values.alerting.files }}
+{{- if $cfg.enabled }}
+{{- $file := printf "alerting/%s.yaml" $name }}
+{{- $content := $.Files.Get $file }}
+{{- if not $content }}
+{{- fail (printf "alerting.files.%s is enabled but %s does not exist in the chart" $name $file) }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-alerting-%s" (include "grafana-provisioning.name" $) $name | trunc 63 | trimSuffix "-" }}
+  labels:
+    {{- include "grafana-provisioning.labels" $ | nindent 4 }}
+    {{ $.Values.alerting.sidecarLabel.name }}: {{ $.Values.alerting.sidecarLabel.value | quote }}
+data:
+  {{ $name }}.yaml: |-
+{{ $content | indent 4 }}
+{{- end }}
+{{- end }}
