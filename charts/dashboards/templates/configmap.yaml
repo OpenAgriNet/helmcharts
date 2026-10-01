@@ -1,0 +1,22 @@
+{{/*
+One ConfigMap per dashboard in files/. One each, not one for all: the sidecar
+writes each key to its own file either way, and a ConfigMap is capped at 1 MiB.
+*/}}
+{{- range $path, $_ := .Files.Glob "files/*.json" }}
+{{- $name := base $path | trimSuffix ".json" }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-%s" (include "dashboards.fullname" $) $name | trunc 63 | trimSuffix "-" }}
+  labels:
+    {{- include "dashboards.labels" $ | nindent 4 }}
+    {{ $.Values.sidecar.label }}: {{ $.Values.sidecar.labelValue | quote }}
+  annotations:
+    {{ $.Values.sidecar.folderAnnotation }}: {{ $.Values.folder | quote }}
+    {{- with (include "common.annotations" $) }}
+    {{- . | nindent 4 }}
+    {{- end }}
+data:
+  {{ base $path }}: {{ $.Files.Get $path | toJson }}
+{{- end }}
