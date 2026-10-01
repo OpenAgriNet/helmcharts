@@ -1025,6 +1025,8 @@ config/
     imports/                the Keycloak realm
   discovery/                optional instance override
   mappings/                 one file per binding-action, served over the raw CDN
+openbao/                    the secret store on its own -- its own compose
+                            file and README. Nothing above reads from it yet
 ../api-collection/      the collection and its environment file
 ```
 
