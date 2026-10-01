@@ -1,0 +1,264 @@
+{
+  "uid": "oan-discovery-troubleshoot",
+  "title": "OAN Discovery — Request Troubleshooting",
+  "description": "One transaction, end to end. Reached from the Service Overview's failed-requests table.",
+  "tags": [
+    "oan",
+    "discovery",
+    "clickhouse",
+    "otel"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "transaction_id",
+        "label": "Transaction ID",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "options": [],
+        "hide": 0
+      },
+      {
+        "name": "trace_id",
+        "label": "Trace ID",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "options": [],
+        "hide": 0
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 3
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Paste a **transaction ID** or a **trace ID** above, or arrive here by clicking either column in **Recent failed requests** on the Service Overview. Both boxes work; fill in one.\n\nBoth exist because an envelope-rejected request has no `beckn.transactionId` at all — the context never parsed, which is what it was rejected for. Those requests are findable only by trace ID.\n\nSpans and logs join on `beckn.transactionId` / `transaction_id` — not on trace context. beckn-onix extracts `traceparent` inbound and injects it on no outbound call, so each participant's span roots its own trace and a waterfall across participants is not available. This table is the honest substitute."
+      }
+    },
+    {
+      "id": 10,
+      "type": "traces",
+      "title": "Trace waterfall",
+      "description": "The native trace view. Expand a span to read its attributes, and the span events nested inside it -- request_info, retrieval_info, response_info and error.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "rawSql": "SELECT\n  \"TraceId\" AS traceID,\n  \"SpanId\" AS spanID,\n  \"ParentSpanId\" AS parentSpanID,\n  \"ServiceName\" AS serviceName,\n  \"SpanName\" AS operationName,\n  multiply(toUnixTimestamp64Nano(\"Timestamp\"), 0.000001) AS startTime,\n  -- Duration is nanoseconds in this schema. Get the factor wrong and the\n  -- waterfall renders at the wrong scale with nothing to indicate it.\n  multiply(\"Duration\", 0.000001) AS duration,\n  arrayMap(key -> map('key', key, 'value', \"SpanAttributes\"[key]), mapKeys(\"SpanAttributes\")) AS tags,\n  arrayMap(key -> map('key', key, 'value', \"ResourceAttributes\"[key]), mapKeys(\"ResourceAttributes\")) AS serviceTags,\n  if(\"StatusCode\" IN ('Error', 'STATUS_CODE_ERROR'), 2, 0) AS statusCode,\n  -- Span events become the expandable entries inside the span. This is\n  -- where request_info / retrieval_info / response_info / error live, and\n  -- on this service that is most of the content worth reading.\n  arrayMap((name, timestamp, attributes) -> tuple(name, toString(toUnixTimestamp64Milli(timestamp)),\n    arrayMap(key -> map('key', key, 'value', attributes[key]), mapKeys(attributes)))\n    ::Tuple(name String, timestamp String, fields Array(Map(String, String))),\n    \"Events\".Name, \"Events\".Timestamp, \"Events\".Attributes) AS logs,\n  \"SpanKind\" AS kind\nFROM \"otel\".\"otel_traces\"\n-- Accepts either entry point: a trace id straight from the link, or a\n-- transaction id typed in, resolved to its trace here.\nWHERE traceID = if('$trace_id' != '', '$trace_id',\n  (SELECT \"TraceId\" FROM \"otel\".\"otel_traces\"\n   WHERE \"SpanAttributes\"['beckn.transactionId'] = '$transaction_id' LIMIT 1))",
+          "format": 3,
+          "queryType": "traces",
+          "pluginVersion": "4.21.3"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Spans for this transaction",
+      "description": "Every span carrying this transaction id, in order. With only discovery-service instrumented today this is usually one row; it becomes a per-hop breakdown once the adapters emit.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "rawSql": "SELECT\n  Timestamp AS time,\n  ServiceName AS service,\n  SpanName AS span,\n  round(Duration / 1e6, 2) AS duration_ms,\n  SpanAttributes['http.status_code'] AS http_status,\n  SpanAttributes['result.empty'] AS empty_result,\n  SpanAttributes['beckn.messageId'] AS message_id,\n  TraceId,\n  SpanId\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND (\n    ('$transaction_id' != '' AND SpanAttributes['beckn.transactionId'] = '$transaction_id')\n    OR ('$trace_id' != '' AND TraceId = '$trace_id')\n  )\nORDER BY Timestamp",
+          "format": 1,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true,
+            "cellOptions": {
+              "type": "auto"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Span events",
+      "description": "request_info, retrieval_info, response_info and error, flattened. This is where the intent shape, the providers that answered and the error cause live -- none of them are span attributes.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "rawSql": "SELECT\n  ev.1 AS event,\n  arrayStringConcat(\n    arrayMap(k -> concat(k, ' = ', ev.2[k]), arraySort(mapKeys(ev.2))), '\\n'\n  ) AS attributes\nFROM otel.otel_traces\nARRAY JOIN arrayZip(Events.Name, Events.Attributes) AS ev\nWHERE $__timeFilter(Timestamp)\n  AND (\n    ('$transaction_id' != '' AND SpanAttributes['beckn.transactionId'] = '$transaction_id')\n    OR ('$trace_id' != '' AND TraceId = '$trace_id')\n  )\nORDER BY event",
+          "format": 1,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true,
+            "cellOptions": {
+              "type": "auto"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "logs",
+      "title": "Log lines for this transaction",
+      "description": "Joined on the ids the collector's transform/logs stage lifts out of the zap JSON body -- NOT on the otel_logs.TraceId column, which is empty for every filelog-sourced line in this stack.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "rawSql": "SELECT\n  Timestamp AS timestamp,\n  Body AS body,\n  SeverityText AS level,\n  ServiceName\nFROM otel.otel_logs\nWHERE $__timeFilter(Timestamp)\n  AND (\n    ('$transaction_id' != '' AND LogAttributes['transaction_id'] = '$transaction_id')\n    -- LogAttributes, not the TraceId column: these logs arrive through the\n    -- filelog receiver reading container stdout, so the collector never\n    -- populates the native column -- the id is a field inside the zap JSON\n    -- that transform/logs parsed out. The column is empty on 11600 of\n    -- 11601 rows. TraceId is kept as an OR for anything delivered by OTLP.\n    OR ('$trace_id' != '' AND (LogAttributes['trace_id'] = '$trace_id' OR TraceId = '$trace_id'))\n  )\nORDER BY Timestamp DESC\nLIMIT 200",
+          "format": 2,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending",
+        "showLabels": false,
+        "showCommonLabels": false,
+        "prettifyLogMessage": false
+      }
+    }
+  ]
+}
