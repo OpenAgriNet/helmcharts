@@ -38,10 +38,10 @@ delegate to the library (`template.fullname` → `common.fullname`).
 1. Copy the directory and rename it:
 
    ```bash
-   cp -r charts/template charts/oan-my-service
+   cp -r charts/template charts/my-service
    ```
 
-2. In `charts/oan-my-service/Chart.yaml`, set `name: oan-my-service` and
+2. In `charts/my-service/Chart.yaml`, set `name: my-service` and
    `appVersion` to the image tag you deploy by default. Keep the `common`
    dependency.
 
@@ -52,7 +52,7 @@ delegate to the library (`template.fullname` → `common.fullname`).
    from the repo root:
 
    ```bash
-   grep -rl 'template\.' charts/oan-my-service | xargs sed -i '' 's/template\./oan-my-service./g'
+   grep -rl 'template\.' charts/my-service | xargs sed -i '' 's/template\./my-service./g'
    ```
 
    (`sed -i ''` is the macOS form; on Linux use `sed -i`.)
@@ -68,7 +68,7 @@ delegate to the library (`template.fullname` → `common.fullname`).
 
    ```bash
    ./scripts/lint-charts.sh
-   helm template oan-my-service charts/oan-my-service
+   helm template my-service charts/my-service
    ```
 
 ## Try the template directly

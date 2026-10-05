@@ -1,0 +1,240 @@
+{{/*
+The seed document and the script that applies it.
+
+Split in two keys so a values change rolls the Job through the checksum
+annotation without the script itself being part of that diff.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "registry-seed.fullname" . }}
+  labels:
+    {{- include "registry-seed.labels" . | nindent 4 }}
+data:
+  seed.json: |-
+    {{- include "registry-seed.document" . | nindent 4 }}
+  seed.py: |-
+    #!/usr/bin/env python3
+    """Seed the OAN registry, then report the key osid each adapter needs.
+
+    A port of quick-start/bin/setup.py's seed() and key_osids() for the
+    cluster. Two things it deliberately keeps from that script:
+
+    CREATE ONLY WHEN ABSENT. This registry cannot update a record and its
+    delete is soft, keeping the unique index -- so an id is never reusable and
+    a recreate fails on a duplicate key rather than replacing. Everything here
+    checks first and leaves what it finds alone, which is what makes re-running
+    safe.
+
+    VERIFY THE PUBLISHED KEY. A participant seeded against an earlier keypair
+    keeps that public key forever. Signing with a new private half then
+    produces signatures nobody can verify, and the failure surfaces much later
+    as an authentication error with no obvious cause. So the read-back compares
+    what the registry holds against what we expect and fails loudly instead.
+
+    stdlib only, so it runs on a plain python image with nothing installed.
+    """
+    import json, os, sys, time, urllib.error, urllib.parse, urllib.request
+
+    # Path is overridable so the script can be exercised outside a pod.
+    DOC = json.load(open(os.environ.get("SEED_DOC", "/seed/seed.json")))
+    REGISTRY = DOC["registryUrl"].rstrip("/")
+    KC = DOC["keycloak"]
+
+
+    def http(url, data=None, headers=None, method=None, timeout=30):
+        req = urllib.request.Request(url, data=data, headers=headers or {},
+                                     method=method)
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.load(r)
+
+
+    def token():
+        password = os.environ.get("SEED_PASSWORD")
+        if not password:
+            sys.exit("seed: SEED_PASSWORD is empty -- check seedUser.passwordSecret")
+        body = urllib.parse.urlencode({
+            "client_id": KC["clientId"], "grant_type": "password",
+            "username": KC["username"], "password": password}).encode()
+        url = (f'{KC["url"].rstrip("/")}/realms/{KC["realm"]}'
+               f'/protocol/openid-connect/token')
+        try:
+            payload = http(url, data=body, method="POST")
+        except urllib.error.HTTPError as e:
+            sys.exit(f"seed: keycloak refused the token request -- HTTP {e.code}.\n"
+                     f"  Check that user {KC['username']!r} exists in realm "
+                     f"{KC['realm']!r} and that the password matches.")
+        if not payload.get("access_token"):
+            sys.exit("seed: keycloak issued no token")
+        return payload["access_token"]
+
+
+    def search(entity, filters):
+        return http(f"{REGISTRY}/api/v1/{entity}/search",
+                    data=json.dumps({"filters": filters}).encode(),
+                    headers={"Content-Type": "application/json"},
+                    method="POST").get("data", [])
+
+
+    def post(entity, payload, bearer):
+        # No {"EntityName": {...}} wrapper: this registry takes the record
+        # itself, and a wrapper comes back as "extraneous key is not permitted".
+        try:
+            return http(f"{REGISTRY}/api/v1/{entity}", method="POST",
+                        data=json.dumps(payload).encode(),
+                        headers={"Content-Type": "application/json",
+                                 "Authorization": f"Bearer {bearer}"})
+        except urllib.error.HTTPError as e:
+            # A rejected write usually carries a JSON envelope, but a 401 comes
+            # back empty -- decoding that blindly gives a traceback that says
+            # nothing about the cause.
+            raw = e.read()
+            try:
+                return json.loads(raw)
+            except ValueError:
+                detail = raw.decode(errors="replace").strip()[:200] or "(empty body)"
+                sys.exit(f"seed: the registry refused a write -- HTTP {e.code}: "
+                         f"{detail}\n  A 401 here usually means the token was minted "
+                         f"for a different issuer than the registry validates "
+                         f"against.")
+
+
+    def wait_for_registry():
+        for _ in range(60):
+            try:
+                search("Participant", {})
+                return
+            except Exception:
+                time.sleep(2)
+        sys.exit(f"seed: {REGISTRY} did not answer a search in two minutes")
+
+
+    def ensure(entity, key, value, payload, bearer, label):
+        if search(entity, {key: {"eq": value}}):
+            print(f"  {label}: already present")
+            return False
+        result = post(entity, payload, bearer)
+        params = result.get("params", {})
+        status = params.get("status", "?")
+        print(f"  {label}: {status} {params.get('errmsg', '')[:160]}")
+        if status not in ("SUCCESSFUL", "SUCCESS"):
+            return None
+        return True
+
+
+    def signing_key_block(public_key, validity):
+        # Bare base64, no encoding label: what a verifier hands to a decoder is
+        # the value as published, and a label left on fails every verification.
+        return [{"alg": "ed25519", "key": public_key, "status": "active",
+                 "validFrom": validity["from"], "validUntil": validity["until"]}]
+
+
+    def main():
+        wait_for_registry()
+        bearer = token()
+        failed = []
+
+        print("registry: adapter identities")
+        for a in DOC["adapters"]:
+            ok = ensure("Participant", "participantId", a["participantId"],
+                        {"participantId": a["participantId"], "name": a["name"],
+                         "type": "node", "status": "active",
+                         "baseUrl": a["baseUrl"], "role": a["networkRole"],
+                         "keys": signing_key_block(a["signingPublicKey"],
+                                                   DOC["validity"])},
+                        bearer, a["participantId"])
+            if ok is None:
+                failed.append(a["participantId"])
+
+        print("registry: upstream providers")
+        for u in DOC["upstreams"]:
+            # No role and no keys: an upstream has never heard of Beckn, so it
+            # signs nothing and nothing verifies it. No credential either -- the
+            # adapter presents one from its own config.
+            ok = ensure("Participant", "participantId", u["participantId"],
+                        {"participantId": u["participantId"], "name": u["name"],
+                         "type": "upstream", "status": "active",
+                         "baseUrl": u["baseUrl"]},
+                        bearer, u["participantId"])
+            if ok is None:
+                failed.append(u["participantId"])
+
+        print("registry: capability bindings")
+        for b in DOC["bindings"]:
+            binding = f'{b["participantId"]}|{b["capability"]}'
+            # actions is a list, not a map: the registry treats every nested
+            # object as an entity and injects an osid, which a map cannot carry.
+            ok = ensure("ProviderSchema", "bindingKey", binding,
+                        {"bindingKey": binding,
+                         "participantId": b["participantId"],
+                         "capabilityCode": b["capability"], "status": "active",
+                         "actions": [{"action": "select",
+                                      "method": b.get("method", "GET"),
+                                      "path": b["path"],
+                                      "mappings": b["mappingUrl"],
+                                      "timeoutMs": b.get("timeoutMs", 15000),
+                                      "retryMax": b.get("retryMax", 2),
+                                      "status": "active"}]},
+                        bearer, binding)
+            if ok is None:
+                failed.append(binding)
+
+        print("registry: capability schemas")
+        for s in DOC["schemas"]:
+            # The registry NEVER fetches schemaUrl -- it only checks its shape.
+            # A row pointing at a ref that does not serve the pack stores
+            # happily and fails later, at whoever resolves it.
+            pack = s["capability"].partition(":")[2]
+            url = ("https://raw.githubusercontent.com/OpenAgriNet/network-specs/"
+                   f'{DOC["schemaPackRef"]}/schema/{pack}/{s["version"]}'
+                   "/attributes.yaml")
+            ok = ensure("SchemaRegistry", "capabilityCode", s["capability"],
+                        {"capabilityCode": s["capability"], "name": s["name"],
+                         "version": s["version"], "schemaUrl": url,
+                         "status": "active"},
+                        bearer, s["capability"])
+            if ok is None:
+                failed.append(s["capability"])
+
+        if failed:
+            sys.exit("\nseed: the registry rejected " + str(len(failed))
+                     + " write(s): " + ", ".join(failed)
+                     + "\n  Nothing above can be corrected in place -- this "
+                       "registry cannot update a\n  record and its delete is "
+                       "soft. Fix the values and re-run; rows that\n  already "
+                       "exist are left alone.")
+
+        # ------------------------------------------------------------ osids
+        print("\nkey osids -- configure each adapter with its own:")
+        mismatched = []
+        for a in DOC["adapters"]:
+            records = search("Participant",
+                             {"participantId": {"eq": a["participantId"]}})
+            keys = (records[0].get("keys") or []) if records else []
+            if not keys:
+                mismatched.append(f'{a["participantId"]}: no published key')
+                continue
+            # An older row may still carry the label; tolerate it here rather
+            # than report a confusing mismatch.
+            published = keys[0]["key"]
+            if published.startswith("base64:"):
+                published = published[len("base64:"):]
+            if published != a["signingPublicKey"]:
+                mismatched.append(
+                    f'{a["participantId"]}: registered with a DIFFERENT key')
+                continue
+            print(f'  {a["role"]:10} keyId: {keys[0]["osid"]}')
+
+        if mismatched:
+            sys.exit("\nseed: " + "; ".join(mismatched) + "\n"
+                     "  This registry cannot update a record and its delete is "
+                     "soft, so the id\n  cannot be reused. Either restore the "
+                     "keypair these ids were seeded with,\n  or give the "
+                     "affected adapters new participant ids and re-run.")
+
+        print("\nSet keys.keyId on each adapter release to the value above. "
+              "They are assigned\nby the registry on write, so they cannot be "
+              "known before this ran.")
+
+
+    main()

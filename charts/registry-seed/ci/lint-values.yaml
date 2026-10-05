@@ -1,0 +1,34 @@
+# Minimum values that let `helm template` run in CI.
+#
+# This chart fails the render when the registry, Keycloak and seed-user Secret
+# are unset, and when any seeded row is missing a field it cannot be given
+# later, so bare defaults cannot be templated. Dummy references only - see the
+# chart README for real configuration.
+registry:
+  url: http://registry.registry.svc.cluster.local:8081
+keycloak:
+  url: http://keycloak.keycloak.svc.cluster.local:8080/auth
+seedUser:
+  passwordSecret:
+    name: registry-seed
+adapters:
+  - role: consumer
+    participantId: consumer.oan.dev
+    name: OAN consumer layer adapter
+    networkRole: consumer
+    baseUrl: https://consumer.oan.example.com
+    signingPublicKey: cA/inE02peMj9ihaBstg7IQ/d4TKwKaHy20lDJz36Hk=
+upstreams:
+  - participantId: mausamgram
+    name: IMD Mausamgram NWP
+    baseUrl: https://example.invalid
+bindings:
+  - participantId: mausamgram
+    capability: openagrinet:WeatherObservation
+    path: /get-daily
+    method: GET
+    mappingUrl: https://example.invalid/mapping.yaml
+schemas:
+  - capability: openagrinet:WeatherObservation
+    name: Weather Observation
+    version: v0.1

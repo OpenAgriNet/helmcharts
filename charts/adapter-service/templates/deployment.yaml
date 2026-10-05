@@ -79,6 +79,18 @@ spec:
                   echo "render-config: $(basename "$2") is missing or empty in the keys Secret" >&2
                   exit 1
                 fi
+                # A value the registry has not assigned yet. keyId is the osid it
+                # mints when registry-seed writes the public key, so before that the
+                # Secret holds a sentinel. Substituting it yields either invalid YAML
+                # -- the sentinel contains a colon -- or an adapter signing with an
+                # identity nothing can verify.
+                if head -c 9 "$2" | grep -q "<<PENDING"; then
+                  echo "render-config: $(basename "$2") is still unresolved." >&2
+                  echo "  The registry assigns it when registry-seed writes this" >&2
+                  echo "  adapter's public key. Run that, then:" >&2
+                  echo "    ./scripts/resolve-key-ids.sh -e <env>" >&2
+                  exit 1
+                fi
                 sed -i "s|$1|$(cat "$2")|g" /rendered/adapter.yaml
               }
 
@@ -88,13 +100,20 @@ spec:
               subst __ADAPTER_SIGNING_PUBLIC__  /keys/{{ .Values.keys.existingSecret.signingPublicKey }}
               subst __ADAPTER_ENCR_PRIVATE__    /keys/{{ .Values.keys.existingSecret.encrPrivateKey }}
               subst __ADAPTER_ENCR_PUBLIC__     /keys/{{ .Values.keys.existingSecret.encrPublicKey }}
+              {{- /* Anything else the config needs substituted from a Secret: upstream
+                     token endpoints, for instance, which are deployment facts rather than
+                     chart facts and in one case a bare IP. Same mechanism, same failure
+                     mode if the key is absent. */}}
+              {{- range $ph, $key := .Values.keys.existingSecret.extraSubstitutions }}
+              subst {{ $ph }} /keys/{{ $key }}
+              {{- end }}
 
               # A placeholder that survived means a key was substituted with
               # nothing. Catch it here rather than at the far end, in a peer's
               # logs, as a signature that will not verify.
-              if grep -q '__ADAPTER_' /rendered/adapter.yaml; then
+              if grep -qE '__[A-Z][A-Z0-9_]*__' /rendered/adapter.yaml; then
                 echo "render-config: placeholders remain after substitution:" >&2
-                grep -o '__ADAPTER_[A-Z_]*__' /rendered/adapter.yaml | sort -u >&2
+                grep -oE '__[A-Z][A-Z0-9_]*__' /rendered/adapter.yaml | sort -u >&2
                 exit 1
               fi
               echo "render-config: config rendered for the {{ include "adapter-service.role" . }} role"

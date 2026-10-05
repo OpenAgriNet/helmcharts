@@ -37,10 +37,21 @@
 
 {{/*
 JDBC URL for the registry database.
+
+sslMode is appended as a query parameter when set. It matters against CNPG:
+pgjdbc defaults to sslmode=prefer, which falls back to plaintext only when the
+server REFUSES SSL -- a failed handshake is fatal. A stock postgres image has
+SSL off, so prefer falls back cleanly; CNPG always has it on, so the handshake
+is attempted and this registry's Java 8 runtime cannot complete it.
 */}}
 {{- define "registry.jdbcUrl" -}}
 {{- $db := .Values.database -}}
-{{- printf "jdbc:postgresql://%s:%v/%s" $db.host $db.port $db.name -}}
+{{- $url := printf "jdbc:postgresql://%s:%v/%s" $db.host $db.port $db.name -}}
+{{- if $db.sslMode -}}
+{{- printf "%s?sslmode=%s" $url $db.sslMode -}}
+{{- else -}}
+{{- $url -}}
+{{- end -}}
 {{- end }}
 
 {{/*
@@ -96,7 +107,7 @@ is rejected as unauthorised.
 {{- $db := .Values.database -}}
 {{- $kc := .Values.keycloak -}}
 {{- if not $db.host }}
-{{- fail (printf "%s: database.host is required - point it at the PostgreSQL primary service, e.g. registry-db-rw" .Chart.Name) }}
+{{- fail (printf "%s: database.host is required - point it at the PostgreSQL primary service, e.g. postgres-rw" .Chart.Name) }}
 {{- end }}
 {{- if not $db.passwordSecret.name }}
 {{- fail (printf "%s: database.passwordSecret.name is required - this chart renders no passwords" .Chart.Name) }}

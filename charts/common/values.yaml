@@ -139,7 +139,7 @@ waitFor:
 # Consumed by `common.env`.
 secretEnv: {}
   # connectionInfo_password:
-  #   name: registry-db-app
+  #   name: registry-db
   #   key: password
 
 # Raw env entries, passed through verbatim (fieldRef, plain values, ...).

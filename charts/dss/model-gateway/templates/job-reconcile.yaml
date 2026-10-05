@@ -1,0 +1,91 @@
+{{/*
+What makes a model change take effect without restarting anything.
+
+Helm applies the ConfigMaps and the Deployment first, waits for them, and only
+then creates this Job - that ordering is why the Job always reads the new model
+list rather than the one it replaced. Under Argo the same annotations run it as
+a PostSync hook.
+
+It runs on every sync, changed or not. Reconciling is cheap and idempotent, and
+a Job that only ran "when something changed" would need something to decide that,
+which is the part that goes wrong.
+
+`before-hook-creation` matters: a Job's spec is immutable, so a second upgrade
+creating a Job of this name without deleting the first one fails the release.
+*/}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "model-gateway.fullname" . }}-reconcile
+  labels:
+    {{- include "model-gateway.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "argocd.argoproj.io/hook": PostSync
+    "argocd.argoproj.io/hook-delete-policy": BeforeHookCreation
+spec:
+  backoffLimit: {{ .Values.reconcile.backoffLimit }}
+  ttlSecondsAfterFinished: {{ .Values.reconcile.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "model-gateway.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      {{- if .Values.serviceAccount.enabled }}
+      serviceAccountName: {{ include "model-gateway.serviceAccountName" . }}
+      {{- end }}
+      {{- with (include "common.imagePullSecrets" . | trim) }}
+      {{- . | nindent 6 }}
+      {{- end }}
+      {{- with (include "common.podSecurityContext" .) }}
+      securityContext:
+        {{- . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: reconcile
+          image: {{ printf "%s:%s" .Values.reconcile.image.repository .Values.reconcile.image.tag | quote }}
+          imagePullPolicy: {{ .Values.reconcile.image.pullPolicy }}
+          {{- with (include "common.securityContext" .) }}
+          securityContext:
+            {{- . | nindent 12 }}
+          {{- end }}
+          command: ["python", "/script/reconcile.py"]
+          env:
+            - name: GATEWAY_URL
+              value: {{ include "model-gateway.internalURL" . | quote }}
+            - name: LITELLM_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.masterKeySecret.name }}
+                  key: {{ .Values.masterKeySecret.key }}
+            - name: BLOCK_UNPRICED_MODELS
+              value: {{ .Values.blockUnpricedModels | quote }}
+          volumeMounts:
+            - name: script
+              mountPath: /script
+              readOnly: true
+            - name: spec
+              mountPath: /spec
+              readOnly: true
+            {{- range .Values.credentials }}
+            - name: {{ printf "credential-%s" .name }}
+              mountPath: {{ printf "/credentials/%s" .name }}
+              readOnly: true
+            {{- end }}
+          resources:
+            {{- toYaml .Values.reconcile.resources | nindent 12 }}
+      volumes:
+        - name: script
+          configMap:
+            name: {{ include "model-gateway.reconcileConfigMapName" . }}
+        - name: spec
+          configMap:
+            name: {{ include "model-gateway.modelsConfigMapName" . }}
+        {{- range .Values.credentials }}
+        - name: {{ printf "credential-%s" .name }}
+          secret:
+            secretName: {{ .secretName }}
+        {{- end }}

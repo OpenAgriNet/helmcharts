@@ -14,7 +14,14 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`registry`](charts/registry) | application | The OAN participant registry, on Sunbird RC core. Needs `postgresql-cnpg` and `keycloak`. |
 | [`discovery`](charts/discovery) | application | The OAN Beckn discover-and-publish service. Needs `postgresql-cnpg` **with pgvector**. |
 | [`adapter-service`](charts/adapter-service) | application | The OAN Beckn adapters. One chart, installed once per `role` — `provider`, `network` or `experience`. Needs `registry`. |
+| [`kong`](charts/kong) | application | Kong — the cluster's API gateway and ingress controller, in one release. The official `kong` chart 3.2.0 committed whole and unmodified. Per-environment configuration lives in the infra-automation repository. |
+| [`registry-seed`](charts/registry-seed) | application | Seeds the registry — adapter identities, upstreams, capability bindings and schemas — as a re-runnable Job. Reports the key osid each adapter needs. |
+| [`cert-manager`](charts/cert-manager) | application | X.509 certificate management. The official `cert-manager` chart v1.21.2 committed whole and unmodified. Its CRDs are applied out of band — three exceed the annotation size limit. |
+| [`cert-manager-issuers`](charts/cert-manager-issuers) | application | Let's Encrypt `ClusterIssuer`s. Separate from `cert-manager` because one release cannot register a CRD and create an instance of it. |
 | [`clickstack`](charts/clickstack) | application | Observability — ClickHouse, an OTel collector and the HyperDX UI. A verbatim copy of the official upstream chart, with no OAN changes yet. |
+| [`openbao`](charts/openbao) | application | The secret store. The official `openbao` chart 0.29.6 (OpenBao v2.6.3) committed whole and unmodified; OAN's settings are in `examples/openbao.dev.yaml` (one pod) and `examples/openbao.prod.yaml` (three-pod raft cluster). |
+| [`openbao-cluster-secret-store`](charts/openbao-cluster-secret-store) | application | The `ClusterSecretStore` that lets External Secrets Operator read OpenBao, logging in with Kubernetes auth. |
+| [`openbao-secrets`](charts/openbao-secrets) | application | One `ExternalSecret` per credential: pulls `oan/<env>/<name>` from OpenBao into a Secret and mirrors it, via Reflector, to the namespaces that read it. |
 
 ## How they fit together
 
@@ -26,15 +33,24 @@ charts/
 ├── postgresql-migration/# schema migrations (Flyway Job)
 ├── keycloak/            # auth for the registry
 ├── registry/            # the participant registry
+├── registry-seed/       # seeds it, as a Job
+├── kong/                # API gateway + ingress controller — vendored upstream
+├── cert-manager/        # certificate management — vendored upstream
+├── cert-manager-issuers/# Let's Encrypt ClusterIssuers for it
 ├── discovery/           # the Beckn discover-and-publish service
 ├── adapter-service/     # the Beckn adapters — one release per role
-└── clickstack/          # observability — vendored upstream, not yet OAN-shaped
+├── clickstack/          # observability — vendored upstream, not yet OAN-shaped
+├── openbao/             # the secret store — vendored upstream
+├── openbao-cluster-secret-store/ # how ESO reads it
+└── openbao-secrets/     # what ESO reads from it
 ```
 
-Every chart depends on `common` via `file://../common`, except
-`clickstack`: it is the official upstream chart committed unmodified, so it
-carries neither the dependency nor the conventions. Its README lists what that
-leaves to override.
+Every chart depends on `common` via `file://../common`, except `clickstack`,
+`kong`, `cert-manager` and `openbao`: all four are official upstream charts committed
+unmodified, so they carry neither the dependency nor the conventions. Each
+README lists what that leaves to override. `cert-manager-issuers` also skips it,
+for a different reason — it renders two custom resources and no workload, so
+none of the library's helpers apply.
 
 ## The registry stack
 
@@ -43,13 +59,18 @@ Three charts, deployed in this order — the ordering is not optional:
 ```bash
 # 1. Database cluster. Creates BOTH databases: `registry` via bootstrap.initdb
 #    and `keycloak` via a CNPG Database object, each owned by its own role.
-helm install registry-db charts/postgresql-cnpg -n oan-registry -f charts/postgresql-cnpg/examples/registry-db.dev.yaml
-# 2. Keycloak — imports the sunbird-rc realm it ships with, on first start
-helm install keycloak    charts/keycloak        -n oan-registry -f charts/keycloak/examples/keycloak.dev.yaml
-# MANUAL STEP: regenerate the admin-api client secret in the Keycloak console —
-# the realm export ships it masked, so the registry cannot authenticate without this.
-# 3. Registry
-helm install registry    charts/registry        -n oan-registry -f charts/registry/examples/registry.dev.yaml
+helm install postgres charts/postgresql-cnpg -n postgres -f charts/postgresql-cnpg/examples/postgres.dev.yaml
+# 2. Secrets, before anything that reads them. One Secret per value, pulled from
+#    OpenBao and mirrored where a second namespace needs it (see Secrets below):
+#      infra-automation: ./scripts/manage-secrets.py generate --env dev
+# 3. Keycloak — imports the sunbird-rc realm it ships with, on first start
+helm install keycloak    charts/keycloak        -n keycloak -f charts/keycloak/examples/keycloak.dev.yaml
+# 4. Registry
+helm install registry    charts/registry        -n registry -f charts/registry/examples/registry.dev.yaml
+# 5. Seed it: adapter identities, upstreams, bindings, schemas. Re-runnable.
+#    Its log reports the key osid each adapter must be configured with - the
+#    registry assigns those on write, so they cannot be known before this runs.
+helm install registry-seed charts/registry-seed -n registry -f my-seed-values.yaml
 ```
 
 `postgresql-migration` is deliberately not in that list: both databases come from
@@ -72,9 +93,9 @@ Two charts, and one prerequisite that is easy to miss:
 #    created at bootstrap. Both are required: no stock CNPG operand image has
 #    pgvector, and `vector` is not a trusted extension, so the owner the service
 #    connects as cannot create it itself.
-helm install discovery-db charts/postgresql-cnpg -n oan-discovery -f charts/postgresql-cnpg/examples/discovery-db.dev.yaml
+helm install discovery-db charts/postgresql-cnpg -n postgres -f charts/postgresql-cnpg/examples/discovery-db.dev.yaml
 # 2. The service
-helm install discovery    charts/discovery       -n oan-discovery -f charts/discovery/examples/discovery.dev.yaml
+helm install discovery    charts/discovery       -n discovery -f charts/discovery/examples/discovery.dev.yaml
 ```
 
 It shares no database and no Keycloak with the registry stack, so the two are
@@ -151,3 +172,106 @@ No secret value belongs in this repository, and **no chart here renders a
 Secret**. Charts reference Secrets by name; creating them is deliberately left
 outside the charts, so that decision is made once rather than per chart. See
 [`CONVENTIONS.md`](CONVENTIONS.md#secrets).
+
+### Bringing up the secret store
+
+OpenBao holds every value; External Secrets Operator copies them into
+Kubernetes Secrets; Reflector mirrors those into the namespaces that read them.
+
+```bash
+# 1. The unseal key. OpenBao's "static" seal reads it on every start, so a
+#    restarted pod unseals itself -- no AWS KMS, no manual unseal. Keep a copy
+#    of unseal.key OFF the cluster: without it the data cannot be decrypted.
+openssl rand -out unseal.key 32
+kubectl create namespace openbao
+kubectl -n openbao create secret generic openbao-unseal-key --from-file=unseal.key=unseal.key
+
+# 2. OpenBao. openbao.dev.yaml is one pod; production uses openbao.prod.yaml,
+#    three pods in a raft cluster on three nodes -- start prod that way rather
+#    than converting a running single node later.
+helm install openbao charts/openbao -n openbao -f charts/openbao/examples/openbao.dev.yaml
+
+# 3. One-time setup: init (writes the root token and recovery keys to the
+#    file given -- move it to the password manager), KV v2 at secret/,
+#    Kubernetes auth, a read-only policy for oan/<env>/*, the role ESO uses,
+#    and the role the backup CronJob uses. The script lives in the
+#    infra-automation repository, which owns cluster bring-up; its
+#    install-services.sh runs it as part of a deploy.
+../infra-automation/scripts/openbao-configure.sh --env dev --init-out ~/openbao-dev-init.json
+
+# 4. The operator, the mirror, and the store they read
+helm install external-secrets charts/external-secrets -n external-secrets --create-namespace
+helm install reflector        charts/reflector        -n reflector        --create-namespace
+helm install openbao-store    charts/openbao-cluster-secret-store
+
+# 5. Write the values, then declare which ones reach the cluster
+kubectl -n openbao exec -it openbao-0 -- bao kv put secret/oan/dev/registry-db username=... password=...
+helm install openbao-secrets charts/openbao-secrets -n external-secrets
+```
+
+### Checking that it works
+
+| Check | Command | Expect |
+|---|---|---|
+| Chart renders | `helm lint --strict charts/openbao -f charts/openbao/examples/openbao.dev.yaml` | `0 chart(s) failed` |
+| Unsealed | `kubectl -n openbao exec openbao-0 -- bao status` | `Seal Type static`, `Sealed false` |
+| Unseals on restart | `kubectl -n openbao delete pod openbao-0`, then `bao status` again | `Sealed false`, with nobody unsealing it |
+| Audit log on | `kubectl -n openbao exec openbao-0 -- bao audit list` (with `BAO_TOKEN`) | `file/` and `stdout/` |
+| ESO can log in | `kubectl get clustersecretstore openbao` | `READY True` |
+| Values arrive | `kubectl -n external-secrets get externalsecret` | every row `SecretSynced` |
+| Mirrored | `kubectl -n registry get secret registry-db` | exists |
+| Policy is tight | an `ExternalSecret` for `oan/prod/...` on the dev cluster | `SecretSyncedError`, "permission denied" |
+| Store is fenced | an `ExternalSecret` on the `openbao` store in any namespace but `external-secrets` | `SecretSyncedError`, "not allowed from namespace" |
+| Network is fenced | `curl http://openbao.openbao.svc:8200/v1/sys/health` from a pod in `default` | times out |
+| Backups work | `kubectl -n openbao create job snap-now --from=cronjob/openbao-snapshot` | a new `bao_<date>.snapshot` in the bucket |
+| HA formed (prod) | `bao operator raft list-peers` (with `BAO_TOKEN`) | three voters, one `leader` |
+
+A config or image change reaches OpenBao only when its pod is deleted: the
+chart's update strategy is `OnDelete`, and Argo CD shows the app Synced either
+way. In prod, delete the standbys first and the active pod
+(`openbao-active=true`) last, one at a time.
+
+### Backups and restore
+
+The snapshot CronJob (`snapshotAgent`, off in dev until a bucket exists -- see
+`openbao.dev.yaml`) uploads a raft snapshot of the whole store every hour. A
+snapshot can only be opened with the unseal key it was taken under, so keep the
+key with the snapshots, off the cluster. To restore, into a fresh OpenBao that
+mounts that same key:
+
+```bash
+bao operator init                                   # a fresh store needs initialising first
+bao operator raft snapshot restore -force bao_<date>.snapshot   # with that init's root token
+# From here the ORIGINAL store's root token and data are back; the fresh one's are gone.
+```
+
+### Moving a cluster from AWS Secrets Manager
+
+Copy the values -- never regenerate them: Postgres role passwords, the
+admin-api client secret Keycloak stored at import, and the adapter keys the
+registry holds all depend on the current ones. Then switch the existing release
+in place, and diff before against after.
+
+```bash
+./scripts/secrets-snapshot.sh > before.txt              # hashes only, no values
+BAO_TOKEN=<root token> ./scripts/asm-to-openbao.sh --env dev --dry-run
+BAO_TOKEN=<root token> ./scripts/asm-to-openbao.sh --env dev
+helm install openbao-store charts/openbao-cluster-secret-store
+helm upgrade asm-secrets charts/openbao-secrets -n external-secrets   # the EXISTING release
+kubectl -n external-secrets get externalsecret           # every row: openbao, SecretSynced
+./scripts/secrets-snapshot.sh > after.txt
+diff before.txt after.txt                                # must be empty
+```
+
+`asm-secrets` here is the Helm release already running in the cluster; its
+chart, and `asm-cluster-secret-store`, have been removed from this repository.
+The release keeps its name after the upgrade, and `helm rollback` works from
+its stored history, so neither needs the old chart.
+
+Upgrade the release, do not uninstall it: its ExternalSecrets own their
+Secrets, so an uninstall deletes them until the new chart recreates them. If the
+diff is not empty, `helm rollback asm-secrets -n external-secrets` puts it back
+on Secrets Manager, which is untouched by all of this.
+
+A rotation is `bao kv put` with the new value; it reaches the cluster within
+`refreshInterval` (1h by default), and pods pick it up on their next restart.
