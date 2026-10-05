@@ -1,7 +1,7 @@
 # Example: the OAN discover-and-publish service, dev environment.
 #
 #   helm install discovery charts/discovery \
-#     -n oan-discovery -f charts/discovery/examples/discovery.dev.yaml
+#     -n discovery -f charts/discovery/examples/discovery.dev.yaml
 #
 # Install the database FIRST, and with an image that has pgvector - see
 # README.md, "The database". Starting before the database is up is not fatal -
@@ -37,7 +37,7 @@ database:
   # host, port, database and user, so none of those are set here - a second copy
   # would be one more thing to keep true.
   urlSecret:
-    name: discovery-db-app
+    name: discovery-db
     key: uri
 
   # Dev migrates on boot. Keep replicaCount at 1 while this is true: the
@@ -52,7 +52,7 @@ database:
 
 # Fetched at boot and cached in an emptyDir. For a cluster with no egress, or
 # for a reproducible boot, create the ConfigMap instead:
-#   kubectl -n oan-discovery create configmap discovery-beckn-spec \
+#   kubectl -n discovery create configmap discovery-beckn-spec \
 #     --from-file=beckn.yaml=<discovery-service>/tests/testdata/beckn-v2.0.0.yaml
 # and set existingConfigMap below. Note this URL tracks `main` and so pins
 # nothing.
@@ -79,7 +79,7 @@ resources:
 ingress:
   enabled: false
 
-# `helm test discovery -n oan-discovery` checks /readyz.
+# `helm test discovery -n discovery` checks /readyz.
 tests:
   enabled: true
 

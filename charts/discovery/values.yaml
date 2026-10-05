@@ -133,7 +133,8 @@ logLevel: info
 # consumes and nothing keeps true.
 # ---------------------------------------------------------------------------
 database:
-  # PostgreSQL primary service, e.g. "discovery-db-rw"
+  # PostgreSQL primary service. The CNPG Clusters run in their own namespace,
+  # so this is an FQDN: "discovery-db-rw.postgres.svc.cluster.local"
   host: ""
   port: 5432
   name: discovery

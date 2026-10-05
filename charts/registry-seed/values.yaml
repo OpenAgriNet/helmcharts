@@ -1,0 +1,188 @@
+# ============================================================================
+# registry-seed
+#
+# Seeds the OAN registry with everything the network needs before it can answer
+# a request: the adapter identities and their published signing keys, the
+# upstream providers, the bindings that say who answers which capability, and
+# the schema rows that say what each capability means.
+#
+# READ THIS BEFORE CHANGING ANY ID OR URL BELOW. The registry is append-only:
+# it cannot update a record, and its delete is SOFT and keeps the unique index.
+# A row seeded from a wrong value can never be corrected or replaced - only
+# abandoned, with the capability recovered under a new id. That is why this
+# chart fails the render on a missing field rather than defaulting it.
+#
+# Safe to re-run. Every write checks first and leaves what it finds alone.
+# ============================================================================
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  registry: docker.io
+  repository: python
+  # The script is stdlib only, so the slim image needs nothing installed.
+  tag: "3.13-slim"
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+serviceAccount:
+  annotations: {}
+
+job:
+  # Two retries. The usual first-run failure is the registry not being up yet,
+  # which the script already waits two minutes for, so more retries mostly
+  # repeat a real error.
+  backoffLimit: 2
+  # Kept after completion by default: the osids are in its log, and they are the
+  # output of this chart. Set a duration once you have recorded them.
+  ttlSecondsAfterFinished: ""
+
+# ---------------------------------------------------------------------------
+# Where it writes
+# ---------------------------------------------------------------------------
+registry:
+  # In-cluster URL of the registry service, e.g.
+  # http://registry.registry.svc.cluster.local:8081
+  url: ""
+
+keycloak:
+  # Must be the issuer Keycloak puts in its tokens, including /auth - the
+  # registry validates the token against OAUTH2_RESOURCES_0_URI, so a token
+  # minted for a different issuer is rejected with a 401 and an empty body.
+  url: ""
+  realm: sunbird-rc
+  clientId: registry-frontend
+
+# The account the writes are made as. The realm ships `no-user` with the
+# `network_operator` role, which is what the registry checks.
+seedUser:
+  username: no-user
+  # Required - this chart renders no passwords.
+  passwordSecret:
+    name: ""
+    key: registrySeedPassword
+
+# ---------------------------------------------------------------------------
+# The adapter identities
+#
+# signingPublicKey is the PUBLIC half, and belongs here rather than in a Secret:
+# it is published to peers and is the value every signature this participant
+# makes is verified against. Take it from scripts/gen-secrets.py output, bare
+# base64 with no `base64:` label - the label is published verbatim and breaks
+# every verification.
+#
+# baseUrl is the address a PEER posts to, and is the one field here a real
+# network reads rather than this stack. Nothing in-cluster resolves it, so a
+# wrong value costs nothing locally and everything on a shared network.
+# ---------------------------------------------------------------------------
+adapters: []
+  # - role: consumer
+  #   participantId: consumer.oan.dev
+  #   name: OAN consumer layer adapter
+  #   networkRole: consumer
+  #   baseUrl: https://consumer.oan.example.com
+  #   signingPublicKey: ""
+  # - role: network
+  #   participantId: network.oan.dev
+  #   name: OAN network layer adapter
+  #   networkRole: network
+  #   baseUrl: https://network.oan.example.com
+  #   signingPublicKey: ""
+  # - role: provider
+  #   participantId: provider.oan.dev
+  #   name: OAN provider layer adapter
+  #   networkRole: provider
+  #   baseUrl: https://provider.oan.example.com
+  #   signingPublicKey: ""
+
+# How long the published keys are valid. One window for all of them: they are
+# seeded together, and the registry cannot update the row to change it later.
+keyValidity:
+  from: "2026-01-01T00:00:00Z"
+  until: "2030-01-01T00:00:00Z"
+
+# ---------------------------------------------------------------------------
+# The upstreams the provider adapter calls
+#
+# No role, no keys and no credential: an upstream has never heard of Beckn, so
+# it signs nothing and nothing verifies it. The adapter presents any credential
+# from its own config, so nothing secret is held in the registry.
+# ---------------------------------------------------------------------------
+upstreams: []
+  # - participantId: mausamgram
+  #   name: IMD Mausamgram NWP
+  #   baseUrl: https://...
+
+# ---------------------------------------------------------------------------
+# Who answers what
+#
+# The binding key is participantId|capabilityCode, and it must match what the
+# provider adapter is configured with - a payload naming anything else is
+# answered 404 "this module serves no capability matching the request", which
+# names the request rather than the mismatch.
+#
+# method is the provider's contract, not a network convention: some answer a GET
+# whose query the mapping builds, others take a POST with a JSON body.
+# ---------------------------------------------------------------------------
+bindings: []
+  # - participantId: mausamgram
+  #   capability: openagrinet:WeatherObservation
+  #   path: /get-daily
+  #   method: GET
+  #   mappingUrl: https://raw.githubusercontent.com/...
+  #   timeoutMs: 15000
+  #   retryMax: 2
+
+# ---------------------------------------------------------------------------
+# What each capability MEANS - a different question from who serves it.
+#
+# One row per capability, not per binding: a second provider of the same
+# capability shares this row. The schemaUrl is built from the capability code,
+# which already names the pack directory, so the two cannot drift.
+#
+# THE REGISTRY NEVER FETCHES schemaUrl - it only checks its shape. A row
+# pointing at a ref that does not serve the pack stores happily and fails later,
+# at whoever resolves it. Getting schemaPackRef right matters more than the
+# write succeeding, and it cannot be corrected afterwards.
+# ---------------------------------------------------------------------------
+schemas: []
+  # - capability: openagrinet:WeatherObservation
+  #   name: Weather Observation
+  #   version: v0.1
+
+# Ref in OpenAgriNet/network-specs the schema packs are read from.
+schemaPackRef: main
+
+# ---------------------------------------------------------------------------
+# Pod
+# ---------------------------------------------------------------------------
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+podSecurityContext:
+  enabled: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  enabled: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+nodeSelector: {}
+tolerations: []
+
+commonLabels: {}
+commonAnnotations: {}

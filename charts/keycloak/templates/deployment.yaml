@@ -55,10 +55,97 @@ spec:
       {{- with .Values.extraInitContainers }}
       {{- $extraInit = toYaml . | trim }}
       {{- end }}
-      {{- if or $init $extraInit }}
+      {{- if or $init $extraInit .Values.realmImport.enabled }}
       initContainers:
         {{- with $init }}
         {{- . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.realmImport.enabled }}
+        {{/*
+        Keycloak does NOT expand ${env.NAME} in a realm import file. Left to
+        itself it imports the placeholder as the literal credential, and every
+        client_credentials and password grant then fails with the realm looking
+        perfectly correct in the console. Substituting here keeps the secret out
+        of the ConfigMap -- this chart renders no Secrets -- while still getting
+        a real value into the realm.
+        */}}
+        - name: render-realm
+          image: {{ include "keycloak.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with (include "common.securityContext" .) }}
+          securityContext:
+            {{- . | nindent 12 }}
+          {{- end }}
+          command:
+            - bash
+            - -euo
+            - pipefail
+            - -c
+            - |
+              src="/realm-src/{{ .Values.realmImport.fileName }}"
+              out="{{ include "keycloak.realmImportPath" . }}"
+
+              for v in REGISTRY_SEED_PASSWORD KEYCLOAK_ADMIN_CLIENT_SECRET; do
+                if [ -z "${!v:-}" ]; then
+                  echo "render-realm: $v is empty -- check realmImport.seedUserSecret and realmImport.adminClientSecret" >&2
+                  exit 1
+                fi
+                # Matched in-process, not piped to grep: a newline in the value
+                # becomes a line separator on the way to grep, so grep never
+                # sees the very character this is checking for.
+                if [[ ${!v} == *[![:print:]]* ]]; then
+                  echo "render-realm: $v contains a non-printable character, which cannot appear unescaped in a JSON string" >&2
+                  exit 1
+                fi
+              done
+
+              # The placeholder sits inside a JSON string, so a raw backslash or
+              # quote in the value produces a file Keycloak cannot parse. The
+              # generated credentials use neither, but these Secrets can be set
+              # by hand and the chart should not depend on that alphabet.
+              json_escape() {
+                local v=$1
+                v=${v//\\/\\\\}
+                v=${v//\"/\\\"}
+                printf '%s' "$v"
+              }
+
+              seed=$(json_escape "$REGISTRY_SEED_PASSWORD")
+              admin=$(json_escape "$KEYCLOAK_ADMIN_CLIENT_SECRET")
+
+              # Bash substring replacement, not sed: these are credentials, and
+              # a value containing & or a regex metacharacter would be mangled
+              # by a regex replacement. This one is literal.
+              content=$(cat "$src")
+              content=${content//'${env.REGISTRY_SEED_PASSWORD}'/$seed}
+              content=${content//'${env.KEYCLOAK_ADMIN_CLIENT_SECRET}'/$admin}
+              printf '%s' "$content" > "$out"
+
+              if grep -q '${env\.' "$out"; then
+                echo "render-realm: placeholders remain after substitution:" >&2
+                grep -o '${env\.[A-Z_]*}' "$out" | sort -u >&2
+                exit 1
+              fi
+              echo "render-realm: wrote $out"
+          env:
+            - name: REGISTRY_SEED_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.realmImport.seedUserSecret.name }}
+                  key: {{ .Values.realmImport.seedUserSecret.key }}
+            - name: KEYCLOAK_ADMIN_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.realmImport.adminClientSecret.name }}
+                  key: {{ .Values.realmImport.adminClientSecret.key }}
+          resources:
+            {{- include "common.resources" . | nindent 12 }}
+          volumeMounts:
+            - name: realm-src
+              mountPath: /realm-src
+              readOnly: true
+            - name: realm
+              mountPath: {{ .Values.realmImport.mountPath }}
         {{- end }}
         {{- with $extraInit }}
         {{- . | nindent 8 }}
@@ -104,9 +191,15 @@ spec:
       {{- if or .Values.realmImport.enabled .Values.extraVolumes }}
       volumes:
         {{- if .Values.realmImport.enabled }}
-        - name: realm
+        - name: realm-src
           configMap:
             name: {{ include "keycloak.realmConfigMapName" . }}
+        {{/*
+        emptyDir, not the ConfigMap: the rendered realm holds real credentials,
+        so it exists only for this pod's lifetime and is never an API object.
+        */}}
+        - name: realm
+          emptyDir: {}
         {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}

@@ -5,8 +5,8 @@
 # release per service that needs its own database, giving each its own
 # credentials, storage and backup schedule:
 #
-#   helm install registry-db charts/postgresql-cnpg \
-#     -n oan-registry -f values/registry-db.dev.yaml
+#   helm install postgres charts/postgresql-cnpg \
+#     -n registry -f values/postgres.dev.yaml
 #
 # PREREQUISITES (neither is installed by this chart):
 #   1. The CloudNativePG operator, cluster-wide.
@@ -27,7 +27,7 @@ nameOverride: ""
 # STRONGLY RECOMMENDED. The cluster name becomes the connection DNS other
 # services use - <name>-rw (primary), <name>-ro (replicas), <name>-r (any).
 # Without this you get <release>-postgresql-cnpg-rw. Set something short and
-# stable, e.g. "registry-db" -> registry-db-rw.<namespace>.svc.cluster.local
+# stable, e.g. "registry-db" -> postgres-rw.<namespace>.svc.cluster.local
 fullnameOverride: ""
 
 # ---------------------------------------------------------------------------
