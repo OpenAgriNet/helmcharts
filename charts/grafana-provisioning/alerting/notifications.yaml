@@ -40,16 +40,19 @@ contactPoints:
           #   No logs, traces or metrics for 6m 12s.
           #   Open dashboard
           #
-          # Resolved: a green title and "<service> is back to normal". The link
-          # is .DashboardURL -- the whole dashboard at the time of the alert --
-          # not .PanelURL; each rule still names a panel only because Grafana
-          # requires __dashboardUid__ and __panelId__ as a pair.
+          # Resolved: a green title and "<service> [<route>] is back to normal".
+          # The link is .DashboardURL -- the whole dashboard at the time of the
+          # alert -- not .PanelURL; each rule still names a panel only because
+          # Grafana requires __dashboardUid__ and __panelId__ as a pair.
+          # var-service opens it filtered to the service that fired; without it
+          # the dashboard opens on every service. .DashboardURL already carries
+          # a query string, so the variable is appended with &.
           title: >-
             {{ if eq .Status "firing" }}:red_circle: {{ .CommonLabels.alertname }}{{ else }}:large_green_circle: Resolved: {{ .CommonLabels.alertname }}{{ end }}
           text: |-
             {{ range .Alerts }}{{ if eq .Status "firing" }}*{{ .Annotations.summary }}*
-            {{ .Annotations.description }}{{ else }}*{{ .Labels.service }} is back to normal*{{ end }}
-            {{ if .DashboardURL }}<{{ .DashboardURL }}|Open dashboard>{{ end }}
+            {{ .Annotations.description }}{{ else }}*{{ .Labels.service }}{{ if .Labels.route }} {{ .Labels.route }}{{ end }} is back to normal*{{ end }}
+            {{ if .DashboardURL }}<{{ .DashboardURL }}&var-service={{ .Labels.service }}|Open dashboard>{{ end }}
             {{ end }}
         # A resolved message closes the loop in the channel, so nobody keeps
         # investigating something that has already recovered.
