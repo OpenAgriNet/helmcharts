@@ -20,14 +20,14 @@ providers it calls and in the OAN network it discovers against, not here.
 | Ingress | Optional, off by default — see [Not exposed by default](#not-exposed-by-default) |
 | Test Pod | `helm test` check that `/openapi.json` answers |
 
-No Secret is rendered. `AZURE_OPENAI_API_KEY` / `OPENAI_API_KEY` /
-`OTEL_EXPORTER_OTLP_HEADERS` / `GITHUB_TOKEN` are all referenced by name from
-Secrets created outside this chart.
+No Secret is rendered. `DSS_GATEWAY_API_KEY` / `AZURE_OPENAI_API_KEY` /
+`OPENAI_API_KEY` / `OTEL_EXPORTER_OTLP_HEADERS` / `GITHUB_TOKEN` are all
+referenced by name from Secrets created outside this chart.
 
 ## Install
 
 ```bash
-kubectl create secret generic dss-azure-openai \
+kubectl create secret generic dss-api \
   -n dss --from-literal=api-key=<the deployment key>
 kubectl create secret docker-registry ghcr -n dss \
   --docker-server=ghcr.io --docker-username=<user> \
@@ -46,9 +46,13 @@ rest of `src/dss/config/settings.py` is available through `envConfig`. See
 [decision-support-system's docs/RUNNING.md](https://github.com/OpenAgriNet/decision-support-system/blob/main/docs/RUNNING.md#knobs)
 for the full list.
 
-### Models (ADR-0004)
+### Models (ADR-0004, and ADR-0013 for the gateway path)
 
-Four agents, each its own model string, set through `models.{intent,moderation,planner,composer}`:
+Four agents, each its own model string, set through `models.{intent,moderation,planner,composer}`. Which shape that string takes depends entirely on whether `gateway.url` is set — `entrypoint/composition.py::_resolve_model` checks it first, before anything else.
+
+**With `gateway.url` set (ADR-0013, the direction of travel):** every call routes through a self-hosted LiteLLM gateway. The four strings stop being vendor model ids — they become fixed labels the gateway resolves: `dss-intent`, `dss-moderation`, `dss-planner`, `dss-composer`, and nothing else. Which vendor/model actually answers each label is the gateway's own config, changed there (its admin API, or the model-list sync this repo's `OpenAgriNet/decision-support-system` ADR-0013 §5 describes) with no restart of this deployment. Needs `gateway.apiKeySecret` (→ `DSS_GATEWAY_API_KEY`) — this deployment's own credential to the gateway, not a vendor key. The chart fails the render if `gateway.url` is set with no `gateway.apiKeySecret.name`. This chart does not deploy the gateway itself (LiteLLM + its own Postgres) — see [`examples/decision-support-system.litellm.yaml`](examples/decision-support-system.litellm.yaml) and [decision-support-system's docs/RUNNING-GATEWAY.md](https://github.com/OpenAgriNet/decision-support-system/blob/main/docs/RUNNING-GATEWAY.md).
+
+**With `gateway.url` unset (the pre-gateway path, still fully supported):**
 
 - `openai:<model>` — needs `openai.apiKeySecret` (→ `OPENAI_API_KEY`), optionally `openai.baseUrl`
 - `azure:<deployment id>` — needs `azureOpenai.endpoint` + `azureOpenai.apiKeySecret` (→ `AZURE_OPENAI_ENDPOINT`/`AZURE_OPENAI_API_KEY`). The part after `azure:` is the **deployment id**, not a model name.
@@ -57,15 +61,7 @@ One agent can be on Azure while another is on OpenAI. The chart fails the
 render if any `models.*` value starts `azure:` and `azureOpenai.*` is not
 fully set, and equally if any `models.*` value does NOT start `azure:` and
 `openai.apiKeySecret` is not set — the app itself only catches either at
-process boot (`entrypoint/composition.py::_resolve_model`), one agent at a
-time.
-
-`openai:<model>` is not limited to api.openai.com: `openai.baseUrl` repoints
-it at any OpenAI-compatible endpoint, including a self-hosted, GPU-hosted
-model served through a LiteLLM proxy. The SDK sees an `openai:<model>` string
-and a base URL either way; it has no separate code path for a self-hosted
-backend. See
-[`examples/decision-support-system.litellm.yaml`](examples/decision-support-system.litellm.yaml).
+process boot, one agent at a time.
 
 ### The provider network is all-or-nothing
 

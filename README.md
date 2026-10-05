@@ -16,6 +16,7 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`adapter-service`](charts/adapter-service) | application | The OAN Beckn adapters. One chart, installed once per `role` — `provider`, `network` or `experience`. Needs `registry`. |
 | [`clickstack`](charts/clickstack) | application | Observability — ClickHouse, an OTel collector and the HyperDX UI. A verbatim copy of the official upstream chart, with no OAN changes yet. |
 | [`decision-support-system`](charts/decision-support-system) | application | The DSS reasoning runtime — intent, moderation, provider discovery, planning and composition for one farmer turn. Stateless; no datastore of its own. |
+| [`langfuse`](charts/langfuse) | application | LLM observability for the DSS — traces every agent call with full message content. A verbatim copy of the official upstream chart, with no OAN changes yet. |
 
 ## How they fit together
 
@@ -33,9 +34,9 @@ charts/
 ```
 
 Every chart depends on `common` via `file://../common`, except
-`clickstack`: it is the official upstream chart committed unmodified, so it
-carries neither the dependency nor the conventions. Its README lists what that
-leaves to override.
+`clickstack` and `langfuse`: both are official upstream charts committed
+unmodified, so they carry neither the dependency nor the conventions. Each
+chart's own README lists what that leaves to override.
 
 ## The registry stack
 

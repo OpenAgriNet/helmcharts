@@ -24,7 +24,7 @@ models:
 azureOpenai:
   endpoint: "https://<resource>.services.ai.azure.com/openai/v1"
   apiKeySecret:
-    name: dss-azure-openai
+    name: dss-api
     key: api-key
 
 # The real OAN network. Both required together - see README.md, "The

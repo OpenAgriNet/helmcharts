@@ -2,6 +2,11 @@
 # (requires azureOpenai.* - see _helpers.tpl's usesAzure guard) and a fully
 # wired provider network (requires both discoveryBaseUrl and
 # invocationBaseUrl, or the render fails - see the network guard).
+#
+# Two distinct secret names below, not the `dss-api` convention used
+# elsewhere: this file mixes an azure: agent and an openai: agent at once, so
+# it genuinely needs two separate Secrets (AZURE_OPENAI_API_KEY vs
+# OPENAI_API_KEY), not one.
 models:
   intent: "azure:gpt-4o-mini"
   moderation: "openai:gpt-4o-mini"

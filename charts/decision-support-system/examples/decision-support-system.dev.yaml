@@ -5,7 +5,7 @@
 #
 # Two Secrets must exist first (this chart renders neither):
 #
-#   kubectl -n dss create secret generic dss-azure-openai \
+#   kubectl -n dss create secret generic dss-api \
 #     --from-literal=api-key=<the deployment key>
 #   kubectl -n dss create secret docker-registry ghcr \
 #     --docker-server=ghcr.io --docker-username=<user> \
@@ -36,7 +36,7 @@ models:
 azureOpenai:
   endpoint: "https://<resource>.services.ai.azure.com/openai/v1"
   apiKeySecret:
-    name: dss-azure-openai
+    name: dss-api
     key: api-key
 
 schemaPacks:

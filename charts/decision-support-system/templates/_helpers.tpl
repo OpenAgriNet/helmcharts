@@ -41,6 +41,11 @@ model, in which case AZURE_OPENAI_ENDPOINT/AZURE_OPENAI_API_KEY become
 required - the SDK-level check in entrypoint/composition.py::_resolve_model
 raises at boot on either being missing, one agent at a time. Checking all four
 at render time surfaces every missing one at once, before anything is applied.
+
+Only meaningful without the gateway (ADR-0013): composition.py's
+_resolve_model checks settings.gateway_url FIRST, before the azure: prefix, so
+once gateway.url is set every models.* value is a gateway-resolved label
+regardless of what it starts with, and this guard does not apply.
 */}}
 {{- define "decision-support-system.usesAzure" -}}
 {{- $m := .Values.models -}}
@@ -64,6 +69,18 @@ just the other branch of the per-agent prefix.
 {{- end }}
 
 {{/*
+Whether the model gateway (ADR-0013) is configured. A models.* value is a
+gateway-resolved label (dss-intent, ...) rather than an openai:/azure: string
+once this is true, and the azure/openai guards and env above do not apply -
+see the note on usesAzure.
+*/}}
+{{- define "decision-support-system.usesGateway" -}}
+{{- if .Values.gateway.url -}}
+{{- true -}}
+{{- end -}}
+{{- end }}
+
+{{/*
 Everything the service needs that this chart derives from its structured
 values, as container env entries. These take precedence over the envConfig
 ConfigMap injected with envFrom.
@@ -71,10 +88,16 @@ ConfigMap injected with envFrom.
 {{- define "decision-support-system.env" -}}
 {{- $m := .Values.models -}}
 {{- $net := .Values.network -}}
+{{- $gateway := .Values.gateway -}}
 {{- $azure := .Values.azureOpenai -}}
 {{- $openai := .Values.openai -}}
 {{- $packs := .Values.schemaPacks -}}
 {{- $tracing := .Values.tracing -}}
+{{- if include "decision-support-system.usesGateway" . }}
+{{- if not $gateway.apiKeySecret.name }}
+{{- fail (printf "%s: gateway.url is set, so gateway.apiKeySecret.{name,key} is required - it becomes DSS_GATEWAY_API_KEY, this deployment's own credential to the gateway. This chart renders no Secrets; create one out of band." .Chart.Name) }}
+{{- end }}
+{{- else }}
 {{- if include "decision-support-system.usesAzure" . }}
 {{- if not $azure.endpoint }}
 {{- fail (printf "%s: a models.* value uses the azure: prefix, so azureOpenai.endpoint is required - the SDK reads AZURE_OPENAI_ENDPOINT directly and raises at boot without it" .Chart.Name) }}
@@ -83,16 +106,17 @@ ConfigMap injected with envFrom.
 {{- fail (printf "%s: a models.* value uses the azure: prefix, so azureOpenai.apiKeySecret.{name,key} is required - it becomes AZURE_OPENAI_API_KEY. This chart renders no Secrets; create one out of band." .Chart.Name) }}
 {{- end }}
 {{- end }}
+{{- if include "decision-support-system.usesOpenai" . }}
+{{- if not $openai.apiKeySecret.name }}
+{{- fail (printf "%s: a models.* value does not use the azure: prefix, so it is routed through OpenAI's SDK, which requires openai.apiKeySecret.{name,key} - it becomes OPENAI_API_KEY. This chart renders no Secrets; create one out of band." .Chart.Name) }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- if and $net.discoveryBaseUrl (not $net.invocationBaseUrl) }}
 {{- fail (printf "%s: network.discoveryBaseUrl is set but network.invocationBaseUrl is not. Settings.network_enabled requires both or neither - a partial config does not fail the boot, it quietly answers every turn no_match, which reads as a broken network rather than an intentionally unwired one." .Chart.Name) }}
 {{- end }}
 {{- if and $net.invocationBaseUrl (not $net.discoveryBaseUrl) }}
 {{- fail (printf "%s: network.invocationBaseUrl is set but network.discoveryBaseUrl is not. Settings.network_enabled requires both or neither - see the discoveryBaseUrl check above for why this is caught here rather than left to degrade silently." .Chart.Name) }}
-{{- end }}
-{{- if include "decision-support-system.usesOpenai" . }}
-{{- if not $openai.apiKeySecret.name }}
-{{- fail (printf "%s: a models.* value does not use the azure: prefix, so it is routed through OpenAI's SDK, which requires openai.apiKeySecret.{name,key} - it becomes OPENAI_API_KEY. This chart renders no Secrets; create one out of band." .Chart.Name) }}
-{{- end }}
 {{- end }}
 - name: DSS_INTENT_MODEL
   value: {{ $m.intent | quote }}
@@ -102,6 +126,15 @@ ConfigMap injected with envFrom.
   value: {{ $m.planner | quote }}
 - name: DSS_COMPOSER_MODEL
   value: {{ $m.composer | quote }}
+{{- if include "decision-support-system.usesGateway" . }}
+- name: DSS_GATEWAY_URL
+  value: {{ $gateway.url | quote }}
+- name: DSS_GATEWAY_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ $gateway.apiKeySecret.name }}
+      key: {{ $gateway.apiKeySecret.key }}
+{{- else }}
 {{- with $azure.endpoint }}
 - name: AZURE_OPENAI_ENDPOINT
   value: {{ . | quote }}
@@ -123,6 +156,7 @@ ConfigMap injected with envFrom.
     secretKeyRef:
       name: {{ . }}
       key: {{ $openai.apiKeySecret.key }}
+{{- end }}
 {{- end }}
 {{- with $net.discoveryBaseUrl }}
 - name: DSS_DISCOVERY_BASE_URL

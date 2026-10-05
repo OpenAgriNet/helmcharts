@@ -9,5 +9,5 @@ image:
 
 openai:
   apiKeySecret:
-    name: dss-openai
+    name: dss-api
     key: api-key

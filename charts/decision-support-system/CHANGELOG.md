@@ -31,6 +31,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   proxy via `openai.baseUrl`, rather than api.openai.com. No template change
   needed — LiteLLM's proxy speaks the OpenAI API, so this was already
   possible; it just was not documented anywhere in the chart.
+- Standardized the model-provider API key Secret name to `dss-api` (was
+  `dss-openai`/`dss-azure-openai`) in the README install snippet,
+  `examples/decision-support-system.{dev,prod}.yaml` and
+  `ci/lint-values.yaml`, matching `dss-langfuse`/`dss-litellm` elsewhere.
+  `ci/azure-network-values.yaml` keeps two distinct names on purpose — it
+  wires an `azure:` agent and an `openai:` agent at once, which genuinely
+  needs two separate Secrets.
+- Added `gateway.{url,apiKeySecret}` for the model gateway
+  (`OpenAgriNet/decision-support-system` ADR-0013): `models.*` becomes fixed
+  gateway-resolved labels (`dss-intent`, ...) instead of `openai:`/`azure:`
+  strings once `gateway.url` is set, wired to `DSS_GATEWAY_URL`/
+  `DSS_GATEWAY_API_KEY`. `entrypoint/composition.py::_resolve_model` checks
+  `gateway_url` before the `azure:` prefix, so `usesAzure`/`usesOpenai` and
+  their `azureOpenai.*`/`openai.*` env no longer apply once the gateway is
+  configured — `_helpers.tpl` now skips them via a new `usesGateway` guard,
+  which itself requires `gateway.apiKeySecret.name`. This chart does not
+  deploy the gateway (LiteLLM + its own Postgres) — that is a separate
+  component. `examples/decision-support-system.litellm.yaml`, which
+  previously guessed at a consumer-side `openai.baseUrl` pattern, is
+  rewritten to the real ADR-0013 mechanism. New
+  `ci/gateway-values.yaml` covers the branch.
 - `emptyDir` volumes for the schema-pack cache and the evidence directory -
   both explicitly ephemeral, matching the app's own documented design
   (`docs/RUNNING.md`: evidence is "a stand-in" for an API that does not exist

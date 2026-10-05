@@ -76,18 +76,34 @@ ingress:
   tls: []
 
 # ---------------------------------------------------------------------------
-# Per-agent model bindings (ADR-0004)
+# Per-agent model bindings (ADR-0004, superseded in meaning by ADR-0013 when
+# gateway.url below is set)
 #
-# Four agents, each its own model string in Pydantic AI's own syntax:
-#   openai:<model>          - OPENAI_API_KEY (see the `openai` block below)
-#   azure:<deployment id>   - AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_API_KEY
-#                             (see the `azureOpenai` block below), NOT the
-#                             deployment's model name
+# Four agents, each its own model string. Two possible shapes, mutually
+# exclusive and decided entirely by whether gateway.url is set:
 #
-# One agent can be on Azure while another is on OpenAI - the prefix decides,
-# independently per agent. Temperature/timeout/retries per agent are less
-# likely to change per environment and stay in envConfig
-# (DSS_INTENT_TEMPERATURE, DSS_PLANNER_RETRIES, ...) - see README.md.
+#   gateway.url set    - each string is a LABEL the gateway resolves, not a
+#                         vendor model id: dss-intent, dss-moderation,
+#                         dss-planner, dss-composer, and nothing else (see
+#                         the `gateway` block below). Do not change these
+#                         four strings per environment; the label is the
+#                         contract, the gateway is where the meaning moves.
+#   gateway.url unset  - Pydantic AI's own syntax, parsed per agent:
+#                           openai:<model>          - OPENAI_API_KEY (see `openai` below)
+#                           azure:<deployment id>   - AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_API_KEY
+#                                                     (see `azureOpenai` below), NOT the
+#                                                     deployment's model name
+#                         One agent can be on Azure while another is on
+#                         OpenAI - the prefix decides, independently per
+#                         agent. This is the pre-gateway path
+#                         (OpenAgriNet/decision-support-system
+#                         docs/ADR/0013-litellm-as-the-model-gateway.md §8) -
+#                         still fully supported, just not the direction of
+#                         travel.
+#
+# Temperature/timeout/retries per agent are less likely to change per
+# environment and stay in envConfig (DSS_INTENT_TEMPERATURE,
+# DSS_PLANNER_RETRIES, ...) - see README.md.
 # ---------------------------------------------------------------------------
 models:
   intent: "openai:gpt-4o-mini"
@@ -95,12 +111,34 @@ models:
   planner: "openai:gpt-4o-mini"
   composer: "openai:gpt-4o-mini"
 
+# ---------------------------------------------------------------------------
+# Model gateway (ADR-0013)
+#
+# Every model call routes through one self-hosted LiteLLM gateway instead of
+# straight to a vendor. The assistant holds one credential - its own key to
+# the gateway - and never learns which vendor actually answered; that
+# mapping lives in the gateway's own config, changed there with no restart
+# of this deployment. See OpenAgriNet/decision-support-system
+# docs/RUNNING-GATEWAY.md and docs/ADR/0013-litellm-as-the-model-gateway.md.
+#
+# The gateway itself (LiteLLM + its own Postgres) is not deployed by this
+# chart - point url at wherever that gateway's service lives.
+#
+# Unset (default): the pre-gateway path above applies instead.
+# ---------------------------------------------------------------------------
+gateway:
+  url: ""
+  apiKeySecret:
+    name: ""
+    key: ""
+
 # AZURE_OPENAI_ENDPOINT / AZURE_OPENAI_API_KEY. Read by the SDK straight from
 # the environment, not through DSS Settings - so these reach the container as
 # plain env vars regardless, unlike a local .env file (docs/RUNNING.md's "these
 # two cannot live in .env" caveat is a local-dev-only quirk, not a container
 # one). Required, and validated at startup, only when a models.* value starts
-# `azure:`.
+# `azure:` AND gateway.url is unset - the gateway path above takes priority
+# (entrypoint/composition.py::_resolve_model checks gateway_url first).
 azureOpenai:
   # The v1 base or full responses URL. Not a secret, but deployment-specific.
   endpoint: ""
@@ -109,15 +147,8 @@ azureOpenai:
     key: ""
 
 # OPENAI_API_KEY / OPENAI_BASE_URL, for any models.* value that is NOT
-# `azure:...`. baseUrl is optional - unset uses api.openai.com.
-#
-# This is also the knob for a self-hosted model served behind an
-# OpenAI-compatible gateway (e.g. LiteLLM in front of a GPU-hosted model) -
-# point baseUrl at that gateway's URL and apiKeySecret at whatever key the
-# gateway issues (a LiteLLM virtual key, not an OpenAI one). Nothing else
-# about the request path changes: the SDK still sees an `openai:<model>`
-# string and a base URL, it does not know or care that the far end is
-# self-hosted. See examples/decision-support-system.litellm.yaml.
+# `azure:...`, when gateway.url is unset. baseUrl is optional - unset uses
+# api.openai.com.
 openai:
   baseUrl: ""
   apiKeySecret:

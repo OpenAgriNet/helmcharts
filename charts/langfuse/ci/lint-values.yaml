@@ -1,0 +1,10 @@
+# Not upstream - added so this repo's offline CI can render this chart.
+#
+# Bare defaults call `lookup` against a live cluster to confirm the ClickHouse
+# operator's CRDs are installed (clickhouse.com/v1alpha1/ClickHouseCluster,
+# KeeperCluster) and fail loudly when they are not found - correct behaviour
+# against a real cluster, but `helm template` in CI has no cluster to look
+# against. `clickhouse.crdCheck: false` is upstream's own documented escape
+# hatch for exactly this case (see the chart's own error message).
+clickhouse:
+  crdCheck: false
