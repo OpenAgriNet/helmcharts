@@ -63,7 +63,7 @@
       },
       {
         "name": "service",
-        "label": "Log service",
+        "label": "Service",
         "type": "query",
         "datasource": {
           "type": "grafana-clickhouse-datasource",
@@ -72,7 +72,7 @@
         "query": {
           "refId": "service-variable",
           "editorType": "sql",
-          "rawSql": "SELECT DISTINCT ServiceName AS service FROM otel.otel_logs ORDER BY service",
+          "rawSql": "SELECT DISTINCT service FROM (\n  SELECT ServiceName AS service FROM otel.otel_logs WHERE Timestamp >= now() - INTERVAL 1 DAY\n  UNION ALL\n  SELECT ServiceName AS service FROM otel.otel_traces WHERE Timestamp >= now() - INTERVAL 1 DAY\n)\nWHERE service != ''\nORDER BY service",
           "format": 1,
           "queryType": "sql"
         },
@@ -181,8 +181,8 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "Error rate",
-      "description": "HTTP status >= 400 or span status Error.\n\nDeliberately NOT keyed on StatusCode alone: an envelope rejection returns 400 while the span itself succeeds, so StatusCode is 'Unset' on nearly every failure in this stack. A dashboard keyed on StatusCode shows a flat zero straight through an outage.",
+      "title": "Server error rate (5xx)",
+      "description": "Share of server requests answered with HTTP 5xx, per service. Filtered by the Service variable; the API failure rate alert opens the dashboard on the service that fired.\n\nSame definition as that alert: 5xx only. A 4xx -- an envelope rejection, say -- is the client's request being wrong, not the service failing; those show in the Failures row below.\n\nDeliberately NOT keyed on StatusCode: it is 'Unset' on nearly every span in this stack, so a panel keyed on it shows a flat zero straight through an outage.\n\nThe status is read from http.response.status_code (the adapters) or http.status_code (discovery-service), whichever the span has.",
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "clickhouse"
@@ -201,7 +201,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT 100 * countIf(toUInt16OrZero(SpanAttributes['http.status_code']) >= 400 OR StatusCode = 'Error') / count() AS error_pct\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND ServiceName = 'discovery-service' AND SpanKind = 'Server'",
+          "rawSql": "SELECT\n  ServiceName AS service,\n  100 * countIf(toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) >= 500) / count() AS error_pct\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(ServiceName IN ($service), $service)\nGROUP BY service\nORDER BY service",
           "format": 1,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -241,7 +241,7 @@
             "lastNotNull"
           ],
           "fields": "",
-          "values": false
+          "values": true
         },
         "colorMode": "value",
         "graphMode": "area",
@@ -256,8 +256,8 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "p95 latency",
-      "description": "95th percentile of span duration. Duration is stored in nanoseconds; divided by 1e6 here.",
+      "title": "p95 latency by route",
+      "description": "95th percentile of server span duration, per service and route. Filtered by the Service variable; the High latency alert opens the dashboard on the service that fired.\n\nSame definition as that alert: the route is the span name, which is the request path. Red at 2 s, the alert's threshold. Duration is stored in nanoseconds; divided by 1e9 here.",
       "datasource": {
         "type": "grafana-clickhouse-datasource",
         "uid": "clickhouse"
@@ -276,7 +276,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT quantile(0.95)(Duration / 1e6) AS p95_ms\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND ServiceName = 'discovery-service' AND SpanKind = 'Server'",
+          "rawSql": "SELECT\n  concat(ServiceName, ' ', SpanName) AS route,\n  quantile(0.95)(Duration) / 1e9 AS p95_seconds\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(ServiceName IN ($service), $service)\nGROUP BY route\nORDER BY route",
           "format": 1,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -284,8 +284,8 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "ms",
-          "decimals": 1,
+          "unit": "s",
+          "decimals": 2,
           "color": {
             "mode": "thresholds"
           },
@@ -299,11 +299,11 @@
               },
               {
                 "color": "yellow",
-                "value": 300
+                "value": 1
               },
               {
                 "color": "red",
-                "value": 1000
+                "value": 2
               }
             ]
           }
@@ -316,7 +316,7 @@
             "lastNotNull"
           ],
           "fields": "",
-          "values": false
+          "values": true
         },
         "colorMode": "value",
         "graphMode": "area",
