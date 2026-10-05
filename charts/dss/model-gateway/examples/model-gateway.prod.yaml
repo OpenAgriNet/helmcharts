@@ -1,0 +1,75 @@
+# Production. Every model call passes through here, so: more than one replica,
+# Redis so the spend limits are real rather than per-pod, and no admin screen -
+# the model list below is the only way in.
+replicaCount: 3
+
+image:
+  registry: ghcr.io
+  repository: berriai/litellm
+
+database:
+  urlSecret:
+    name: model-gateway-db-app
+
+masterKeySecret:
+  name: model-gateway-master-key
+saltKeySecret:
+  name: model-gateway-salt-key
+
+redis:
+  host: model-gateway-redis
+  passwordSecret:
+    name: model-gateway-redis-auth
+
+adminUI:
+  enabled: false
+
+blockUnpricedModels: true
+
+credentials:
+  - name: azure-oan
+    description: Azure OpenAI, OAN production account
+    secretName: model-gateway-azure
+    keys:
+      api_key: AZURE_OPENAI_API_KEY
+    values:
+      api_base: https://<resource>.services.ai.azure.com/openai/v1
+
+# Change a model here. Merge, sync, done - nothing restarts.
+models:
+  - name: dss-intent
+    model: openai/<deployment>
+    credential: azure-oan
+    inputCostPerToken: 0.00000015
+    outputCostPerToken: 0.00000060
+  - name: dss-moderation
+    model: openai/<deployment>
+    credential: azure-oan
+    inputCostPerToken: 0.00000015
+    outputCostPerToken: 0.00000060
+  - name: dss-planner
+    model: openai/<deployment>
+    credential: azure-oan
+    inputCostPerToken: 0.00000015
+    outputCostPerToken: 0.00000060
+  - name: dss-composer
+    model: openai/<deployment>
+    credential: azure-oan
+    inputCostPerToken: 0.00000015
+    outputCostPerToken: 0.00000060
+
+otel:
+  enabled: true
+  endpoint: http://otel-collector:4318/v1/traces
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+resources:
+  limits:
+    cpu: "2"
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
