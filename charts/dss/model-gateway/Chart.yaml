@@ -26,4 +26,4 @@ sources:
 dependencies:
   - name: common
     version: "0.2.x"
-    repository: "file://../common"
+    repository: "file://../../common"

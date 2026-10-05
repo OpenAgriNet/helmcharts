@@ -107,9 +107,9 @@ answer.
 ## Install
 
 ```bash
-helm dependency update charts/model-gateway
-helm upgrade --install model-gateway charts/model-gateway \
-  -f charts/model-gateway/examples/model-gateway.prod.yaml
+helm dependency update charts/dss/model-gateway
+helm upgrade --install model-gateway charts/dss/model-gateway \
+  -f charts/dss/model-gateway/examples/model-gateway.prod.yaml
 helm test model-gateway
 ```
 

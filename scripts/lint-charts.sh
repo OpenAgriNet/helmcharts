@@ -2,6 +2,10 @@
 #
 # Lint and render every chart under charts/.
 #
+# A chart lives at charts/<chart>, or one level down at charts/<group>/<chart>
+# when it belongs to a group of related charts (charts/dss/model-gateway). A
+# group directory has no Chart.yaml of its own.
+#
 # Run locally exactly as CI runs it:
 #   ./scripts/lint-charts.sh
 #
@@ -21,9 +25,22 @@ cd "$(dirname "$0")/.."
 
 failed=0
 
-for chart_dir in charts/*/; do
-  chart_dir="${chart_dir%/}"
-  [[ -f "$chart_dir/Chart.yaml" ]] || continue
+# Collect charts/<chart> and charts/<group>/<chart>. A chart's own charts/
+# directory (vendored dependencies) is never descended into.
+chart_dirs=()
+for dir in charts/*/; do
+  dir="${dir%/}"
+  if [[ -f "$dir/Chart.yaml" ]]; then
+    chart_dirs+=("$dir")
+    continue
+  fi
+  for sub in "$dir"/*/; do
+    sub="${sub%/}"
+    [[ -f "$sub/Chart.yaml" ]] && chart_dirs+=("$sub")
+  done
+done
+
+for chart_dir in "${chart_dirs[@]}"; do
 
   name="$(basename "$chart_dir")"
   chart_type="$(helm show chart "$chart_dir" 2>/dev/null | awk '/^type:/ {print $2}')"
