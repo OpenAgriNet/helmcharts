@@ -78,6 +78,26 @@ setting `postgresql.deploy: false` and filling in `postgresql.externalHost`
 this import** — it is the first thing to decide before a shared-cluster
 install, not something vendoring silently assumes.
 
+## The bundled S3 store does not render under this repo's pinned Helm
+
+`s3.deploy: true` (the upstream default) bundles the `seaweedfs` sub-chart.
+Its own `templates/shared/security-configmap.yaml` calls Sprig's `fromToml` —
+a function this repo's CI Helm (`v3.16.4`, pinned in
+`.github/workflows/helm-lint.yml`) does not have:
+
+```
+[ERROR] templates/: parse error at (langfuse/charts/s3/templates/shared/security-configmap.yaml:21): function "fromToml" not defined
+```
+
+This is **not a CI-only quirk** — any real install of this chart through a
+Helm or Argo CD toolchain old enough to lack `fromToml` fails identically,
+with `s3.deploy` left at its own upstream default. `ci/lint-values.yaml` sets
+`s3.deploy: false` for exactly this reason, pointed at a placeholder external
+store, which happens to match what the README already recommends anyway —
+reuse an existing S3-compatible store rather than bundling a private one. Set
+`s3.deploy: true` only after confirming whatever Helm actually deploys this
+chart is new enough to have `fromToml`.
+
 ## Departures from repo conventions
 
 Upstream is not written to this repo's [`CONVENTIONS.md`](../../CONVENTIONS.md),
@@ -96,18 +116,22 @@ hiding them:
 - **Bundles its own Postgres, Redis and S3-compatible store** rather than
   reusing this repo's `postgresql-cnpg` or any shared object storage — see
   above. Each has a `deploy: false` escape hatch upstream already built in.
-- **Requires a cluster-installed operator** (Altinity ClickHouse Operator)
-  this repo does not otherwise depend on anywhere else, and checks for it with
-  a live `lookup` at template time — which is also why `ci/lint-values.yaml`
-  exists (see below), since `scripts/lint-charts.sh` renders offline.
+  The S3 one isn't actually optional for this repo — see above.
+- **Requires a cluster-installed operator** (the official ClickHouse
+  Kubernetes Operator, `ghcr.io/clickhouse/clickhouse-operator-helm` — not
+  Altinity's) this repo does not otherwise depend on anywhere else, and checks
+  for it with a live `lookup` at template time — which is also why
+  `ci/lint-values.yaml` exists (see below), since `scripts/lint-charts.sh`
+  renders offline.
 - **Chart named after the implementation**, not a role — consistent with
   `clickstack`'s own departure for the same reason: renaming it would be the
   first modification to an otherwise-verbatim import.
-- **`ci/lint-values.yaml` is not upstream.** Added only so this repo's CI can
+- **`ci/lint-values.yaml` is not upstream.** Added so this repo's CI can
   `helm template` without a live cluster (`clickhouse.crdCheck: false`,
-  upstream's own documented offline-rendering flag). `clickstack` needed no
-  such file because its bare defaults already render offline; this chart's do
-  not, because of the ClickHouse operator check above.
+  upstream's own documented offline-rendering flag) and without the pinned
+  Helm's missing `fromToml` (`s3.deploy: false`, see above). `clickstack`
+  needed no such file because its bare defaults already render clean; this
+  chart's do not, for two unrelated reasons.
 - **No `examples/*.yaml`.** No dev/prod values file yet — the first real
   install is where the Postgres/Redis/S3 and secret decisions above actually
   get made, and an example written ahead of that would just be guessed.

@@ -8,3 +8,22 @@
 # hatch for exactly this case (see the chart's own error message).
 clickhouse:
   crdCheck: false
+
+# Bare defaults (s3.deploy: true) bundle the seaweedfs sub-chart, whose own
+# templates/shared/security-configmap.yaml calls Sprig's fromToml - a function
+# this repo's pinned CI Helm (v3.16.4, .github/workflows/helm-lint.yml) does
+# not have, failing with "function \"fromToml\" not defined" before any value
+# here is even evaluated. Not a CI-only issue: any real install of this chart
+# through a Helm/Argo CD toolchain old enough to lack fromToml would hit the
+# identical crash with s3.deploy left at its upstream default. Disabling it
+# here matches what the README already recommends anyway (reuse an existing
+# S3-compatible store rather than bundling a private one) - this is forced,
+# not optional, for this repo's CI either way. See CHANGELOG.md.
+s3:
+  deploy: false
+  endpoint: http://minio.example:9000
+  bucket: langfuse
+  accessKeyId:
+    value: lint-only-placeholder
+  secretAccessKey:
+    value: lint-only-placeholder

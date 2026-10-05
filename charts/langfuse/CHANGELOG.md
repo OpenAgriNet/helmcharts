@@ -20,14 +20,17 @@ pulled from `https://github.com/langfuse/langfuse-k8s`, committed unmodified.
   `redis`/valkey (queueing) and `s3`/seaweedfs (event/media storage) subchart
   dependencies, each deployable or pointable at an external instance via its
   own `deploy` toggle.
-- ClickHouse via the Altinity ClickHouse Operator's `ClickHouseCluster` /
+- ClickHouse via the official ClickHouse Kubernetes Operator's
+  (`ghcr.io/clickhouse/clickhouse-operator-helm`) `ClickHouseCluster` /
   `KeeperCluster` CRDs — requires that operator already running in the
   cluster.
 - Upstream's own `tests/` (helm-unittest), kept so a later OAN change can be
   checked against them.
-- `ci/lint-values.yaml` (not upstream) — sets `clickhouse.crdCheck: false` so
-  `scripts/lint-charts.sh` can `helm template` this chart without a live
-  cluster to check the ClickHouse operator CRDs against.
+- `ci/lint-values.yaml` (not upstream) — sets `clickhouse.crdCheck: false`
+  (no live cluster to check the operator CRDs against in CI) and
+  `s3.deploy: false` (the pinned CI Helm, v3.16.4, lacks the Sprig `fromToml`
+  function the bundled `seaweedfs` sub-chart's own template calls — a real
+  incompatibility, not a CI-only workaround; see README).
 - `README.md` and this changelog — the only other files in this directory
   that are not upstream's.
 
@@ -41,8 +44,12 @@ pulled from `https://github.com/langfuse/langfuse-k8s`, committed unmodified.
   requests or limits, and the bundled Postgres is a plain `groundhog2k`
   StatefulSet, not this repo's `postgresql-cnpg`. The README lists each one;
   resolving them is the next piece of work, not something this import does.
-- `helm lint --strict` passes on bare defaults; `helm template` needs
-  `ci/lint-values.yaml` (or a live cluster with the ClickHouse operator
-  installed) — covered in `scripts/lint-charts.sh` via that file, the same
+- `helm lint --strict` passing on bare defaults is Helm-version-dependent: a
+  newer Helm (bundling a Sprig with `fromToml`) is clean; this repo's pinned
+  CI Helm (v3.16.4) fails on the bundled `s3` sub-chart's template with
+  `function "fromToml" not defined` — confirmed by reproducing locally against
+  the exact v3.16.4 binary CI uses, not just inferred from the CI log. Also
+  needs a live cluster with the ClickHouse operator installed, or
+  `clickhouse.crdCheck: false`. `ci/lint-values.yaml` covers both — the same
   mechanism `decision-support-system` and others already use for a chart
   whose bare defaults don't render offline.
