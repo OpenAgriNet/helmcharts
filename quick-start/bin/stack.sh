@@ -90,7 +90,7 @@ up() {
     # margin: ClickHouse alone wants 2-4 GB, which is what takes this VM from
     # 8 GB to 16 GB.
     step 5 5 "clickhouse, otel-collector, grafana -- OTLP ingest, storage, UI"
-    docker compose --profile observability up -d clickhouse otel-collector grafana
+    docker compose --profile observability up -d clickhouse otel-collector grafana clickstack-mongo clickstack
 
     done_banner
 }
@@ -231,8 +231,8 @@ NEXT
 
 observability() {
     preflight
-    step 1 1 "clickhouse, otel-collector, grafana -- OTLP ingest, storage, UI"
-    docker compose --profile observability up -d clickhouse otel-collector grafana
+    step 1 1 "clickhouse, otel-collector, grafana, clickstack -- OTLP ingest, storage, UIs"
+    docker compose --profile observability up -d clickhouse otel-collector grafana clickstack-mongo clickstack
     info "UI on 127.0.0.1:8085. Grafana has its own login (GF_SECURITY_ADMIN_USER/PASSWORD) -- change it before exposing this, and keep it on loopback or behind an NPM Access List regardless."
 }
 

@@ -97,6 +97,7 @@ volumes:
   discovery-postgres-data:
   clickhouse-data:
   grafana-data:
+  clickstack-mongo-data:
   nginx-proxy-manager-data:
   nginx-proxy-manager-letsencrypt:
 
@@ -930,6 +931,68 @@ services:
       timeout: 5s
       retries: 15
       start_period: 30s
+
+  # --------------------------------------------------------------------------
+  # ClickStack (HyperDX) -- a second UI over the SAME ClickHouse.
+  #
+  # Grafana is for dashboards; HyperDX is for searching logs and following a
+  # trace end to end. Both read what the one collector writes into the one
+  # ClickHouse, so nothing is ingested or stored twice.
+  #
+  # The HyperDX app on its own, not the clickstack-local all-in-one the old
+  # hyperdx container ran: that image brings its own ClickHouse and collector.
+  # Full mode needs MongoDB for its own state (users, saved searches, its
+  # dashboards). It queries ClickHouse from its server, so ClickHouse stays on
+  # oan-internal -- no browser route to 8123 as the old setup needed.
+  #
+  # Named clickstack, not hyperdx: running apps whose rendered configs still
+  # say hyperdx:4317 may have that name pointed at the collector.
+  #
+  # FIRST VISIT CREATES THE ACCOUNT. Open it and register straight after it
+  # starts, before routing it publicly, and keep an NPM Access List in front.
+  clickstack-mongo:
+    image: mongo:5.0.32-focal
+    container_name: clickstack-mongo
+    restart: unless-stopped
+    logging: *logging
+    profiles: ["observability"]
+    networks: [oan-internal]
+    volumes:
+      - clickstack-mongo-data:/data/db
+
+  clickstack:
+    image: docker.hyperdx.io/hyperdx/hyperdx:2
+    container_name: clickstack
+    restart: unless-stopped
+    logging: *logging
+    profiles: ["observability"]
+    # oan-edge for the NPM proxy host; oan-internal for MongoDB and ClickHouse.
+    networks: [oan-internal, oan-edge]
+    depends_on:
+      clickstack-mongo:
+        condition: service_started
+      clickhouse:
+        condition: service_healthy
+    environment:
+      MONGO_URI: mongodb://clickstack-mongo:27017/hyperdx
+      HYPERDX_APP_PORT: "8080"
+      HYPERDX_API_PORT: "8000"
+      SERVER_URL: http://127.0.0.1:8000
+      # The address people open it at -- its links and login redirects are
+      # built from this. A hostname of its own (an NPM proxy host); HyperDX
+      # does not serve from a sub-path the way Grafana can.
+      HYPERDX_APP_URL: ${CLICKSTACK_URL:-http://127.0.0.1}
+      FRONTEND_URL: ${CLICKSTACK_URL:-http://127.0.0.1:${CLICKSTACK_UI_PORT:-8088}}
+      HYPERDX_LOG_LEVEL: error
+      USAGE_STATS_ENABLED: "false"
+      OTEL_SDK_DISABLED: "true"
+      # Pre-wired to this stack's ClickHouse and the collector's tables, so
+      # there is no connection or source to set up by hand. Applied when the
+      # account's team is first created; later edits are made in its UI.
+      DEFAULT_CONNECTIONS: '[{"name":"OAN ClickHouse","host":"http://oan-clickhouse:8123","username":"${CLICKHOUSE_USER:-otel}","password":"${CLICKHOUSE_PASSWORD}"}]'
+      DEFAULT_SOURCES: '[{"from":{"databaseName":"${CLICKHOUSE_DB:-otel}","tableName":"otel_logs"},"kind":"log","timestampValueExpression":"Timestamp","name":"Logs","displayedTimestampValueExpression":"Timestamp","implicitColumnExpression":"Body","serviceNameExpression":"ServiceName","bodyExpression":"Body","eventAttributesExpression":"LogAttributes","resourceAttributesExpression":"ResourceAttributes","defaultTableSelectExpression":"Timestamp,ServiceName,SeverityText,Body","severityTextExpression":"SeverityText","traceIdExpression":"TraceId","spanIdExpression":"SpanId","connection":"OAN ClickHouse","traceSourceId":"Traces","metricSourceId":"Metrics"},{"from":{"databaseName":"${CLICKHOUSE_DB:-otel}","tableName":"otel_traces"},"kind":"trace","timestampValueExpression":"Timestamp","name":"Traces","displayedTimestampValueExpression":"Timestamp","implicitColumnExpression":"SpanName","serviceNameExpression":"ServiceName","eventAttributesExpression":"SpanAttributes","resourceAttributesExpression":"ResourceAttributes","defaultTableSelectExpression":"Timestamp,ServiceName,StatusCode,round(Duration/1e6),SpanName","traceIdExpression":"TraceId","spanIdExpression":"SpanId","durationExpression":"Duration","durationPrecision":9,"parentSpanIdExpression":"ParentSpanId","spanNameExpression":"SpanName","spanKindExpression":"SpanKind","statusCodeExpression":"StatusCode","statusMessageExpression":"StatusMessage","connection":"OAN ClickHouse","logSourceId":"Logs","metricSourceId":"Metrics"},{"from":{"databaseName":"${CLICKHOUSE_DB:-otel}","tableName":""},"kind":"metric","timestampValueExpression":"TimeUnix","name":"Metrics","resourceAttributesExpression":"ResourceAttributes","metricTables":{"gauge":"otel_metrics_gauge","histogram":"otel_metrics_histogram","sum":"otel_metrics_sum"},"connection":"OAN ClickHouse","logSourceId":"Logs","traceSourceId":"Traces"}]'
+    ports:
+      - "127.0.0.1:${CLICKSTACK_UI_PORT:-8088}:8080"
 
   # ==========================================================================
   # edge -- Nginx Proxy Manager.

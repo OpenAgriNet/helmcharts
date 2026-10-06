@@ -271,6 +271,14 @@ one gotcha, are in Appendix H.
 `docker compose restart nginx-proxy-manager` after this command, the first
 time: NPM only resolves `grafana` on reload.
 
+ClickStack (HyperDX) starts with it, on `127.0.0.1:8088`, as a second UI over
+the same ClickHouse: log search and end-to-end traces next to Grafana's
+dashboards. Its connection and Logs/Traces/Metrics sources are pre-wired. The
+first visit creates the account, so register straight away. To serve it
+publicly, give it a hostname of its own (an NPM proxy host to `clickstack`,
+port `8080`, with an Access List; HyperDX has no sub-path mode) and set
+`CLICKSTACK_URL=https://<that hostname>` in `.env`.
+
 Alerting is on by default: three rules, posting to the Slack webhook in
 `SLACK_WEBHOOK_URL`. On a stack nobody is on call for, set
 `GRAFANA_ALERTING_ENABLED=false` in `.env` and run `make observability` again.
