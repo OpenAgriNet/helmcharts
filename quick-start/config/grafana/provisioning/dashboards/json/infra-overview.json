@@ -1,0 +1,651 @@
+{
+  "uid": "infra-overview",
+  "title": "Infra — Resource Usage",
+  "description": "CPU, memory, disk and network usage of the OAN services.",
+  "tags": [
+    "oan",
+    "infra",
+    "clickhouse",
+    "otel"
+  ],
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "graphTooltip": 1,
+  "editable": true,
+  "id": null,
+  "timezone": "browser",
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "label": "Service",
+        "description": "",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "clickhouse"
+        },
+        "query": {
+          "refId": "service-variable",
+          "editorType": "sql",
+          "rawSql": "SELECT DISTINCT ServiceName AS service\nFROM otel.otel_metrics_gauge\nWHERE $__timeFilter(TimeUnix)\n  AND MetricName = 'container.cpu.utilization'\nORDER BY service",
+          "format": 1,
+          "queryType": "sql"
+        },
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "options": [],
+        "sort": 1,
+        "hide": 0,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "CPU, memory, disk and network usage of the OAN services, collected every 30 seconds."
+      },
+      "transparent": true
+    },
+    {
+      "id": 4,
+      "type": "row",
+      "title": "CPU",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 2,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "CPU usage",
+      "description": "CPU used by each service. 100% equals one full CPU core.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT\n  $__timeInterval(TimeUnix) AS time,\n  ServiceName AS service,\n  avg(Value) AS cpu\nFROM otel.otel_metrics_gauge\nWHERE $__timeFilter(TimeUnix)\n  AND MetricName = 'container.cpu.utilization'\n  AND $__conditionalAll(ServiceName IN ($service), $service)\nGROUP BY time, service\nORDER BY time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "pointSize": 6,
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "displayName": "${__field.labels.service}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "row",
+      "title": "Memory",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Memory usage",
+      "description": "Memory used by each service, excluding file cache.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT\n  $__timeInterval(TimeUnix) AS time,\n  ServiceName AS service,\n  avg(Value) AS memory\nFROM otel.otel_metrics_sum\nWHERE $__timeFilter(TimeUnix)\n  AND MetricName = 'container.memory.usage.total'\n  AND $__conditionalAll(ServiceName IN ($service), $service)\nGROUP BY time, service\nORDER BY time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "pointSize": 6,
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "displayName": "${__field.labels.service}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Disk",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Disk I/O",
+      "description": "Data read from and written to disk, per second.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT time, service, op, sum(bps) AS value\nFROM (\n  SELECT\n    time, service, op,\n    (v - lagInFrame(v) OVER w) / greatest(toUnixTimestamp(time) - toUnixTimestamp(lagInFrame(time) OVER w), 1) AS bps,\n    row_number() OVER w AS rn\n  FROM (\n    SELECT\n      $__timeInterval(TimeUnix) AS time,\n      ServiceName AS service,\n      Attributes['operation'] AS op,\n      concat(Attributes['device_major'], ':', Attributes['device_minor']) AS series,\n      max(Value) AS v\n    FROM otel.otel_metrics_sum\n    WHERE $__timeFilter(TimeUnix)\n      AND MetricName = 'container.blockio.io_service_bytes_recursive' AND Attributes['operation'] IN ('read', 'write')\n      AND $__conditionalAll(ServiceName IN ($service), $service)\n    GROUP BY time, service, op, series\n  )\n  WINDOW w AS (PARTITION BY service, op, series ORDER BY time ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)\n)\nWHERE rn > 1 AND bps >= 0\nGROUP BY time, service, op\nORDER BY time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "Bps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "pointSize": 6,
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "displayName": "${__field.labels.service} ${__field.labels.op}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Database size",
+      "description": "Disk space used by each database. This is where stored data grows.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 21,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT\n  $__timeInterval(TimeUnix) AS time,\n  ServiceName AS service,\n  ResourceAttributes['postgresql.database.name'] AS database,\n  max(Value) AS size\nFROM otel.otel_metrics_sum\nWHERE $__timeFilter(TimeUnix)\n  AND MetricName = 'postgresql.db_size'\n  AND $__conditionalAll(ServiceName IN ($service), $service)\nGROUP BY time, service, database\nORDER BY time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "pointSize": 6,
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "displayName": "${__field.labels.database}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "row",
+      "title": "Network and database",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 11,
+          "type": "timeseries",
+          "title": "Network I/O",
+          "description": "Data received and sent over the network, per second.",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 30,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "clickhouse"
+              },
+              "editorType": "sql",
+              "format": 0,
+              "queryType": "sql",
+              "pluginVersion": "4.21.3",
+              "rawSql": "SELECT time, service, direction, sum(bps) AS value\nFROM (\n  SELECT\n    time, service, direction,\n    (v - lagInFrame(v) OVER w) / greatest(toUnixTimestamp(time) - toUnixTimestamp(lagInFrame(time) OVER w), 1) AS bps,\n    row_number() OVER w AS rn\n  FROM (\n    SELECT\n      $__timeInterval(TimeUnix) AS time,\n      ServiceName AS service,\n      if(MetricName = 'container.network.io.usage.rx_bytes', 'in', 'out') AS direction,\n      Attributes['interface'] AS series,\n      max(Value) AS v\n    FROM otel.otel_metrics_sum\n    WHERE $__timeFilter(TimeUnix)\n      AND MetricName IN ('container.network.io.usage.rx_bytes', 'container.network.io.usage.tx_bytes')\n      AND $__conditionalAll(ServiceName IN ($service), $service)\n    GROUP BY time, service, direction, series\n  )\n  WINDOW w AS (PARTITION BY service, direction, series ORDER BY time ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)\n)\nWHERE rn > 1 AND bps >= 0\nGROUP BY time, service, direction\nORDER BY time"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "Bps",
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "fillOpacity": 12,
+                "gradientMode": "opacity",
+                "showPoints": "never",
+                "pointSize": 6,
+                "spanNulls": true,
+                "axisPlacement": "auto",
+                "axisSoftMin": 0,
+                "barAlignment": 0,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "displayName": "${__field.labels.service} ${__field.labels.direction}"
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          }
+        },
+        {
+          "id": 12,
+          "type": "timeseries",
+          "title": "Database connections",
+          "description": "Open database connections compared with the maximum allowed. At the maximum, new requests have to wait.",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 30,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "clickhouse"
+              },
+              "editorType": "sql",
+              "format": 0,
+              "queryType": "sql",
+              "pluginVersion": "4.21.3",
+              "rawSql": "SELECT time, service, kind, connections\nFROM (\nSELECT time, service, 'in use' AS kind, sum(v) AS connections\nFROM (\n  SELECT $__timeInterval(TimeUnix) AS time, ServiceName AS service,\n         ResourceAttributes['postgresql.database.name'] AS database, max(Value) AS v\n  FROM otel.otel_metrics_sum\n  WHERE $__timeFilter(TimeUnix) AND MetricName = 'postgresql.backends' AND $__conditionalAll(ServiceName IN ($service), $service)\n  GROUP BY time, service, database\n)\nGROUP BY time, service\nUNION ALL\nSELECT $__timeInterval(TimeUnix) AS time, ServiceName AS service, 'maximum' AS kind, max(Value) AS connections\nFROM otel.otel_metrics_gauge\nWHERE $__timeFilter(TimeUnix) AND MetricName = 'postgresql.connection.max' AND $__conditionalAll(ServiceName IN ($service), $service)\nGROUP BY time, service\n)\nORDER BY time"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "short",
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "fillOpacity": 12,
+                "gradientMode": "opacity",
+                "showPoints": "never",
+                "pointSize": 6,
+                "spanNulls": true,
+                "axisPlacement": "auto",
+                "axisSoftMin": 0,
+                "barAlignment": 0,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "displayName": "${__field.labels.service} ${__field.labels.kind}"
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

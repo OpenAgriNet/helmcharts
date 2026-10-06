@@ -1,0 +1,1215 @@
+{
+  "uid": "network-api",
+  "title": "Network API — Requests, Errors and Performance",
+  "description": "Requests, errors and performance of the OAN network APIs.",
+  "tags": [
+    "oan",
+    "api",
+    "clickhouse",
+    "otel"
+  ],
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "graphTooltip": 1,
+  "editable": true,
+  "id": null,
+  "timezone": "browser",
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "period",
+        "label": "Period",
+        "type": "custom",
+        "hide": 0,
+        "description": "",
+        "query": "Last 24 hours : 1, Last 7 days : 7, Last 30 days : 30",
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "selected": true,
+          "text": "Last 24 hours",
+          "value": "1"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "Last 24 hours",
+            "value": "1"
+          },
+          {
+            "selected": false,
+            "text": "Last 7 days",
+            "value": "7"
+          },
+          {
+            "selected": false,
+            "text": "Last 30 days",
+            "value": "30"
+          }
+        ]
+      },
+      {
+        "name": "api",
+        "label": "API",
+        "description": "",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "clickhouse"
+        },
+        "query": {
+          "refId": "api-variable",
+          "editorType": "sql",
+          "rawSql": "SELECT DISTINCT replaceRegexpOne(SpanName, '^/', '') AS api\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp) AND SpanKind = 'Server'\nORDER BY api",
+          "format": 1,
+          "queryType": "sql"
+        },
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "options": [],
+        "sort": 1,
+        "hide": 0,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        }
+      },
+      {
+        "name": "service",
+        "label": "Service",
+        "description": "All: each request is counted once, at the service that received it first. One service: everything that service received.",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "clickhouse"
+        },
+        "query": {
+          "refId": "service-variable",
+          "editorType": "sql",
+          "rawSql": "SELECT DISTINCT ServiceName AS service\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp) AND SpanKind = 'Server'\nORDER BY service",
+          "format": 1,
+          "queryType": "sql"
+        },
+        "refresh": 2,
+        "multi": false,
+        "includeAll": true,
+        "options": [],
+        "sort": 1,
+        "hide": 0,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "allValue": "All"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 14,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Health of the network APIs: **how many requests came in, how many failed, and how fast they were answered.**"
+      },
+      "transparent": true
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "Overview",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 2,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 60,
+      "type": "table",
+      "title": "Request summary",
+      "description": "Total, successful and failed requests, and the error rate.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 24,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT\n  count() AS \"Total requests\",\n  countIf(NOT failed) AS \"Successful\",\n  countIf(failed) AS \"Failed\",\n  round(100 * countIf(failed) / nullIf(count(), 0), 1) AS \"Error rate\"\nFROM (\nSELECT\n  Timestamp AS ts,\n  ServiceName AS service,\n  replaceRegexpOne(SpanName, '^/', '') AS api,\n  toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) AS status,\n  status >= 400 OR StatusCode = 'Error' AS failed,\n  StatusMessage AS status_message,\n  Duration / 1e6 AS ms,\n  SpanAttributes['transaction_id'] AS transaction_id,\n  if(SpanAttributes['message_id'] != '', SpanAttributes['message_id'], SpanId) AS request,\n  row_number() OVER (PARTITION BY request, api ORDER BY Timestamp) = 1 AS is_entry,\n  greatest(ms - leadInFrame(ms) OVER (PARTITION BY request, api ORDER BY Timestamp ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING), 0) AS own_ms\nFROM otel.otel_traces\nWHERE Timestamp >= now() - INTERVAL ${period} DAY\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(replaceRegexpOne(SpanName, '^/', '') IN ($api), $api)\n) WHERE if('${service:raw}' = 'All', is_entry, service = '${service:raw}')"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total requests"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Successful"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#73BF69"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Failed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F2495C"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Error rate"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F2495C"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Error rate"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "lg",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 22,
+      "type": "row",
+      "title": "Requests",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "Requests per minute",
+      "description": "Total (blue), successful (green) and failed (red).",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT\n  $__timeInterval(ts) AS time,\n  count() * 60 / $__interval_s AS \"Total\",\n  countIf(NOT failed) * 60 / $__interval_s AS \"Successful\",\n  countIf(failed) * 60 / $__interval_s AS \"Failed\"\nFROM (\nSELECT\n  Timestamp AS ts,\n  ServiceName AS service,\n  replaceRegexpOne(SpanName, '^/', '') AS api,\n  toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) AS status,\n  status >= 400 OR StatusCode = 'Error' AS failed,\n  StatusMessage AS status_message,\n  Duration / 1e6 AS ms,\n  SpanAttributes['transaction_id'] AS transaction_id,\n  if(SpanAttributes['message_id'] != '', SpanAttributes['message_id'], SpanId) AS request,\n  row_number() OVER (PARTITION BY request, api ORDER BY Timestamp) = 1 AS is_entry,\n  greatest(ms - leadInFrame(ms) OVER (PARTITION BY request, api ORDER BY Timestamp ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING), 0) AS own_ms\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(replaceRegexpOne(SpanName, '^/', '') IN ($api), $api)\n) WHERE if('${service:raw}' = 'All', is_entry, service = '${service:raw}')\nGROUP BY time\nORDER BY time WITH FILL FROM toStartOfInterval($__fromTime, INTERVAL $__interval_s second) TO $__toTime STEP $__interval_s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "reqpm",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "pointSize": 6,
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Successful"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#73BF69"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Failed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F2495C"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "maxDataPoints": 60,
+      "interval": "1m"
+    },
+    {
+      "id": 52,
+      "type": "row",
+      "title": "Performance",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 55,
+      "type": "text",
+      "title": "",
+      "transparent": true,
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**Performance** is how long a request takes to get its answer (response time). **p90**: 90% of requests were faster than this. **p95**: 95% were faster. **p99**: 99% were faster; only the slowest 1% took longer."
+      }
+    },
+    {
+      "id": 53,
+      "type": "stat",
+      "title": "Within target time",
+      "description": "Percentage of requests answered within the target time: 0.5 s for discover, 2 s for publish, 1 s for other APIs.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "rawSql": "SELECT 100 * countIf(ms <= transform(api, ['discover', 'publish'], [500, 2000], 1000)) / nullIf(count(), 0) AS in_good_time\nFROM (\nSELECT\n  Timestamp AS ts,\n  ServiceName AS service,\n  replaceRegexpOne(SpanName, '^/', '') AS api,\n  toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) AS status,\n  status >= 400 OR StatusCode = 'Error' AS failed,\n  StatusMessage AS status_message,\n  Duration / 1e6 AS ms,\n  SpanAttributes['transaction_id'] AS transaction_id,\n  if(SpanAttributes['message_id'] != '', SpanAttributes['message_id'], SpanId) AS request,\n  row_number() OVER (PARTITION BY request, api ORDER BY Timestamp) = 1 AS is_entry,\n  greatest(ms - leadInFrame(ms) OVER (PARTITION BY request, api ORDER BY Timestamp ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING), 0) AS own_ms\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(replaceRegexpOne(SpanName, '^/', '') IN ($api), $api)\n) WHERE if('${service:raw}' = 'All', is_entry, service = '${service:raw}')",
+          "format": 1,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 95
+              },
+              {
+                "color": "green",
+                "value": 99
+              }
+            ]
+          },
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 56,
+      "type": "stat",
+      "title": "p90",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 19,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "rawSql": "SELECT quantile(0.9)(ms) AS ms\nFROM (\nSELECT\n  Timestamp AS ts,\n  ServiceName AS service,\n  replaceRegexpOne(SpanName, '^/', '') AS api,\n  toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) AS status,\n  status >= 400 OR StatusCode = 'Error' AS failed,\n  StatusMessage AS status_message,\n  Duration / 1e6 AS ms,\n  SpanAttributes['transaction_id'] AS transaction_id,\n  if(SpanAttributes['message_id'] != '', SpanAttributes['message_id'], SpanId) AS request,\n  row_number() OVER (PARTITION BY request, api ORDER BY Timestamp) = 1 AS is_entry,\n  greatest(ms - leadInFrame(ms) OVER (PARTITION BY request, api ORDER BY Timestamp ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING), 0) AS own_ms\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(replaceRegexpOne(SpanName, '^/', '') IN ($api), $api)\n) WHERE if('${service:raw}' = 'All', is_entry, service = '${service:raw}')",
+          "format": 1,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#5794F2"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 57,
+      "type": "stat",
+      "title": "p95",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 19,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "rawSql": "SELECT quantile(0.95)(ms) AS ms\nFROM (\nSELECT\n  Timestamp AS ts,\n  ServiceName AS service,\n  replaceRegexpOne(SpanName, '^/', '') AS api,\n  toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) AS status,\n  status >= 400 OR StatusCode = 'Error' AS failed,\n  StatusMessage AS status_message,\n  Duration / 1e6 AS ms,\n  SpanAttributes['transaction_id'] AS transaction_id,\n  if(SpanAttributes['message_id'] != '', SpanAttributes['message_id'], SpanId) AS request,\n  row_number() OVER (PARTITION BY request, api ORDER BY Timestamp) = 1 AS is_entry,\n  greatest(ms - leadInFrame(ms) OVER (PARTITION BY request, api ORDER BY Timestamp ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING), 0) AS own_ms\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(replaceRegexpOne(SpanName, '^/', '') IN ($api), $api)\n) WHERE if('${service:raw}' = 'All', is_entry, service = '${service:raw}')",
+          "format": 1,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#FF9830"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 58,
+      "type": "stat",
+      "title": "p99",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 19,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "rawSql": "SELECT quantile(0.99)(ms) AS ms\nFROM (\nSELECT\n  Timestamp AS ts,\n  ServiceName AS service,\n  replaceRegexpOne(SpanName, '^/', '') AS api,\n  toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) AS status,\n  status >= 400 OR StatusCode = 'Error' AS failed,\n  StatusMessage AS status_message,\n  Duration / 1e6 AS ms,\n  SpanAttributes['transaction_id'] AS transaction_id,\n  if(SpanAttributes['message_id'] != '', SpanAttributes['message_id'], SpanId) AS request,\n  row_number() OVER (PARTITION BY request, api ORDER BY Timestamp) = 1 AS is_entry,\n  greatest(ms - leadInFrame(ms) OVER (PARTITION BY request, api ORDER BY Timestamp ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING), 0) AS own_ms\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(replaceRegexpOne(SpanName, '^/', '') IN ($api), $api)\n) WHERE if('${service:raw}' = 'All', is_entry, service = '${service:raw}')",
+          "format": 1,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#B877D9"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 54,
+      "type": "timeseries",
+      "title": "Response time (p90, p95, p99)",
+      "description": "Lines close together mean consistent response time.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "rawSql": "SELECT\n  $__timeInterval(ts) AS time,\n  toNullable(quantile(0.9)(ms)) AS \"p90\",\n  toNullable(quantile(0.95)(ms)) AS \"p95\",\n  toNullable(quantile(0.99)(ms)) AS \"p99\"\nFROM (\nSELECT\n  Timestamp AS ts,\n  ServiceName AS service,\n  replaceRegexpOne(SpanName, '^/', '') AS api,\n  toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) AS status,\n  status >= 400 OR StatusCode = 'Error' AS failed,\n  StatusMessage AS status_message,\n  Duration / 1e6 AS ms,\n  SpanAttributes['transaction_id'] AS transaction_id,\n  if(SpanAttributes['message_id'] != '', SpanAttributes['message_id'], SpanId) AS request,\n  row_number() OVER (PARTITION BY request, api ORDER BY Timestamp) = 1 AS is_entry,\n  greatest(ms - leadInFrame(ms) OVER (PARTITION BY request, api ORDER BY Timestamp ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING), 0) AS own_ms\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(replaceRegexpOne(SpanName, '^/', '') IN ($api), $api)\n) WHERE if('${service:raw}' = 'All', is_entry, service = '${service:raw}')\nGROUP BY time\nORDER BY time",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "pointSize": 6,
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p90"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FF9830"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p99"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B877D9"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "maxDataPoints": 60,
+      "interval": "1m"
+    },
+    {
+      "id": 29,
+      "type": "row",
+      "title": "APIs",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 28,
+      "type": "table",
+      "title": "Requests by API",
+      "description": "Performance is OK when p95 is within the target time, Slow above it, and Very slow above twice the target.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 24,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT\n  api AS \"API\",\n  count() AS \"Requests\",\n  countIf(NOT failed) AS \"Successful\",\n  countIf(failed) AS \"Failed\",\n  round(100 * countIf(failed) / count(), 1) AS \"Error rate\",\n  round(quantile(0.9)(ms), 1) AS \"p90\",\n  round(quantile(0.95)(ms), 1) AS \"p95\",\n  round(quantile(0.99)(ms), 1) AS \"p99\",\n  multiIf(\"p95\" > 2 * transform(api, ['discover', 'publish'], [500, 2000], 1000), 'Very slow', \"p95\" > transform(api, ['discover', 'publish'], [500, 2000], 1000), 'Slow', 'OK') AS \"Performance\"\nFROM (\nSELECT\n  Timestamp AS ts,\n  ServiceName AS service,\n  replaceRegexpOne(SpanName, '^/', '') AS api,\n  toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) AS status,\n  status >= 400 OR StatusCode = 'Error' AS failed,\n  StatusMessage AS status_message,\n  Duration / 1e6 AS ms,\n  SpanAttributes['transaction_id'] AS transaction_id,\n  if(SpanAttributes['message_id'] != '', SpanAttributes['message_id'], SpanId) AS request,\n  row_number() OVER (PARTITION BY request, api ORDER BY Timestamp) = 1 AS is_entry,\n  greatest(ms - leadInFrame(ms) OVER (PARTITION BY request, api ORDER BY Timestamp ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING), 0) AS own_ms\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(replaceRegexpOne(SpanName, '^/', '') IN ($api), $api)\n) WHERE if('${service:raw}' = 'All', is_entry, service = '${service:raw}')\nGROUP BY api\nORDER BY \"Requests\" DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Performance"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "OK": {
+                        "color": "green",
+                        "index": 0
+                      },
+                      "Slow": {
+                        "color": "yellow",
+                        "index": 1
+                      },
+                      "Very slow": {
+                        "color": "red",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p90"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p99"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Error rate"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F2495C"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Failed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F2495C"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "Requests",
+            "desc": true
+          }
+        ]
+      }
+    },
+    {
+      "id": 33,
+      "type": "row",
+      "title": "Errors",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 39,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 31,
+      "type": "table",
+      "title": "Top errors",
+      "description": "The most common errors, with the number of requests each one affected.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 24,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT\n  if(e.code != '', e.code, concat('HTTP ', toString(f.status))) AS \"Error\",\n  if(e.message != '', e.message, f.status_message) AS \"Message\",\n  f.api AS \"API\",\n  f.failed_at AS \"Rejected by\",\n  count() AS \"Requests\"\nFROM (\nSELECT r.ts AS ts, r.service AS service, r.api AS api, r.status AS status, r.ms AS ms,\n       r.transaction_id AS transaction_id, r.request AS request,\n       r.status_message AS status_message, d.failed_at AS failed_at\nFROM (\nSELECT\n  Timestamp AS ts,\n  ServiceName AS service,\n  replaceRegexpOne(SpanName, '^/', '') AS api,\n  toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) AS status,\n  status >= 400 OR StatusCode = 'Error' AS failed,\n  StatusMessage AS status_message,\n  Duration / 1e6 AS ms,\n  SpanAttributes['transaction_id'] AS transaction_id,\n  if(SpanAttributes['message_id'] != '', SpanAttributes['message_id'], SpanId) AS request,\n  row_number() OVER (PARTITION BY request, api ORDER BY Timestamp) = 1 AS is_entry,\n  greatest(ms - leadInFrame(ms) OVER (PARTITION BY request, api ORDER BY Timestamp ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING), 0) AS own_ms\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(replaceRegexpOne(SpanName, '^/', '') IN ($api), $api)\n) AS r\nLEFT JOIN (\n  SELECT request, api, argMax(service, ts) AS failed_at\n  FROM (\nSELECT\n  Timestamp AS ts,\n  ServiceName AS service,\n  replaceRegexpOne(SpanName, '^/', '') AS api,\n  toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) AS status,\n  status >= 400 OR StatusCode = 'Error' AS failed,\n  StatusMessage AS status_message,\n  Duration / 1e6 AS ms,\n  SpanAttributes['transaction_id'] AS transaction_id,\n  if(SpanAttributes['message_id'] != '', SpanAttributes['message_id'], SpanId) AS request,\n  row_number() OVER (PARTITION BY request, api ORDER BY Timestamp) = 1 AS is_entry,\n  greatest(ms - leadInFrame(ms) OVER (PARTITION BY request, api ORDER BY Timestamp ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING), 0) AS own_ms\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(replaceRegexpOne(SpanName, '^/', '') IN ($api), $api)\n)\n  WHERE failed\n  GROUP BY request, api\n) AS d ON d.request = r.request AND d.api = r.api\nWHERE r.failed AND if('${service:raw}' = 'All', r.is_entry, r.service = '${service:raw}')\n) AS f\nLEFT JOIN (\nSELECT service, request, any(c) AS code, any(m) AS message\nFROM (\n  SELECT ServiceName AS service, LogAttributes['message_id'] AS request,\n         JSONExtractString(LogAttributes['message'], 'error', 'code') AS c,\n         JSONExtractString(LogAttributes['message'], 'error', 'message') AS m\n  FROM otel.otel_logs\n  WHERE $__timeFilter(Timestamp) AND LogAttributes['audit.direction'] = 'response'\n  UNION ALL\n  SELECT ServiceName, JSONExtractString(Body, 'message_id'),\n         JSONExtractString(Body, 'error_code'), JSONExtractString(Body, 'error')\n  FROM otel.otel_logs\n  WHERE $__timeFilter(Timestamp) AND JSONExtractString(Body, 'error_code') != ''\n)\nWHERE c != '' AND request != ''\nGROUP BY service, request\n) AS e ON e.service = f.service AND e.request = f.request\nGROUP BY \"Error\", \"Message\", \"API\", \"Rejected by\"\nORDER BY \"Requests\" DESC\nLIMIT 20"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Requests"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F2495C"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "Requests",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Rejected by": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
