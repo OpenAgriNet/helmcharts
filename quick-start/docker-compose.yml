@@ -746,18 +746,24 @@ services:
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
 
     # The docker_stats receiver needs this and nothing else does. The contrib
-    # image runs as uid 10001, and the Docker socket is root:root mode 660 --
-    # so the mount below is readable only by root or by a member of the
-    # socket's group, which on Docker Desktop is gid 0. Adding gid 0 as a
-    # SUPPLEMENTARY group is the narrower of the two ways to bridge that: the
-    # alternative, `user: "0:0"`, would run the entire collector as root for
-    # the sake of one receiver.
+    # image runs as uid 10001, and the Docker socket is mode 660 -- so the
+    # mount below is readable only by root or by a member of the socket's
+    # group. Adding that group as a SUPPLEMENTARY group is the narrower of the
+    # two ways to bridge that: the alternative, `user: "0:0"`, would run the
+    # entire collector as root for the sake of one receiver.
+    #
+    # The group differs by host. Docker Desktop: gid 0, the default here.
+    # Linux with Docker Engine: the `docker` group, whose gid varies (999,
+    # 988, ...) -- set DOCKER_SOCKET_GID in .env to the output of
+    # `stat -c %g /var/run/docker.sock`. Wrong, and the collector exits on
+    # start with "permission denied while trying to connect to the docker
+    # API", taking every pipeline down with it.
     #
     # It is still not narrow in absolute terms -- anything that can reach the
     # Docker API can own the host. Drop this line together with the
     # docker.sock mount and the docker_stats receiver if that trade is not
     # wanted; the rest of the metrics pipeline is unaffected.
-    group_add: ["0"]
+    group_add: ["${DOCKER_SOCKET_GID:-0}"]
 
     # oan-internal ONLY. Nothing on oan-edge ever needs to resolve this name --
     # NPM does not route to it, and README Appendix B says why 4317/4318 must
