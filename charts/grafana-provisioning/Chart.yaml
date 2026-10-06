@@ -8,7 +8,7 @@ description: >-
 type: application
 
 # Chart version. Bumped on every chart change, per CONVENTIONS.md.
-version: 0.1.0
+version: 0.2.0
 
 # The Grafana release this content is written against. Not an image tag: this
 # chart deploys no workload.

@@ -14,6 +14,9 @@ templates.
 | Path | Loaded by | Grafana folder | What |
 |---|---|---|---|
 | `dashboards/oan-discovery-overview.json` | dashboards sidecar | `OAN` | Service overview: RED, failures, discovery quality, logs |
+| `dashboards/network-api.json` | dashboards sidecar | `OAN` | Network API: requests, errors and performance, from traces and logs |
+| `dashboards/providers.json` | dashboards sidecar | `OAN` | Providers: publishing and discovery, from the adapters' audit logs |
+| `dashboards/infra-overview.json` | dashboards sidecar | `OAN` | Infra: CPU, memory, disk, volume and network per service, from kubelet metrics |
 | `alerting/functional.yaml` | alerts sidecar | `functional-alerts` | API failure rate (critical), High latency on discover (warning), Service down (critical) |
 | `alerting/notifications.yaml` | alerts sidecar | n/a | The `slack` contact point, and the policy routing every alert to it |
 
@@ -30,7 +33,9 @@ change.
 
 `quick-start/config/grafana/provisioning/` holds byte-identical copies
 (`dashboards/json/` and `alerting/`). `scripts/lint-charts.sh` fails if they
-drift.
+drift. The exception is `infra-overview.json`: the chart's copy reads kubelet
+metrics (`k8s.pod.*`, `k8s.volume.*`) and the quick-start's reads Docker
+container stats, so the two differ on purpose and are not compared.
 
 ## Install
 
