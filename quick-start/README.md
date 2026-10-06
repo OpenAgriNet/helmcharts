@@ -271,6 +271,11 @@ one gotcha, are in Appendix H.
 `docker compose restart nginx-proxy-manager` after this command, the first
 time: NPM only resolves `grafana` on reload.
 
+Alerting is on by default: three rules, posting to the Slack webhook in
+`SLACK_WEBHOOK_URL`. On a stack nobody is on call for, set
+`GRAFANA_ALERTING_ENABLED=false` in `.env` and run `make observability` again.
+Dashboards are unaffected. Exactly `true` or `false`.
+
 ---
 
 ## If something is wrong
