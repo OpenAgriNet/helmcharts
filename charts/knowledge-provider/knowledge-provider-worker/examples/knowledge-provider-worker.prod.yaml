@@ -1,0 +1,36 @@
+# Example: knowledge-provider-worker, prod environment.
+#
+#   helm install knowledge-provider-worker charts/knowledge-provider/knowledge-provider-worker \
+#     -n knowledge-provider -f charts/knowledge-provider/knowledge-provider-worker/examples/knowledge-provider-worker.prod.yaml
+#
+# All secret values below are referenced by name only - create the Secrets
+# out-of-band before installing (see knowledge-provider-api's README,
+# "Secrets"). Nothing here is a committed secret.
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/knowledge-provider
+  tag: "v0.1.0"
+  pullSecrets:
+    - ghcr-pull-secret
+
+envConfig:
+  LOG_LEVEL: "info"
+  AGRINET_GEMMA_BASE_URL: "https://dev-vistaar.da.gov.in/gemma4"
+  TRANSLATION_VLLM_BASE_URL: "https://dev-vistaar.da.gov.in/gemma4"
+  DOMAIN_TAGGING_VLLM_BASE_URL: "https://dev-vistaar.da.gov.in/gemma4"
+
+prodVectorStore:
+  url: "https://dev-vistaar.da.gov.in/qdrant"
+  collectionName: test_doc_pipeline_prod
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+commonLabels:
+  oan.in/environment: prod

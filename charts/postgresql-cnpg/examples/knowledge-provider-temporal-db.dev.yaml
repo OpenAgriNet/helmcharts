@@ -1,0 +1,67 @@
+# Example: knowledge-provider-temporal's database, dev environment.
+#
+#   helm install knowledge-provider-temporal-db charts/postgresql-cnpg \
+#     -n knowledge-provider -f charts/postgresql-cnpg/examples/knowledge-provider-temporal-db.dev.yaml
+#
+# Other workloads then connect to:
+#   knowledge-provider-temporal-db-rw.knowledge-provider.svc.cluster.local:5432
+#
+# temporalio/auto-setup needs a SECOND database, "temporal_visibility", which
+# it creates itself at boot (see below) - this is NOT expressed via this
+# chart's `databases:` list (CNPG `Database` CRD). Two real findings from
+# installing this against a live cluster, in order:
+#
+#   1. `databases:` reuses the raw database name unmodified as part of the
+#      K8s object's metadata.name, which rejects underscores - so it cannot
+#      even express "temporal_visibility" as an entry (fails with "a
+#      lowercase RFC 1123 subdomain..." on install).
+#   2. Even past that, temporalio/auto-setup unconditionally attempts
+#      `CREATE DATABASE temporal_visibility` at every boot (it does not
+#      first check whether it exists) - so the connecting role genuinely
+#      needs CREATEDB, contrary to what you'd expect from an app that only
+#      needs table-level rights inside its own database.
+#
+# The fix is to grant CREATEDB to the owner role via postInitApplicationSQL
+# (runs once, as superuser, when the cluster bootstraps) and let auto-setup
+# create the visibility database itself on first boot.
+
+fullnameOverride: knowledge-provider-temporal-db
+
+# Left empty: the CNPG operator's own default PostgreSQL image (publicly
+# pullable, no registry login needed) - verified by installing this chart
+# against a real cluster. Pin a specific image/tag before production use.
+image:
+  registry: ""
+  repository: ""
+  tag: ""
+
+# Dev: single instance, no anti-affinity (fine on a single-node cluster too).
+instances: 1
+affinity:
+  enablePodAntiAffinity: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+storage:
+  size: 1Gi
+  storageClass: ""
+
+walStorage:
+  enabled: false
+
+bootstrap:
+  database: temporal
+  owner: temporal
+  # See the note above - this grants exactly the one extra privilege
+  # temporal_visibility's self-creation needs, nothing more.
+  postInitApplicationSQL:
+    - ALTER ROLE temporal CREATEDB;
+
+commonLabels:
+  oan.in/environment: dev
