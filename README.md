@@ -24,8 +24,7 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`openbao-secrets`](charts/openbao-secrets) | application | One `ExternalSecret` per credential: pulls `oan/<env>/<name>` from OpenBao into a Secret and mirrors it, via Reflector, to the namespaces that read it. |
 | [`grafana`](charts/grafana) | application | Grafana — dashboards and Explore over the OTel data in ClickHouse. The official `grafana` chart 13.2.6 (Grafana 13.2.2, from `grafana-community`) committed whole and unmodified. |
 | [`opentelemetry-collector`](charts/opentelemetry-collector) | application | The OTel Collector — receives OTLP from the services and collects pod logs and kubelet metrics, writing all of it to ClickHouse. The official `opentelemetry-collector` chart 0.173.1 (collector 0.160.0) committed whole and unmodified. |
-| [`grafana-provisioning`](charts/grafana-provisioning) | application | OAN's Grafana content — the discovery overview dashboard, the functional alert rules and Slack routing — as ConfigMaps the `grafana` chart's sidecars load. The same files as the quick-start. |
-| [`dashboards`](charts/dashboards) | application | The OAN Grafana dashboards — Infra, Network API and Providers — as ConfigMaps for the `grafana` chart's dashboard sidecar. Deploys no workload. |
+| [`grafana-provisioning`](charts/grafana-provisioning) | application | OAN's Grafana content — the discovery overview, Network API, Providers and Infra dashboards, the functional alert rules and Slack routing — as ConfigMaps the `grafana` chart's sidecars load. The same files as the quick-start. |
 
 ## How they fit together
 
@@ -49,8 +48,7 @@ charts/
 └── openbao-secrets/     # what ESO reads from it
 └── grafana/             # dashboards over ClickHouse — vendored upstream
 ├── opentelemetry-collector/ # telemetry into ClickHouse — vendored upstream
-├── grafana-provisioning/ # dashboards and alerts for grafana, loaded by its sidecars
-└── dashboards/           # the OAN Grafana dashboards, for grafana's sidecar
+└── grafana-provisioning/ # dashboards and alerts for grafana, loaded by its sidecars
 ```
 
 Every chart depends on `common` via `file://../common`, except `clickstack`,
