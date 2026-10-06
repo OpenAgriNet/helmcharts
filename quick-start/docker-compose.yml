@@ -710,7 +710,17 @@ services:
     # is no "Team Settings -> Host" step where a browser needs its own route or
     # tunnel to 8123, which was the reason clickstack-local's HTTP port had to
     # be published on oan-edge at all.
-    networks: [oan-internal]
+    #
+    # Reached as oan-clickhouse, never plain `clickhouse`. Grafana is on
+    # oan-edge too, and oan-edge is shared with other stacks on the same host
+    # (Langfuse brings its own `clickhouse` service). Docker resolves a name
+    # across every network a container is on, so Grafana asking for
+    # `clickhouse` could get Langfuse's -- which rejects the otel user with
+    # "Authentication failed". An alias only this container carries cannot
+    # collide.
+    networks:
+      oan-internal:
+        aliases: [oan-clickhouse]
     environment:
       CLICKHOUSE_DB: ${CLICKHOUSE_DB:-otel}
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-otel}
@@ -773,7 +783,7 @@ services:
       clickhouse:
         condition: service_healthy
     environment:
-      CLICKHOUSE_ENDPOINT: tcp://clickhouse:9000?dial_timeout=10s
+      CLICKHOUSE_ENDPOINT: tcp://oan-clickhouse:9000?dial_timeout=10s
       CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB:-otel}
       CLICKHOUSE_USERNAME: ${CLICKHOUSE_USER:-otel}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
