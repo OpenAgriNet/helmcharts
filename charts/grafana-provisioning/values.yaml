@@ -1,0 +1,53 @@
+# grafana-provisioning -- OAN's dashboards, alert rules and notification routing.
+#
+# Every file under dashboards/ and alerting/ is rendered unchanged into its own
+# ConfigMap. The grafana chart's sidecars find them by label and load them into
+# Grafana, so the grafana release needs both sidecars on:
+#
+#   sidecar:
+#     dashboards:
+#       enabled: true
+#       label: grafana_dashboard
+#       labelValue: "1"
+#       provider:
+#         folder: OAN
+#     alerts:
+#       enabled: true
+#       label: grafana_alert
+#       labelValue: "1"
+#
+# and this chart installed in the SAME namespace as Grafana -- the sidecars look
+# only in their own namespace unless searchNamespace says otherwise.
+#
+# Nothing here is templated from values, on purpose: the same files are what the
+# quick-start loads, and they carry Grafana's own {{ }} templates, which Helm
+# would try to render. Change a dashboard or a threshold in the file itself.
+
+nameOverride: ""
+
+dashboards:
+  enabled: true
+  # The label the grafana chart's dashboards sidecar selects on
+  # (sidecar.dashboards.label / labelValue). Change both sides together.
+  sidecarLabel:
+    name: grafana_dashboard
+    value: "1"
+
+alerting:
+  # The label the grafana chart's alerts sidecar selects on
+  # (sidecar.alerts.label / labelValue). Change both sides together.
+  sidecarLabel:
+    name: grafana_alert
+    value: "1"
+  files:
+    # alerting/functional.yaml: API failure rate, High latency, Service down.
+    functional:
+      enabled: true
+    # alerting/notifications.yaml: the Slack contact point and the policy
+    # routing every alert to it. Needs SLACK_WEBHOOK_URL on the Grafana
+    # container -- see the file.
+    notifications:
+      enabled: true
+
+# Added to every ConfigMap, e.g. oan.in/environment.
+commonLabels: {}
