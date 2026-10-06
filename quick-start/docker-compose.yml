@@ -867,13 +867,6 @@ services:
       GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
-      # Alerting on or off: GRAFANA_ALERTING_ENABLED=false in .env, then
-      # `make observability` to recreate Grafana. Off turns off the alerting
-      # engine -- nothing is evaluated or sent to Slack -- and dashboards work
-      # as before. For a stack nobody is on call for.
-      #
-      # Exactly `true` or `false`: it also picks the alerting mount below.
-      GF_UNIFIED_ALERTING_ENABLED: ${GRAFANA_ALERTING_ENABLED:-true}
       # Substituted into config/grafana/provisioning/datasources/clickhouse.yaml
       # so the datasource is wired up on first boot with no click-through --
       # the same property HyperDX had for the opposite reason (it had nothing
@@ -890,13 +883,6 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
-      # Mounted over provisioning/alerting, following GRAFANA_ALERTING_ENABLED.
-      # alerting-true is a symlink to provisioning/alerting itself, so on is
-      # the same files as without this line. alerting-false is empty: Grafana
-      # with alerting off does not just skip a contact point it is given, it
-      # fails to start ("could not find an Alertmanager configuration"), and
-      # the dashboards go down with it.
-      - ./config/grafana/alerting-${GRAFANA_ALERTING_ENABLED:-true}:/etc/grafana/provisioning/alerting:ro
     ports:
       # Loopback only, same reasoning as every other UI in this file: the
       # public path is the NPM proxy host, not this publish.
