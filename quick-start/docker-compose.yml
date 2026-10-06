@@ -876,6 +876,13 @@ services:
       # publish below; set GRAFANA_ROOT_URL in .env to the NPM hostname
       # (https://grafana.<your domain>/) when Grafana is served through it.
       GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://127.0.0.1:${GRAFANA_UI_PORT:-8085}/}
+      # Served under a path on a shared host (an NPM custom location such as
+      # https://dpg-dev.example.org/grafana) rather than a hostname of its own:
+      # GRAFANA_SERVE_FROM_SUB_PATH=true, with GRAFANA_ROOT_URL ending in that
+      # path and a slash. Without it Grafana answers at / -- its redirects and
+      # asset URLs leave the sub-path and the page does not load. Leave it
+      # false for a dedicated hostname or the loopback publish.
+      GF_SERVER_SERVE_FROM_SUB_PATH: ${GRAFANA_SERVE_FROM_SUB_PATH:-false}
       # Not bundled with the base image -- it is a community-maintained
       # datasource plugin, so it has to be installed at boot. That needs
       # egress, on the same argument as the "why isn't this internal: true"
