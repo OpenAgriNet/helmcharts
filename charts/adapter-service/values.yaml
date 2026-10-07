@@ -384,6 +384,50 @@ podAnnotations: {}
 commonLabels: {}
 commonAnnotations: {}
 
+# ---------------------------------------------------------------------------
+# Catalog crawler (network role only; off by default)
+#
+# When enabled the network adapter also runs the catalogcrawler plugin: on every
+# tick it runs the pipeline of each registry binding that has a `publish` action
+# and POSTs the catalogs to the provider adapter. It needs, outside this chart:
+# that action in the registry, a run log database whose DSN is a key in the keys
+# Secret (dbDsnKey), the pipeline's own inputs as env (envFromSecrets), and egress
+# to the pipeline's host. A production values snippet and the order to do it in:
+# dev_docs/crawler-production-plan.md.
+# ---------------------------------------------------------------------------
+crawler:
+  enabled: false
+
+  # The crawler's own registry lookup; the module's plugins.registry is separate.
+  registryUrl: http://registry.registry.svc.cluster.local:8081/api/v1
+
+  # Key in the keys Secret holding the run log DSN, substituted at pod start so
+  # the password never reaches the ConfigMap. Use the database's FQDN.
+  dbDsnKey: crawlerDbDsn
+
+  # The provider adapter's /publish, by its in-cluster name.
+  discoveryPushUrl: http://provider-adapter.provider-adapter.svc.cluster.local:9200/publish
+
+  # Stamped on every publish as context.senderId / receiverId. No defaults: a
+  # guessed identity publishes under someone else's name.
+  participantId: ""
+  receiverId: ""
+
+  publishPipelines: true      # sweep the registry for publish pipelines
+  publishEnabled: true        # "false" builds catalogs without posting them
+  catalogIntervalSeconds: 3600
+
+  # Built catalogs are kept in /tmp/catalogs (crawler.publishCatalogOutputDir
+  # moves it) on an emptyDir of this size.
+  outputSizeLimit: 512Mi
+
+  # Per-pipeline overrides by metadata.name, then the pipeline's own key
+  # (schedule, or an input's name). Strings; no rebuild, no edit to the hosted file.
+  #   pipelines:
+  #     mandi-price:
+  #       schedule: "0 13 * * *"
+  pipelines: {}
+
 extraInitContainers: []
 extraVolumes: []
 extraVolumeMounts: []

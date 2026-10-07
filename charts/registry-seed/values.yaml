@@ -133,6 +133,23 @@ bindings: []
   #   mappingUrl: https://raw.githubusercontent.com/...
   #   timeoutMs: 15000
   #   retryMax: 2
+  #
+  #   OPTIONAL -- the pipeline the network adapter's catalog crawler runs for this
+  #   binding, on its own schedule, to build and publish its catalogs. Adds a
+  #   `publish` action to the row (no method or path; the provider adapter's
+  #   routing sends a publish on). Needs registry chart >= 0.5.0, whose
+  #   ProviderSchema admits `publish`.
+  #   publishPipelineUrl: https://raw.githubusercontent.com/OpenAgriNet/network-adapter/<40-hex-sha>/pkg/plugin/implementation/MandiPrice/publish/agmarknet.yaml
+  #
+  #   It must be https, shaped <...>/publish/<source>.yaml with its mappings/
+  #   folder beside it, and PINNED TO A COMMIT SHA (see allowUnpinnedPipeline). On
+  #   a binding that already exists the Job adds or repoints the action in place.
+
+# Production leaves this false. A publishPipelineUrl that is not pinned to a
+# commit SHA is refused: every push to a branch would change what the running
+# adapters execute, and the crawler fetches the file from that URL on every run.
+# true lets a branch or tag URL through, for a throwaway seed.
+allowUnpinnedPipeline: false
 
 # ---------------------------------------------------------------------------
 # What each capability MEANS - a different question from who serves it.

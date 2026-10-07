@@ -56,9 +56,20 @@ data:
            `config` in values wins when set, for an environment that needs to
            differ without a new file. */}}
     {{- $file := printf "config/%s-config.yaml" (include "adapter-service.role" .) }}
+    {{- $cfgSource := ternary "`config` in values" $file (not (empty .Values.config)) }}
     {{- $raw := .Values.config | default ($.Files.Get $file) }}
     {{- if not $raw }}
     {{- fail (printf "%s: no config. Expected %s in the chart, or `config` set in values. The role decides the filename, so a new role needs a new file." .Chart.Name $file) }}
+    {{- end }}
+    {{- /* The catalog crawler: two application-level plugin blocks, inserted under the
+           file's top-level `plugins:` key so the static role config stays one file
+           and an environment turns the crawler on with a value, not a fork. The
+           DSN in it is a placeholder; the init container fills it from the Secret. */}}
+    {{- if .Values.crawler.enabled }}
+    {{- if not (contains "\nplugins:\n" $raw) }}
+    {{- fail (printf "%s: crawler.enabled needs a top-level `plugins:` key in the config to put the crawler under, and %s has none." .Chart.Name $cfgSource) }}
+    {{- end }}
+    {{- $raw = replace "\nplugins:\n" (printf "\nplugins:\n%s\n" (include "adapter-service.crawlerBlock" . | indent 2)) $raw }}
     {{- end }}
     {{- $raw | nindent 4 }}
 

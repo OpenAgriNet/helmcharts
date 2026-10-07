@@ -95,6 +95,13 @@ volumes:
   nginx-proxy-manager-data:
   nginx-proxy-manager-letsencrypt:
 
+# Inline, so no extra file: the SQL that creates the catalog crawler's run-log
+# database (see discovery-postgres). Needs Docker Compose 2.23.1 or later.
+configs:
+  crawler-db-init:
+    content: |
+      CREATE DATABASE catalogcrawler;
+
 x-logging: &logging
   # Every container's stdout, tagged so the log console can name it.
   #
@@ -336,6 +343,12 @@ services:
       POSTGRES_DB: discovery
     volumes:
       - discovery-postgres-data:/var/lib/postgresql/data
+    # Creates the crawler's run-log database on a FRESH volume only (the image
+    # runs initdb.d once, on an empty data directory). On an existing volume:
+    #   docker exec discovery-postgres createdb -U discovery catalogcrawler
+    configs:
+      - source: crawler-db-init
+        target: /docker-entrypoint-initdb.d/10-crawler-db.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U discovery -d discovery"]
       interval: 5s
@@ -643,9 +656,22 @@ services:
         condition: service_healthy
       discovery-service:
         condition: service_started
+      # The publish sweep's run log lives on this Postgres (database
+      # catalogcrawler). The adapter refuses to start if it cannot reach it.
+      discovery-postgres:
+        condition: service_healthy
     environment:
       <<: *adapter-env
       OTEL_SERVICE_NAME: network-adapter
+      # The Mandi publish pipeline's inputs, read by name from the hosted
+      # pipeline file (inputs.*.env). Mapped from the Agmarknet values the
+      # provider adapter already uses, so nothing is stated twice.
+      MANDI_API_URI: ${AGMARKNET_BASE_URL}
+      MANDI_TOKEN_USER: ${AGMARKNET_ACCESS_NAME}
+      MANDI_TOKEN_SECRET: ${AGMARKNET_PASSWORD}
+      # The catalog's provider id, and the network it is visible to.
+      MANDI_PARTICIPANT_ID: ${AGMARKNET_PARTICIPANT_ID}
+      APP_NETWORK_ID: ${BECKN_NETWORK_ID}
     volumes:
       - ./config/adapters/network.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/routing-network.yaml:/app/config/routing-network.yaml:ro
