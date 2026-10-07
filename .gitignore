@@ -68,7 +68,7 @@ rendered/
 # reaches a `git add -A`.
 secrets.json
 *-secrets.json
-
+/dev_docs
 # Python bytecode
 __pycache__/
 *.pyc
