@@ -5,6 +5,17 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-10-06
+
+### Added
+- `crawler`, the scheduled catalog publisher, for the network role (off by
+  default). When enabled the chart inserts the `registry` and `crawler` plugin
+  blocks under the config's `plugins:` key. `participantId` and `receiverId` are
+  required and the role must be `network`. The run log DSN is a placeholder the init
+  container fills from `crawler.dbDsnKey` in the keys Secret, and the pod gets an
+  emptyDir for the catalogs it builds. See `dev_docs/crawler-production-plan.md`
+  for what it needs outside the chart.
+
 ## [0.5.2] - 2026-09-29
 
 ### Changed

@@ -5,6 +5,16 @@ All notable changes to the `registry` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-10-06
+
+### Added
+- `ProviderSchema` admits a **`publish`** action on a binding: the network
+  adapter's catalog crawler runs the pipeline file its `mappings` names. `method`
+  and `path` are required only for the Beckn actions; `publish` carries neither,
+  and its `mappings` must be an `https://` URL shaped `<...>/publish/<source>.yaml`
+  (new `PublishMappingPath`), which should be pinned to a commit SHA. Existing rows
+  are unaffected; the schemas checksum rolls the pods on upgrade.
+
 ## [0.4.1] - 2026-09-27
 
 ### Changed
