@@ -756,33 +756,24 @@ services:
     profiles: ["observability"]
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
 
-    # Two things here are root-owned and need a group to read, since the
-    # contrib image runs as uid 10001. Groups rather than `user: "0:0"`,
-    # which would run the entire collector as root.
+    # Root, for two root-only things on the host:
     #
-    #   gid 0, as the PRIMARY group (`user` below; the uid is the image's
-    #   own) -- the container log files under /var/lib/docker/containers
-    #     (root:root, dir 0710, files 0640), for filelog/containers. Without
-    #     it no container's stdout reaches ClickHouse, only what services
-    #     send over OTLP themselves.
-    #   DOCKER_SOCKET_GID, supplementary -- the Docker socket, for
-    #     docker_stats. Docker
-    #     Desktop: gid 0, the default. Linux with Docker Engine: the `docker`
-    #     group, whose gid varies (999, 988, ...) -- set it in .env to the
-    #     output of `stat -c %g /var/run/docker.sock`. Wrong, and the
-    #     collector exits on start with "permission denied while trying to
-    #     connect to the docker API", taking every pipeline down with it.
+    #   /var/lib/docker/containers, for filelog/containers. The directory is
+    #     root:root 0710 on Docker Engine: a group can open a file in it by
+    #     name but cannot LIST it, and the receiver finds files by globbing.
+    #     A non-root collector -- even with gid 0 -- matches nothing, logs no
+    #     error, and no container's stdout reaches ClickHouse.
+    #   /var/run/docker.sock, for docker_stats. Its group is gid 0 on Docker
+    #     Desktop but the host's `docker` group on Linux (999, 988, 986, ...),
+    #     which would have to be looked up per machine.
     #
-    # Both are needed on Linux; on Docker Desktop they are the same group.
-    # Not both in group_add: compose rejects a list with the same gid twice,
-    # which is what the Docker Desktop default would make it.
-    #
-    # The socket is still not narrow in absolute terms -- anything that can
-    # reach the Docker API can own the host. Drop the socket gid together
-    # with the docker.sock mount and the docker_stats receiver if that trade
-    # is not wanted; gid 0 and the rest of the pipeline are unaffected.
-    user: "10001:0"
-    group_add: ["${DOCKER_SOCKET_GID:-0}"]
+    # Not a real widening: anything that can reach the Docker API can already
+    # own the host, so the image's uid 10001 plus socket access was root in
+    # all but name. Drop `user`, the docker.sock and containers mounts, and
+    # the docker_stats and filelog/containers receivers together if that
+    # trade is not wanted; OTLP ingest and the Postgres scrapes are
+    # unaffected.
+    user: "0:0"
 
     # oan-internal ONLY. Nothing on oan-edge ever needs to resolve this name --
     # NPM does not route to it, and README Appendix B says why 4317/4318 must
