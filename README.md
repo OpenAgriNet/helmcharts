@@ -50,11 +50,12 @@ charts/
 ```
 
 Every chart depends on `common` via `file://../common`, except `clickstack`,
-`kong`, `cert-manager` and `openbao`: all four are official upstream charts committed
-unmodified, so they carry neither the dependency nor the conventions. Each
-README lists what that leaves to override. `cert-manager-issuers` also skips it,
-for a different reason — it renders two custom resources and no workload, so
-none of the library's helpers apply.
+`kong`, `cert-manager`, `openbao` and `langfuse`: all five are official
+upstream charts committed unmodified, so they carry neither the dependency nor
+the conventions. Each chart's own README lists what that leaves to override.
+`cert-manager-issuers` also skips it, for a different reason — it renders two
+custom resources and no workload, so none of the library's helpers apply.
+
 
 ## The registry stack
 
