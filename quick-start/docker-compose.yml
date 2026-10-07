@@ -756,24 +756,32 @@ services:
     profiles: ["observability"]
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
 
-    # The docker_stats receiver needs this and nothing else does. The contrib
-    # image runs as uid 10001, and the Docker socket is mode 660 -- so the
-    # mount below is readable only by root or by a member of the socket's
-    # group. Adding that group as a SUPPLEMENTARY group is the narrower of the
-    # two ways to bridge that: the alternative, `user: "0:0"`, would run the
-    # entire collector as root for the sake of one receiver.
+    # Two things here are root-owned and need a group to read, since the
+    # contrib image runs as uid 10001. Groups rather than `user: "0:0"`,
+    # which would run the entire collector as root.
     #
-    # The group differs by host. Docker Desktop: gid 0, the default here.
-    # Linux with Docker Engine: the `docker` group, whose gid varies (999,
-    # 988, ...) -- set DOCKER_SOCKET_GID in .env to the output of
-    # `stat -c %g /var/run/docker.sock`. Wrong, and the collector exits on
-    # start with "permission denied while trying to connect to the docker
-    # API", taking every pipeline down with it.
+    #   gid 0, as the PRIMARY group (`user` below; the uid is the image's
+    #   own) -- the container log files under /var/lib/docker/containers
+    #     (root:root, dir 0710, files 0640), for filelog/containers. Without
+    #     it no container's stdout reaches ClickHouse, only what services
+    #     send over OTLP themselves.
+    #   DOCKER_SOCKET_GID, supplementary -- the Docker socket, for
+    #     docker_stats. Docker
+    #     Desktop: gid 0, the default. Linux with Docker Engine: the `docker`
+    #     group, whose gid varies (999, 988, ...) -- set it in .env to the
+    #     output of `stat -c %g /var/run/docker.sock`. Wrong, and the
+    #     collector exits on start with "permission denied while trying to
+    #     connect to the docker API", taking every pipeline down with it.
     #
-    # It is still not narrow in absolute terms -- anything that can reach the
-    # Docker API can own the host. Drop this line together with the
-    # docker.sock mount and the docker_stats receiver if that trade is not
-    # wanted; the rest of the metrics pipeline is unaffected.
+    # Both are needed on Linux; on Docker Desktop they are the same group.
+    # Not both in group_add: compose rejects a list with the same gid twice,
+    # which is what the Docker Desktop default would make it.
+    #
+    # The socket is still not narrow in absolute terms -- anything that can
+    # reach the Docker API can own the host. Drop the socket gid together
+    # with the docker.sock mount and the docker_stats receiver if that trade
+    # is not wanted; gid 0 and the rest of the pipeline are unaffected.
+    user: "10001:0"
     group_add: ["${DOCKER_SOCKET_GID:-0}"]
 
     # oan-internal ONLY. Nothing on oan-edge ever needs to resolve this name --
