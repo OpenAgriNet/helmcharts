@@ -51,59 +51,52 @@
           "pattern": "^https://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*$"
         },
         "role": {
-          "description": "What this party does on the network. consumer asks. provider answers. network exposes publish and discover, answering discover from published catalogs. Required on a node. Permitted on an upstream, where nothing reads it.",
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": {
-            "$ref": "#/definitions/Role"
-          }
+          "description": "What this party does on the network. consumer asks. provider answers. network exposes publish and discover, answering discover from published catalogs. A list when one participant serves several layers -- a network is one participant however many adapters it runs. A single string is still accepted: every row written before the list existed holds one, and a PUT re-validates the stored record, so refusing it would freeze those rows. Search with `contains`, which matches both shapes; `eq` misses a list. Required on a node. Permitted on an upstream, where nothing reads it.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Role"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 3,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/definitions/Role"
+              }
+            }
+          ]
         },
         "federationRole": {
-          "description": "What we agreed with this peer, by direction. Absent outside federation.",
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "source": {
-              "description": "We consume the listed packs from this peer.",
-              "$ref": "#/definitions/FederationAdmission"
-            },
-            "requester": {
-              "description": "This peer may request the listed packs from us.",
-              "allOf": [
-                {
-                  "$ref": "#/definitions/FederationAdmission"
-                },
-                {
-                  "not": {
-                    "required": [
-                      "projectionTtl"
-                    ]
-                  }
-                }
-              ]
-            },
-            "osid": {
-              "type": "string"
-            },
-            "osCreatedAt": {
-              "type": "string"
-            },
-            "osUpdatedAt": {
-              "type": "string"
-            },
-            "osCreatedBy": {
-              "type": "string"
-            },
-            "osUpdatedBy": {
-              "type": "string"
-            }
-          }
+          "description": "What this entry is in relation to us, and our decision -- never read from a peer's Descriptor, so a peer publishing a new one cannot widen its own admission. self is this network's own entry, the one its Descriptor is built from. source is a peer we consume from. requester is a peer that consumes from us. both is admission in each direction. Absent on a participant that is not part of federation.",
+          "type": "string",
+          "enum": [
+            "self",
+            "source",
+            "requester",
+            "both"
+          ]
         },
         "revision": {
-          "description": "Descriptor revision. On our own entry, the last one we published; on a peer, the latest we verified. Only increases.",
+          "description": "The Descriptor revision this entry was built from. Only ever increases: a Descriptor at or below the stored revision is a replay and is refused. On the self entry, the revision this network last published.",
           "type": "integer",
           "minimum": 1
+        },
+        "schemaPacks": {
+          "description": "Complete published URLs of the OAN schema packs the network declares in its Descriptor, stored verbatim. Not SchemaRegistry rows: those hold raw.githubusercontent YAML URLs for our own capabilities, and a peer's pack URLs are its statement, not ours.",
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 2000,
+            "pattern": "^https://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*/?$"
+          }
+        },
+        "projectionTtl": {
+          "description": "Seconds this peer permits us to keep what we crawled from it. The owning network decides how stale a copy may get, not the network holding it. 0 prohibits retention and requires a live query; a positive value permits serving the copy only within that lifetime.",
+          "type": "integer",
+          "minimum": 0
         },
         "keys": {
           "description": "Plural for rotation: an overlap where old and new are both valid. The sender names which it used in the Authorization header, by keyId when set, otherwise by osid. Required on a node, since a node's signatures are verified against them. Permitted on an upstream, which does not sign anything this stack verifies.",
@@ -380,7 +373,8 @@
     "indexFields": [
       "status",
       "type",
-      "baseUrl"
+      "baseUrl",
+      "federationRole"
     ],
     "privateFields": [],
     "roles": [
