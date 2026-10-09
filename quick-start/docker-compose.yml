@@ -710,7 +710,17 @@ services:
     # is no "Team Settings -> Host" step where a browser needs its own route or
     # tunnel to 8123, which was the reason clickstack-local's HTTP port had to
     # be published on oan-edge at all.
-    networks: [oan-internal]
+    #
+    # Reached as oan-clickhouse, never plain `clickhouse`. Grafana is on
+    # oan-edge too, and oan-edge is shared with other stacks on the same host
+    # (Langfuse brings its own `clickhouse` service). Docker resolves a name
+    # across every network a container is on, so Grafana asking for
+    # `clickhouse` could get Langfuse's -- which rejects the otel user with
+    # "Authentication failed". An alias only this container carries cannot
+    # collide.
+    networks:
+      oan-internal:
+        aliases: [oan-clickhouse]
     environment:
       CLICKHOUSE_DB: ${CLICKHOUSE_DB:-otel}
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-otel}
@@ -746,18 +756,24 @@ services:
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
 
     # The docker_stats receiver needs this and nothing else does. The contrib
-    # image runs as uid 10001, and the Docker socket is root:root mode 660 --
-    # so the mount below is readable only by root or by a member of the
-    # socket's group, which on Docker Desktop is gid 0. Adding gid 0 as a
-    # SUPPLEMENTARY group is the narrower of the two ways to bridge that: the
-    # alternative, `user: "0:0"`, would run the entire collector as root for
-    # the sake of one receiver.
+    # image runs as uid 10001, and the Docker socket is mode 660 -- so the
+    # mount below is readable only by root or by a member of the socket's
+    # group. Adding that group as a SUPPLEMENTARY group is the narrower of the
+    # two ways to bridge that: the alternative, `user: "0:0"`, would run the
+    # entire collector as root for the sake of one receiver.
+    #
+    # The group differs by host. Docker Desktop: gid 0, the default here.
+    # Linux with Docker Engine: the `docker` group, whose gid varies (999,
+    # 988, ...) -- set DOCKER_SOCKET_GID in .env to the output of
+    # `stat -c %g /var/run/docker.sock`. Wrong, and the collector exits on
+    # start with "permission denied while trying to connect to the docker
+    # API", taking every pipeline down with it.
     #
     # It is still not narrow in absolute terms -- anything that can reach the
     # Docker API can own the host. Drop this line together with the
     # docker.sock mount and the docker_stats receiver if that trade is not
     # wanted; the rest of the metrics pipeline is unaffected.
-    group_add: ["0"]
+    group_add: ["${DOCKER_SOCKET_GID:-0}"]
 
     # oan-internal ONLY. Nothing on oan-edge ever needs to resolve this name --
     # NPM does not route to it, and README Appendix B says why 4317/4318 must
@@ -767,7 +783,7 @@ services:
       clickhouse:
         condition: service_healthy
     environment:
-      CLICKHOUSE_ENDPOINT: tcp://clickhouse:9000?dial_timeout=10s
+      CLICKHOUSE_ENDPOINT: tcp://oan-clickhouse:9000?dial_timeout=10s
       CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB:-otel}
       CLICKHOUSE_USERNAME: ${CLICKHOUSE_USER:-otel}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
@@ -853,6 +869,20 @@ services:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
       GF_USERS_ALLOW_SIGN_UP: "false"
+      # The address people open Grafana at. Grafana builds every link it sends
+      # out from this -- the "Open dashboard" link in a Slack alert included --
+      # and without it they point at http://localhost:3000, its port INSIDE
+      # this container, which no browser can reach. Defaults to the loopback
+      # publish below; set GRAFANA_ROOT_URL in .env to the NPM hostname
+      # (https://grafana.<your domain>/) when Grafana is served through it.
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://127.0.0.1:${GRAFANA_UI_PORT:-8085}/}
+      # Served under a path on a shared host (an NPM custom location such as
+      # https://dpg-dev.example.org/grafana) rather than a hostname of its own:
+      # GRAFANA_SERVE_FROM_SUB_PATH=true, with GRAFANA_ROOT_URL ending in that
+      # path and a slash. Without it Grafana answers at / -- its redirects and
+      # asset URLs leave the sub-path and the page does not load. Leave it
+      # false for a dedicated hostname or the loopback publish.
+      GF_SERVER_SERVE_FROM_SUB_PATH: ${GRAFANA_SERVE_FROM_SUB_PATH:-false}
       # Not bundled with the base image -- it is a community-maintained
       # datasource plugin, so it has to be installed at boot. That needs
       # egress, on the same argument as the "why isn't this internal: true"
@@ -860,6 +890,13 @@ services:
       GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      # Alerting on or off: GRAFANA_ALERTING_ENABLED=false in .env, then
+      # `make observability` to recreate Grafana. Off turns off the alerting
+      # engine -- nothing is evaluated or sent to Slack -- and dashboards work
+      # as before. For a stack nobody is on call for.
+      #
+      # Exactly `true` or `false`: it also picks the alerting mount below.
+      GF_UNIFIED_ALERTING_ENABLED: ${GRAFANA_ALERTING_ENABLED:-true}
       # Substituted into config/grafana/provisioning/datasources/clickhouse.yaml
       # so the datasource is wired up on first boot with no click-through --
       # the same property HyperDX had for the opposite reason (it had nothing
@@ -867,9 +904,22 @@ services:
       CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB:-otel}
       CLICKHOUSE_USERNAME: ${CLICKHOUSE_USER:-otel}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      # Substituted into config/grafana/provisioning/alerting/notifications.yaml:
+      # the Slack incoming webhook alerts are posted to. The placeholder is not
+      # a real webhook, so notifications fail to send until this is set -- but
+      # it must not be empty: Grafana refuses to start with a Slack contact
+      # point that has no URL.
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-https://hooks.slack.com/services/not-configured}
     volumes:
       - grafana-data:/var/lib/grafana
       - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      # Mounted over provisioning/alerting, following GRAFANA_ALERTING_ENABLED.
+      # alerting-true is a symlink to provisioning/alerting itself, so on is
+      # the same files as without this line. alerting-false is empty: Grafana
+      # with alerting off does not just skip a contact point it is given, it
+      # fails to start ("could not find an Alertmanager configuration"), and
+      # the dashboards go down with it.
+      - ./config/grafana/alerting-${GRAFANA_ALERTING_ENABLED:-true}:/etc/grafana/provisioning/alerting:ro
     ports:
       # Loopback only, same reasoning as every other UI in this file: the
       # public path is the NPM proxy host, not this publish.

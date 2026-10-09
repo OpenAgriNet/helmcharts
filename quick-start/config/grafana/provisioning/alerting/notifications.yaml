@@ -1,0 +1,85 @@
+# Where alerts go: one Slack contact point, and a policy sending every alert
+# to it (#34).
+#
+# Same rule as the other files here: byte-identical to the quick-start's copy
+# in quick-start/config/grafana/provisioning/alerting/, checked by
+# scripts/lint-charts.sh.
+#
+# THE WEBHOOK URL IS NOT IN THIS FILE. Grafana substitutes environment variables
+# into contact points (it does not into alert rules), so the URL comes from the
+# Grafana container's SLACK_WEBHOOK_URL:
+#
+#   Helm         a Secret, through the grafana release's envValueFrom
+#   quick-start  .env, through docker-compose.yml
+#
+# IT MUST NEVER BE EMPTY. With no URL, Grafana rejects this contact point and
+# does not start at all ("recipient must be specified"). So the quick-start
+# defaults it to a placeholder -- Grafana runs and notifications fail to send --
+# and on Kubernetes the Secret is required, so the pod waits for it rather than
+# crash-looping.
+#
+# The same substitution strips any other $word from this file -- so the
+# message templates below must never contain a dollar sign.
+#
+# An incoming webhook posts to the one channel it was created for; to change
+# the channel, create a webhook for the new one.
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: slack
+    receivers:
+      - uid: slack
+        type: slack
+        settings:
+          url: $SLACK_WEBHOOK_URL
+          # Kept short on purpose. Firing:
+          #
+          #   :red_circle: Service down
+          #   *discovery-service is down*
+          #   No logs, traces or metrics for 6m 12s.
+          #   Open dashboard
+          #
+          # Resolved: a green title and "<service> [<route>] is back to normal".
+          # The link is .DashboardURL -- the whole dashboard at the time of the
+          # alert -- not .PanelURL; each rule still names a panel only because
+          # Grafana requires __dashboardUid__ and __panelId__ as a pair.
+          # var-service opens it filtered to the service that fired; without it
+          # the dashboard opens on every service. .DashboardURL already carries
+          # a query string, so the variable is appended with &.
+          title: >-
+            {{ if eq .Status "firing" }}:red_circle: {{ .CommonLabels.alertname }}{{ else }}:large_green_circle: Resolved: {{ .CommonLabels.alertname }}{{ end }}
+          text: |-
+            {{ range .Alerts }}{{ if eq .Status "firing" }}*{{ .Annotations.summary }}*
+            {{ .Annotations.description }}{{ else }}*{{ .Labels.service }}{{ if .Labels.route }} {{ .Labels.route }}{{ end }} is back to normal*{{ end }}
+            {{ if .DashboardURL }}<{{ .DashboardURL }}&var-service={{ .Labels.service }}|Open dashboard>{{ end }}
+            {{ end }}
+        # A resolved message closes the loop in the channel, so nobody keeps
+        # investigating something that has already recovered.
+        disableResolveMessage: false
+
+# THIS REPLACES THE WHOLE NOTIFICATION POLICY TREE for the org -- Grafana keeps
+# one, and provisioning owns it. Future routes (a second channel for critical,
+# say) are added here, not in the UI.
+policies:
+  - orgId: 1
+    receiver: slack
+    # One Slack message per alert and service, rather than one per evaluation
+    # or one for everything at once.
+    group_by: [alertname, service]
+    # Wait before the first message, so alerts that fire together arrive
+    # together.
+    group_wait: 30s
+    # Wait before telling the channel about new alerts in a group already
+    # notified.
+    group_interval: 5m
+    # Notify ONCE per incident. An alert that stays firing is not re-sent; the
+    # channel hears about it again only when it resolves, and a new failure
+    # after that is a new notification.
+    #
+    # 5d, not longer, because Grafana remembers what it has sent for only
+    # [unified_alerting] notification_log_retention = 5d. A longer interval
+    # would still re-send after 5 days, having forgotten the first one -- so 5d
+    # is the true maximum, and doubles as a reminder for something left broken
+    # that long.
+    repeat_interval: 5d

@@ -31,7 +31,10 @@ datasources:
     access: proxy
     isDefault: true
     jsonData:
-      host: clickhouse
+      # oan-clickhouse, not `clickhouse`: see the clickhouse service in
+      # docker-compose.yml. Another stack's `clickhouse` on oan-edge would
+      # answer to the plain name.
+      host: oan-clickhouse
       port: 9000
       protocol: native
       defaultDatabase: ${CLICKHOUSE_DATABASE}

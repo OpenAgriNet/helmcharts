@@ -81,6 +81,29 @@ while IFS= read -r chart_yaml; do
   fi
 done < <(find charts -mindepth 2 -maxdepth 3 -name Chart.yaml | sort)
 
+# Grafana dashboards and alerting exist twice: in charts/grafana-provisioning
+# for the cluster, and in the quick-start's provisioning directory for Compose.
+# They must be the same files, or a dashboard or alert changed in one path
+# silently differs in the other.
+#
+# infra-overview.json is the exception: the cluster copy reads kubelet metrics,
+# the quick-start copy Docker container stats, so the two differ by design.
+echo "==> grafana provisioning: chart and quick-start copies"
+qs=quick-start/config/grafana/provisioning
+platform_specific_dashboard=infra-overview.json
+for pair in "dashboards/*.json:$qs/dashboards/json" "alerting/*.yaml:$qs/alerting"; do
+  pattern="charts/grafana-provisioning/${pair%%:*}"
+  dest="${pair#*:}"
+  for file in $pattern; do
+    [[ "$(basename "$file")" == "$platform_specific_dashboard" ]] && continue
+    copy="$dest/$(basename "$file")"
+    if ! cmp -s "$file" "$copy"; then
+      echo "!!! $file and $copy differ -- copy one over the other"
+      failed=1
+    fi
+  done
+done
+
 if [[ "$failed" -ne 0 ]]; then
   echo "chart validation FAILED"
   exit 1

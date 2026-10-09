@@ -1,0 +1,15 @@
+apiVersion: v2
+name: grafana-provisioning
+description: >-
+  OAN's Grafana content -- dashboards, alert rules and notification routing --
+  as ConfigMaps that the grafana chart's sidecars load. Separate from the
+  grafana chart, which is upstream and committed unmodified: the content is
+  OAN's, so it lives in a chart of ours.
+type: application
+
+# Chart version. Bumped on every chart change, per CONVENTIONS.md.
+version: 0.2.0
+
+# The Grafana release this content is written against. Not an image tag: this
+# chart deploys no workload.
+appVersion: "13.2.2"
