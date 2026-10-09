@@ -1,0 +1,273 @@
+# Functional alerts -- whether the OAN services are doing their job (#34).
+#
+#   1. API failure rate   5xx rate > 5% over 5 min, per service     critical
+#   2. High latency       p95 > 2 s for 10 min, per service+route   warning
+#   3. Service down       silent 5 min while others still report    critical
+#
+# Grafana alert-rule provisioning format. The SAME FILE is loaded in both
+# deployment paths, and has to stay byte-identical (scripts/lint-charts.sh
+# checks it):
+#
+#   Helm         charts/grafana-provisioning/alerting/functional.yaml, rendered into a
+#                ConfigMap that the grafana chart's alerts sidecar loads
+#   quick-start  quick-start/config/grafana/provisioning/alerting/functional.yaml
+#
+# Provisioned rules cannot be edited in the Grafana UI -- change them here.
+# Thresholds are initial values, to be tuned once dev has a baseline.
+#
+# Grafana does not substitute environment variables in alerting provisioning
+# files, so `$__timeFilter`, `$A` and `$labels` below reach Grafana as written.
+# The file is also never passed through Helm's `tpl`, which would read the
+# annotation templates as its own.
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: functional
+    # The Grafana folder the rules appear under in Alerting. One folder per
+    # rules group, so functional and infra alerts are listed apart.
+    folder: functional-alerts
+    # Every rule in the group is evaluated this often; `for` counts in these
+    # steps.
+    interval: 1m
+    rules:
+      # ------------------------------------------------------------------
+      # 1. API failure rate
+      # ------------------------------------------------------------------
+      - uid: functional-api-failure-rate
+        title: API failure rate
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: clickhouse
+            model:
+              refId: A
+              datasource:
+                type: grafana-clickhouse-datasource
+                uid: clickhouse
+              editorType: sql
+              queryType: table
+              # Table format: each row becomes its own alert instance, string
+              # columns become labels. So `service` is a label, and the one
+              # numeric column is the value the threshold reads.
+              format: 1
+              # Failed = HTTP status 500 or above. NOT StatusCode, which is
+              # Unset on almost every discovery-service span -- a 400 from the
+              # envelope check is a successful span. 4xx is left out on purpose:
+              # a client sending a bad request is not the service failing.
+              #
+              # The status is under two names: http.response.status_code (current
+              # semconv; the network-adapter-based adapters) and http.status_code
+              # (older; discovery-service). Read on one alone, the other's 5xx
+              # count as successes.
+              #
+              # HAVING: at least 20 requests in the window. Without it one
+              # failure out of three requests on a quiet stack is a 33% failure
+              # rate and a critical alert.
+              rawSql: |-
+                SELECT
+                  ServiceName AS service,
+                  round(100 * countIf(toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) >= 500) / count(), 2) AS failure_pct
+                FROM otel.otel_traces
+                WHERE $__timeFilter(Timestamp)
+                  AND SpanKind = 'Server'
+                GROUP BY service
+                HAVING count() >= 20
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [5]
+        # No rows is no traffic, not a failure rate. A service that has gone
+        # quiet is Service down's job.
+        noDataState: OK
+        # A query that fails (ClickHouse overloaded, timing out) keeps every
+        # instance where it was. Error would drop the firing instances as
+        # missing series and post "back to normal" for something still broken;
+        # the evaluation error itself is still recorded on the rule.
+        execErrState: KeepLast
+        # One more evaluation to confirm, so a single bad minute does not alert.
+        for: 1m
+        labels:
+          severity: critical
+          category: functional
+        annotations:
+          summary: '{{ $labels.service }} is failing: {{ $values.A.Value }}% of requests return 5xx'
+          description: 'Requests are failing with server errors; check the dashboard for the affected requests and error details.'
+          __dashboardUid__: oan-discovery-overview
+          __panelId__: '2'
+
+      # ------------------------------------------------------------------
+      # 2. High latency
+      # ------------------------------------------------------------------
+      - uid: functional-high-latency
+        title: High latency
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: clickhouse
+            model:
+              refId: A
+              datasource:
+                type: grafana-clickhouse-datasource
+                uid: clickhouse
+              editorType: sql
+              queryType: table
+              format: 1
+              # Every service, per route: /publish and /discover differ in what
+              # they do, so one p95 across both lets the slow route hide the
+              # fast one's regressions. Both discovery-service and network-adapter
+              # name the server span after the request path, so SpanName is the
+              # route: `/discover`, or `discover` from discovery-service builds
+              # older than that naming. Health checks are not traced and never
+              # show up here.
+              #
+              # Duration is UInt64 nanoseconds; the value is in seconds, so the
+              # threshold reads as "2 s" and humanizeDuration formats it. Same
+              # minimum-volume guard as the failure rate: a p95 over a handful of
+              # requests is one slow request.
+              rawSql: |-
+                SELECT
+                  ServiceName AS service,
+                  SpanName AS route,
+                  round(quantile(0.95)(Duration) / 1e9, 3) AS p95_seconds
+                FROM otel.otel_traces
+                WHERE $__timeFilter(Timestamp)
+                  AND SpanKind = 'Server'
+                GROUP BY service, route
+                HAVING count() >= 20
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [2]
+        noDataState: OK
+        # As for the failure rate: a failed query is not a recovery.
+        execErrState: KeepLast
+        # "For 10 minutes": each evaluation looks at the last 5 minutes, and it
+        # has to breach on every one for 10.
+        for: 10m
+        labels:
+          severity: warning
+          category: functional
+        annotations:
+          summary: '{{ $labels.service }} {{ $labels.route }} is slow: p95 latency is {{ humanizeDuration $values.A.Value }}'
+          description: 'Responses are slower than usual and some requests may time out; check database and CPU load on the dashboard.'
+          __dashboardUid__: oan-discovery-overview
+          __panelId__: '3'
+
+      # ------------------------------------------------------------------
+      # 3. Service down
+      # ------------------------------------------------------------------
+      - uid: functional-service-down
+        title: Service down
+        condition: C
+        data:
+          - refId: A
+            # A service can only be "down" if it was up: the query looks back a
+            # day to find which services exist, then reports how long each has
+            # been silent. The windows are set in the query itself.
+            relativeTimeRange:
+              from: 86400
+              to: 0
+            datasourceUid: clickhouse
+            model:
+              refId: A
+              datasource:
+                type: grafana-clickhouse-datasource
+                uid: clickhouse
+              editorType: sql
+              queryType: table
+              format: 1
+              # The newest sign of life per service, from any signal: a log line,
+              # a span, or a metric. Metrics are what matter for an IDLE service --
+              # with no traffic it writes no spans and often no logs, but every
+              # running container still reports resource metrics every 30 s
+              # (docker_stats in the quick-start, kubeletstats on Kubernetes).
+              # A stopped or crashed container stops reporting them.
+              # The value is how far a service is BEHIND THE FRESHEST ONE, in
+              # seconds; the threshold is 300. Not plain seconds since last seen:
+              # when the telemetry pipeline itself stalls -- the collector or
+              # ClickHouse not ingesting -- every service goes silent together,
+              # and that read as fourteen services down at once. Measured against
+              # the freshest service, they all stay at 0 and only the one that
+              # actually stopped stands out. A stalled pipeline is the infra
+              # alerts' to call.
+              #
+              # A service that is removed for good keeps firing until it drops
+              # out of the one-day lookback. So does a short-lived Job that logs
+              # and exits: if one appears, exclude it with
+              # `AND service NOT IN ('<name>')`.
+              rawSql: |-
+                SELECT
+                  service,
+                  silent - min(silent) OVER () AS silent_seconds
+                FROM (
+                SELECT
+                  service,
+                  dateDiff('second', max(last_seen), now()) AS silent
+                FROM (
+                  SELECT ServiceName AS service, max(Timestamp) AS last_seen
+                  FROM otel.otel_logs
+                  WHERE Timestamp >= now() - INTERVAL 1 DAY
+                  GROUP BY service
+                  UNION ALL
+                  SELECT ServiceName AS service, max(Timestamp) AS last_seen
+                  FROM otel.otel_traces
+                  WHERE Timestamp >= now() - INTERVAL 1 DAY
+                  GROUP BY service
+                  UNION ALL
+                  SELECT ServiceName AS service, max(TimeUnix) AS last_seen
+                  FROM otel.otel_metrics_gauge
+                  WHERE TimeUnix >= now() - INTERVAL 1 DAY
+                  GROUP BY service
+                  UNION ALL
+                  SELECT ServiceName AS service, max(TimeUnix) AS last_seen
+                  FROM otel.otel_metrics_sum
+                  WHERE TimeUnix >= now() - INTERVAL 1 DAY
+                  GROUP BY service
+                )
+                WHERE service != ''
+                GROUP BY service
+                )
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [300]
+        # No rows means nothing has been seen for a day -- including when
+        # ClickHouse is empty because the telemetry pipeline itself is broken.
+        # That is not this alert's to call.
+        noDataState: OK
+        # As for the failure rate: a failed query is not a recovery.
+        execErrState: KeepLast
+        for: 1m
+        labels:
+          severity: critical
+          category: functional
+        annotations:
+          summary: '{{ $labels.service }} is down'
+          description: 'Silent for {{ humanizeDuration $values.A.Value }} while other services keep reporting, so it has likely crashed or stopped; check the container or pod and its last logs.'
+          __dashboardUid__: oan-discovery-overview
+          __panelId__: '20'

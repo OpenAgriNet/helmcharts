@@ -24,6 +24,9 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`openbao`](charts/openbao) | application | The secret store. The official `openbao` chart 0.29.6 (OpenBao v2.6.3) committed whole and unmodified; OAN's settings are in `examples/openbao.dev.yaml` (one pod) and `examples/openbao.prod.yaml` (three-pod raft cluster). |
 | [`openbao-cluster-secret-store`](charts/openbao-cluster-secret-store) | application | The `ClusterSecretStore` that lets External Secrets Operator read OpenBao, logging in with Kubernetes auth. |
 | [`openbao-secrets`](charts/openbao-secrets) | application | One `ExternalSecret` per credential: pulls `oan/<env>/<name>` from OpenBao into a Secret and mirrors it, via Reflector, to the namespaces that read it. |
+| [`grafana`](charts/grafana) | application | Grafana — dashboards and Explore over the OTel data in ClickHouse. The official `grafana` chart 13.2.6 (Grafana 13.2.2, from `grafana-community`) committed whole and unmodified. |
+| [`opentelemetry-collector`](charts/opentelemetry-collector) | application | The OTel Collector — receives OTLP from the services and collects pod logs and kubelet metrics, writing all of it to ClickHouse. The official `opentelemetry-collector` chart 0.173.1 (collector 0.160.0) committed whole and unmodified. |
+| [`grafana-provisioning`](charts/grafana-provisioning) | application | OAN's Grafana content — the discovery overview, Network API, Providers and Infra dashboards, the functional alert rules and Slack routing — as ConfigMaps the `grafana` chart's sidecars load. The same files as the quick-start. |
 
 ## How they fit together
 
@@ -47,14 +50,18 @@ charts/
 ├── openbao/             # the secret store — vendored upstream
 ├── openbao-cluster-secret-store/ # how ESO reads it
 └── openbao-secrets/     # what ESO reads from it
+└── grafana/             # dashboards over ClickHouse — vendored upstream
+├── opentelemetry-collector/ # telemetry into ClickHouse — vendored upstream
+└── grafana-provisioning/ # dashboards and alerts for grafana, loaded by its sidecars
 ```
 
 Every chart depends on `common` via `file://../common`, except `clickstack`,
-`kong`, `cert-manager`, `openbao` and `langfuse`: all five are official
-upstream charts committed unmodified, so they carry neither the dependency nor
-the conventions. Each chart's own README lists what that leaves to override.
-`cert-manager-issuers` also skips it, for a different reason — it renders two
-custom resources and no workload, so none of the library's helpers apply.
+`kong`, `cert-manager`, `grafana` and `opentelemetry-collector`: all five are
+official upstream charts committed unmodified, so they carry neither the
+dependency nor the conventions. Each README lists what that leaves to override.
+`cert-manager-issuers` and `grafana-provisioning` also skip it, for a different
+reason — they render configuration and no workload, so none of the library's
+helpers apply.
 
 
 ## The registry stack
