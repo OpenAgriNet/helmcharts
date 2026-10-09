@@ -214,7 +214,7 @@ Each module keeps its own tier identity.
 
 | Module | Path | From | Routing file | Routes |
 |---|---|---|---|---|
-| `consumer` | `/consumer/<action>` | `consumer.yaml.tmpl` | `unified-network-layer/single-network-layer-consumer-routing.yaml` | discover to `localhost:9200/network`; select, init, confirm, status to `localhost:9200/provider` |
+| `consumer` | `/<action>` | `consumer.yaml.tmpl` | `unified-network-layer/single-network-layer-consumer-routing.yaml` | discover to `localhost:9200/network`; select, init, confirm, status to `localhost:9200/provider` |
 | `network` | `/network/<action>` | `network.yaml.tmpl` | `routing-network.yaml` (multi file, reused) | discover, publish to discovery |
 | `provider` | `/provider/<action>` | `provider.yaml.tmpl` (module 1) | none: answers itself | n/a |
 | `provider-publish` | `/provider/publish` | `provider.yaml.tmpl` (module 2) | `unified-network-layer/single-network-layer-publish-routing.yaml` | to `localhost:9200/network/publish` |

@@ -2,7 +2,7 @@
 
 One chart for the Beckn adapters, in two modes. Multi-adapter: three roles,
 `provider`, `network` and `consumer`, one release per tier. Network layer:
-`network-layer`, all three tiers in one adapter. All roles are the same image
+`single-network-layer`, all three tiers in one adapter. All roles are the same image
 and the same config format, so `role` selects the handler role, the step list
 and where requests are routed.
 
@@ -15,8 +15,8 @@ and where requests are routed.
 ```
 
 ```
-  network-layer (one adapter, one pod):
-    /consumer/ ──lo──▶ /network/ ──▶ discovery
+  single-network-layer (one adapter, one pod):
+    /<action> ──lo──▶ /network/ ──▶ discovery
         └──────lo────▶ /provider/ ──▶ upstream APIs
     /provider/publish ──lo──▶ /network/publish
 ```
@@ -26,7 +26,7 @@ and where requests are routed.
 | `provider` | `bpp` | `validateSign → addRoute → sign` | upstream APIs (several) |
 | `network` | `bpp` | `validateSign → addRoute → sign` | discovery |
 | `consumer` | `bap` | `addRoute → sign` | network |
-| `network-layer` | `bap` + `bpp` (four modules) | each module runs its own tier's steps | discovery and the upstream APIs; tier hops are loopback HTTP inside the pod |
+| `single-network-layer` | `bap` + `bpp` (four modules) | each module runs its own tier's steps | discovery and the upstream APIs; tier hops are loopback HTTP inside the pod |
 
 `consumer` is the only one that accepts **unsigned** requests: the consumer
 app is inside the trust boundary, so there is no network signature to check.
@@ -68,7 +68,7 @@ render error rather than a default:
 | Value | Why there is no default |
 |---|---|
 | `image.repository` | An empty one renders `ghcr.io/:tag`, which Helm and the API server both accept and which surfaces later as `ImagePullBackOff` |
-| `keys.existingSecret.name` | Without an identity the pod starts, serves `/health`, reports Ready, and fails every signature it makes — in a peer's logs. Role `network-layer` uses `networkLayer.keys.{consumer,network,provider}.existingSecret` instead (three identities) |
+| `keys.existingSecret.name` | Without an identity the pod starts, serves `/health`, reports Ready, and fails every signature it makes — in a peer's logs. Role `single-network-layer` uses `singleNetworkLayer.keys.{consumer,network,provider}.existingSecret` instead (three identities) |
 | `registry.url` | The adapter verifies every caller against the registry, so with none it can verify nobody |
 | `role` | It decides the handler role, the step list and the routing target. A default would give one adapter another one's behaviour |
 | `routing.rules` | An adapter with no route accepts requests and has nowhere to send them |
@@ -136,9 +136,9 @@ healthy.
 | Mode | Releases (release = namespace) | Callers use |
 |---|---|---|
 | multi | `consumer-adapter`, `network-adapter`, `provider-adapter` (examples/consumer.yaml, network.yaml, provider.yaml) | `consumer-adapter:9202/<action>`, `provider-adapter:9200/publish` |
-| network layer | `network-layer-adapter` (examples/network-layer.yaml) | `network-layer-adapter:9200/consumer/<action>`, `network-layer-adapter:9200/provider/publish` |
+| network layer | `single-network-layer-adapter` (examples/single-network-layer.yaml) | `single-network-layer-adapter:9200/<action>`, `single-network-layer-adapter:9200/provider/publish` |
 
-`role: network-layer` runs all three tiers in one adapter, as four
+`role: single-network-layer` runs all three tiers in one adapter, as four
 modules of one process. Its config is `config/single-network-layer-config.yaml`
 (each module is its tier's module from `config/<tier>-config.yaml`, so a change
 to a tier file that should apply to both modes goes in both files). Its routing
@@ -146,33 +146,33 @@ is **generated** at render time from `config/routing-*.yaml`, so routes stay in
 one place. Tier hops are loopback HTTP inside the pod (any image). It signs as
 the same three identities, from the same three Secrets, so the registry is the
 same in both modes. An environment's `config:` override for a multi role is NOT
-seen by network-layer; give the network-layer release its own `config:` if
+seen by network-layer; give the single-network-layer release its own `config:` if
 needed (it replaces `single-network-layer-config.yaml` whole).
 
 Pick the mode per environment with ONE switch where releases are chosen. For a
 helmfile (adapt to infra-automation's layout):
 
 ```yaml
-# environments: values carry  adapters: {singleNetworkAdapter: false}
+# environments: values carry  adapters: {singleNetworkLayerAdapter: false}
 releases:
 {{- range $tier := list "consumer" "network" "provider" }}
   - name: {{ $tier }}-adapter
     namespace: {{ $tier }}-adapter
     chart: ../helmcharts/charts/adapter-service
-    installed: {{ not $.Values.adapters.singleNetworkAdapter }}
+    installed: {{ not $.Values.adapters.singleNetworkLayerAdapter }}
     values: [values/{{ $tier }}-adapter.yaml]
 {{- end }}
-  - name: network-layer-adapter
-    namespace: network-layer-adapter
+  - name: single-network-layer-adapter
+    namespace: single-network-layer-adapter
     chart: ../helmcharts/charts/adapter-service
-    installed: {{ .Values.adapters.singleNetworkAdapter }}
-    values: [values/network-layer-adapter.yaml]
+    installed: {{ .Values.adapters.singleNetworkLayerAdapter }}
+    values: [values/single-network-layer-adapter.yaml]
 ```
 
 With Argo CD, gate the four Applications on the same boolean (for example an
 ApplicationSet list generator, or `{{ if }}` in an app-of-apps chart).
 
-Switching an environment: install `network-layer-adapter` alongside the multi
+Switching an environment: install `single-network-layer-adapter` alongside the multi
 releases (both modes sign with the same identities), repoint the app and the
 catalogue publisher to the paths above, then remove the three multi releases.
 Reverse the steps to switch back.
@@ -181,8 +181,8 @@ Reverse the steps to switch back.
 
 See `values.yaml` — every field is commented with what it does and what breaks
 without it. `examples/{provider,network,consumer}.yaml` are working dev deployments for the
-multi-adapter mode, and `examples/network-layer.yaml` for the network layer;
-`ci/` holds the files lint renders, including `ci/network-layer-values.yaml`.
+multi-adapter mode, and `examples/single-network-layer.yaml` for the network layer;
+`ci/` holds the files lint renders, including `ci/single-network-layer-values.yaml`.
 
 ## Related
 

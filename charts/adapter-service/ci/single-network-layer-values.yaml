@@ -1,10 +1,10 @@
-# charts/adapter-service/ci/network-layer-values.yaml
-# role network-layer: the single network layer adapter (consumer, network and
+# charts/adapter-service/ci/single-network-layer-values.yaml
+# role single-network-layer: the single network layer adapter (consumer, network and
 # provider tiers as modules of one process). Renders
 # config/single-network-layer-config.yaml, the loopback routing and the three
 # tier identities.
-role: network-layer
-fullnameOverride: network-layer-adapter
+role: single-network-layer
+fullnameOverride: single-network-layer-adapter
 
 image:
   registry: ghcr.io
@@ -18,7 +18,7 @@ service:
   port: 9200
   targetPort: 9200
 
-networkLayer:
+singleNetworkLayer:
   keys:
     consumer:
       existingSecret: consumer-adapter-keys

@@ -1,10 +1,10 @@
 # ===========================================================================
-# network-layer role -- the single network layer adapter.
+# single-network-layer role -- the single network layer adapter.
 #
 # The consumer, network and provider tiers as four modules of ONE adapter
 # process, on one Service:
 #
-#   /consumer/<action>   the caller (bap); the app posts here, unsigned
+#   /<action>            the consumer (bap); the app posts here, unsigned
 #   /network/<action>    internal: verifies and forwards to discovery
 #   /provider/<action>   answers from the upstream APIs (bpp)
 #   /provider/publish    the catalogue system publishes here
@@ -13,18 +13,18 @@
 # (examples/consumer.yaml, network.yaml, provider.yaml). Run one mode or the
 # other in an environment, not both.
 #
-#   helm install network-layer-adapter . -n network-layer-adapter --create-namespace \
-#     -f examples/network-layer.yaml
+#   helm install single-network-layer-adapter . -n single-network-layer-adapter --create-namespace \
+#     -f examples/single-network-layer.yaml
 #
 # The config is config/single-network-layer-config.yaml; the routing is
 # generated from config/routing-*.yaml. Tier hops are loopback HTTP inside the
 # pod, so any adapter image works.
 # ===========================================================================
-role: network-layer
+role: single-network-layer
 
 # The Service name and DNS name callers use:
-# network-layer-adapter.network-layer-adapter.svc.cluster.local:9200
-fullnameOverride: network-layer-adapter
+# single-network-layer-adapter.single-network-layer-adapter.svc.cluster.local:9200
+fullnameOverride: single-network-layer-adapter
 
 image:
   registry: ghcr.io
@@ -41,7 +41,7 @@ service:
   port: 9200
   targetPort: 9200
 
-networkLayer:
+singleNetworkLayer:
   # The three tier Secrets the multi-adapter releases use. openbao-secrets
   # reflects them into this namespace.
   keys:
@@ -101,16 +101,25 @@ topologySpreadConstraints:
 terminationGracePeriodSeconds: 40
 preStopSleepSeconds: 10   # needs Kubernetes 1.30+; 0 on older clusters
 
-# Off here. When on, only these paths are accepted: /, /provider,
-# /provider/publish and /network* fail the render.
+# Off here. When on, only single-segment /<action> paths (the consumer) and
+# /provider/<action> are accepted: /, /network*, /provider and
+# /provider/publish fail the render.
 ingress:
   enabled: false
   className: ""
   hosts:
-    - host: network-layer.oan.example.com
+    - host: single-network-layer.oan.example.com
       paths:
-        - path: /consumer
-          pathType: Prefix
+        - path: /discover
+          pathType: Exact
+        - path: /select
+          pathType: Exact
+        - path: /init
+          pathType: Exact
+        - path: /confirm
+          pathType: Exact
+        - path: /status
+          pathType: Exact
         - path: /provider/select
           pathType: Prefix
         - path: /provider/init

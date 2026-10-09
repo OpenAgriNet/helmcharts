@@ -64,7 +64,7 @@ env = {}
 for line in (root / ".env").read_text().splitlines():
     if "=" in line and not line.lstrip().startswith("#"):
         k, v = line.split("=", 1); env[k.strip()] = v.strip()
-steps = (("publish", "provider/publish"), ("discover", "consumer/discover"), ("select", "consumer/select"))
+steps = (("publish", "provider/publish"), ("discover", "discover"), ("select", "select"))
 rc = 0
 for step, path in steps:
     f = next((root / "capability-examples" / "WeatherObservation" / step).glob("*.json"))

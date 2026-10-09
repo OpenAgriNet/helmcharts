@@ -2,7 +2,7 @@
 # adapter-service
 #
 # One chart for the Beckn adapters: provider, network and consumer (one release
-# per tier), or network-layer (all three tiers in one adapter). Same image and
+# per tier), or single-network-layer (all three tiers in one adapter). Same image and
 # config format; `role` below decides the handler role, the step list and
 # where requests are routed.
 #
@@ -14,7 +14,7 @@
 #
 # OR, all three tiers in one adapter (one release instead of the three above):
 #
-#   helm install network-layer-adapter . -f examples/network-layer.yaml
+#   helm install single-network-layer-adapter . -f examples/single-network-layer.yaml
 #
 # The release name is what the Service is called, which is the DNS name the
 # other adapters address. Rename a release and you must update whatever routes
@@ -30,7 +30,7 @@
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
-# Role: provider | network | consumer | network-layer
+# Role: provider | network | consumer | single-network-layer
 #
 # Required, with no default. A default would hand one role's handler role and
 # step list to a different adapter, which renders, starts, reports Ready and
@@ -417,10 +417,10 @@ extraEnv: []
 envFromSecrets: []
 
 # ---------------------------------------------------------------------------
-# role: network-layer -- the single network layer adapter.
+# role: single-network-layer -- the single network layer adapter.
 #
 # The consumer, network and provider tiers as four modules of ONE process
-# (/consumer/, /network/, /provider/, /provider/publish). Its adapter config is
+# (/ for the consumer, /network/, /provider/, /provider/publish). Its adapter config is
 # config/single-network-layer-config.yaml, mounted verbatim like any role's
 # file: log level, timeouts, telemetry, extended schema and the outbound
 # connection pool are set there. The routing is generated at render time from
@@ -434,10 +434,10 @@ envFromSecrets: []
 # the routing is generated) and `handler.*` (role, steps and path are in the
 # config file). `config` replaces config/single-network-layer-config.yaml
 # WHOLE: the private-key guard still runs on it, and it must point its routers
-# at /app/config/routing-network-layer-consumer.yaml, routing-network.yaml and
-# routing-network-layer-publish.yaml.
+# at /app/config/routing-single-network-layer-consumer.yaml, routing-network.yaml and
+# routing-single-network-layer-publish.yaml.
 # ---------------------------------------------------------------------------
-networkLayer:
+singleNetworkLayer:
   # Three identities, one per tier: the same Secrets (six keys each, named as
   # under keys.existingSecret) and the same registry rows the multi-adapter
   # releases use, so either mode runs against the same registry. They must

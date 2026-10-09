@@ -610,7 +610,7 @@ services:
   #
   #   :9200 inside and on 127.0.0.1 (ADAPTER_IMAGE, same as the multi-adapter stack).
   #   The multi-adapter provider-adapter uses 9200 too: run one stack at a time.
-  #   /consumer/*          the caller's entry (bap), takes unsigned requests
+  #   /<action>            the consumer, the caller's entry (bap), takes unsigned requests
   #   /network/*           hands publish on to discovery
   #   /provider/*          calls the upstream, answers synchronously
   #   /provider/publish    sends the provider's catalogue to /network/publish

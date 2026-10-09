@@ -31,7 +31,10 @@ modules:
   - from: consumer
     index: 0
     name: consumer
-    path: /consumer/
+    # Mounted at /, so the app calls /discover, /select, ... as it does on the
+    # multi-adapter consumer-adapter. The more specific /network/, /provider/
+    # and /provider/publish paths still go to their own modules.
+    path: /
     routingConfig: /app/config/single-network-layer-consumer-routing.yaml
   - from: network
     index: 0

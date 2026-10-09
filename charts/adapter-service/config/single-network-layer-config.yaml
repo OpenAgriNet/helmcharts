@@ -1,7 +1,7 @@
-# OAN single network layer adapter (role network-layer). The consumer, network
+# OAN single network layer adapter (role single-network-layer). The consumer, network
 # and provider tiers as four modules of ONE adapter process:
 #
-#   /consumer/<action>   the caller (bap); the app posts here, unsigned
+#   /<action>            the consumer (bap); the app posts here, unsigned
 #   /network/<action>    verifies and forwards to discovery
 #   /provider/<action>   answers from the upstream APIs (bpp)
 #   /provider/publish    the catalogue system publishes here
@@ -12,7 +12,7 @@
 #
 # Differences from the three tier files:
 #   - one listener (9200) and one appName; tier hops are loopback HTTP to this
-#     same listener (see the routing-network-layer-*.yaml files, which the chart
+#     same listener (see the routing-single-network-layer-*.yaml files, which the chart
 #     generates from routing-consumer.yaml and routing-provider.yaml);
 #   - extended schema validation on in every module;
 #   - an outbound connection pool (httpClientConfig) on every module;
@@ -21,9 +21,9 @@
 # This file is mounted verbatim. Each module signs as its OWN tier: the
 # __CONSUMER_*__, __NETWORK_*__ and __PROVIDER_*__ placeholders are substituted
 # by the init container from that tier's Secret
-# (networkLayer.keys.<tier>.existingSecret) at pod start, so no key is in this
+# (singleNetworkLayer.keys.<tier>.existingSecret) at pod start, so no key is in this
 # file, in the ConfigMap, or in git.
-appName: "network-layer-adapter"
+appName: "single-network-layer-adapter"
 
 log:
   level: info
@@ -51,7 +51,7 @@ plugins:
   otelsetup:
     id: otelsetup
     config:
-      serviceName: "oan-network-layer-adapter"
+      serviceName: "oan-single-network-layer-adapter"
       environment: "dev"
       otlpEndpoint: "clickstack-otel-collector.observability.svc.cluster.local:4317"
       enableMetrics: "true"
@@ -117,7 +117,7 @@ modules:
         router:
           id: router
           config:
-            routingConfig: /app/config/routing-network-layer-consumer.yaml
+            routingConfig: /app/config/routing-single-network-layer-consumer.yaml
         middleware:
           - id: reqpreprocessor
             config:
@@ -280,7 +280,7 @@ modules:
               bharat-vistaar:
                 authScheme: oauth2
                 # Substituted from the provider Secret (vistaarTokenUrl) via
-                # networkLayer.extraSubstitutions.
+                # singleNetworkLayer.extraSubstitutions.
                 tokenUrl: "__VISTAAR_TOKEN_URL__"
                 clientIdEnv: VISTAAR_CLIENT_ID
                 clientSecretEnv: VISTAAR_CLIENT_SECRET
@@ -305,7 +305,7 @@ modules:
   # signed as the provider and routed to /network/publish. No validateSign:
   # never expose it on an Ingress.
   - name: provider-publish
-    path: /network/publish
+    path: /provider/publish
     handler:
       type: std
       role: bap
@@ -353,7 +353,7 @@ modules:
         router:
           id: router
           config:
-            routingConfig: /app/config/routing-network-layer-publish.yaml
+            routingConfig: /app/config/routing-single-network-layer-publish.yaml
         middleware:
           - id: reqpreprocessor
             config:

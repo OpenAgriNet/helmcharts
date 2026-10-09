@@ -57,16 +57,16 @@ secrets:
   # -- adapter identities. keyId inside these is filled in by
   #    resolve-key-ids.sh AFTER the registry has been seeded, so these entries
   #    change once per environment after the first bring-up.
-  #  network-layer-adapter (role network-layer) runs all three tiers, so it reads all three identities. Reflector mirrors only into namespaces that exist, so this is inert where that release is not installed.
+  #  single-network-layer-adapter (role single-network-layer) runs all three tiers, so it reads all three identities. Reflector mirrors only into namespaces that exist, so this is inert where that release is not installed.
   - name: consumer-adapter-keys
-    namespaces: [consumer-adapter, network-layer-adapter]
+    namespaces: [consumer-adapter, single-network-layer-adapter]
   - name: network-adapter-keys
-    namespaces: [network-adapter, network-layer-adapter]
+    namespaces: [network-adapter, single-network-layer-adapter]
   - name: provider-adapter-keys
-    namespaces: [provider-adapter, network-layer-adapter]
+    namespaces: [provider-adapter, single-network-layer-adapter]
 
   # The provider adapter's upstream credentials, named as environment variables
-  # by its config rather than substituted into it. network-layer-adapter runs
+  # by its config rather than substituted into it. single-network-layer-adapter runs
   # the provider tier too, so it reads them as well.
   - name: provider-upstream
-    namespaces: [provider-adapter, network-layer-adapter]
+    namespaces: [provider-adapter, single-network-layer-adapter]
