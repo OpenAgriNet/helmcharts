@@ -1,0 +1,39 @@
+# Routing for the unified network layer: tier hops IN-PROCESS (the default).
+#
+# One file for every module: the router keys rules on (version, endpoint) only,
+# and no endpoint needs two targets -- consumer discover goes straight to
+# discovery, and the network module only receives publish.
+#
+# inproc://<module> hands the request to that module of this same process as a
+# function call: no socket, no port, no TCP. Needs an adapter image built with
+# in-process routing (network-adapter feat/55-unified-adapter-inproc-routing).
+# For any other image use HTTP=1 (routing-http.yaml).
+routingRules:
+  # consumer discover, and publish arriving at /network/publish
+  - version: "2.0.0"
+    targetType: "url"
+    target:
+      url: "http://discovery-service:8080"
+    endpoints:
+      - discover
+      - publish
+
+  # consumer -> provider tier
+  - version: "2.0.0"
+    targetType: "url"
+    target:
+      url: "inproc://provider"
+    endpoints:
+      - select
+      - init
+      - confirm
+      - status
+
+  # provider publish module (/provider/publish, endpoint "") -> network publish
+  - version: "2.0.0"
+    targetType: "url"
+    target:
+      url: "inproc://network/publish"
+      excludeAction: true
+    endpoints:
+      - ""

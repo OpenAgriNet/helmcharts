@@ -16,6 +16,14 @@ config/adapters/experience.yaml
 config/adapters/exp.yaml
 config/adapters/network.yaml
 config/adapters/provider.yaml
+config/adapters/unified-network-layer/unified-network-layer.yaml
+bin/demo-unified-network-layer.sh
+bin/bench-unified-network-layer.sh
+poc-flow.py
+bin/poc
+# Apple-silicon-only override that forces amd64 emulation for images with no
+# arm64 build. A local workaround, not part of the stack.
+docker-compose.arm64.yml
 
 # A local override for the discovery service, if you make one.
 config/discovery/instance.yaml
@@ -33,3 +41,6 @@ config/discovery/instance.yaml
 # certificates in the npm-data and npm-letsencrypt volumes, so there is
 # nothing here to ignore -- and nothing here to review either. Back those
 # volumes up; they are the only copy.
+
+# bin/bench-unified-network-layer.sh scratch: generated bodies and results
+.bench/

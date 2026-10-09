@@ -165,6 +165,50 @@ done_banner() {
 NEXT
 }
 
+# ----------------------------------------------- unified network layer
+
+# The unified network layer: ONE adapter runs the consumer, network and
+# provider tiers as modules of one process (the unified single adapter), with
+# tier-to-tier hops in-process (inproc://). The multi-adapter containers are
+# NOT started. Mocks are not started either, as in `up`.
+#
+# Its stack is its own complete compose file (docker-compose.unified-network-layer.yml),
+# so docker-compose.yml is not touched. HTTP=1 adds the overlay that sends tier
+# hops over http://localhost instead (any image). Passing -f overrides
+# COMPOSE_FILE, so the Apple-silicon override is added here when it exists.
+unified_network_layer_compose() {
+    local files=(-f docker-compose.unified-network-layer.yml)
+    [ -f docker-compose.arm64.yml ] && files+=(-f docker-compose.arm64.yml)
+    [ "${HTTP:-}" = 1 ] && files+=(-f docker-compose.unified-network-layer-http.yml)
+    docker compose "${files[@]}" "$@"
+}
+
+up_unified_network_layer() {
+    preflight
+    local image
+    image="$(grep -E '^UNIFIED_NETWORK_LAYER_ADAPTER_IMAGE=' .env | cut -d= -f2- || true)"
+    if [ "${HTTP:-}" != 1 ]; then
+        # inproc:// needs an image built with in-process routing.
+        [ -n "$image" ] || die "UNIFIED_NETWORK_LAYER_ADAPTER_IMAGE is empty in .env: set it to an image with in-process routing (network-adapter:inproc), or run with HTTP=1"
+        docker image inspect "$image" >/dev/null 2>&1 \
+            || die "image $image not found. Build it: bin/unified-network-layer-up.sh (or run with HTTP=1)"
+    fi
+    step 1 3 "registry and discovery (unified network layer compose file)"
+    unified_network_layer_compose up -d sunbird-registry-service discovery-service
+    up_setup         3
+    step 3 3 "network-layer-adapter (consumer + network + provider in one process, $([ "${HTTP:-}" = 1 ] && echo 'http' || echo 'inproc') hops)"
+    unified_network_layer_compose up -d --force-recreate network-layer-adapter
+    printf '\n\033[1;32m==> unified network layer is up\033[0m on 127.0.0.1:%s\n' \
+        "$(grep -E '^UNIFIED_NETWORK_LAYER_ADAPTER_PORT=' .env | cut -d= -f2 || true)"
+}
+
+# Stops only the unified network layer adapter; registry, discovery and data stay.
+down_unified_network_layer() {
+    step 1 1 "stopping network-layer-adapter only"
+    unified_network_layer_compose stop network-layer-adapter
+    unified_network_layer_compose rm -f network-layer-adapter
+}
+
 # ----------------------------------------------------------------- down
 
 # Containers and networks go; named volumes stay. So the registry's Postgres
@@ -327,6 +371,10 @@ bin/stack.sh <command>
   up             the whole stack: registry+discovery -> setup.py -> adapters
                  -> gateway (public, 80/443) -> hyperdx (wants 16 GB)
   up-core        steps 1-3 only. Nothing public, no ClickHouse.
+  up-unified-network-layer    docker-compose.unified-network-layer.yml: registry+discovery
+                              -> setup.py -> network-layer-adapter (inproc hops;
+                              HTTP=1 for http hops)
+  down-unified-network-layer  stop and remove network-layer-adapter only
   down           stop everything, keep the data
   destroy        stop everything and DELETE every volume
   setup          re-run bin/setup.py only
@@ -344,6 +392,8 @@ USAGE
 case "${1:-}" in
     up)             up ;;
     up-core)        up_core ;;
+    up-unified-network-layer)   up_unified_network_layer ;;
+    down-unified-network-layer) down_unified_network_layer ;;
     down)           down ;;
     destroy)        destroy ;;
     setup)          setup ;;

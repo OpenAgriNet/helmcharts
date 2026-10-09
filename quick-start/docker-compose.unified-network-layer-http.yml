@@ -1,0 +1,11 @@
+# Overlay on docker-compose.unified-network-layer.yml: tier-to-tier hops over
+# HTTP to the container's own listener (http://localhost:9200/...) instead of
+# in-process (inproc://). Works with any adapter image.
+#
+#   make up-unified-network-layer HTTP=1
+#   docker compose -f docker-compose.unified-network-layer.yml \
+#                  -f docker-compose.unified-network-layer-http.yml up -d
+services:
+  network-layer-adapter:
+    volumes:
+      - ./config/adapters/unified-network-layer/routing-http.yaml:/app/config/routing-unified-network-layer.yaml:ro

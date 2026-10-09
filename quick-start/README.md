@@ -189,6 +189,52 @@ collection. → Appendix N.
 
 ---
 
+## Unified network layer (optional)
+
+The same network can run two ways. Both use the same registry, keys and data:
+
+| | Multi-adapter (default) | Unified network layer |
+|---|---|---|
+| What runs | `consumer-adapter`, `network-adapter`, `provider-adapter` | one `network-layer-adapter` (the unified single adapter) |
+| Compose file | `docker-compose.yml` | `docker-compose.unified-network-layer.yml` |
+| Start / stop | `make up` / `make down` | `make up-unified-network-layer` / `make down-unified-network-layer` |
+| Tier-to-tier hops | HTTP between containers | `inproc://`: a function call inside the process (default). `HTTP=1` sends them over `http://localhost` inside the container instead |
+| Port | 9202 / 9201 / 9200 | `127.0.0.1:${UNIFIED_NETWORK_LAYER_ADAPTER_PORT}` (9210) |
+
+Use one or the other, not both: they share the project name and data volumes.
+
+**Image.** In-process hops need an adapter image built with in-process routing
+(`network-adapter` branch `feat/55-unified-adapter-inproc-routing`). Set it in
+`.env` as `UNIFIED_NETWORK_LAYER_ADAPTER_IMAGE` (default `network-adapter:inproc`),
+or let `bin/unified-network-layer-up.sh` build it and bring everything up.
+
+**Config.** There is no hand-written config for this mode. `bin/setup.py` builds
+`config/adapters/unified-network-layer/unified-network-layer.yaml` from the three
+tier templates plus `unified-network-layer/overrides.yaml`. That file holds only
+the module names and paths, the one routing file, extended schema, appName and
+port. A change to a tier template reaches both modes on the next `setup.py`.
+Each module keeps its own tier identity.
+
+| Module | Path | From |
+|---|---|---|
+| `consumer` | `/consumer/<action>` | `consumer.yaml.tmpl` |
+| `network` | `/network/<action>` | `network.yaml.tmpl` |
+| `provider` | `/provider/<action>` | `provider.yaml.tmpl` (module 1) |
+| `provider-publish` | `/provider/publish` | `provider.yaml.tmpl` (module 2) |
+
+Routing: `unified-network-layer/routing-inproc.yaml` (default). Discover and
+publish go to discovery. Select, init, confirm and status go to
+`inproc://provider`. Provider publish goes to `inproc://network/publish`.
+`make up-unified-network-layer HTTP=1` mounts `routing-http.yaml` instead, with
+the same targets on `http://localhost:9200/...`. It works with any adapter image.
+
+Tools:
+- `bin/unified-network-layer-up.sh [--no-build]`: build the image, start, smoke test.
+- `bin/demo-unified-network-layer.sh`: step-by-step live demo.
+- `bin/bench-unified-network-layer.sh`: multi vs unified network layer, parallel curl, JSON results under `.bench/`.
+- `bin/poc-flow.py --mode multi|unified-network-layer`: quick publish/discover/select check.
+- Postman: `api-collection/OpenAgriNet.unified-network-layer.*.json`.
+
 # Part 2 — Run it on a VM
 
 Four differences. **V1 comes before Part 1 Step 2**, because it installs `git`.

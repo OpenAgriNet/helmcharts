@@ -1,0 +1,46 @@
+# Unified network layer: the consumer, network and provider tiers as modules of
+# ONE adapter process (the unified single adapter).
+#
+# This file holds only what differs from the three tier templates beside it
+# (consumer.yaml.tmpl, network.yaml.tmpl, provider.yaml.tmpl). bin/setup.py
+# builds unified-network-layer.yaml from those templates plus this file, so a
+# change to a tier template reaches both the multi-adapter stack and this one
+# on the next run -- there is no second copy of any module to keep in step.
+#
+# Every module keeps its own tier identity (__CONSUMER_*__, __NETWORK_*__,
+# __PROVIDER_*__): the same keys and registry rows the multi-adapter stack
+# uses, so either stack can run against the same registry.
+
+appName: network-layer-adapter
+otelServiceName: network-layer-adapter
+# Inside the container. The host port is UNIFIED_NETWORK_LAYER_ADAPTER_PORT.
+port: 9200
+
+# Every module's router reads this one file. Compose mounts routing-inproc.yaml
+# here (default), or routing-http.yaml with HTTP=1.
+routingConfig: /app/config/routing-unified-network-layer.yaml
+
+# Extended schema validation on for every module that validates schemas.
+extendedSchemaEnabled: "true"
+
+# Which tier-template module becomes which module here. `index` is the
+# module's position in that template's `modules:` list.
+modules:
+  - from: consumer
+    index: 0
+    name: consumer
+    path: /consumer/
+  - from: network
+    index: 0
+    name: network
+    path: /network/
+  - from: provider
+    index: 0
+    name: provider
+    path: /provider/
+  # The provider's catalogue publishing. An exact path: stripping it leaves the
+  # empty endpoint, which the routing file keys on with excludeAction.
+  - from: provider
+    index: 1
+    name: provider-publish
+    path: /provider/publish

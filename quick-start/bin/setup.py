@@ -556,8 +556,8 @@ def key_osids(identities):
 ROLES = ("consumer", "network", "provider")
 
 
-def render(identities):
-    print("configs:")
+def _shared_substitutions():
+    """Placeholders that are the same in every adapter config."""
     mausamgram_binding = (f"{env('MAUSAMGRAM_PARTICIPANT_ID')}"
                           f"|{env('MAUSAMGRAM_CAPABILITY')}")
     agmarknet_binding = (f"{env('AGMARKNET_PARTICIPANT_ID')}"
@@ -565,59 +565,144 @@ def render(identities):
     vistaar_binding = (f"{env('VISTAAR_PARTICIPANT_ID')}"
                        f"|{env('VISTAAR_CAPABILITY')}")
     pocra_binding = f"{env('POCRA_PARTICIPANT_ID')}|{env('POCRA_CAPABILITY')}"
+    return (
+        ("__MAUSAMGRAM_BINDING_KEY__", mausamgram_binding),
+        ("__AGMARKNET_BINDING_KEY__", agmarknet_binding),
+        ("__VISTAAR_BINDING_KEY__", vistaar_binding),
+        ("__VISTAAR_TOKEN_URL__", env("VISTAAR_TOKEN_URL")),
+        # Agmarknet's own token endpoint. A deployment fact, not a
+        # credential, so it is rendered directly -- the access name and
+        # password stay as variable NAMES in the config and reach the
+        # adapter through its environment.
+        ("__AGMARKNET_TOKEN_URL__", env("AGMARKNET_TOKEN_URL")),
+        # Auth is per provider, so the participant id is a YAML KEY in
+        # the adapter config, not only half of a binding key.
+        ("__POCRA_BINDING_KEY__", pocra_binding),
+        ("__MAUSAMGRAM_PARTICIPANT_ID__", env("MAUSAMGRAM_PARTICIPANT_ID")),
+        ("__AGMARKNET_PARTICIPANT_ID__", env("AGMARKNET_PARTICIPANT_ID")),
+        ("__VISTAAR_PARTICIPANT_ID__", env("VISTAAR_PARTICIPANT_ID")),
+        ("__POCRA_PARTICIPANT_ID__", env("POCRA_PARTICIPANT_ID")),
+        # Telemetry. One switch drives all three signals: with every
+        # one false the plugin builds no exporter and never dials, so
+        # a stack running without the observability profile stays
+        # quiet instead of logging a refused connection on a loop.
+        ("__OTEL_ENABLED__", env("ADAPTER_OTEL_ENABLED", "true")),
+        ("__OTLP_ENDPOINT__", env("OTLP_ENDPOINT", "hyperdx:4317")),
+        ("__OTEL_ENVIRONMENT__", env("OTEL_ENVIRONMENT", "dev")))
+
+
+def _role_substitutions(role, identity):
+    """The six per-role placeholders: id, key id, and the four keys."""
+    prefix = role.upper()
+    return (
+        (f"__{prefix}_SUBSCRIBER_ID__", identity["participantId"]),
+        (f"__{prefix}_KEY_ID__", identity["keyOsid"]),
+        (f"__{prefix}_SIGNING_PRIVATE__", identity["signingPrivate"]),
+        (f"__{prefix}_SIGNING_PUBLIC__", identity["signingPublic"]),
+        (f"__{prefix}_ENCR_PRIVATE__", identity["encrPrivate"]),
+        (f"__{prefix}_ENCR_PUBLIC__", identity["encrPublic"]))
+
+
+def _fill(name, template, substitutions):
+    """Fill one template's placeholders; refuse if any survive."""
+    for placeholder, value in substitutions:
+        template = template.replace(placeholder, value)
+    if "__" in template:
+        sys.exit(f"setup: {name}.yaml still has unrendered placeholders")
+    return template
+
+
+def _write(rel, text):
+    """Write config/adapters/<rel> (mode 600: it holds private keys)."""
+    out = ADAPTERS / rel
+    # A bare `docker compose up -d` before this script runs starts the
+    # adapters too, and Docker creates a DIRECTORY at a bind-mount source
+    # that does not exist. Writing would then fail with a bare
+    # IsADirectoryError that says nothing about the cause.
+    if out.is_dir():
+        sys.exit(
+            f"setup: {out} is a directory, not a file.\n"
+            f"  Docker created it, which means the adapters were started before this\n"
+            f"  script ran. Bring them down, remove the empty directories and retry:\n"
+            f"    docker compose down\n"
+            f"    rmdir {out}\n"
+            f"    make up")
+    out.write_text(text)
+    out.chmod(0o600)  # holds a private key
+    print(f"  config/adapters/{rel}")
+
+
+def _render_one(name, template, substitutions):
+    """Fill one template and write config/adapters/<name>.yaml (mode 600)."""
+    _write(f"{name}.yaml", _fill(name, template, substitutions))
+
+
+# ----------------------------------------------------- unified network layer
+#
+# The unified network layer runs the consumer, network and provider tiers as
+# modules of ONE adapter (the unified single adapter). Its config is not a
+# template of its own: it is BUILT from the three tier templates above, plus
+# the few differences in config/adapters/unified-network-layer/overrides.yaml
+# (module names and paths, the one routing file, extended schema, appName,
+# port). A change to a tier template therefore reaches both stacks on the next
+# run, and there is no second copy of any module to drift.
+#
+# Each module keeps its own tier identity, so both stacks use the same keys and
+# registry rows.
+UNIFIED_NETWORK_LAYER = ADAPTERS / "unified-network-layer"
+
+
+def _render_unified_network_layer(identities, shared):
+    try:
+        import yaml  # only this mode needs it; the multi-adapter stack does not
+    except ImportError:
+        print("  config/adapters/unified-network-layer/unified-network-layer.yaml"
+              " SKIPPED: needs PyYAML (pip install pyyaml, or apt install python3-yaml)")
+        return
+    overrides = yaml.safe_load((UNIFIED_NETWORK_LAYER / "overrides.yaml").read_text())
+    tiers = {}
     for role in ROLES:
-        identity = identities[role]
+        text = _fill(role, (ADAPTERS / f"{role}.yaml.tmpl").read_text(),
+                     _role_substitutions(role, identities[role]) + shared)
+        tiers[role] = yaml.safe_load(text)
+
+    modules = []
+    for spec in overrides["modules"]:
+        module = tiers[spec["from"]]["modules"][spec["index"]]
+        module["name"], module["path"] = spec["name"], spec["path"]
+        plugins = module["handler"].get("plugins", {})
+        if "router" in plugins:
+            plugins["router"]["config"]["routingConfig"] = overrides["routingConfig"]
+        if "schemaValidator" in plugins:
+            plugins["schemaValidator"]["config"]["extendedSchema_enabled"] = \
+                overrides["extendedSchemaEnabled"]
+        modules.append(module)
+
+    # Process-level settings come from the consumer template; only appName,
+    # the port and the telemetry service name change.
+    doc = {k: v for k, v in tiers["consumer"].items() if k != "modules"}
+    doc["appName"] = overrides["appName"]
+    doc["http"]["port"] = overrides["port"]
+    otel = doc.get("plugins", {}).get("otelsetup")
+    if otel:
+        otel["config"]["serviceName"] = overrides["otelServiceName"]
+    doc["modules"] = modules
+
+    header = ("# GENERATED by bin/setup.py from consumer/network/provider.yaml.tmpl\n"
+              "# and unified-network-layer/overrides.yaml. Do not edit: edit those and\n"
+              "# re-run setup. Holds private keys (mode 600, gitignored).\n")
+    _write("unified-network-layer/unified-network-layer.yaml",
+           header + yaml.safe_dump(doc, sort_keys=False, width=1000))
+
+
+def render(identities):
+    print("configs:")
+    shared = _shared_substitutions()
+    for role in ROLES:
         template = (ADAPTERS / f"{role}.yaml.tmpl").read_text()
-        prefix = role.upper()
-        for placeholder, value in (
-                (f"__{prefix}_SUBSCRIBER_ID__", identity["participantId"]),
-                (f"__{prefix}_KEY_ID__", identity["keyOsid"]),
-                (f"__{prefix}_SIGNING_PRIVATE__", identity["signingPrivate"]),
-                (f"__{prefix}_SIGNING_PUBLIC__", identity["signingPublic"]),
-                (f"__{prefix}_ENCR_PRIVATE__", identity["encrPrivate"]),
-                (f"__{prefix}_ENCR_PUBLIC__", identity["encrPublic"]),
-                ("__MAUSAMGRAM_BINDING_KEY__", mausamgram_binding),
-                ("__AGMARKNET_BINDING_KEY__", agmarknet_binding),
-                ("__VISTAAR_BINDING_KEY__", vistaar_binding),
-                ("__VISTAAR_TOKEN_URL__", env("VISTAAR_TOKEN_URL")),
-                # Agmarknet's own token endpoint. A deployment fact, not a
-                # credential, so it is rendered directly -- the access name and
-                # password stay as variable NAMES in the config and reach the
-                # adapter through its environment.
-                ("__AGMARKNET_TOKEN_URL__", env("AGMARKNET_TOKEN_URL")),
-                # Auth is per provider, so the participant id is a YAML KEY in
-                # the adapter config, not only half of a binding key.
-                ("__POCRA_BINDING_KEY__", pocra_binding),
-                ("__MAUSAMGRAM_PARTICIPANT_ID__", env("MAUSAMGRAM_PARTICIPANT_ID")),
-                ("__AGMARKNET_PARTICIPANT_ID__", env("AGMARKNET_PARTICIPANT_ID")),
-                ("__VISTAAR_PARTICIPANT_ID__", env("VISTAAR_PARTICIPANT_ID")),
-                ("__POCRA_PARTICIPANT_ID__", env("POCRA_PARTICIPANT_ID")),
-                # Telemetry. One switch drives all three signals: with every
-                # one false the plugin builds no exporter and never dials, so
-                # a stack running without the observability profile stays
-                # quiet instead of logging a refused connection on a loop.
-                ("__OTEL_ENABLED__", env("ADAPTER_OTEL_ENABLED", "true")),
-                ("__OTLP_ENDPOINT__", env("OTLP_ENDPOINT", "hyperdx:4317")),
-                ("__OTEL_ENVIRONMENT__", env("OTEL_ENVIRONMENT", "dev"))):
-            template = template.replace(placeholder, value)
-        if "__" in template:
-            sys.exit(f"setup: {role}.yaml still has unrendered placeholders")
-        out = ADAPTERS / f"{role}.yaml"
-        # A bare `docker compose up -d` before this script runs starts the
-        # adapters too, and Docker creates a DIRECTORY at a bind-mount source
-        # that does not exist. Writing would then fail with a bare
-        # IsADirectoryError that says nothing about the cause.
-        if out.is_dir():
-            sys.exit(
-                f"setup: {out} is a directory, not a file.\n"
-                f"  Docker created it, which means the adapters were started before this\n"
-                f"  script ran. Bring them down, remove the empty directories and retry:\n"
-                f"    docker compose down\n"
-                f"    rmdir config/adapters/*.yaml\n"
-                f"    make up")
-        out.write_text(template)
-        out.chmod(0o600)  # holds a private key
-        print(f"  config/adapters/{role}.yaml")
+        _render_one(role, template,
+                    _role_substitutions(role, identities[role]) + shared)
+    _render_unified_network_layer(identities, shared)
 
 
 if __name__ == "__main__":
