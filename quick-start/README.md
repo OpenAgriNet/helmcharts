@@ -198,38 +198,32 @@ The same network can run two ways. Both use the same registry, keys and data:
 | What runs | `consumer-adapter`, `network-adapter`, `provider-adapter` | one `network-layer-adapter` (the unified single adapter) |
 | Compose file | `docker-compose.yml` | `docker-compose.unified-network-layer.yml` |
 | Start / stop | `make up` / `make down` | `make up-unified-network-layer` / `make down-unified-network-layer` |
-| Tier-to-tier hops | HTTP between containers | `inproc://`: a function call inside the process (default). `HTTP=1` sends them over `http://localhost` inside the container instead |
-| Port | 9202 / 9201 / 9200 | `127.0.0.1:${UNIFIED_NETWORK_LAYER_ADAPTER_PORT}` (9210) |
+| Tier-to-tier hops | HTTP between containers | HTTP over loopback (`http://localhost:9200`) inside the one container |
+| Port | 9202 / 9201 / 9200 | `127.0.0.1:9200` (so only one mode runs at a time) |
 
 Use one or the other, not both: they share the project name and data volumes.
-
-**Image.** In-process hops need an adapter image built with in-process routing
-(`network-adapter` branch `feat/55-unified-adapter-inproc-routing`). Set it in
-`.env` as `UNIFIED_NETWORK_LAYER_ADAPTER_IMAGE` (default `network-adapter:inproc`),
-or let `bin/unified-network-layer-up.sh` build it and bring everything up.
+Both use `ADAPTER_IMAGE` from `.env`; nothing else needs setting.
 
 **Config.** There is no hand-written config for this mode. `bin/setup.py` builds
 `config/adapters/unified-network-layer/unified-network-layer.yaml` from the three
 tier templates plus `unified-network-layer/overrides.yaml`. That file holds only
-the module names and paths, the one routing file, extended schema, appName and
-port. A change to a tier template reaches both modes on the next `setup.py`.
+the module names and paths, each module's routing file, extended schema,
+appName and port. A change to a tier template reaches both modes on the next `setup.py`.
 Each module keeps its own tier identity.
 
-| Module | Path | From |
-|---|---|---|
-| `consumer` | `/consumer/<action>` | `consumer.yaml.tmpl` |
-| `network` | `/network/<action>` | `network.yaml.tmpl` |
-| `provider` | `/provider/<action>` | `provider.yaml.tmpl` (module 1) |
-| `provider-publish` | `/provider/publish` | `provider.yaml.tmpl` (module 2) |
+| Module | Path | From | Routing file | Routes |
+|---|---|---|---|---|
+| `consumer` | `/consumer/<action>` | `consumer.yaml.tmpl` | `unified-network-layer/single-network-layer-consumer-routing.yaml` | discover to `localhost:9200/network`; select, init, confirm, status to `localhost:9200/provider` |
+| `network` | `/network/<action>` | `network.yaml.tmpl` | `routing-network.yaml` (multi file, reused) | discover, publish to discovery |
+| `provider` | `/provider/<action>` | `provider.yaml.tmpl` (module 1) | none: answers itself | n/a |
+| `provider-publish` | `/provider/publish` | `provider.yaml.tmpl` (module 2) | `unified-network-layer/single-network-layer-publish-routing.yaml` | to `localhost:9200/network/publish` |
 
-Routing: `unified-network-layer/routing-inproc.yaml` (default). Discover and
-publish go to discovery. Select, init, confirm and status go to
-`inproc://provider`. Provider publish goes to `inproc://network/publish`.
-`make up-unified-network-layer HTTP=1` mounts `routing-http.yaml` instead, with
-the same targets on `http://localhost:9200/...`. It works with any adapter image.
+The hops between modules are loopback HTTP calls to the same container. In the
+multi-adapter stack only the hosts differ. 9200 is the container's own listener
+and must match `port` in `overrides.yaml`.
 
 Tools:
-- `bin/unified-network-layer-up.sh [--no-build]`: build the image, start, smoke test.
+- `bin/unified-network-layer-up.sh`: start and smoke-test.
 - `bin/demo-unified-network-layer.sh`: step-by-step live demo.
 - `bin/bench-unified-network-layer.sh`: multi vs unified network layer, parallel curl, JSON results under `.bench/`.
 - `bin/poc-flow.py --mode multi|unified-network-layer`: quick publish/discover/select check.

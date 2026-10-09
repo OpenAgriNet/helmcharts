@@ -25,7 +25,7 @@ help:
 up:            ; @$(STACK) up
 up-core:       ; @$(STACK) up-core
 down:          ; @$(STACK) down
-up-unified-network-layer:   ; @HTTP=$(HTTP) $(STACK) up-unified-network-layer
+up-unified-network-layer:   ; @$(STACK) up-unified-network-layer
 down-unified-network-layer: ; @$(STACK) down-unified-network-layer
 destroy:       ; @$(STACK) destroy
 

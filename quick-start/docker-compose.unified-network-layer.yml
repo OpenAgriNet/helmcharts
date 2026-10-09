@@ -11,12 +11,10 @@
 #   make up-unified-network-layer          (or: bin/unified-network-layer-up.sh)
 #   docker compose -f docker-compose.unified-network-layer.yml up -d
 #
-# Tier-to-tier hops are IN-PROCESS by default (inproc://, routing-inproc.yaml),
-# which needs an adapter image built with in-process routing -- see
-# UNIFIED_NETWORK_LAYER_ADAPTER_IMAGE in .env (bin/unified-network-layer-up.sh
-# builds it). The overlay docker-compose.unified-network-layer-http.yml
-# (make up-unified-network-layer HTTP=1) sends them over http://localhost
-# instead, with any image.
+# Tier-to-tier hops go over loopback HTTP to the container's own listener
+# (http://localhost:9200): they never leave the container. One routing file per
+# module, as in the multi-adapter stack -- only the hosts differ. Any adapter
+# image works.
 #
 # The sunbird-registry-* three are Sunbird RC's, not OAN's; the keycloak among
 # them authenticates nothing but that registry, and shares its postgres.
@@ -605,11 +603,12 @@ services:
   # modules of ONE adapter process (the unified single adapter), on ONE config
   # built by bin/setup.py from the three tier templates
   # (config/adapters/unified-network-layer/unified-network-layer.yaml), with ONE
-  # routing file. Tier-to-tier hops are inproc:// -- a function call inside the
-  # process -- so there is no consumer-adapter, network-adapter or
+  # routing file. Tier-to-tier hops go over loopback (http://localhost:9200),
+  # inside the container, so there is no consumer-adapter, network-adapter or
   # provider-adapter here.
   #
-  #   :9200 inside, ${UNIFIED_NETWORK_LAYER_ADAPTER_PORT} on 127.0.0.1
+  #   :9200 inside and on 127.0.0.1 (ADAPTER_IMAGE, same as the multi-adapter stack).
+  #   The multi-adapter provider-adapter uses 9200 too: run one stack at a time.
   #   /consumer/*          the caller's entry (bap), takes unsigned requests
   #   /network/*           hands publish on to discovery
   #   /provider/*          calls the upstream, answers synchronously
@@ -620,9 +619,6 @@ services:
   network-layer-adapter:
     <<: *adapter
     container_name: network-layer-adapter
-    # inproc:// needs an image built with in-process routing; empty falls back
-    # to ADAPTER_IMAGE, which then needs HTTP=1.
-    image: ${UNIFIED_NETWORK_LAYER_ADAPTER_IMAGE:-${ADAPTER_IMAGE}}
     depends_on:
       sunbird-registry-service:
         condition: service_healthy
@@ -647,10 +643,13 @@ services:
       VISTAAR_CLIENT_SECRET: ${VISTAAR_CLIENT_SECRET}
     volumes:
       - ./config/adapters/unified-network-layer/unified-network-layer.yaml:/app/config/adapter.yaml:ro
-      # Default: tier hops in-process. HTTP=1 (the -http overlay) mounts routing-http.yaml here instead.
-      - ./config/adapters/unified-network-layer/routing-inproc.yaml:/app/config/routing-unified-network-layer.yaml:ro
+      # One routing file per module, as in the multi-adapter stack. The network
+      # module reuses the multi-adapter routing-network.yaml unchanged.
+      - ./config/adapters/unified-network-layer/single-network-layer-consumer-routing.yaml:/app/config/single-network-layer-consumer-routing.yaml:ro
+      - ./config/adapters/routing-network.yaml:/app/config/routing-network.yaml:ro
+      - ./config/adapters/unified-network-layer/single-network-layer-publish-routing.yaml:/app/config/single-network-layer-publish-routing.yaml:ro
     ports:
-      - "127.0.0.1:${UNIFIED_NETWORK_LAYER_ADAPTER_PORT:-9210}:9200"
+      - "127.0.0.1:9200:9200"
 
   # ==========================================================================
   # observability -- HyperDX / ClickStack: OTLP ingest, ClickHouse, and the UI

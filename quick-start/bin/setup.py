@@ -643,8 +643,8 @@ def _render_one(name, template, substitutions):
 # modules of ONE adapter (the unified single adapter). Its config is not a
 # template of its own: it is BUILT from the three tier templates above, plus
 # the few differences in config/adapters/unified-network-layer/overrides.yaml
-# (module names and paths, the one routing file, extended schema, appName,
-# port). A change to a tier template therefore reaches both stacks on the next
+# (module names and paths, each module's routing file, extended schema,
+# appName, port). A change to a tier template therefore reaches both stacks on the next
 # run, and there is no second copy of any module to drift.
 #
 # Each module keeps its own tier identity, so both stacks use the same keys and
@@ -672,7 +672,9 @@ def _render_unified_network_layer(identities, shared):
         module["name"], module["path"] = spec["name"], spec["path"]
         plugins = module["handler"].get("plugins", {})
         if "router" in plugins:
-            plugins["router"]["config"]["routingConfig"] = overrides["routingConfig"]
+            if "routingConfig" not in spec:
+                sys.exit(f"setup: overrides.yaml module {spec['name']} has a router but no routingConfig")
+            plugins["router"]["config"]["routingConfig"] = spec["routingConfig"]
         if "schemaValidator" in plugins:
             plugins["schemaValidator"]["config"]["extendedSchema_enabled"] = \
                 overrides["extendedSchemaEnabled"]

@@ -13,27 +13,31 @@
 
 appName: network-layer-adapter
 otelServiceName: network-layer-adapter
-# Inside the container. The host port is UNIFIED_NETWORK_LAYER_ADAPTER_PORT.
+# Inside the container; published on 127.0.0.1:9200 (docker-compose.unified-network-layer.yml).
 port: 9200
 
-# Every module's router reads this one file. Compose mounts routing-inproc.yaml
-# here (default), or routing-http.yaml with HTTP=1.
-routingConfig: /app/config/routing-unified-network-layer.yaml
 
 # Extended schema validation on for every module that validates schemas.
 extendedSchemaEnabled: "true"
 
 # Which tier-template module becomes which module here. `index` is the
-# module's position in that template's `modules:` list.
+# module's position in that template's `modules:` list. `routingConfig` is the
+# path (inside the container) of that module's routing file; compose mounts:
+#   consumer          unified-network-layer/single-network-layer-consumer-routing.yaml
+#   network           routing-network.yaml (the multi-adapter file, unchanged)
+#   provider-publish  unified-network-layer/single-network-layer-publish-routing.yaml
+# The provider module has no router: it answers requests itself.
 modules:
   - from: consumer
     index: 0
     name: consumer
     path: /consumer/
+    routingConfig: /app/config/single-network-layer-consumer-routing.yaml
   - from: network
     index: 0
     name: network
     path: /network/
+    routingConfig: /app/config/routing-network.yaml
   - from: provider
     index: 0
     name: provider
@@ -44,3 +48,4 @@ modules:
     index: 1
     name: provider-publish
     path: /provider/publish
+    routingConfig: /app/config/single-network-layer-publish-routing.yaml
