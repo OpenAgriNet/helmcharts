@@ -5,6 +5,43 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-10-09
+
+### Added
+- `role: network-layer`: all three tiers in one adapter (four modules:
+  `/consumer/`, `/network/`, `/provider/`, `/provider/publish`), as in the
+  quick-start's network-layer compose stack. Its config and routing are generated
+  at render time from `config/*.yaml`, so there is no second copy of any module.
+  Tier hops are loopback HTTP inside the pod. Signs as three identities from
+  `networkLayer.keys.{consumer,network,provider}`; `routing.config` fails the
+  render for this role.
+- `networkLayer.httpClient` (connection pool on every module; `null` turns it
+  off) and `networkLayer.registryCache` (optional Redis registry cache),
+  network-layer only. Ingress may expose only `/consumer...` and
+  `/provider/<action>`, as literal paths with `pathType` Prefix or Exact and
+  no `use-regex` / `rewrite-target` annotation. The generated config takes
+  `logLevel`, `http.timeout.*` and `otel.*` from values. Example
+  `examples/network-layer.yaml`.
+- `autoscaling.behavior`, `topologySpreadConstraints`,
+  `terminationGracePeriodSeconds`, `preStopSleepSeconds`, `goMemLimit`; all off
+  by default.
+
+### Fixed
+- Liveness and readiness probes now render. Values used `probes.liveness` /
+  `probes.readiness`, which `common.probes` never read, so no adapter pod had a
+  readiness probe. Upgrading rolls every adapter pod once.
+
+### Removed
+- **Breaking:** the `probes.liveness` and `probes.readiness` values keys, renamed to
+  `livenessProbe` / `readinessProbe` (and a new `startupProbe`, off). The
+  timings are unchanged. An environment that overrides `probes.*` must rename
+  those keys.
+
+### Unchanged
+- Roles `provider`, `network`, `consumer`: same config, routing and manifests
+  apart from the probes (the chart version label and the config checksum
+  annotation also change with the version).
+
 ## [0.5.2] - 2026-09-29
 
 ### Changed

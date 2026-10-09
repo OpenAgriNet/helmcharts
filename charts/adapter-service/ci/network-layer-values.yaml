@@ -1,0 +1,67 @@
+# charts/adapter-service/ci/network-layer-values.yaml
+# role network-layer: the unified single adapter (consumer, network and
+# provider tiers as modules of one process). Renders the generated config, the
+# loopback routing and the three tier identities.
+role: network-layer
+fullnameOverride: network-layer-adapter
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/network-adapter
+  tag: "v1.9.0"
+
+registry:
+  url: http://registry:8081/api/v1
+
+service:
+  port: 9200
+  targetPort: 9200
+
+networkLayer:
+  keys:
+    consumer:
+      existingSecret: consumer-adapter-keys
+    network:
+      existingSecret: network-adapter-keys
+    provider:
+      existingSecret: provider-adapter-keys
+  extraSubstitutions:
+    __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl
+
+# Scale defaults for the unified single adapter: roughly the three tiers'
+# requests in one pod, at least one replica per node.
+resources:
+  requests:
+    cpu: 300m
+    memory: 384Mi
+  limits:
+    cpu: 1500m
+    memory: 1Gi
+goMemLimit: 900MiB
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+terminationGracePeriodSeconds: 40
+preStopSleepSeconds: 10

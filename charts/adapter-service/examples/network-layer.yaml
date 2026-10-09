@@ -1,0 +1,126 @@
+# ===========================================================================
+# network-layer role -- the unified single adapter.
+#
+# The consumer, network and provider tiers as four modules of ONE adapter
+# process, on one Service:
+#
+#   /consumer/<action>   the caller (bap); the app posts here, unsigned
+#   /network/<action>    internal: verifies and forwards to discovery
+#   /provider/<action>   answers from the upstream APIs (bpp)
+#   /provider/publish    the catalogue system publishes here
+#
+# The alternative to installing the three multi-adapter releases
+# (examples/consumer.yaml, network.yaml, provider.yaml). Run one mode or the
+# other in an environment, not both.
+#
+#   helm install network-layer-adapter . -n network-layer-adapter --create-namespace \
+#     -f examples/network-layer.yaml
+#
+# The config and routing are generated from the three tier files in config/;
+# tier hops are loopback HTTP inside the pod, so any adapter image works.
+# ===========================================================================
+role: network-layer
+
+# The Service name and DNS name callers use:
+# network-layer-adapter.network-layer-adapter.svc.cluster.local:9200
+fullnameOverride: network-layer-adapter
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/network-adapter
+  tag: "latest"
+
+registry:
+  url: http://registry:8081/api/v1
+
+# The same port the quick-start publishes. It is also the loopback port the
+# generated routing uses, so changing targetPort moves both.
+service:
+  port: 9200
+  targetPort: 9200
+
+networkLayer:
+  # The three tier Secrets the multi-adapter releases use. openbao-secrets
+  # reflects them into this namespace.
+  keys:
+    consumer:
+      existingSecret: consumer-adapter-keys
+    network:
+      existingSecret: network-adapter-keys
+    provider:
+      existingSecret: provider-adapter-keys
+  # The provider tier's token endpoint, from the provider Secret. Without it
+  # the init container stops on the leftover placeholder.
+  extraSubstitutions:
+    __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl
+
+# The provider tier reads its upstream credentials (MAUSAMGRAM_AUTH,
+# AGMARKNET_*, VISTAAR_CLIENT_*) from the environment.
+envFromSecrets:
+  - provider-upstream
+
+resources:
+  requests:
+    cpu: 300m
+    memory: 384Mi
+  limits:
+    cpu: 1500m
+    memory: 1Gi
+goMemLimit: 900MiB
+
+autoscaling:
+  enabled: true
+  minReplicas: 3          # one per node with the spread constraint below
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+
+terminationGracePeriodSeconds: 40
+preStopSleepSeconds: 10   # needs Kubernetes 1.30+; 0 on older clusters
+
+# Off here. When on, only these paths are accepted: /, /provider,
+# /provider/publish and /network* fail the render.
+ingress:
+  enabled: false
+  className: ""
+  hosts:
+    - host: network-layer.oan.example.com
+      paths:
+        - path: /consumer
+          pathType: Prefix
+        - path: /provider/select
+          pathType: Prefix
+        - path: /provider/init
+          pathType: Prefix
+        - path: /provider/confirm
+          pathType: Prefix
+        - path: /provider/status
+          pathType: Prefix
+
+waitFor:
+  enabled: false
+
+otel:
+  enabled: false
+  endpoint: ""
