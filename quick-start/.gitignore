@@ -16,9 +16,9 @@ config/adapters/experience.yaml
 config/adapters/exp.yaml
 config/adapters/network.yaml
 config/adapters/provider.yaml
-config/adapters/unified-network-layer/unified-network-layer.yaml
-bin/demo-unified-network-layer.sh
-bin/bench-unified-network-layer.sh
+config/adapters/single-network-layer.yaml
+bin/demo-single-network-layer.sh
+bin/bench-single-network-layer.sh
 poc-flow.py
 bin/poc
 # Apple-silicon-only override that forces amd64 emulation for images with no
@@ -42,5 +42,5 @@ config/discovery/instance.yaml
 # nothing here to ignore -- and nothing here to review either. Back those
 # volumes up; they are the only copy.
 
-# bin/bench-unified-network-layer.sh scratch: generated bodies and results
+# bin/bench-single-network-layer.sh scratch: generated bodies and results
 .bench/

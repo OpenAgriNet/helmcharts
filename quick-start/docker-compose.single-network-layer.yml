@@ -1,15 +1,15 @@
-# The whole OAN stack in one file, UNIFIED NETWORK LAYER variant: registry,
+# The whole OAN stack in one file, SINGLE NETWORK LAYER variant: registry,
 # discovery, ONE adapter running the consumer, network and provider tiers as
-# modules of one process (the unified single adapter), the telemetry stack and
+# modules of one process (the single network layer adapter), the telemetry stack and
 # the public edge.
 #
 # This is docker-compose.yml with the three adapter services replaced by one
-# `network-layer-adapter`. Everything else is the same, so use ONE of
+# `single-network-layer-adapter`. Everything else is the same, so use ONE of
 # the two files, not both: they share the project name, container names and
 # data volumes.
 #
-#   make up-unified-network-layer          (or: bin/unified-network-layer-up.sh)
-#   docker compose -f docker-compose.unified-network-layer.yml up -d
+#   make up-single-network-layer          (or: bin/single-network-layer-up.sh)
+#   docker compose -f docker-compose.single-network-layer.yml up -d
 #
 # Tier-to-tier hops go over loopback HTTP to the container's own listener
 # (http://localhost:9200): they never leave the container. One routing file per
@@ -24,7 +24,7 @@
 #   registry        sunbird-registry-postgres, sunbird-registry-keycloak,
 #                   sunbird-registry-service
 #   discovery       discovery-postgres, discovery-service
-#   adapter         network-layer-adapter (consumer + network + provider)
+#   adapter         single-network-layer-adapter (consumer + network + provider)
 #   observability   hyperdx                      profile: observability
 #   edge            nginx-proxy-manager          profile: reverse-proxy
 #
@@ -35,12 +35,12 @@
 #
 #   1. cp .env.example .env               change every credential -- they are
 #                                         shipped defaults
-#   2. docker compose -f docker-compose.unified-network-layer.yml up -d sunbird-registry-service discovery-service
+#   2. docker compose -f docker-compose.single-network-layer.yml up -d sunbird-registry-service discovery-service
 #                                         everything EXCEPT the adapter
 #   3. python3 bin/setup.py               keys, the three tier identities, and
-#                                         config/adapters/unified-network-layer/unified-network-layer.yaml
-#   4. docker compose -f docker-compose.unified-network-layer.yml up -d   now the adapter
-#   5. docker compose -f docker-compose.unified-network-layer.yml --profile reverse-proxy --profile observability up -d
+#                                         config/adapters/single-network-layer.yaml
+#   4. docker compose -f docker-compose.single-network-layer.yml up -d   now the adapter
+#   5. docker compose -f docker-compose.single-network-layer.yml --profile reverse-proxy --profile observability up -d
 #                                         the edge and the telemetry stack
 #
 # Naming registry and discovery in step 2 is not tidiness. An adapter config
@@ -79,7 +79,7 @@
 # decoration and becomes the actual control. NPM's "Forward Hostname" is a
 # free-text field, so anyone with the admin password can point a public route
 # at `sunbird-registry-service` or `sunbird-registry-keycloak`. NPM sits only on
-# oan-edge, where neither name resolves and neither address is routable -- network-layer-adapter and hyperdx
+# oan-edge, where neither name resolves and neither address is routable -- single-network-layer-adapter and hyperdx
 # are the only containers it shares a network with. Those three straddle both
 # networks; everything else is internal-only.
 #
@@ -546,7 +546,7 @@ services:
         condition: service_healthy
 
   # ==========================================================================
-  # adapter -- network-layer-adapter: the consumer, network and provider tiers as
+  # adapter -- single-network-layer-adapter: the consumer, network and provider tiers as
   # modules of one process, one image, one config.
   #
   # Its config is a bind-mounted FILE that does not exist until bin/setup.py
@@ -600,11 +600,10 @@ services:
     ports:
       - "127.0.0.1:${MOCKAGMARKNET_PORT}:9101"
 
-  # The unified network layer: the consumer, network and provider tiers as
-  # modules of ONE adapter process (the unified single adapter), on ONE config
-  # built by bin/setup.py from the three tier templates
-  # (config/adapters/unified-network-layer/unified-network-layer.yaml), with one
-  # routing file per module. Tier-to-tier hops go over loopback (http://localhost:9200),
+  # The single network layer: the consumer, network and provider tiers as
+  # modules of ONE adapter process (the single network layer adapter), on ONE
+  # config rendered by bin/setup.py from config/adapters/single-network-layer.yaml.tmpl
+  # (config/adapters/single-network-layer.yaml), with one routing file per module. Tier-to-tier hops go over loopback (http://localhost:9200),
   # inside the container, so there is no consumer-adapter, network-adapter or
   # provider-adapter here.
   #
@@ -617,9 +616,9 @@ services:
   #
   # Each module signs as its own tier identity (consumer, network, provider):
   # the same keys and registry rows as the multi-adapter stack.
-  network-layer-adapter:
+  single-network-layer-adapter:
     <<: *adapter
-    container_name: network-layer-adapter
+    container_name: single-network-layer-adapter
     depends_on:
       sunbird-registry-service:
         condition: service_healthy
@@ -627,7 +626,7 @@ services:
         condition: service_started
     environment:
       <<: *adapter-env
-      OTEL_SERVICE_NAME: network-layer-adapter
+      OTEL_SERVICE_NAME: single-network-layer-adapter
       # The weather upstream's credential, as ONE ready-made header value --
       # "Basic <token>", prefix included. Named here and read at call time, so
       # the value is in neither a config file nor the registry.
@@ -643,12 +642,12 @@ services:
       VISTAAR_CLIENT_ID: ${VISTAAR_CLIENT_ID}
       VISTAAR_CLIENT_SECRET: ${VISTAAR_CLIENT_SECRET}
     volumes:
-      - ./config/adapters/unified-network-layer/unified-network-layer.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/single-network-layer.yaml:/app/config/adapter.yaml:ro
       # One routing file per module, as in the multi-adapter stack. The network
       # module reuses the multi-adapter routing-network.yaml unchanged.
-      - ./config/adapters/unified-network-layer/single-network-layer-consumer-routing.yaml:/app/config/single-network-layer-consumer-routing.yaml:ro
+      - ./config/adapters/routing-single-network-layer-consumer.yaml:/app/config/routing-single-network-layer-consumer.yaml:ro
       - ./config/adapters/routing-network.yaml:/app/config/routing-network.yaml:ro
-      - ./config/adapters/unified-network-layer/single-network-layer-publish-routing.yaml:/app/config/single-network-layer-publish-routing.yaml:ro
+      - ./config/adapters/routing-single-network-layer-publish.yaml:/app/config/routing-single-network-layer-publish.yaml:ro
     ports:
       - "127.0.0.1:9200:9200"
 
@@ -656,7 +655,7 @@ services:
   # observability -- HyperDX / ClickStack: OTLP ingest, ClickHouse, and the UI
   # over it.
   #
-  #   docker compose -f docker-compose.unified-network-layer.yml --profile observability up -d
+  #   docker compose -f docker-compose.single-network-layer.yml --profile observability up -d
   #
   # Sizing: ClickHouse alone wants 2-4 GB. With this profile on, the VM needs
   # 16 GB (t3.xlarge or m6i.xlarge); without it, 8 GB is workable.
@@ -822,7 +821,7 @@ services:
   # ==========================================================================
   # edge -- Nginx Proxy Manager.
   #
-  #   docker compose -f docker-compose.unified-network-layer.yml --profile reverse-proxy up -d
+  #   docker compose -f docker-compose.single-network-layer.yml --profile reverse-proxy up -d
   #
   # NPM rather than a hand-written nginx.conf because it owns the part that is
   # genuinely tedious to do by hand -- ACME. It requests, installs and renews
@@ -845,7 +844,7 @@ services:
     # NPM's "Forward Hostname" is a free-text field. Anyone with the admin
     # password can type `sunbird-registry-service`, `sunbird-registry-keycloak` or `discovery-postgres` into it. On
     # this network none of those names resolve and none of those addresses are
-    # routable from here -- network-layer-adapter, and hyperdx when the
+    # routable from here -- single-network-layer-adapter, and hyperdx when the
     # observability profile is up, are the only containers NPM shares a network
     # with. So the blast radius of a wrong click, or of the admin UI being
     # reached by someone who should not have it, is bounded to that set.
@@ -917,7 +916,7 @@ services:
       # whenever NPM does. That means the restart above is not optional after
       # `make observability` -- NPM was started before the name existed, so the
       # HyperDX host 502s until it re-resolves.
-      network-layer-adapter:
+      single-network-layer-adapter:
         condition: service_started
 
     healthcheck:

@@ -55,7 +55,6 @@ below follow startup order, so they work top to bottom.
 - `git`
 - Docker with **Compose v2** — `docker compose version` must work, not `docker-compose`
 - `python3` with `cryptography` — `pip install cryptography`
-- `PyYAML` — `pip install pyyaml` (needed for the unified network layer only)
 - `curl`
 
 ## Step 2 — Get the repo
@@ -190,41 +189,42 @@ collection. → Appendix N.
 
 ---
 
-## Unified network layer (optional)
+## Single network layer (optional)
 
 The same network can run two ways. Both use the same registry, keys and data:
 
-| | Multi-adapter (default) | Unified network layer |
+| | Multi-adapter (default) | Single network layer |
 |---|---|---|
-| What runs | `consumer-adapter`, `network-adapter`, `provider-adapter` | one `network-layer-adapter` (the unified single adapter) |
-| Compose file | `docker-compose.yml` | `docker-compose.unified-network-layer.yml` |
-| Start / stop | `make up` / `make down` | `make up-unified-network-layer` / `make down-unified-network-layer` |
+| What runs | `consumer-adapter`, `network-adapter`, `provider-adapter` | one `single-network-layer-adapter` (the single network layer adapter) |
+| Compose file | `docker-compose.yml` | `docker-compose.single-network-layer.yml` |
+| Start / stop | `make up` / `make down` | `make up-single-network-layer` / `make down-single-network-layer` |
 | Tier-to-tier hops | HTTP between containers | HTTP over loopback (`http://localhost:9200`) inside the one container |
 | Port | 9202 / 9201 / 9200 | `127.0.0.1:9200` (so only one mode runs at a time) |
 
 Use one or the other, not both: they share the project name and data volumes.
 Both use `ADAPTER_IMAGE` from `.env`; nothing else needs setting.
 
-**Config.** There is no hand-written config for this mode. `bin/setup.py` builds
-`config/adapters/unified-network-layer/unified-network-layer.yaml` from the three
-tier templates plus `unified-network-layer/overrides.yaml`. That file holds only
-the module names and paths, each module's routing file, extended schema,
-appName and port. A change to a tier template reaches both modes on the next `setup.py`.
-Each module keeps its own tier identity.
+**Config.** `config/adapters/single-network-layer.yaml.tmpl`, beside the three
+tier templates. `bin/setup.py` fills it into `config/adapters/single-network-layer.yaml`
+like the others. Each module is its tier's module from the tier template (a
+change to a tier template that should apply here goes in this file too), plus
+extended schema validation, an outbound connection pool and log level info.
+Each module keeps its own tier identity. The same layout as the Helm chart's
+`config/single-network-layer-config.yaml`.
 
 | Module | Path | From | Routing file | Routes |
 |---|---|---|---|---|
-| `consumer` | `/<action>` | `consumer.yaml.tmpl` | `unified-network-layer/single-network-layer-consumer-routing.yaml` | discover to `localhost:9200/network`; select, init, confirm, status to `localhost:9200/provider` |
+| `consumer` | `/<action>` | `consumer.yaml.tmpl` | `routing-single-network-layer-consumer.yaml` | discover to `localhost:9200/network`; select, init, confirm, status to `localhost:9200/provider` |
 | `network` | `/network/<action>` | `network.yaml.tmpl` | `routing-network.yaml` (multi file, reused) | discover, publish to discovery |
 | `provider` | `/provider/<action>` | `provider.yaml.tmpl` (module 1) | none: answers itself | n/a |
-| `provider-publish` | `/provider/publish` | `provider.yaml.tmpl` (module 2) | `unified-network-layer/single-network-layer-publish-routing.yaml` | to `localhost:9200/network/publish` |
+| `provider-publish` | `/provider/publish` | `provider.yaml.tmpl` (module 2) | `routing-single-network-layer-publish.yaml` | to `localhost:9200/network/publish` |
 
 The hops between modules are loopback HTTP calls to the same container. In the
 multi-adapter stack only the hosts differ. 9200 is the container's own listener
-and must match `port` in `overrides.yaml`.
+and must match `http.port` in `single-network-layer.yaml.tmpl`.
 
 Tools:
-- `bin/unified-network-layer-up.sh`: start and smoke-test (publish, discover, select).
+- `bin/single-network-layer-up.sh`: start and smoke-test (publish, discover, select).
 
 # Part 2 — Run it on a VM
 
@@ -238,7 +238,7 @@ Nothing is cloned yet, so fetch the script rather than running it from the repo:
 curl -fsSL https://raw.githubusercontent.com/OpenAgriNet/helmcharts/feat/4-docker-compose/quick-start/bin/bootstrap-ubuntu.sh | bash
 ```
 
-Installs `git`, `make`, `python3-cryptography`, `python3-yaml` and Docker from Docker's own apt
+Installs `git`, `make`, `python3-cryptography` and Docker from Docker's own apt
 repo, then adds you to the `docker` group — **log out and back in** for that to
 take effect. Idempotent, and it deliberately does not clone, write `.env` or
 start anything.

@@ -1,5 +1,5 @@
-# This network's catalogue system publishing inward, in the unified network
-# layer (the unified single adapter).
+# This network's catalogue system publishing inward, in the single network
+# layer (the single network layer adapter).
 #
 # It goes to the NETWORK module rather than straight to discovery, so a publish
 # takes the same path a publish from anywhere else takes -- one place that
