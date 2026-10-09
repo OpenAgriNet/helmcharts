@@ -1,0 +1,29 @@
+# Example: knowledge-provider-worker, dev environment.
+#
+#   helm install knowledge-provider-worker charts/knowledge-provider/knowledge-provider-worker \
+#     -n knowledge-provider -f charts/knowledge-provider/knowledge-provider-worker/examples/knowledge-provider-worker.dev.yaml
+#
+# Install AFTER knowledge-provider-api (owns the PVCs this chart mounts) - see
+# that chart's README for the full install order.
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/knowledge-provider
+  tag: "latest"
+  pullSecrets:
+    - ghcr-pull-secret
+
+envConfig:
+  LOG_LEVEL: "debug"
+  OCR_PROVIDER: "mock"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+commonLabels:
+  oan.in/environment: dev
