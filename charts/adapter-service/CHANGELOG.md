@@ -22,6 +22,9 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   no `use-regex` / `rewrite-target` annotation. The generated config takes
   `logLevel`, `http.timeout.*` and `otel.*` from values. Example
   `examples/network-layer.yaml`.
+- `otel.enabled` now defaults to `true`. Read by role network-layer; with
+  `otel.endpoint` empty it keeps the collector named in the tier config
+  files. Set `otel.enabled: false` where no collector runs.
 - `autoscaling.behavior`, `topologySpreadConstraints`,
   `terminationGracePeriodSeconds`, `preStopSleepSeconds`, `goMemLimit`; all off
   by default.

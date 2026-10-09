@@ -114,14 +114,15 @@ cache plugin and registry cacheTTL changed.
 {{- $_ := set $doc.http "timeout" (dict "read" (int .read) "write" (int .write) "idle" (int .idle)) -}}
 {{- end -}}
 {{- with (dig "plugins" "otelsetup" "config" dict $doc) -}}
+{{- $cfg := . -}}
 {{- $on := $ctx.Values.otel.enabled | toString -}}
 {{- $_ := set . "serviceName" (include "adapter-service.otelServiceName" $ctx) -}}
 {{- $_ := set . "environment" $ctx.Values.otel.environment -}}
 {{- $_ := set . "enableMetrics" $on -}}
 {{- $_ := set . "enableTracing" $on -}}
 {{- $_ := set . "enableLogs" $on -}}
-{{- if $ctx.Values.otel.enabled -}}
-{{- $_ := set . "otlpEndpoint" (include "adapter-service.otlpEndpoint" $ctx) -}}
+{{- with $ctx.Values.otel.endpoint -}}
+{{- $_ := set $cfg "otlpEndpoint" . -}}
 {{- end -}}
 {{- end -}}
 {{- $_ := set $doc "modules" $modules -}}

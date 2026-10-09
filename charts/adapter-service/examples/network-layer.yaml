@@ -122,5 +122,5 @@ waitFor:
   enabled: false
 
 otel:
-  enabled: false
-  endpoint: ""
+  enabled: true
+  endpoint: ""   # empty: the collector named in config/*-config.yaml

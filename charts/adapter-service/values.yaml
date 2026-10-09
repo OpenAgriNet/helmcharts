@@ -262,8 +262,11 @@ becknSpec:
 # and does not go stale.
 # ---------------------------------------------------------------------------
 otel:
-  enabled: false
-  # OTLP/gRPC, e.g. "otel-collector.observability.svc.cluster.local:4317"
+  # On by default. Set false where no collector runs: an exporter with nothing
+  # listening logs a failure every interval.
+  enabled: true
+  # OTLP/gRPC, e.g. "otel-collector.observability.svc.cluster.local:4317".
+  # Left empty, the collector named in the tier config files is used.
   endpoint: ""
   environment: dev
   # Left empty, defaults to oan-<role>-adapter, matching OTEL_SERVICE_NAME in
