@@ -656,8 +656,12 @@ def _render_unified_network_layer(identities, shared):
     try:
         import yaml  # only this mode needs it; the multi-adapter stack does not
     except ImportError:
+        hint = "needs PyYAML (pip install pyyaml, or apt install python3-yaml)"
+        if os.environ.get("UNIFIED_NETWORK_LAYER") == "1":
+            sys.exit("setup: cannot render config/adapters/unified-network-layer/"
+                     "unified-network-layer.yaml: " + hint)
         print("  config/adapters/unified-network-layer/unified-network-layer.yaml"
-              " SKIPPED: needs PyYAML (pip install pyyaml, or apt install python3-yaml)")
+              " SKIPPED: " + hint)
         return
     overrides = yaml.safe_load((UNIFIED_NETWORK_LAYER / "overrides.yaml").read_text())
     tiers = {}

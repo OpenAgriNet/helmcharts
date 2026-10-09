@@ -43,8 +43,8 @@ sudo apt-get update -qq
 # python as externally-managed (PEP 668), so `pip install cryptography` refuses
 # without --break-system-packages. The apt build is the same library.
 sudo apt-get install -y -qq \
-    ca-certificates curl gnupg git make python3 python3-cryptography
-info "git, make, python3, python3-cryptography"
+    ca-certificates curl gnupg git make python3 python3-cryptography python3-yaml
+info "git, make, python3, python3-cryptography, python3-yaml"
 
 # --------------------------------------------------------------- docker
 

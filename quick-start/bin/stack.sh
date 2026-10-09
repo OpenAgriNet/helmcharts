@@ -64,6 +64,13 @@ preflight() {
         || die "the python 'cryptography' package is missing -- pip install cryptography"
 }
 
+# The unified network layer renders its config with PyYAML (multi mode does not).
+preflight_unified_network_layer() {
+    preflight
+    python3 -c 'import yaml' >/dev/null 2>&1 \
+        || die "the python 'yaml' package (PyYAML) is missing -- pip install pyyaml, or apt install python3-yaml"
+}
+
 # ------------------------------------------------------------------- up
 
 # The full stack, in the order the compose file's own header documents. Five
@@ -172,7 +179,9 @@ NEXT
 # The unified network layer: ONE adapter runs the consumer, network and
 # provider tiers as modules of one process (the unified single adapter), with
 # tier-to-tier hops over loopback HTTP inside the container. The multi-adapter
-# containers are NOT started. Mocks are not started either, as in `up`.
+# containers are NOT started. `make up-unified-network-layer` does not start the
+# mocks either, as in `up`; bin/unified-network-layer-up.sh does start them, for
+# its local smoke test.
 #
 # Its stack is its own complete compose file (docker-compose.unified-network-layer.yml),
 # so docker-compose.yml is not touched. Passing -f overrides COMPOSE_FILE, so
@@ -184,10 +193,13 @@ unified_network_layer_compose() {
 }
 
 up_unified_network_layer() {
-    preflight
+    preflight_unified_network_layer
     step 1 3 "registry and discovery (unified network layer compose file)"
     unified_network_layer_compose up -d sunbird-registry-service discovery-service
-    up_setup         3
+    UNIFIED_NETWORK_LAYER=1 up_setup 3
+    # Never let compose create a directory where the bind-mounted config file belongs.
+    [ -f config/adapters/unified-network-layer/unified-network-layer.yaml ] \
+        || die "config/adapters/unified-network-layer/unified-network-layer.yaml was not rendered (is it a directory? rm -r it, then re-run)"
     step 3 3 "network-layer-adapter (consumer + network + provider in one process)"
     # The multi-adapter containers share this project; one topology at a time.
     docker compose stop provider-adapter network-adapter consumer-adapter >/dev/null 2>&1 || true
