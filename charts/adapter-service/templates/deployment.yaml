@@ -217,17 +217,6 @@ spec:
             - name: GOMEMLIMIT
               value: {{ . | quote }}
             {{- end }}
-            {{- if include "adapter-service.isNetworkLayer" . }}
-            {{- with .Values.networkLayer.registryCache }}
-            {{- if and .enabled .passwordSecret.name }}
-            - name: REDIS_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .passwordSecret.name }}
-                  key: {{ .passwordSecret.key }}
-            {{- end }}
-            {{- end }}
-            {{- end }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

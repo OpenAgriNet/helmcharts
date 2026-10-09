@@ -1,7 +1,8 @@
 # charts/adapter-service/ci/network-layer-values.yaml
-# role network-layer: the unified single adapter (consumer, network and
-# provider tiers as modules of one process). Renders the generated config, the
-# loopback routing and the three tier identities.
+# role network-layer: the single network layer adapter (consumer, network and
+# provider tiers as modules of one process). Renders
+# config/single-network-layer-config.yaml, the loopback routing and the three
+# tier identities.
 role: network-layer
 fullnameOverride: network-layer-adapter
 
@@ -28,7 +29,7 @@ networkLayer:
   extraSubstitutions:
     __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl
 
-# Scale defaults for the unified single adapter: roughly the three tiers'
+# Scale defaults for the single network layer adapter: roughly the three tiers'
 # requests in one pod, at least one replica per node.
 resources:
   requests:

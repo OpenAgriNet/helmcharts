@@ -262,22 +262,14 @@ becknSpec:
 # and does not go stale.
 # ---------------------------------------------------------------------------
 otel:
-  # On by default. Set false where no collector runs: an exporter with nothing
-  # listening logs a failure every interval.
-  enabled: true
-  # OTLP/gRPC, e.g. "otel-collector.observability.svc.cluster.local:4317".
-  # Left empty, the collector named in the tier config files is used.
+  enabled: false
+  # OTLP/gRPC, e.g. "otel-collector.observability.svc.cluster.local:4317"
   endpoint: ""
   environment: dev
   # Left empty, defaults to oan-<role>-adapter, matching OTEL_SERVICE_NAME in
   # the compose stack so traces from either deployment line up.
   serviceName: ""
 
-# Read ONLY by role network-layer, whose adapter.yaml is generated. The
-# provider, network and consumer files hardcode `log.level: debug`, so this does
-# not change them. The same holds for `http.timeout` below and for `otel`
-# above: role network-layer writes them into its config, the other roles keep
-# their tier file's values.
 logLevel: info
 
 http:
@@ -425,31 +417,27 @@ extraEnv: []
 envFromSecrets: []
 
 # ---------------------------------------------------------------------------
-# role: network-layer -- the unified single adapter.
+# role: network-layer -- the single network layer adapter.
 #
 # The consumer, network and provider tiers as four modules of ONE process
-# (/consumer/, /network/, /provider/, /provider/publish). Its config and routing
-# are generated at render time from the three tier files in config/, so there
-# is no second copy to keep in step. Tier-to-tier hops are loopback HTTP to
-# this pod's own listener (http://localhost:<service.targetPort>/<tier>): any
-# adapter image works.
+# (/consumer/, /network/, /provider/, /provider/publish). Its adapter config is
+# config/single-network-layer-config.yaml, mounted verbatim like any role's
+# file: log level, timeouts, telemetry, extended schema and the outbound
+# connection pool are set there. The routing is generated at render time from
+# the tier routing files, with tier-to-tier hops pointed at this pod's own
+# listener (http://localhost:<service.targetPort>/<tier>): any adapter image
+# works.
 #
 # Ignored by the provider, network and consumer roles.
 #
 # NOT USED by this role: `routing.config` (setting it fails the render, because
-# the routing is generated) and `handler.*` (role, steps and path come from
-# the tier files). `config` replaces the generated adapter.yaml WHOLE: the
-# private-key guard still runs on it, but then extendedSchemaEnabled,
-# httpClient and registryCache do not apply, it must point its routers at
-# /app/config/routing-network-layer-consumer.yaml, routing-network.yaml and
-# routing-network-layer-publish.yaml, and `logLevel`, `http.timeout`, `otel`
-# and the port are yours to set.
+# the routing is generated) and `handler.*` (role, steps and path are in the
+# config file). `config` replaces config/single-network-layer-config.yaml
+# WHOLE: the private-key guard still runs on it, and it must point its routers
+# at /app/config/routing-network-layer-consumer.yaml, routing-network.yaml and
+# routing-network-layer-publish.yaml.
 # ---------------------------------------------------------------------------
 networkLayer:
-  # Forces extendedSchema_enabled on every module that validates schemas, as
-  # the quick-start does. "" keeps each tier file's own setting.
-  extendedSchemaEnabled: "true"
-
   # Three identities, one per tier: the same Secrets (six keys each, named as
   # under keys.existingSecret) and the same registry rows the multi-adapter
   # releases use, so either mode runs against the same registry. They must
@@ -465,34 +453,3 @@ networkLayer:
   # Extra placeholders, as "<tier>/<key in that tier's Secret>".
   #   __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl
   extraSubstitutions: {}
-
-  # Outbound HTTP pool for every module: discovery, the registry, upstream APIs
-  # and the loopback hops to this pod's own listener. Go's default keeps 2 idle
-  # connections per host, so under load most calls open a new connection.
-  # responseHeaderTimeout bounds the wait for an answer's headers, which on the
-  # consumer -> provider hop includes the upstream API call: keep it above the
-  # slowest upstream.
-  # Read ONLY by role network-layer; the multi tier files keep their own settings.
-  # To leave the adapter's own defaults (no httpClientConfig at all) set it to
-  # null: `--set networkLayer.httpClient=null`, or `httpClient: null` in an
-  # environment values file. `{}` does NOT work: Helm merges maps, so {} keeps
-  # the four defaults below.
-  httpClient:
-    maxIdleConns: 512
-    maxIdleConnsPerHost: 128
-    idleConnTimeout: 90s
-    responseHeaderTimeout: 30s
-
-  # Registry lookups cached in Redis. Off: every request asks the registry.
-  # ttl is how long a suspended participant keeps verifying and a withdrawn
-  # capability keeps being called -- keep it short. Redis is not deployed by
-  # this chart. Read ONLY by role network-layer.
-  registryCache:
-    enabled: false
-    addr: ""            # host:port, e.g. redis-master.redis.svc.cluster.local:6379
-    useTLS: false
-    ttl: 60s
-    # Optional. Read by the cache plugin from REDIS_PASSWORD.
-    passwordSecret:
-      name: ""
-      key: password

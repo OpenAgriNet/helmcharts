@@ -10,7 +10,7 @@
   service    {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}
   registry   {{ .Values.registry.url }}
   routes     {{ if include "adapter-service.isNetworkLayer" . }}generated from config/routing-{consumer,network,provider}.yaml{{ else }}from config/routing-{{ include "adapter-service.role" . }}.yaml{{ end }}
-  telemetry  {{ if .Values.otel.enabled }}{{ .Values.otel.endpoint | default "collector from config/*-config.yaml" }}{{ else }}off{{ end }}
+  telemetry  {{ if .Values.otel.enabled }}{{ .Values.otel.endpoint }}{{ else }}off{{ end }}
 
 This Service is reachable in-cluster as {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}.
 That name comes from the RELEASE name — whatever routes here must use it, so

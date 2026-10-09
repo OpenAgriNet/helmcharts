@@ -139,13 +139,15 @@ healthy.
 | network layer | `network-layer-adapter` (examples/network-layer.yaml) | `network-layer-adapter:9200/consumer/<action>`, `network-layer-adapter:9200/provider/publish` |
 
 `role: network-layer` runs all three tiers in one adapter, as four
-modules of one process. Its config and routing are
-**generated** from `config/*.yaml` at render time, so a change to a tier file
-reaches both modes. Tier hops are loopback HTTP inside the pod (any image). It
-signs as the same three identities, from the same three Secrets, so the
-registry is the same in both modes. An environment's `config:` override for a
-multi role is NOT seen by network-layer; give the network-layer release its own
-`config:` if needed (it replaces the generated config whole).
+modules of one process. Its config is `config/single-network-layer-config.yaml`
+(each module is its tier's module from `config/<tier>-config.yaml`, so a change
+to a tier file that should apply to both modes goes in both files). Its routing
+is **generated** at render time from `config/routing-*.yaml`, so routes stay in
+one place. Tier hops are loopback HTTP inside the pod (any image). It signs as
+the same three identities, from the same three Secrets, so the registry is the
+same in both modes. An environment's `config:` override for a multi role is NOT
+seen by network-layer; give the network-layer release its own `config:` if
+needed (it replaces `single-network-layer-config.yaml` whole).
 
 Pick the mode per environment with ONE switch where releases are chosen. For a
 helmfile (adapt to infra-automation's layout):

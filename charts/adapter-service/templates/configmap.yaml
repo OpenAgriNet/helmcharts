@@ -10,9 +10,9 @@ Everything that differs between the provider, network and consumer adapters is a
 value: they are one image with one config format, and the role decides the
 identity, the handler role, the step list and where requests are routed.
 
-role network-layer is the exception to "one file per role": its adapter.yaml and
-routing files are generated from the three tier files (_network-layer.tpl), and
-it renders more than one routing file.
+role network-layer reads config/single-network-layer-config.yaml; its routing
+files are generated from the tier routing files (_network-layer.tpl), and it
+renders more than one routing file.
 */}}
 {{/*
 RAW CONFIG OVERRIDE.
@@ -31,19 +31,21 @@ in `helm get values` -- so the render refuses it.
 {{- $networkLayer := include "adapter-service.isNetworkLayer" . }}
 {{- $nlCfg := "" }}
 {{- if $networkLayer }}
-{{- /* role network-layer: the config is GENERATED from the three tier files
-       (_network-layer.tpl), unless `config` replaces it whole. Either way every
-       private key must be a tier placeholder; checked on the parsed config. */}}
-{{- if .Values.config }}
-{{- $nlCfg = .Values.config }}
-{{- else }}
-{{- $nlCfg = include "adapter-service.networkLayer.config" . }}
+{{- /* role network-layer: the config is config/single-network-layer-config.yaml,
+       unless `config` replaces it whole. Either way every private key must be a
+       tier placeholder; checked on the parsed config. */}}
+{{- $nlCfg = .Values.config | default (.Files.Get "config/single-network-layer-config.yaml") }}
+{{- if not $nlCfg }}
+{{- fail (printf "%s: role network-layer reads config/single-network-layer-config.yaml, which is missing from the chart." .Chart.Name) }}
 {{- end }}
 {{- $nlParsed := $nlCfg | fromYaml }}
 {{- if or (not $nlParsed) (hasKey $nlParsed "Error") }}
-{{- fail (printf "%s: the network-layer adapter config (`config` override or generated) does not parse as YAML, so its private keys cannot be checked." .Chart.Name) }}
+{{- fail (printf "%s: the network-layer adapter config (`config` override or config/single-network-layer-config.yaml) does not parse as YAML, so its private keys cannot be checked." .Chart.Name) }}
 {{- end }}
 {{- include "adapter-service.networkLayer.checkKeys" (dict "ctx" . "cfg" $nlParsed) }}
+{{- if ne (toString (dig "http" "port" "" $nlParsed)) (toString .Values.service.targetPort) }}
+{{- fail (printf "%s: the network-layer config listens on http.port %v but service.targetPort is %v. The generated routing sends tier hops to localhost:<targetPort>, so the two must match." .Chart.Name (dig "http" "port" "unset" $nlParsed) .Values.service.targetPort) }}
+{{- end }}
 {{- else }}
 {{- $cfgFile := printf "config/%s-config.yaml" (include "adapter-service.role" .) }}
 {{- $cfg := .Values.config | default (.Files.Get $cfgFile) }}

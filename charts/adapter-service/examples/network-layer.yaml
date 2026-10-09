@@ -1,5 +1,5 @@
 # ===========================================================================
-# network-layer role -- the unified single adapter.
+# network-layer role -- the single network layer adapter.
 #
 # The consumer, network and provider tiers as four modules of ONE adapter
 # process, on one Service:
@@ -16,8 +16,9 @@
 #   helm install network-layer-adapter . -n network-layer-adapter --create-namespace \
 #     -f examples/network-layer.yaml
 #
-# The config and routing are generated from the three tier files in config/;
-# tier hops are loopback HTTP inside the pod, so any adapter image works.
+# The config is config/single-network-layer-config.yaml; the routing is
+# generated from config/routing-*.yaml. Tier hops are loopback HTTP inside the
+# pod, so any adapter image works.
 # ===========================================================================
 role: network-layer
 
@@ -33,8 +34,9 @@ image:
 registry:
   url: http://registry:8081/api/v1
 
-# The same port the quick-start publishes. It is also the loopback port the
-# generated routing uses, so changing targetPort moves both.
+# The same port the quick-start publishes. targetPort is also the loopback port
+# the generated routing uses, and must equal http.port in
+# config/single-network-layer-config.yaml (the render checks).
 service:
   port: 9200
   targetPort: 9200
@@ -122,5 +124,5 @@ waitFor:
   enabled: false
 
 otel:
-  enabled: true
-  endpoint: ""   # empty: the collector named in config/*-config.yaml
+  enabled: false
+  endpoint: ""

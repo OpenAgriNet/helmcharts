@@ -10,21 +10,17 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 ### Added
 - `role: network-layer`: all three tiers in one adapter (four modules:
   `/consumer/`, `/network/`, `/provider/`, `/provider/publish`), as in the
-  quick-start's network-layer compose stack. Its config and routing are generated
-  at render time from `config/*.yaml`, so there is no second copy of any module.
-  Tier hops are loopback HTTP inside the pod. Signs as three identities from
+  quick-start's network-layer compose stack. Its config is
+  `config/single-network-layer-config.yaml` (extended schema, an outbound
+  connection pool and log level info on every module); its routing is generated
+  at render time from `config/routing-*.yaml`. Tier hops are loopback HTTP
+  inside the pod. Signs as three identities from
   `networkLayer.keys.{consumer,network,provider}`; `routing.config` fails the
   render for this role.
-- `networkLayer.httpClient` (connection pool on every module; `null` turns it
-  off) and `networkLayer.registryCache` (optional Redis registry cache),
-  network-layer only. Ingress may expose only `/consumer...` and
+- network-layer ingress may expose only `/consumer...` and
   `/provider/<action>`, as literal paths with `pathType` Prefix or Exact and
-  no `use-regex` / `rewrite-target` annotation. The generated config takes
-  `logLevel`, `http.timeout.*` and `otel.*` from values. Example
+  no `use-regex` / `rewrite-target` annotation. Example
   `examples/network-layer.yaml`.
-- `otel.enabled` now defaults to `true`. Read by role network-layer; with
-  `otel.endpoint` empty it keeps the collector named in the tier config
-  files. Set `otel.enabled: false` where no collector runs.
 - `autoscaling.behavior`, `topologySpreadConstraints`,
   `terminationGracePeriodSeconds`, `preStopSleepSeconds`, `goMemLimit`; all off
   by default.
