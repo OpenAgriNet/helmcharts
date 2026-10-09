@@ -136,7 +136,7 @@
       ]
     },
     "PublicKey": {
-      "description": "A public key, held as material: it is public, so there is nothing to protect. Identified by the osid the registry assigns on write -- which is what a sender names in the Authorization header, and so the only id a verifier can look up. alg carries the purpose: ed25519 signs, x25519 encrypts.",
+      "description": "A public key, held as material: it is public, so there is nothing to protect. Identified by the osid the registry assigns on write -- which is what a sender names in the Authorization header, and so the only id a verifier can look up. alg carries the purpose: ed25519 signs, x25519 encrypts. Strict, but declares the registry's own system fields: each key is a nested entity, so on a PUT the registry merges the stored key -- osid and the four os* audit fields it stamped on -- into the body before re-validating, and an undeclared one refuses every update of a node, including the revision bump that refreshes an admitted peer. Declared rather than opening additionalProperties, so a typo such as validUnitl is still refused instead of stored and ignored. The registry sets these; they carry no constraint of ours. osOwner is deliberately absent: the registry never sets it on a key, so declaring it would only let a client write one.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -175,7 +175,12 @@
             "active",
             "revoked"
           ]
-        }
+        },
+        "osid": {},
+        "osCreatedAt": {},
+        "osUpdatedAt": {},
+        "osCreatedBy": {},
+        "osUpdatedBy": {}
       }
     },
     "ParticipantId": {
