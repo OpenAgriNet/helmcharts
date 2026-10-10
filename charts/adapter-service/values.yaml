@@ -451,7 +451,5 @@ singleNetworkLayer:
       existingSecret: ""
 
   # Extra placeholders, as "<tier>/<key in that tier's Secret>".
-  # config/single-network-layer-config.yaml uses __VISTAAR_TOKEN_URL__, so it is
-  # set by default: the provider tier's Secret must carry vistaarTokenUrl.
-  extraSubstitutions:
-    __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl
+  #   __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl
+  extraSubstitutions: {}
