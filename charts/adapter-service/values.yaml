@@ -1,15 +1,20 @@
 # ===========================================================================
 # adapter-service
 #
-# One chart for all three Beckn adapters. provider, network and consumer are the
-# same image and the same config format; `role` below decides the handler
-# role, the step list and where requests are routed.
+# One chart for the Beckn adapters: provider, network and consumer (one release
+# per tier), or single-network-layer (all three tiers in one adapter). Same image and
+# config format; `role` below decides the handler role, the step list and
+# where requests are routed.
 #
 # INSTALL ONCE PER ROLE, and keep the RELEASE name per-role:
 #
 #   helm install provider-adapter . -f examples/provider.yaml
 #   helm install network-adapter  . -f examples/network.yaml
 #   helm install consumer-adapter      . -f examples/consumer.yaml
+#
+# OR, all three tiers in one adapter (one release instead of the three above):
+#
+#   helm install single-network-layer-adapter . -f examples/single-network-layer.yaml
 #
 # The release name is what the Service is called, which is the DNS name the
 # other adapters address. Rename a release and you must update whatever routes
@@ -25,7 +30,7 @@
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
-# Role: provider | network | consumer
+# Role: provider | network | consumer | single-network-layer
 #
 # Required, with no default. A default would hand one role's handler role and
 # step list to a different adapter, which renders, starts, reports Ready and
@@ -327,21 +332,26 @@ resources:
 # Both hit /health, which the adapter serves from its own mux and which does
 # not touch the registry or discovery -- so a readiness failure here means
 # this process is unwell, not that something downstream is.
-probes:
-  liveness:
-    enabled: true
+startupProbe:
+  enabled: false
+livenessProbe:
+  enabled: true
+  httpGet:
     path: /health
-    initialDelaySeconds: 10
-    periodSeconds: 20
-    timeoutSeconds: 3
-    failureThreshold: 3
-  readiness:
-    enabled: true
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 20
+  timeoutSeconds: 3
+  failureThreshold: 3
+readinessProbe:
+  enabled: true
+  httpGet:
     path: /health
-    initialDelaySeconds: 5
-    periodSeconds: 10
-    timeoutSeconds: 3
-    failureThreshold: 3
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
 
 autoscaling:
   enabled: false
@@ -349,6 +359,8 @@ autoscaling:
   maxReplicas: 6
   targetCPUUtilizationPercentage: 75
   targetMemoryUtilizationPercentage: ""
+  # Passed through to the HPA as spec.behavior. {} = Kubernetes defaults.
+  behavior: {}
 
 podDisruptionBudget:
   enabled: false
@@ -376,6 +388,20 @@ securityContext:
     drop:
       - ALL
 
+# Spread replicas so one node loss is not an outage. labelSelector defaults to
+# this release's selector labels when omitted.
+topologySpreadConstraints: []
+
+# Graceful shutdown. preStop sleeps so the endpoint leaves the Service before
+# the process stops accepting. preStop.sleep needs Kubernetes 1.30+; keep 0 on
+# older clusters. Empty grace period = the Kubernetes default (30s).
+terminationGracePeriodSeconds: ""
+preStopSleepSeconds: 0
+
+# Soft memory limit for the Go runtime (e.g. 900MiB under a 1Gi limit), so GC
+# works harder before the container is OOM-killed. Empty = unset.
+goMemLimit: ""
+
 nodeSelector: {}
 tolerations: []
 affinity: {}
@@ -389,3 +415,41 @@ extraVolumes: []
 extraVolumeMounts: []
 extraEnv: []
 envFromSecrets: []
+
+# ---------------------------------------------------------------------------
+# role: single-network-layer -- the single network layer adapter.
+#
+# The consumer, network and provider tiers as four modules of ONE process
+# (/ for the consumer, /network/, /provider/, /provider/publish). Its adapter config is
+# config/single-network-layer-config.yaml, mounted verbatim like any role's
+# file: log level, timeouts, telemetry, extended schema and the outbound
+# connection pool are set there. The routing is generated at render time from
+# the tier routing files, with tier-to-tier hops pointed at this pod's own
+# listener (http://localhost:<service.targetPort>/<tier>): any adapter image
+# works.
+#
+# Ignored by the provider, network and consumer roles.
+#
+# NOT USED by this role: `routing.config` (setting it fails the render, because
+# the routing is generated) and `handler.*` (role, steps and path are in the
+# config file). `config` replaces config/single-network-layer-config.yaml
+# WHOLE: the private-key guard still runs on it, and it must point its routers
+# at /app/config/routing-single-network-layer-consumer.yaml, routing-network.yaml and
+# routing-single-network-layer-publish.yaml.
+# ---------------------------------------------------------------------------
+singleNetworkLayer:
+  # Three identities, one per tier: the same Secrets (six keys each, named as
+  # under keys.existingSecret) and the same registry rows the multi-adapter
+  # releases use, so either mode runs against the same registry. They must
+  # exist in THIS release's namespace (openbao-secrets reflects them there).
+  keys:
+    consumer:
+      existingSecret: ""
+    network:
+      existingSecret: ""
+    provider:
+      existingSecret: ""
+
+  # Extra placeholders, as "<tier>/<key in that tier's Secret>".
+  #   __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl
+  extraSubstitutions: {}

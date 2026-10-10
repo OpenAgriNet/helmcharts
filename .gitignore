@@ -69,6 +69,12 @@ rendered/
 secrets.json
 *-secrets.json
 
+# Generated local Postman exports for the unified network layer; keep them out of source
+# control even though they are tracked alongside the repo's API collection files.
+api-collection/OpenAgriNet.unified-network-layer.collection.json
+api-collection/OpenAgriNet.unified-network-layer.environment.json
+
+/dev_docs
 # Python bytecode
 __pycache__/
 *.pyc

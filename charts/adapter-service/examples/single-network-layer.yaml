@@ -1,0 +1,137 @@
+# ===========================================================================
+# single-network-layer role -- the single network layer adapter.
+#
+# The consumer, network and provider tiers as four modules of ONE adapter
+# process, on one Service:
+#
+#   /<action>            the consumer (bap); the app posts here, unsigned
+#   /network/<action>    internal: verifies and forwards to discovery
+#   /provider/<action>   answers from the upstream APIs (bpp)
+#   /provider/publish    the catalogue system publishes here
+#
+# The alternative to installing the three multi-adapter releases
+# (examples/consumer.yaml, network.yaml, provider.yaml). Run one mode or the
+# other in an environment, not both.
+#
+#   helm install single-network-layer-adapter . -n single-network-layer-adapter --create-namespace \
+#     -f examples/single-network-layer.yaml
+#
+# The config is config/single-network-layer-config.yaml; the routing is
+# generated from config/routing-*.yaml. Tier hops are loopback HTTP inside the
+# pod, so any adapter image works.
+# ===========================================================================
+role: single-network-layer
+
+# The Service name and DNS name callers use:
+# single-network-layer-adapter.single-network-layer-adapter.svc.cluster.local:9200
+fullnameOverride: single-network-layer-adapter
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/network-adapter
+  tag: "latest"
+
+registry:
+  url: http://registry:8081/api/v1
+
+# The same port the quick-start publishes. targetPort is also the loopback port
+# the generated routing uses, and must equal http.port in
+# config/single-network-layer-config.yaml (the render checks).
+service:
+  port: 9200
+  targetPort: 9200
+
+singleNetworkLayer:
+  # The three tier Secrets the multi-adapter releases use. openbao-secrets
+  # reflects them into this namespace.
+  keys:
+    consumer:
+      existingSecret: consumer-adapter-keys
+    network:
+      existingSecret: network-adapter-keys
+    provider:
+      existingSecret: provider-adapter-keys
+  # The provider tier's token endpoint, from the provider Secret. Without it
+  # the init container stops on the leftover placeholder.
+  extraSubstitutions:
+    __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl
+
+# The provider tier reads its upstream credentials (MAUSAMGRAM_AUTH,
+# AGMARKNET_*, VISTAAR_CLIENT_*) from the environment.
+envFromSecrets:
+  - provider-upstream
+
+resources:
+  requests:
+    cpu: 300m
+    memory: 384Mi
+  limits:
+    cpu: 1500m
+    memory: 1Gi
+goMemLimit: 900MiB
+
+autoscaling:
+  enabled: true
+  minReplicas: 3          # one per node with the spread constraint below
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+
+terminationGracePeriodSeconds: 40
+preStopSleepSeconds: 10   # needs Kubernetes 1.30+; 0 on older clusters
+
+# Off here. When on, only single-segment /<action> paths (the consumer) and
+# /provider/<action> are accepted: /, /network*, /provider and
+# /provider/publish fail the render.
+ingress:
+  enabled: false
+  className: ""
+  hosts:
+    - host: single-network-layer.oan.example.com
+      paths:
+        - path: /discover
+          pathType: Exact
+        - path: /select
+          pathType: Exact
+        - path: /init
+          pathType: Exact
+        - path: /confirm
+          pathType: Exact
+        - path: /status
+          pathType: Exact
+        - path: /provider/select
+          pathType: Prefix
+        - path: /provider/init
+          pathType: Prefix
+        - path: /provider/confirm
+          pathType: Prefix
+        - path: /provider/status
+          pathType: Prefix
+
+waitFor:
+  enabled: false
+
+otel:
+  enabled: false
+  endpoint: ""

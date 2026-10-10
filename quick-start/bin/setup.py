@@ -556,8 +556,8 @@ def key_osids(identities):
 ROLES = ("consumer", "network", "provider")
 
 
-def render(identities):
-    print("configs:")
+def _shared_substitutions():
+    """Placeholders that are the same in every adapter config."""
     mausamgram_binding = (f"{env('MAUSAMGRAM_PARTICIPANT_ID')}"
                           f"|{env('MAUSAMGRAM_CAPABILITY')}")
     agmarknet_binding = (f"{env('AGMARKNET_PARTICIPANT_ID')}"
@@ -565,59 +565,102 @@ def render(identities):
     vistaar_binding = (f"{env('VISTAAR_PARTICIPANT_ID')}"
                        f"|{env('VISTAAR_CAPABILITY')}")
     pocra_binding = f"{env('POCRA_PARTICIPANT_ID')}|{env('POCRA_CAPABILITY')}"
+    return (
+        ("__MAUSAMGRAM_BINDING_KEY__", mausamgram_binding),
+        ("__AGMARKNET_BINDING_KEY__", agmarknet_binding),
+        ("__VISTAAR_BINDING_KEY__", vistaar_binding),
+        ("__VISTAAR_TOKEN_URL__", env("VISTAAR_TOKEN_URL")),
+        # Agmarknet's own token endpoint. A deployment fact, not a
+        # credential, so it is rendered directly -- the access name and
+        # password stay as variable NAMES in the config and reach the
+        # adapter through its environment.
+        ("__AGMARKNET_TOKEN_URL__", env("AGMARKNET_TOKEN_URL")),
+        # Auth is per provider, so the participant id is a YAML KEY in
+        # the adapter config, not only half of a binding key.
+        ("__POCRA_BINDING_KEY__", pocra_binding),
+        ("__MAUSAMGRAM_PARTICIPANT_ID__", env("MAUSAMGRAM_PARTICIPANT_ID")),
+        ("__AGMARKNET_PARTICIPANT_ID__", env("AGMARKNET_PARTICIPANT_ID")),
+        ("__VISTAAR_PARTICIPANT_ID__", env("VISTAAR_PARTICIPANT_ID")),
+        ("__POCRA_PARTICIPANT_ID__", env("POCRA_PARTICIPANT_ID")),
+        # Telemetry. One switch drives all three signals: with every
+        # one false the plugin builds no exporter and never dials, so
+        # a stack running without the observability profile stays
+        # quiet instead of logging a refused connection on a loop.
+        ("__OTEL_ENABLED__", env("ADAPTER_OTEL_ENABLED", "true")),
+        ("__OTLP_ENDPOINT__", env("OTLP_ENDPOINT", "hyperdx:4317")),
+        ("__OTEL_ENVIRONMENT__", env("OTEL_ENVIRONMENT", "dev")))
+
+
+def _role_substitutions(role, identity):
+    """The six per-role placeholders: id, key id, and the four keys."""
+    prefix = role.upper()
+    return (
+        (f"__{prefix}_SUBSCRIBER_ID__", identity["participantId"]),
+        (f"__{prefix}_KEY_ID__", identity["keyOsid"]),
+        (f"__{prefix}_SIGNING_PRIVATE__", identity["signingPrivate"]),
+        (f"__{prefix}_SIGNING_PUBLIC__", identity["signingPublic"]),
+        (f"__{prefix}_ENCR_PRIVATE__", identity["encrPrivate"]),
+        (f"__{prefix}_ENCR_PUBLIC__", identity["encrPublic"]))
+
+
+def _fill(name, template, substitutions):
+    """Fill one template's placeholders; refuse if any survive."""
+    for placeholder, value in substitutions:
+        template = template.replace(placeholder, value)
+    if "__" in template:
+        sys.exit(f"setup: {name}.yaml still has unrendered placeholders")
+    return template
+
+
+def _write(rel, text):
+    """Write config/adapters/<rel> (mode 600: it holds private keys)."""
+    out = ADAPTERS / rel
+    # A bare `docker compose up -d` before this script runs starts the
+    # adapters too, and Docker creates a DIRECTORY at a bind-mount source
+    # that does not exist. Writing would then fail with a bare
+    # IsADirectoryError that says nothing about the cause.
+    if out.is_dir():
+        sys.exit(
+            f"setup: {out} is a directory, not a file.\n"
+            f"  Docker created it, which means the adapters were started before this\n"
+            f"  script ran. Bring them down, remove the empty directories and retry:\n"
+            f"    docker compose down\n"
+            f"    rmdir {out}\n"
+            f"    make up")
+    out.write_text(text)
+    out.chmod(0o600)  # holds a private key
+    print(f"  config/adapters/{rel}")
+
+
+def _render_one(name, template, substitutions):
+    """Fill one template and write config/adapters/<name>.yaml (mode 600)."""
+    _write(f"{name}.yaml", _fill(name, template, substitutions))
+
+
+# ------------------------------------------------------ single network layer
+#
+# The single network layer runs the consumer, network and provider tiers as
+# modules of ONE adapter (docker-compose.single-network-layer.yml). Its
+# template, single-network-layer.yaml.tmpl, carries all three tiers'
+# placeholders: each module keeps its own tier identity, so both stacks use the
+# same keys and registry rows.
+def _render_single_network_layer(identities, shared):
+    substitutions = shared
     for role in ROLES:
-        identity = identities[role]
+        substitutions = _role_substitutions(role, identities[role]) + substitutions
+    _render_one("single-network-layer",
+                (ADAPTERS / "single-network-layer.yaml.tmpl").read_text(),
+                substitutions)
+
+
+def render(identities):
+    print("configs:")
+    shared = _shared_substitutions()
+    for role in ROLES:
         template = (ADAPTERS / f"{role}.yaml.tmpl").read_text()
-        prefix = role.upper()
-        for placeholder, value in (
-                (f"__{prefix}_SUBSCRIBER_ID__", identity["participantId"]),
-                (f"__{prefix}_KEY_ID__", identity["keyOsid"]),
-                (f"__{prefix}_SIGNING_PRIVATE__", identity["signingPrivate"]),
-                (f"__{prefix}_SIGNING_PUBLIC__", identity["signingPublic"]),
-                (f"__{prefix}_ENCR_PRIVATE__", identity["encrPrivate"]),
-                (f"__{prefix}_ENCR_PUBLIC__", identity["encrPublic"]),
-                ("__MAUSAMGRAM_BINDING_KEY__", mausamgram_binding),
-                ("__AGMARKNET_BINDING_KEY__", agmarknet_binding),
-                ("__VISTAAR_BINDING_KEY__", vistaar_binding),
-                ("__VISTAAR_TOKEN_URL__", env("VISTAAR_TOKEN_URL")),
-                # Agmarknet's own token endpoint. A deployment fact, not a
-                # credential, so it is rendered directly -- the access name and
-                # password stay as variable NAMES in the config and reach the
-                # adapter through its environment.
-                ("__AGMARKNET_TOKEN_URL__", env("AGMARKNET_TOKEN_URL")),
-                # Auth is per provider, so the participant id is a YAML KEY in
-                # the adapter config, not only half of a binding key.
-                ("__POCRA_BINDING_KEY__", pocra_binding),
-                ("__MAUSAMGRAM_PARTICIPANT_ID__", env("MAUSAMGRAM_PARTICIPANT_ID")),
-                ("__AGMARKNET_PARTICIPANT_ID__", env("AGMARKNET_PARTICIPANT_ID")),
-                ("__VISTAAR_PARTICIPANT_ID__", env("VISTAAR_PARTICIPANT_ID")),
-                ("__POCRA_PARTICIPANT_ID__", env("POCRA_PARTICIPANT_ID")),
-                # Telemetry. One switch drives all three signals: with every
-                # one false the plugin builds no exporter and never dials, so
-                # a stack running without the observability profile stays
-                # quiet instead of logging a refused connection on a loop.
-                ("__OTEL_ENABLED__", env("ADAPTER_OTEL_ENABLED", "true")),
-                ("__OTLP_ENDPOINT__", env("OTLP_ENDPOINT", "hyperdx:4317")),
-                ("__OTEL_ENVIRONMENT__", env("OTEL_ENVIRONMENT", "dev"))):
-            template = template.replace(placeholder, value)
-        if "__" in template:
-            sys.exit(f"setup: {role}.yaml still has unrendered placeholders")
-        out = ADAPTERS / f"{role}.yaml"
-        # A bare `docker compose up -d` before this script runs starts the
-        # adapters too, and Docker creates a DIRECTORY at a bind-mount source
-        # that does not exist. Writing would then fail with a bare
-        # IsADirectoryError that says nothing about the cause.
-        if out.is_dir():
-            sys.exit(
-                f"setup: {out} is a directory, not a file.\n"
-                f"  Docker created it, which means the adapters were started before this\n"
-                f"  script ran. Bring them down, remove the empty directories and retry:\n"
-                f"    docker compose down\n"
-                f"    rmdir config/adapters/*.yaml\n"
-                f"    make up")
-        out.write_text(template)
-        out.chmod(0o600)  # holds a private key
-        print(f"  config/adapters/{role}.yaml")
+        _render_one(role, template,
+                    _role_substitutions(role, identities[role]) + shared)
+    _render_single_network_layer(identities, shared)
 
 
 if __name__ == "__main__":

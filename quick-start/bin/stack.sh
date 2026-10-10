@@ -143,6 +143,8 @@ up_adapters() {
     # new participant id and base URL in .env plus a setup.py re-run, because
     # the registry cannot repoint an existing row.
     step 3 "$1" "adapters (provider, network, consumer)"
+    # The single network layer adapter also publishes 9200: stop it first.
+    docker compose -f docker-compose.single-network-layer.yml stop single-network-layer-adapter >/dev/null 2>&1 || true
     docker compose up -d provider-adapter network-adapter consumer-adapter
 }
 
@@ -163,6 +165,46 @@ done_banner() {
   it before creating anything.
 
 NEXT
+}
+
+# ----------------------------------------------- single network layer
+
+# The single network layer: ONE adapter runs the consumer, network and
+# provider tiers as modules of one process (the single network layer adapter), with
+# tier-to-tier hops over loopback HTTP inside the container. The multi-adapter
+# containers are NOT started. `make up-single-network-layer` does not start the
+# mocks either, as in `up`; bin/single-network-layer-up.sh does start them, for
+# its local smoke test.
+#
+# Its stack is its own complete compose file (docker-compose.single-network-layer.yml),
+# so docker-compose.yml is not touched. Passing -f overrides COMPOSE_FILE, so
+# the Apple-silicon override is added here when it exists.
+single_network_layer_compose() {
+    local files=(-f docker-compose.single-network-layer.yml)
+    [ -f docker-compose.arm64.yml ] && files+=(-f docker-compose.arm64.yml)
+    docker compose "${files[@]}" "$@"
+}
+
+up_single_network_layer() {
+    preflight
+    step 1 3 "registry and discovery (single network layer compose file)"
+    single_network_layer_compose up -d sunbird-registry-service discovery-service
+    up_setup 3
+    # Never let compose create a directory where the bind-mounted config file belongs.
+    [ -f config/adapters/single-network-layer.yaml ] \
+        || die "config/adapters/single-network-layer.yaml was not rendered (is it a directory? rm -r it, then re-run)"
+    step 3 3 "single-network-layer-adapter (consumer + network + provider in one process)"
+    # The multi-adapter containers share this project; one topology at a time.
+    docker compose stop provider-adapter network-adapter consumer-adapter >/dev/null 2>&1 || true
+    single_network_layer_compose up -d --force-recreate single-network-layer-adapter
+    printf '\n\033[1;32m==> single network layer is up\033[0m on 127.0.0.1:9200\n'
+}
+
+# Stops only the single network layer adapter; registry, discovery and data stay.
+down_single_network_layer() {
+    step 1 1 "stopping single-network-layer-adapter only"
+    single_network_layer_compose stop single-network-layer-adapter
+    single_network_layer_compose rm -f single-network-layer-adapter
 }
 
 # ----------------------------------------------------------------- down
@@ -327,6 +369,9 @@ bin/stack.sh <command>
   up             the whole stack: registry+discovery -> setup.py -> adapters
                  -> gateway (public, 80/443) -> hyperdx (wants 16 GB)
   up-core        steps 1-3 only. Nothing public, no ClickHouse.
+  up-single-network-layer    docker-compose.single-network-layer.yml: registry+discovery
+                              -> setup.py -> single-network-layer-adapter
+  down-single-network-layer  stop and remove single-network-layer-adapter only
   down           stop everything, keep the data
   destroy        stop everything and DELETE every volume
   setup          re-run bin/setup.py only
@@ -344,6 +389,8 @@ USAGE
 case "${1:-}" in
     up)             up ;;
     up-core)        up_core ;;
+    up-single-network-layer)   up_single_network_layer ;;
+    down-single-network-layer) down_single_network_layer ;;
     down)           down ;;
     destroy)        destroy ;;
     setup)          setup ;;

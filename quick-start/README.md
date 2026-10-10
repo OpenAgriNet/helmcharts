@@ -189,6 +189,43 @@ collection. → Appendix N.
 
 ---
 
+## Single network layer (optional)
+
+The same network can run two ways. Both use the same registry, keys and data:
+
+| | Multi-adapter (default) | Single network layer |
+|---|---|---|
+| What runs | `consumer-adapter`, `network-adapter`, `provider-adapter` | one `single-network-layer-adapter` (the single network layer adapter) |
+| Compose file | `docker-compose.yml` | `docker-compose.single-network-layer.yml` |
+| Start / stop | `make up` / `make down` | `make up-single-network-layer` / `make down-single-network-layer` |
+| Tier-to-tier hops | HTTP between containers | HTTP over loopback (`http://localhost:9200`) inside the one container |
+| Port | 9202 / 9201 / 9200 | `127.0.0.1:9200` (so only one mode runs at a time) |
+
+Use one or the other, not both: they share the project name and data volumes.
+Both use `ADAPTER_IMAGE` from `.env`; nothing else needs setting.
+
+**Config.** `config/adapters/single-network-layer.yaml.tmpl`, beside the three
+tier templates. `bin/setup.py` fills it into `config/adapters/single-network-layer.yaml`
+like the others. Each module is its tier's module from the tier template (a
+change to a tier template that should apply here goes in this file too), plus
+extended schema validation on every module, an outbound connection pool and log level info.
+Each module keeps its own tier identity. The same layout as the Helm chart's
+`config/single-network-layer-config.yaml`.
+
+| Module | Path | From | Routing file | Routes |
+|---|---|---|---|---|
+| `consumer` | `/<action>` | `consumer.yaml.tmpl` | `routing-single-network-layer-consumer.yaml` | discover to `localhost:9200/network`; select, init, confirm, status to `localhost:9200/provider` |
+| `network` | `/network/<action>` | `network.yaml.tmpl` | `routing-network.yaml` (multi file, reused) | discover, publish to discovery |
+| `provider` | `/provider/<action>` | `provider.yaml.tmpl` (module 1) | none: answers itself | n/a |
+| `provider-publish` | `/provider/publish` | `provider.yaml.tmpl` (module 2) | `routing-single-network-layer-publish.yaml` | to `localhost:9200/network/publish` |
+
+The hops between modules are loopback HTTP calls to the same container. In the
+multi-adapter stack only the hosts differ. 9200 is the container's own listener
+and must match `http.port` in `single-network-layer.yaml.tmpl`.
+
+Tools:
+- `bin/single-network-layer-up.sh`: start and smoke-test (publish, discover, select).
+
 # Part 2 — Run it on a VM
 
 Four differences. **V1 comes before Part 1 Step 2**, because it installs `git`.

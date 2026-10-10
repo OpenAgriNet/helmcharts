@@ -1,9 +1,46 @@
 {{- if .Values.ingress.enabled }}
+{{- if include "adapter-service.isSingleNetworkLayer" . }}
+{{- /* role single-network-layer: only single-segment /<action> paths (the
+       consumer module is mounted at /) and individual /provider/<action> paths
+       may be public. "/" or "/provider" with Prefix would also expose /network
+       (an internal tier) and /provider/publish, which has no validateSign and
+       signs as the provider.
+       The path check holds only for literal prefix matching, so pathType must be
+       Prefix or Exact (ImplementationSpecific is a plain string prefix on
+       ingress-nginx: /provider/p would match /provider/publish), the path must
+       be literal, and regex or rewrite annotations are refused. */}}
+{{- $ann := merge (dict) .Values.ingress.annotations (.Values.commonAnnotations | default dict) }}
+{{- if eq (index $ann "nginx.ingress.kubernetes.io/use-regex" | default "" | toString) "true" }}
+{{- fail (printf "%s: ingress annotation nginx.ingress.kubernetes.io/use-regex is not allowed for the single-network-layer role. A regex path can match /network or /provider/publish." .Chart.Name) }}
+{{- end }}
+{{- if hasKey $ann "nginx.ingress.kubernetes.io/rewrite-target" }}
+{{- fail (printf "%s: ingress annotation nginx.ingress.kubernetes.io/rewrite-target is not allowed for the single-network-layer role. It turns paths into regexes and can rewrite a request onto /network or /provider/publish." .Chart.Name) }}
+{{- end }}
+{{- range .Values.ingress.hosts }}
+{{- range .paths }}
+{{- $p := .path | default "" }}
+{{- $pt := .pathType | default "Prefix" }}
+{{- if not (has $pt (list "Prefix" "Exact")) }}
+{{- fail (printf "%s: ingress path %q has pathType %s, which is not allowed for the single-network-layer role. Use Prefix or Exact: other path types can match /network or /provider/publish." $.Chart.Name $p $pt) }}
+{{- end }}
+{{- if or (not (regexMatch "^/[A-Za-z0-9/_.-]*$" $p)) (contains ".." $p) (contains "//" $p) }}
+{{- fail (printf "%s: ingress path %q is not allowed for the single-network-layer role. It must be a literal path (letters, digits, / _ . -), with no regex characters, .. or //." $.Chart.Name $p) }}
+{{- end }}
+{{- $consumer := and (regexMatch "^/[A-Za-z0-9_.-]+$" $p) (not (has $p (list "/network" "/provider"))) }}
+{{- $provider := and (hasPrefix "/provider/" $p) (ne $p "/provider/") (not (hasPrefix "/provider/publish" $p)) }}
+{{- if not (or $consumer $provider) }}
+{{- fail (printf "%s: ingress path %q is not allowed for the single-network-layer role. Allowed: single-segment /<action> (the consumer, e.g. /discover) and /provider/<action> (not /provider/publish). /, /provider and /network* would expose internal tiers." $.Chart.Name $p) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{/*
 Off by default, and worth a thought before turning on.
 
-This adapter takes SIGNED requests -- validateSign is its first step -- so
-publishing it is not the same risk as publishing an adapter that does not. But
+The provider and network roles take SIGNED requests -- validateSign is their
+first step -- so publishing them is not the same risk as publishing an adapter
+that does not. The consumer role, and the single-network-layer consumer module
+at /, take UNSIGNED requests (NOTES says so when ingress is on). Either way
 it is still a Beckn peer endpoint, and the thing that makes it safe is that
 every caller must hold a key the registry publishes. That is a property of the
 registry's contents, not of this Ingress.

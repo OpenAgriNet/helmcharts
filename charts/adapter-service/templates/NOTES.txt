@@ -1,11 +1,15 @@
 {{ .Chart.Name }} {{ .Chart.Version }} — {{ include "adapter-service.fullname" . }}
-
+{{ if include "adapter-service.isSingleNetworkLayer" . }}
+  role       single-network-layer (all three tiers in one adapter: / consumer bap, /network/ bpp, /provider/ bpp, /provider/publish bap)
+  hops       loopback HTTP between tiers (http://localhost:{{ .Values.service.targetPort }}/<tier>)
+{{- else }}
   role       {{ include "adapter-service.role" . }} ({{ include "adapter-service.handlerRole" . }})
   steps      {{ include "adapter-service.steps" . | fromYamlArray | join " -> " }}
+{{- end }}
   image      {{ include "adapter-service.image" . }}
   service    {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}
   registry   {{ .Values.registry.url }}
-  routes     from config/routing-{{ include "adapter-service.role" . }}.yaml
+  routes     {{ if include "adapter-service.isSingleNetworkLayer" . }}generated from config/routing-{consumer,network,provider}.yaml{{ else }}from config/routing-{{ include "adapter-service.role" . }}.yaml{{ end }}
   telemetry  {{ if .Values.otel.enabled }}{{ .Values.otel.endpoint }}{{ else }}off{{ end }}
 
 This Service is reachable in-cluster as {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}.
@@ -22,6 +26,21 @@ chart's appVersion.
 
 TWO THINGS THIS CHART CANNOT CHECK FOR YOU
 
+{{ if include "adapter-service.isSingleNetworkLayer" . -}}
+1. The Participant rows. This adapter signs as three identities -- consumer,
+   network and provider -- from Secrets {{ include "adapter-service.singleNetworkLayer.tierSecret" (dict "ctx" . "tier" "consumer") }},
+   {{ include "adapter-service.singleNetworkLayer.tierSecret" (dict "ctx" . "tier" "network") }} and {{ include "adapter-service.singleNetworkLayer.tierSecret" (dict "ctx" . "tier" "provider") }}: the same rows the
+   multi-adapter releases use. Each must carry its tier's public key.
+
+2. Key rotation. Changing any of those Secrets restarts nothing:
+
+     kubectl -n {{ include "common.namespace" . }} rollout restart deploy/{{ include "adapter-service.fullname" . }}
+
+Callers address the tiers by path on this one Service:
+  app (discover, select, ...)   {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}/<action>
+  catalogue publisher           {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}/provider/publish
+  /network is an internal tier: never route to it from outside.
+{{- else -}}
 1. The Participant row. This adapter signs as {{ .Values.keys.existingSecret.name }}'s
    subscriberId, and every peer verifies that signature against the public key
    the registry publishes for it. If the row is missing, or carries a different
@@ -33,6 +52,7 @@ TWO THINGS THIS CHART CANNOT CHECK FOR YOU
    checksum. Changing that Secret does not restart anything:
 
      kubectl -n {{ include "common.namespace" . }} rollout restart deploy/{{ include "adapter-service.fullname" . }}
+{{- end }}
 
 {{- if not .Values.otel.enabled }}
 
@@ -42,7 +62,14 @@ on and nothing listening the exporter logs a failure every interval.
 {{- if .Values.ingress.enabled }}
 
 Ingress is ON.
-{{- if eq (include "adapter-service.role" .) "consumer" }}
+{{- if include "adapter-service.isSingleNetworkLayer" . }}
+This is the single-network-layer role. /<action> (the consumer) accepts UNSIGNED requests: the consumer tier is
+inside the trust boundary and has no validateSign step, so an Ingress on it exposes an
+unauthenticated entry point to the network. Rate-limit this host.
+Rule: only single-segment /<action> paths and /provider/<action> may be exposed (the render refuses other paths),
+and never /network or /provider/publish: /network is an internal tier, and /provider/publish
+has no validateSign and signs as the provider.
+{{- else if eq (include "adapter-service.role" .) "consumer" }}
 This is the consumer role, which accepts UNSIGNED requests — it is inside the trust
 boundary and has no validateSign step. An Ingress therefore exposes an
 unauthenticated entry point to the network: rate-limit this host, and do not

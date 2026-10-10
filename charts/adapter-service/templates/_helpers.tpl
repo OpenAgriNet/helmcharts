@@ -5,7 +5,8 @@
 # Purpose: chart-local helpers delegating to common, plus the role,
 #          identity, upstream and config-rendering wiring an adapter needs.
 #
-# One chart, three roles. provider, network and consumer are the same image and the
+# One chart, four roles. provider, network and consumer (one release per tier)
+# and single-network-layer (all three tiers in one adapter) are the same image and the
 # same config format; the role decides the handler role, the step list and
 # where requests are routed. Install once per role, and keep the RELEASE name
 # per-role -- the release name is what becomes the Service DNS name that the
@@ -14,7 +15,7 @@
 */}}
 
 {{/*
-The adapter's role: provider | network | consumer.
+The adapter's role: provider | network | consumer | single-network-layer.
 
 Required, with no default. A default would silently give one role's step list
 and handler role to a different adapter -- which renders, starts, reports Ready
@@ -23,10 +24,10 @@ and then mis-handles every request, at the far end, in a peer's logs.
 {{- define "adapter-service.role" -}}
 {{- $role := .Values.role | default "" -}}
 {{- if not $role -}}
-{{- fail (printf "%s: role is required -- one of provider, network, consumer. It decides the handler role, the step list and the routing target, so there is no safe default. See examples/ for a values file per role." .Chart.Name) -}}
+{{- fail (printf "%s: role is required -- one of provider, network, consumer (the three multi-adapter tiers) or single-network-layer (all three tiers in one adapter). It decides the handler role, the step list and the routing target, so there is no safe default. See examples/ for a values file per role." .Chart.Name) -}}
 {{- end -}}
-{{- if not (has $role (list "provider" "network" "consumer")) -}}
-{{- fail (printf "%s: role must be one of provider, network, consumer (got %q)." .Chart.Name $role) -}}
+{{- if not (has $role (list "provider" "network" "consumer" "single-network-layer")) -}}
+{{- fail (printf "%s: role must be one of provider, network, consumer, single-network-layer (got %q)." .Chart.Name $role) -}}
 {{- end -}}
 {{- $role -}}
 {{- end }}

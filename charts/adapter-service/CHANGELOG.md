@@ -5,6 +5,42 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-10-09
+
+### Added
+- `role: single-network-layer`: all three tiers in one adapter (four modules:
+  `/` (consumer), `/network/`, `/provider/`, `/provider/publish`), as in the
+  quick-start's single-network-layer compose stack. Its config is
+  `config/single-network-layer-config.yaml` (extended schema, an outbound
+  connection pool and log level info on every module); its routing is generated
+  at render time from `config/routing-*.yaml`. Tier hops are loopback HTTP
+  inside the pod. Signs as three identities from
+  `singleNetworkLayer.keys.{consumer,network,provider}`; `routing.config` fails the
+  render for this role.
+- single-network-layer ingress may expose only single-segment `/<action>` and
+  `/provider/<action>`, as literal paths with `pathType` Prefix or Exact and
+  no `use-regex` / `rewrite-target` annotation. Example
+  `examples/single-network-layer.yaml`.
+- `autoscaling.behavior`, `topologySpreadConstraints`,
+  `terminationGracePeriodSeconds`, `preStopSleepSeconds`, `goMemLimit`; all off
+  by default.
+
+### Fixed
+- Liveness and readiness probes now render. Values used `probes.liveness` /
+  `probes.readiness`, which `common.probes` never read, so no adapter pod had a
+  readiness probe. Upgrading rolls every adapter pod once.
+
+### Removed
+- **Breaking:** the `probes.liveness` and `probes.readiness` values keys, renamed to
+  `livenessProbe` / `readinessProbe` (and a new `startupProbe`, off). The
+  timings are unchanged. An environment that overrides `probes.*` must rename
+  those keys.
+
+### Unchanged
+- Roles `provider`, `network`, `consumer`: same config, routing and manifests
+  apart from the probes (the chart version label and the config checksum
+  annotation also change with the version).
+
 ## [0.5.2] - 2026-09-29
 
 ### Changed

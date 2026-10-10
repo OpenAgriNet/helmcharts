@@ -44,6 +44,22 @@ spec:
       securityContext:
         {{- . | nindent 8 }}
       {{- end }}
+      {{- with .Values.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ . }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- range . }}
+        - {{- toYaml (omit . "labelSelector") | nindent 10 }}
+          labelSelector:
+            {{- if .labelSelector }}
+            {{- toYaml .labelSelector | nindent 12 }}
+            {{- else }}
+            matchLabels:
+              {{- include "adapter-service.selectorLabels" $ | nindent 14 }}
+            {{- end }}
+        {{- end }}
+      {{- end }}
       initContainers:
         {{- include "common.waitFor" (dict "ctx" . "tcp" list "http" list) | nindent 8 }}
         {{/*
@@ -70,13 +86,23 @@ spec:
             - -c
             - |
               set -eu
+              {{- if include "adapter-service.isSingleNetworkLayer" . }}
+              # single-network-layer: adapter.yaml plus one routing file per routed module.
+              cp /config-template/*.yaml /rendered/
+              {{- else }}
               cp /config-template/adapter.yaml /rendered/adapter.yaml
               cp /config-template/{{ include "adapter-service.routingFile" . }} /rendered/{{ include "adapter-service.routingFile" . }}
+              {{- end }}
 
               subst() {
                 # $1 placeholder, $2 file holding the value
                 if [ ! -s "$2" ]; then
+                  {{- if include "adapter-service.isSingleNetworkLayer" . }}
+                  # three tier Secrets share key names: name the tier too (e.g. network/keyId)
+                  echo "render-config: ${2#/keys/} is missing or empty in its tier's keys Secret" >&2
+                  {{- else }}
                   echo "render-config: $(basename "$2") is missing or empty in the keys Secret" >&2
+                  {{- end }}
                   exit 1
                 fi
                 # A value the registry has not assigned yet. keyId is the osid it
@@ -85,7 +111,11 @@ spec:
                 # -- the sentinel contains a colon -- or an adapter signing with an
                 # identity nothing can verify.
                 if head -c 9 "$2" | grep -q "<<PENDING"; then
+                  {{- if include "adapter-service.isSingleNetworkLayer" . }}
+                  echo "render-config: ${2#/keys/} is still unresolved." >&2
+                  {{- else }}
                   echo "render-config: $(basename "$2") is still unresolved." >&2
+                  {{- end }}
                   echo "  The registry assigns it when registry-seed writes this" >&2
                   echo "  adapter's public key. Run that, then:" >&2
                   echo "    ./scripts/resolve-key-ids.sh -e <env>" >&2
@@ -93,6 +123,24 @@ spec:
                 fi
                 sed -i "s|$1|$(cat "$2")|g" /rendered/adapter.yaml
               }
+              {{- if include "adapter-service.isSingleNetworkLayer" . }}
+
+              {{- /* Three identities: each tier's module signs as that tier, from
+                     that tier's Secret mounted at /keys/<tier>. */}}
+              {{- $k := .Values.keys.existingSecret }}
+              {{- range $tier := list "consumer" "network" "provider" }}
+              {{- $T := upper $tier }}
+              subst __{{ $T }}_SUBSCRIBER_ID__ /keys/{{ $tier }}/{{ $k.subscriberIdKey }}
+              subst __{{ $T }}_KEY_ID__ /keys/{{ $tier }}/{{ $k.keyIdKey }}
+              subst __{{ $T }}_SIGNING_PRIVATE__ /keys/{{ $tier }}/{{ $k.signingPrivateKey }}
+              subst __{{ $T }}_SIGNING_PUBLIC__ /keys/{{ $tier }}/{{ $k.signingPublicKey }}
+              subst __{{ $T }}_ENCR_PRIVATE__ /keys/{{ $tier }}/{{ $k.encrPrivateKey }}
+              subst __{{ $T }}_ENCR_PUBLIC__ /keys/{{ $tier }}/{{ $k.encrPublicKey }}
+              {{- end }}
+              {{- range $ph, $path := .Values.singleNetworkLayer.extraSubstitutions }}
+              subst {{ $ph }} /keys/{{ $path }}
+              {{- end }}
+              {{- else }}
 
               subst __ADAPTER_SUBSCRIBER_ID__   /keys/{{ .Values.keys.existingSecret.subscriberIdKey }}
               subst __ADAPTER_KEY_ID__          /keys/{{ .Values.keys.existingSecret.keyIdKey }}
@@ -106,6 +154,7 @@ spec:
                      mode if the key is absent. */}}
               {{- range $ph, $key := .Values.keys.existingSecret.extraSubstitutions }}
               subst {{ $ph }} /keys/{{ $key }}
+              {{- end }}
               {{- end }}
 
               # A placeholder that survived means a key was substituted with
@@ -121,9 +170,17 @@ spec:
             - name: config-template
               mountPath: /config-template
               readOnly: true
+            {{- if include "adapter-service.isSingleNetworkLayer" . }}
+            {{- range $tier := list "consumer" "network" "provider" }}
+            - name: keys-{{ $tier }}
+              mountPath: /keys/{{ $tier }}
+              readOnly: true
+            {{- end }}
+            {{- else }}
             - name: keys
               mountPath: /keys
               readOnly: true
+            {{- end }}
             - name: config
               mountPath: /rendered
           resources:
@@ -135,6 +192,12 @@ spec:
         - name: {{ .Chart.Name }}
           image: {{ include "adapter-service.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.preStopSleepSeconds }}
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: {{ .Values.preStopSleepSeconds }}
+          {{- end }}
           {{- with (include "common.securityContext" .) }}
           securityContext:
             {{- . | nindent 12 }}
@@ -150,6 +213,10 @@ spec:
             */}}
             - name: CONFIG_FILE
               value: {{ include "adapter-service.configDir" . }}/adapter.yaml
+            {{- with .Values.goMemLimit }}
+            - name: GOMEMLIMIT
+              value: {{ . | quote }}
+            {{- end }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -176,10 +243,19 @@ spec:
         - name: config-template
           configMap:
             name: {{ include "adapter-service.fullname" . }}-config
+        {{- if include "adapter-service.isSingleNetworkLayer" . }}
+        {{- range $tier := list "consumer" "network" "provider" }}
+        - name: keys-{{ $tier }}
+          secret:
+            secretName: {{ include "adapter-service.singleNetworkLayer.tierSecret" (dict "ctx" $ "tier" $tier) }}
+            defaultMode: 0400
+        {{- end }}
+        {{- else }}
         - name: keys
           secret:
             secretName: {{ include "adapter-service.keysSecretName" . }}
             defaultMode: 0400
+        {{- end }}
         {{/*
         The rendered config. emptyDir rather than anything durable: it is
         derived from a ConfigMap and a Secret and is rebuilt on every start,

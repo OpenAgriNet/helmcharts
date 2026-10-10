@@ -13,7 +13,7 @@
 
 STACK := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))bin/stack.sh
 
-.PHONY: help up up-core down destroy setup reverse-proxy observability pull restart restart-edge ps logs
+.PHONY: help up up-core up-single-network-layer down-single-network-layer down destroy setup reverse-proxy observability pull restart restart-edge ps logs
 
 # Default target: running a bare `make` in a directory that can delete a
 # Postgres volume should print the menu, not pick something from it.
@@ -25,6 +25,8 @@ help:
 up:            ; @$(STACK) up
 up-core:       ; @$(STACK) up-core
 down:          ; @$(STACK) down
+up-single-network-layer:   ; @$(STACK) up-single-network-layer
+down-single-network-layer: ; @$(STACK) down-single-network-layer
 destroy:       ; @$(STACK) destroy
 
 # --------------------------------------------- the optional tiers, on their own

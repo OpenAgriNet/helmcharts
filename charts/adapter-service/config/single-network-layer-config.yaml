@@ -1,0 +1,365 @@
+# OAN single network layer adapter (role single-network-layer). The consumer, network
+# and provider tiers as four modules of ONE adapter process:
+#
+#   /<action>            the consumer (bap); the app posts here, unsigned
+#   /network/<action>    verifies and forwards to discovery
+#   /provider/<action>   answers from the upstream APIs (bpp)
+#   /provider/publish    the catalogue system publishes here
+#
+# Each module is its tier's module from consumer-config.yaml, network-config.yaml
+# and provider-config.yaml. A change to one of those files that should also
+# apply here must be made in this file too.
+#
+# Differences from the three tier files:
+#   - one listener (9200) and one appName; tier hops are loopback HTTP to this
+#     same listener (see the routing-single-network-layer-*.yaml files, which the chart
+#     generates from routing-consumer.yaml and routing-provider.yaml);
+#   - extended schema validation on in every module;
+#   - an outbound connection pool (httpClientConfig) on every module;
+#   - log level info.
+#
+# This file is mounted verbatim. Each module signs as its OWN tier: the
+# __CONSUMER_*__, __NETWORK_*__ and __PROVIDER_*__ placeholders are substituted
+# by the init container from that tier's Secret
+# (singleNetworkLayer.keys.<tier>.existingSecret) at pod start, so no key is in this
+# file, in the ConfigMap, or in git.
+appName: "single-network-layer-adapter"
+
+log:
+  level: info
+  destinations:
+    - type: stdout
+  contextKeys: [transaction_id, message_id, subscriber_id, module_id]
+
+http:
+  # Also the port the generated loopback routing uses: keep it equal to the
+  # chart's service.targetPort.
+  port: 9200
+  timeout:
+    read: 30
+    write: 30
+    idle: 30
+
+pluginManager:
+  root: ./plugins
+
+plugins:
+  # Ships metrics, traces and logs over OTLP/gRPC. On because clickstack is
+  # deployed alongside. Turn all three off for a cluster without a collector:
+  # the exporter logs a connection failure every few seconds when nothing
+  # answers.
+  otelsetup:
+    id: otelsetup
+    config:
+      serviceName: "oan-single-network-layer-adapter"
+      environment: "dev"
+      otlpEndpoint: "clickstack-otel-collector.observability.svc.cluster.local:4317"
+      enableMetrics: "true"
+      enableTracing: "true"
+      enableLogs: "true"
+
+modules:
+  # ------------------------------------------------------------------ consumer
+  # From consumer-config.yaml. Accepts unsigned requests from the app, signs as
+  # the consumer, and routes discover to /network and transactions to /provider.
+  - name: consumer
+    path: /
+    handler:
+      type: std
+      role: bap
+      subscriberId: "__CONSUMER_SUBSCRIBER_ID__"
+      # Outbound pool. Go's default keeps 2 idle connections per host, so under
+      # load most calls would open a new connection. responseHeaderTimeout
+      # bounds the wait for an answer's headers, which on the consumer ->
+      # provider hop includes the upstream API call.
+      httpClientConfig:
+        maxIdleConns: 512
+        maxIdleConnsPerHost: 128
+        idleConnTimeout: 90s
+        responseHeaderTimeout: 30s
+      plugins:
+        registry:
+          id: sunbirdRegistry
+          config:
+            url: http://registry.registry.svc.cluster.local:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            maxResponseBytes: 1048576
+            cacheTTL: 0
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: "__CONSUMER_SUBSCRIBER_ID__"
+            keyId: "__CONSUMER_KEY_ID__"
+            signingPrivateKey: "__CONSUMER_SIGNING_PRIVATE__"
+            signingPublicKey: "__CONSUMER_SIGNING_PUBLIC__"
+            encrPrivateKey: "__CONSUMER_ENCR_PRIVATE__"
+            encrPublicKey: "__CONSUMER_ENCR_PUBLIC__"
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            cacheTTL: "3600"
+            extendedSchema_enabled: "true"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
+        signValidator:
+          id: signvalidator
+        signer:
+          id: signer
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/routing-single-network-layer-consumer.yaml
+        middleware:
+          - id: reqpreprocessor
+            config:
+              contextKeys: transaction_id,message_id
+              role: bap
+      steps:
+        - validateSchema
+        - addRoute
+        - sign
+
+  # ------------------------------------------------------------------- network
+  # From network-config.yaml. Verifies the caller's signature and forwards
+  # discover and publish to discovery. Internal: never expose it on an Ingress.
+  - name: network
+    path: /network/
+    handler:
+      type: std
+      role: bpp
+      subscriberId: "__NETWORK_SUBSCRIBER_ID__"
+      httpClientConfig:
+        maxIdleConns: 512
+        maxIdleConnsPerHost: 128
+        idleConnTimeout: 90s
+        responseHeaderTimeout: 30s
+      plugins:
+        registry:
+          id: sunbirdRegistry
+          config:
+            url: http://registry.registry.svc.cluster.local:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            maxResponseBytes: 1048576
+            cacheTTL: 0
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: "__NETWORK_SUBSCRIBER_ID__"
+            keyId: "__NETWORK_KEY_ID__"
+            signingPrivateKey: "__NETWORK_SIGNING_PRIVATE__"
+            signingPublicKey: "__NETWORK_SIGNING_PUBLIC__"
+            encrPrivateKey: "__NETWORK_ENCR_PRIVATE__"
+            encrPublicKey: "__NETWORK_ENCR_PUBLIC__"
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            cacheTTL: "3600"
+            extendedSchema_enabled: "true"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
+        signValidator:
+          id: signvalidator
+        signer:
+          id: signer
+        router:
+          id: router
+          config:
+            # The multi-adapter network routing, unchanged: discover and
+            # publish to discovery.
+            routingConfig: /app/config/routing-network.yaml
+        middleware:
+          - id: reqpreprocessor
+            config:
+              contextKeys: transaction_id,message_id
+              role: bpp
+      steps:
+        - validateSign
+        - addRoute
+
+  # ------------------------------------------------------------------ provider
+  # From provider-config.yaml, module 1. Verifies the caller and answers from
+  # the upstream APIs itself, so it has no router. Upstream credentials come
+  # from the environment (envFromSecrets: provider-upstream).
+  - name: provider
+    path: /provider/
+    handler:
+      type: std
+      role: bpp
+      subscriberId: "__PROVIDER_SUBSCRIBER_ID__"
+      httpClientConfig:
+        maxIdleConns: 512
+        maxIdleConnsPerHost: 128
+        idleConnTimeout: 90s
+        responseHeaderTimeout: 30s
+      plugins:
+        registry:
+          id: sunbirdRegistry
+          config:
+            url: http://registry.registry.svc.cluster.local:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            maxResponseBytes: 1048576
+            cacheTTL: 0
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: "__PROVIDER_SUBSCRIBER_ID__"
+            keyId: "__PROVIDER_KEY_ID__"
+            signingPrivateKey: "__PROVIDER_SIGNING_PRIVATE__"
+            signingPublicKey: "__PROVIDER_SIGNING_PUBLIC__"
+            encrPrivateKey: "__PROVIDER_ENCR_PRIVATE__"
+            encrPublicKey: "__PROVIDER_ENCR_PUBLIC__"
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            cacheTTL: "3600"
+            extendedSchema_enabled: "true"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
+        signValidator:
+          id: signvalidator
+        signer:
+          id: signer
+        mapper:
+          id: jsonmapper
+          config:
+            fetchTimeout: 10s
+            maxMappingBytes: 262144
+            cacheTTL: 1m
+            negativeTTL: 1m
+            maxCacheEntries: 200
+        middleware:
+          - id: reqpreprocessor
+            config:
+              contextKeys: transaction_id,message_id
+              role: bpp
+        providerSteps:
+          - id: WeatherObservation
+            config:
+              bindingKeys: "mausamgram|openagrinet:WeatherObservation"
+              mausamgram:
+                authScheme: header
+                headerName: Authorization
+                headerValueEnv: MAUSAMGRAM_AUTH
+
+          - id: MandiPrice
+            config:
+              bindingKeys: "agmarknet|openagrinet:MandiPrice"
+              agmarknet:
+                authScheme: none
+
+          - id: KnowledgeAdvisory
+            config:
+              bindingKeys: "bharat-vistaar|openagrinet:KnowledgeAdvisory"
+              bharat-vistaar:
+                authScheme: oauth2
+                # Substituted from the provider Secret (vistaarTokenUrl) via
+                # singleNetworkLayer.extraSubstitutions.
+                tokenUrl: "__VISTAAR_TOKEN_URL__"
+                clientIdEnv: VISTAAR_CLIENT_ID
+                clientSecretEnv: VISTAAR_CLIENT_SECRET
+              maxResponseBytes: 1048576
+
+          - id: AgricultureFacility
+            config:
+              bindingKeys: "pocra|openagrinet:AgricultureFacility"
+              pocra:
+                authScheme: none
+              searchConcurrency: 1
+      steps:
+        - validateSign
+        - validateSchema
+        - WeatherObservation
+        - MandiPrice
+        - KnowledgeAdvisory
+        - AgricultureFacility
+
+  # ---------------------------------------------------------- provider-publish
+  # From provider-config.yaml, module 2. The catalogue system publishes here;
+  # signed as the provider and routed to /network/publish. No validateSign:
+  # never expose it on an Ingress.
+  - name: provider-publish
+    path: /provider/publish
+    handler:
+      type: std
+      role: bap
+      subscriberId: "__PROVIDER_SUBSCRIBER_ID__"
+      httpClientConfig:
+        maxIdleConns: 512
+        maxIdleConnsPerHost: 128
+        idleConnTimeout: 90s
+        responseHeaderTimeout: 30s
+      plugins:
+        registry:
+          id: sunbirdRegistry
+          config:
+            url: http://registry.registry.svc.cluster.local:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            maxResponseBytes: 1048576
+            cacheTTL: 0
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: "__PROVIDER_SUBSCRIBER_ID__"
+            keyId: "__PROVIDER_KEY_ID__"
+            signingPrivateKey: "__PROVIDER_SIGNING_PRIVATE__"
+            signingPublicKey: "__PROVIDER_SIGNING_PUBLIC__"
+            encrPrivateKey: "__PROVIDER_ENCR_PRIVATE__"
+            encrPublicKey: "__PROVIDER_ENCR_PUBLIC__"
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            cacheTTL: "3600"
+            extendedSchema_enabled: "true"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
+        signer:
+          id: signer
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/routing-single-network-layer-publish.yaml
+        middleware:
+          - id: reqpreprocessor
+            config:
+              contextKeys: transaction_id,message_id
+              role: bap
+      steps:
+        - validateSchema
+        - addRoute
+        - sign

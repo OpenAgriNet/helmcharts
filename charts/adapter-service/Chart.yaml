@@ -1,13 +1,14 @@
 apiVersion: v2
 name: adapter-service
 description: >-
-  One chart for the OAN Beckn adapters. provider, network and consumer are the same
-  image and config format, so `role` selects the handler role, the step list
-  and the routing target; install once per role. Stateless: an adapter's
+  One chart for the OAN Beckn adapters: provider, network and consumer (one
+  release per tier), or single-network-layer (all three tiers in one adapter). Same
+  image and config format; role selects the handler role, the step list and
+  the routing target. Stateless: an adapter's
   identity is a keypair held in a Secret, and everything else it reads from
   the registry.
 type: application
-version: 0.5.2
+version: 0.5.3
 # The adapter binary, not this chart. `/health` reports the build it is
 # actually running, which is the number to trust over this one.
 appVersion: "v1.9.0"
@@ -22,6 +23,7 @@ keywords:
   - provider
   - network
   - consumer
+  - single-network-layer
 home: https://github.com/OpenAgriNet/helmcharts
 sources:
   - https://github.com/OpenAgriNet/helmcharts
