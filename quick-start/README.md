@@ -208,7 +208,7 @@ Both use `ADAPTER_IMAGE` from `.env`; nothing else needs setting.
 tier templates. `bin/setup.py` fills it into `config/adapters/single-network-layer.yaml`
 like the others. Each module is its tier's module from the tier template (a
 change to a tier template that should apply here goes in this file too), plus
-extended schema validation, an outbound connection pool and log level info.
+extended schema validation on every module, an outbound connection pool and log level info.
 Each module keeps its own tier identity. The same layout as the Helm chart's
 `config/single-network-layer-config.yaml`.
 
