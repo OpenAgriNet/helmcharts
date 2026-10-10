@@ -37,8 +37,10 @@
 {{/*
 Off by default, and worth a thought before turning on.
 
-This adapter takes SIGNED requests -- validateSign is its first step -- so
-publishing it is not the same risk as publishing an adapter that does not. But
+The provider and network roles take SIGNED requests -- validateSign is their
+first step -- so publishing them is not the same risk as publishing an adapter
+that does not. The consumer role, and the single-network-layer consumer module
+at /, take UNSIGNED requests (NOTES says so when ingress is on). Either way
 it is still a Beckn peer endpoint, and the thing that makes it safe is that
 every caller must hold a key the registry publishes. That is a property of the
 registry's contents, not of this Ingress.

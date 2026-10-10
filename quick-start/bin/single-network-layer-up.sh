@@ -28,8 +28,6 @@ die()  { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 command -v python3 >/dev/null 2>&1 || die "python3 is not installed -- bin/setup.py needs it"
 python3 -c 'import cryptography' >/dev/null 2>&1 \
     || die "the python 'cryptography' package is missing -- pip install cryptography"
-python3 -c 'import yaml' >/dev/null 2>&1 \
-    || die "the python 'yaml' package (PyYAML) is missing -- pip install pyyaml, or apt install python3-yaml"
 
 # --- 1. infrastructure ------------------------------------------------------
 step "1/4 registry, discovery, mocks (the mocks are for this script's local smoke test; make up-single-network-layer does not start them)"

@@ -18,6 +18,12 @@
 #   - an outbound connection pool (httpClientConfig) on every module;
 #   - log level info.
 #
+# SIGNING IS OFF, as in the three quick-start tier templates: no module runs
+# sign or validateSign, so /network/ and /provider/ accept unsigned requests
+# from anyone who can reach :9200. Keep it on 127.0.0.1 (as the compose file
+# does) and never put /network/ or /provider/ behind the reverse proxy. The
+# Helm chart's single-network-layer-config.yaml has signing on.
+#
 # bin/setup.py fills the placeholders -- each module's own tier identity
 # (the CONSUMER_, NETWORK_ and PROVIDER_ ones) and the shared ones -- and
 # writes config/adapters/single-network-layer.yaml (mode 600, gitignored: it
@@ -58,8 +64,8 @@ plugins:
 modules:
   # ------------------------------------------------------------------ consumer
   # From consumer.yaml.tmpl. Mounted at /, so the app calls /discover, /select,
-  # ... as on the multi-adapter consumer-adapter. Accepts unsigned requests,
-  # signs as the consumer, routes discover to /network and transactions to
+  # ... as on the multi-adapter consumer-adapter. Accepts unsigned requests
+  # under the consumer identity (signing is off here), routes discover to /network and transactions to
   # /provider (routing-single-network-layer-consumer.yaml).
   - name: consumer
     path: /
@@ -123,7 +129,7 @@ modules:
         - addRoute
 
   # ------------------------------------------------------------------- network
-  # From network.yaml.tmpl. Verifies the caller and forwards discover and
+  # From network.yaml.tmpl. Forwards discover and
   # publish to discovery (routing-network.yaml, the multi-adapter file).
   - name: network
     path: /network/
@@ -186,7 +192,7 @@ modules:
         - addRoute
 
   # ------------------------------------------------------------------ provider
-  # From provider.yaml.tmpl, module 1. Verifies the caller and answers from the
+  # From provider.yaml.tmpl, module 1. Answers from the
   # upstream APIs itself: no router.
   - name: provider
     path: /provider/
@@ -293,8 +299,8 @@ modules:
         - AgricultureFacility
 
   # ---------------------------------------------------------- provider-publish
-  # From provider.yaml.tmpl, module 2. The catalogue publishes here; signed as
-  # the provider and routed to /network/publish
+  # From provider.yaml.tmpl, module 2. The catalogue publishes here, under the
+  # provider identity (signing is off here); routed to /network/publish
   # (routing-single-network-layer-publish.yaml).
   - name: provider-publish
     path: /provider/publish

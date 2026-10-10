@@ -614,8 +614,10 @@ services:
   #   /provider/*          calls the upstream, answers synchronously
   #   /provider/publish    sends the provider's catalogue to /network/publish
   #
-  # Each module signs as its own tier identity (consumer, network, provider):
-  # the same keys and registry rows as the multi-adapter stack.
+  # Each module carries its own tier identity (consumer, network, provider):
+  # the same keys and registry rows as the multi-adapter stack. Signing is off,
+  # as in the multi-adapter quick-start templates, so /network/ and /provider/
+  # accept unsigned requests: keep :9200 on 127.0.0.1.
   single-network-layer-adapter:
     <<: *adapter
     container_name: single-network-layer-adapter

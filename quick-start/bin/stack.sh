@@ -64,13 +64,6 @@ preflight() {
         || die "the python 'cryptography' package is missing -- pip install cryptography"
 }
 
-# The single network layer renders its config with PyYAML (multi mode does not).
-preflight_single_network_layer() {
-    preflight
-    python3 -c 'import yaml' >/dev/null 2>&1 \
-        || die "the python 'yaml' package (PyYAML) is missing -- pip install pyyaml, or apt install python3-yaml"
-}
-
 # ------------------------------------------------------------------- up
 
 # The full stack, in the order the compose file's own header documents. Five
@@ -193,7 +186,7 @@ single_network_layer_compose() {
 }
 
 up_single_network_layer() {
-    preflight_single_network_layer
+    preflight
     step 1 3 "registry and discovery (single network layer compose file)"
     single_network_layer_compose up -d sunbird-registry-service discovery-service
     up_setup 3
