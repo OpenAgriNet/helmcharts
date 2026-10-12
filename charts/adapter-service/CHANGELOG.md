@@ -23,8 +23,7 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   a tier file that should apply to both topologies is made in both. Its routing
   is generated at render time from `config/routing-*.yaml`
   (`routing-network-adapter-{consumer,publish}.yaml`), with tier hosts rewritten
-  to `http://localhost:<targetPort>`. Tier hops are loopback HTTP inside the
-  pod. The render fails if `http.port` differs from `service.targetPort`.
+  to `http://localhost:<targetPort>`, so tier hops stay inside the pod. The render fails if `http.port` differs from `service.targetPort`.
 - Three identities: each module signs as its own tier from
   `networkAdapterLayer.keys.{consumer,network,provider}.existingSecret`
   (`networkAdapterLayer.extraSubstitutions` for extra placeholders). A literal

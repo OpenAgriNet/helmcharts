@@ -28,7 +28,7 @@
 # other adapters address. In multi, rename a release and you must update
 # whatever routes to it -- consumer routes to the network adapter, provider is
 # routed to by network. The single topology has no such addresses: its tiers
-# call each other over loopback inside the pod.
+# call each other inside the pod.
 #
 # Two things every role needs that this chart cannot give it:
 #

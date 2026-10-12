@@ -18,8 +18,8 @@
 #     -f examples/network-adapter.yaml
 #
 # The config is config/network-adapter-config.yaml; the routing is
-# generated from config/routing-*.yaml. Tier hops are loopback HTTP inside the
-# pod, so any adapter image works.
+# generated from config/routing-*.yaml. Tier hops stay inside the pod, so any
+# adapter image works.
 # ===========================================================================
 role: network-adapter-layer
 
@@ -36,8 +36,8 @@ image:
 registry:
   url: http://registry:8081/api/v1
 
-# The same port the quick-start publishes. targetPort is also the loopback port
-# the generated routing uses, and must equal http.port in
+# The same port the quick-start publishes. targetPort is also the port the
+# generated routing uses, and must equal http.port in
 # config/network-adapter-config.yaml (the render checks).
 service:
   port: 9200

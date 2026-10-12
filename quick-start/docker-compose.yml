@@ -546,7 +546,7 @@ services:
   #   profile "network" (the single topology, the default; `make up`)
   #     network-adapter-layer (container network-adapter): the consumer, network and provider tiers
   #     as four modules of ONE process, one config, one port (127.0.0.1:9200).
-  #     Tier-to-tier hops are loopback HTTP inside the container.
+  #     Tier-to-tier hops stay inside the container.
   #
   #   profile "multi" (`make up-multi`)
   #     provider-adapter, network-adapter, consumer-adapter: one container per

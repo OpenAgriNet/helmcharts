@@ -33,8 +33,8 @@ where the reason lives.
 adapter, which files the catalogue in discovery.
 
 In the default single topology each box above is a module of the one
-`network-adapter`, and the arrows between them are loopback calls
-inside that container.
+`network-adapter`, and the arrows between them are calls inside that
+container.
 
 All three adapters read the registry — who signed this request, and where this
 capability's provider lives.
@@ -282,7 +282,7 @@ Each module keeps its own tier identity. The same layout as the Helm chart's
 | `provider` | `/provider/<action>` | `provider.yaml.tmpl` (module 1) | none: answers itself | n/a |
 | `provider-publish` | `/provider/publish` | `provider.yaml.tmpl` (module 2) | `routing-network-adapter-publish.yaml` | to `localhost:9200/network/publish` |
 
-The hops between modules are loopback HTTP calls to the same container. In the
+The hops between modules are HTTP calls to the same container. In the
 multi-adapter stack only the hosts differ. 9200 is the container's own listener
 and must match `http.port` in `network-adapter.yaml.tmpl`.
 

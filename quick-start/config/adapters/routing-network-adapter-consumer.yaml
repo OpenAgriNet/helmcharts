@@ -2,8 +2,8 @@
 # (consumer, network and provider as modules of one adapter).
 #
 # Both targets are THIS SAME adapter on another path. In the multi-adapter
-# stack they are two other containers; here the hop is a loopback call from one
-# module to another. It stays a real HTTP hop rather than an in-process call
+# stack they are two other containers; here the hop is a call from one module
+# to another inside the same container. It stays a real HTTP hop rather than an in-process call
 # because that keeps the two shapes the same config: split these across
 # containers and only the host in these URLs changes.
 #

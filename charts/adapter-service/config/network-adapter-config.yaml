@@ -11,8 +11,7 @@
 # apply here must be made in this file too.
 #
 # Differences from the three tier files:
-#   - one listener (9200) and one appName; tier hops are loopback HTTP to this
-#     same listener (see the routing-network-adapter-*.yaml files, which the chart
+#   - one listener (9200) and one appName; tier hops call this same listener (see the routing-network-adapter-*.yaml files, which the chart
 #     generates from routing-consumer.yaml and routing-provider.yaml);
 #   - extended schema validation on in every module;
 #   - an outbound connection pool (httpClientConfig) on every module;
@@ -32,7 +31,7 @@ log:
   contextKeys: [transaction_id, message_id, subscriber_id, module_id]
 
 http:
-  # Also the port the generated loopback routing uses: keep it equal to the
+  # Also the port the generated routing uses: keep it equal to the
   # chart's service.targetPort.
   port: 9200
   timeout:

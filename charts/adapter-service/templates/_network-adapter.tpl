@@ -40,7 +40,7 @@ Routing for the Network Adapter Layer, as YAML: {<file name>: <routing doc>}.
 routing-network.yaml is the multi-adapter file, unchanged (discover and publish
 to discovery). The other two are generated from routing-consumer.yaml and
 routing-provider.yaml by pointing every tier address at THIS adapter's own
-listener over loopback HTTP: http://<tier>-adapter[.<ns>...][:port] becomes
+listener: http://<tier>-adapter[.<ns>...][:port] becomes
 http://localhost:<targetPort>/<tier>, and any path after it is kept
 (.../publish becomes /network/publish). A target that is not a tier adapter is
 kept as it is, and a rule with no target is left alone (the same nil guard as
@@ -49,7 +49,7 @@ modules across pods again changes only the hosts.
 */}}
 {{- define "adapter-service.networkAdapterLayer.routing" -}}
 {{- $ctx := . -}}
-{{- $loopback := printf "http://localhost:%v/${1}${4}" .Values.service.targetPort -}}
+{{- $ownListener := printf "http://localhost:%v/${1}${4}" .Values.service.targetPort -}}
 {{- /* Whole URL, anchored both ends: only a tier host (optionally with a
        namespace suffix and port) followed by nothing or a path is rewritten. */ -}}
 {{- $tierHost := "^https?://(consumer|network|provider)-adapter(\\.[a-z0-9.-]+)?(:[0-9]+)?(/.*)?$" -}}
@@ -63,7 +63,7 @@ modules across pods again changes only the hosts.
 {{- range $i, $rule := $doc.routingRules -}}
 {{- if $rule.target -}}
 {{- $url := $rule.target.url | default "" -}}
-{{- $url = regexReplaceAll $tierHost $url $loopback -}}
+{{- $url = regexReplaceAll $tierHost $url $ownListener -}}
 {{- if hasSuffix "/" $url -}}
 {{- fail (printf "%s: network-adapter-layer routing from config/%s routingRules[%d] ends in a slash (%q). The router appends the action, so that produces //discover." $ctx.Chart.Name $src $i $url) -}}
 {{- end -}}

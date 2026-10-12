@@ -27,7 +27,7 @@ and where requests are routed.
 | `provider` | `bpp` | `validateSign → addRoute → sign` | upstream APIs (several) |
 | `network` | `bpp` | `validateSign → addRoute → sign` | discovery |
 | `consumer` | `bap` | `addRoute → sign` | network |
-| `network-adapter-layer` | `bap` + `bpp` (four modules) | each module runs its own tier's steps | discovery and the upstream APIs; tier hops are loopback HTTP inside the pod |
+| `network-adapter-layer` | `bap` + `bpp` (four modules) | each module runs its own tier's steps | discovery and the upstream APIs; tier hops stay inside the pod |
 
 `consumer` is the only one that accepts **unsigned** requests: the consumer
 app is inside the trust boundary, so there is no network signature to check.
@@ -174,7 +174,7 @@ modules of one process. Its config is `config/network-adapter-config.yaml`
 (each module is its tier's module from `config/<tier>-config.yaml`, so a change
 to a tier file that should apply to both topologies goes in both files). Its routing
 is **generated** at render time from `config/routing-*.yaml`, so routes stay in
-one place. Tier hops are loopback HTTP inside the pod (any image). It signs as
+one place. Tier hops go to the pod's own listener, `localhost:<targetPort>` (any image). It signs as
 the same three identities, from the same three Secrets, so the registry is the
 same in both topologies. An environment's `config:` override for a multi role is NOT
 seen by the Network Adapter Layer; give its release its own `config:` if

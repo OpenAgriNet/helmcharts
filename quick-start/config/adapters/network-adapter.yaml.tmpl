@@ -12,8 +12,8 @@
 # charts/adapter-service/config/network-adapter-config.yaml.
 #
 # Differences from the three tier templates:
-#   - one listener (9200) and one appName; tier hops are loopback HTTP to this
-#     same listener (routing-network-adapter-*.yaml beside this file);
+#   - one listener (9200) and one appName; tier hops call this same listener
+#     (routing-network-adapter-*.yaml beside this file);
 #   - extended schema validation on in every module;
 #   - an outbound connection pool (httpClientConfig) on every module;
 #   - log level info.
