@@ -128,9 +128,11 @@ make smoke      # publish, discover, select through whatever is running
 
 > Steps 5–7 describe the three tiers. In the default single topology they are
 > modules of one container, so read `network-adapter` wherever a
-> command names `provider-adapter`, `network-adapter` or `consumer-adapter`
-> (e.g. `docker compose logs network-adapter`). The `.env` keys
-> are the same in both.
+> command names `provider-adapter`, `network-adapter` or `consumer-adapter`,
+> and use `docker logs <container>`: the container is `network-adapter` in both
+> topologies, but the compose service is `network-adapter-layer` in single and
+> `network-adapter` in multi (so `make logs SVC=network-adapter-layer` in
+> single). The `.env` keys are the same in both.
 
 Answers `select`, and the only layer that calls an upstream. Serves all four
 capabilities from one adapter.
@@ -165,7 +167,7 @@ re-signs as itself.
 service behind it — a `discover` naming a different network finds nothing.
 
 ```sh
-docker compose logs network-adapter | grep 'Server listening'
+docker logs network-adapter 2>&1 | grep 'Server listening'   # either topology
 ```
 
 ## Step 7 — Consumer layer
@@ -240,7 +242,7 @@ image, same keys, registry and data; a compose profile picks the adapters.
 | | single (default): Network Adapter Layer | multi (optional) |
 |---|---|---|
 | What runs | one container, `network-adapter` | `consumer-adapter`, `network-adapter`, `provider-adapter` |
-| Compose profile | `single` | `multi` |
+| Compose profile | `network` | `multi` |
 | Start | `make up-core` / `make up` | `make up-core-multi` / `make up-multi` |
 | Ports | `127.0.0.1:9200` | 9200 provider, 9201 network, 9202 consumer |
 | App calls | `:9200/discover`, `:9200/select` | `:9202/discover`, `:9202/select` |
@@ -252,9 +254,9 @@ other target: it removes the running topology's adapters first. `make down`,
 `make ps` and `make logs` cover both. `MODE=multi` also works with `make up`,
 `make up-core` and `make restart`.
 
-Plain compose, without make: `docker compose --profile single up -d` (or
+Plain compose, without make: `docker compose --profile network up -d` (or
 `--profile multi`). A bare `docker compose up -d` follows `COMPOSE_PROFILES`
-in `.env` (`single` in `.env.example`); without it no adapter starts.
+in `.env` (`network` in `.env.example`); without it no adapter starts.
 
 Signing is off in every quick-start template, in both topologies, so keep the
 adapter ports on `127.0.0.1` (the compose file does).

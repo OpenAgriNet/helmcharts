@@ -43,14 +43,15 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 ### Changed
 - Docs, `values.yaml` and the example headers say single is the default
   topology and multi is optional.
-- Naming: the layer's release, namespace, Service and app name are
-  `network-adapter` (telemetry service `oan-network-adapter`); "layer" appears
-  only in the role, the values key and helper names, where it must differ from
-  the `network` role. The `<role>-adapter` default for app name and telemetry
-  service name is special-cased for it. The layer shares the name
-  `network-adapter` with the multi network tier, so they cannot be installed
-  under that name together: switch an environment in place, or trial the layer
-  in its own namespace.
+- Naming: the layer's release, Service and app name are `network-adapter`
+  (telemetry service `oan-network-adapter`); its namespace is
+  `network-adapter-layer`. "layer" appears only in the namespace, the role,
+  the values key and helper names, where it must differ from the multi
+  `network` tier. The `<role>-adapter` default for app name and telemetry
+  service name is special-cased for it. The separate namespace keeps the
+  consumer and provider keys, which openbao-secrets mirrors to the layer, out
+  of the multi network tier's namespace, and lets both topologies run side by
+  side during a switch-over.
 
 ### Fixed
 - Liveness and readiness probes now render. Values used `probes.liveness` /

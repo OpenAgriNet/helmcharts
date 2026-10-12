@@ -8,7 +8,8 @@
 #   single (the DEFAULT): ONE release, the Network Adapter Layer, serving all
 #   three tiers as modules of one process (role network-adapter-layer):
 #
-#     helm install network-adapter . -f examples/network-adapter.yaml
+#     helm install network-adapter . -n network-adapter-layer --create-namespace \
+#       -f examples/network-adapter.yaml
 #
 #   multi (OPTIONAL): one release per tier. INSTALL ONCE PER ROLE, and keep the
 #   RELEASE name per-role:
@@ -18,8 +19,10 @@
 #     helm install consumer-adapter . -f examples/consumer.yaml
 #
 # Run one topology per environment. The Network Adapter Layer is released as
-# `network-adapter`, the same name as the multi network tier, so they cannot be
-# installed under that name together.
+# `network-adapter` but in its own namespace, `network-adapter-layer`, so the
+# tier identities openbao-secrets mirrors into it never land in the multi
+# network tier's namespace, and the two topologies can coexist during a
+# switch-over.
 #
 # The release name is what the Service is called, which is the DNS name the
 # other adapters address. In multi, rename a release and you must update

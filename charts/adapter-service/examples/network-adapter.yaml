@@ -14,7 +14,7 @@
 # (examples/consumer.yaml, network.yaml, provider.yaml). Run one mode or the
 # other in an environment, not both.
 #
-#   helm install network-adapter . -n network-adapter --create-namespace \
+#   helm install network-adapter . -n network-adapter-layer --create-namespace \
 #     -f examples/network-adapter.yaml
 #
 # The config is config/network-adapter-config.yaml; the routing is
@@ -23,8 +23,9 @@
 # ===========================================================================
 role: network-adapter-layer
 
-# The Service name and DNS name callers use:
-# network-adapter.network-adapter.svc.cluster.local:9200
+# The Service name and DNS name callers use. The namespace is its own,
+# network-adapter-layer (not the multi network tier's network-adapter):
+# network-adapter.network-adapter-layer.svc.cluster.local:9200
 fullnameOverride: network-adapter
 
 image:

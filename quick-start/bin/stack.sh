@@ -35,7 +35,7 @@ cd "$ROOT"
 # down` leaves the gateway, hyperdx and the adapters (both topologies are
 # profiled) running and then reports success. Naming them on teardown is what
 # makes "down" mean down.
-PROFILES=(--profile reverse-proxy --profile observability --profile single --profile multi)
+PROFILES=(--profile reverse-proxy --profile observability --profile network --profile multi)
 
 # Adapter topology: "single" (default) runs the Network Adapter Layer (compose
 # service network-adapter-layer, container network-adapter), one process for
@@ -68,6 +68,10 @@ adapters_for() { # $1 mode
     esac
 }
 other_mode() { [ "$1" = single ] && echo multi || echo single; }
+
+# The compose profile for a topology: single runs under profile "network",
+# multi under profile "multi".
+profile_for() { [ "$1" = single ] && echo network || echo multi; }
 
 # ------------------------------------------------------------------ output
 
@@ -189,7 +193,7 @@ up_adapters() {
     # The other topology also publishes 127.0.0.1:9200, and the single container
     # shares the multi network tier's name: remove it (stopped is not enough).
     # shellcheck disable=SC2046
-    docker compose --profile "$other" rm -sf $(adapters_for "$other") >/dev/null 2>&1 || true
+    docker compose --profile "$(profile_for "$other")" rm -sf $(adapters_for "$other") >/dev/null 2>&1 || true
     # Containers from before the rename (single-network-layer-adapter, and the
     # earlier network-layer-adapter) would hold 127.0.0.1:9200.
     docker rm -f single-network-layer-adapter network-layer-adapter >/dev/null 2>&1 || true
@@ -199,7 +203,7 @@ up_adapters() {
             || die "config/adapters/$f.yaml was not rendered (a directory there? rm -r it, then re-run)"
     done
     # shellcheck disable=SC2046
-    docker compose --profile "$MODE" up -d --force-recreate $(adapters_for "$MODE")
+    docker compose --profile "$(profile_for "$MODE")" up -d --force-recreate $(adapters_for "$MODE")
     # NPM resolves adapter names when nginx loads and caches the addresses, so
     # a recreated or switched adapter 502s through it until it restarts.
     if [ "$(docker inspect -f '{{.State.Running}}' nginx-proxy-manager 2>/dev/null)" = true ]; then
@@ -361,8 +365,8 @@ restart_app() {
     step 1 1 "restarting registry, discovery and the $MODE-mode adapters"
     info "keycloak, both databases and the edge are left alone"
     # shellcheck disable=SC2046
-    docker compose --profile "$MODE" restart sunbird-registry-service discovery-service $(adapters_for "$MODE")
-    docker compose --profile "$MODE" ps --format 'table {{.Service}}\t{{.Status}}'
+    docker compose --profile "$(profile_for "$MODE")" restart sunbird-registry-service discovery-service $(adapters_for "$MODE")
+    docker compose --profile "$(profile_for "$MODE")" ps --format 'table {{.Service}}\t{{.Status}}'
 }
 
 # ----------------------------------------------------------------- misc
@@ -397,7 +401,7 @@ smoke() {
     step 1 2 "mocks (mock-imd, mock-agmarknet), and wait for the adapter"
     docker compose up -d mock-imd mock-agmarknet >/dev/null
     for s in $(seq 1 30); do curl -sf "$base_app/health" >/dev/null 2>&1 && break; sleep 1; done
-    curl -sf "$base_app/health" >/dev/null 2>&1 || die "$base_app/health does not answer after 30s: make logs SVC=${svc%% *}"
+    curl -sf "$base_app/health" >/dev/null 2>&1 || die "$base_app/health does not answer after 30s: docker logs ${svc%% *}"
     step 2 2 "publish, discover, select through the $mode topology"
     ROOT="$ROOT" PUB="$base_pub" APP="$base_app" python3 - <<'PY'
 import json, os, pathlib, sys, urllib.error, urllib.request, uuid

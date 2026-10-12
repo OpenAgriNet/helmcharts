@@ -11,7 +11,7 @@
 #   registry        sunbird-registry-postgres, sunbird-registry-keycloak,
 #                   sunbird-registry-service
 #   discovery       discovery-postgres, discovery-service
-#   adapters        network-adapter-layer (profile single, default) |
+#   adapters        network-adapter-layer (profile network, default) |
 #                   provider, network, consumer (profile multi)
 #   observability   hyperdx                      profile: observability
 #   edge            nginx-proxy-manager          profile: reverse-proxy
@@ -27,7 +27,7 @@
 #                                         everything EXCEPT the adapters
 #   3. python3 bin/setup.py               keys, the three tier identities, and
 #                                         every adapter config they mount
-#   4. docker compose --profile single up -d      the Network Adapter
+#   4. docker compose --profile network up -d     the Network Adapter
 #        (or --profile multi: provider-, network-, consumer-adapter)
 #   5. docker compose --profile reverse-proxy --profile observability up -d
 #                                         the edge and the telemetry stack
@@ -537,7 +537,7 @@ services:
   # ==========================================================================
   # adapters -- TWO topologies, chosen with a compose profile. Same image.
   #
-  #   profile "single" (the default; `make up`)
+  #   profile "network" (the single topology, the default; `make up`)
   #     network-adapter-layer (container network-adapter): the consumer, network and provider tiers
   #     as four modules of ONE process, one config, one port (127.0.0.1:9200).
   #     Tier-to-tier hops are loopback HTTP inside the container.
@@ -616,7 +616,7 @@ services:
   # unsigned requests: keep :9200 on 127.0.0.1.
   network-adapter-layer:
     <<: *adapter
-    profiles: ["single"]
+    profiles: ["network"]
     container_name: network-adapter
     depends_on:
       sunbird-registry-service:
@@ -1001,7 +1001,7 @@ services:
       # HyperDX host 502s until it re-resolves.
       #
       # required: false -- only one topology's adapters exist at a time
-      # (profiles "single" / "multi"); NPM starts with whichever is running.
+      # (profiles "network" / "multi"); NPM starts with whichever is running.
       network-adapter-layer:
         condition: service_started
         required: false

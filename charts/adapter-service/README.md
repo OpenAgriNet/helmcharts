@@ -152,8 +152,9 @@ needed (it replaces `network-adapter-config.yaml` whole).
 
 Pick the topology per environment with ONE value where releases are chosen,
 `networkAdapterTopology: single | multi` (a helmfile environment value; no chart
-reads it; **default `single`**). `single` installs one release, `network-adapter` (the Network Adapter
-Layer); `multi` installs the three tier releases. For a helmfile (adapt to
+reads it; **default `single`**). `single` installs one release, `network-adapter`
+in namespace `network-adapter-layer` (the Network Adapter Layer); `multi`
+installs the three tier releases. For a helmfile (adapt to
 infra-automation's layout):
 
 ```yaml
@@ -171,7 +172,7 @@ releases:
     values: [values/{{ $tier }}-adapter.yaml]
 {{- end }}
   - name: network-adapter
-    namespace: network-adapter
+    namespace: network-adapter-layer
     chart: ../helmcharts/charts/adapter-service
     installed: {{ eq $topology "single" }}
     values: [values/network-adapter.yaml]
@@ -180,15 +181,18 @@ releases:
 With Argo CD, gate the same releases on the same value (for example an
 ApplicationSet list generator, or `{{ if }}` in an app-of-apps chart).
 
-**The two topologies share the name `network-adapter`.** The Network Adapter
-Layer is the network adapter as a whole, so its release, namespace and Service
-are `network-adapter`, which is also the multi network tier's. They therefore
-cannot be installed side by side under that name (the Service port differs too:
-9200 for the layer, 9201 for the multi network tier). Switch an environment in
-place: for a trial, install the layer in another namespace
-(`-n network-adapter-trial`); to switch for real, remove the multi
-`network-adapter` release, install the layer, repoint the app and the
-catalogue publisher to the paths above, then remove the other two multi
+**Namespace `network-adapter-layer`.** The Network Adapter Layer is the network
+adapter as a whole, so its release, Service and app name are `network-adapter`,
+the same as the multi network tier's. Its **namespace** is its own,
+`network-adapter-layer`, for two reasons: openbao-secrets mirrors all three
+tier identities into it, which must not happen in the multi network tier's
+namespace `network-adapter`; and the two topologies can then run side by side
+during a switch-over. In-cluster address of the layer:
+`network-adapter.network-adapter-layer.svc.cluster.local:9200`.
+
+To switch an environment: install the layer (namespace `network-adapter-layer`)
+next to the multi releases, repoint the app (`…:9200/<action>`) and the
+catalogue publisher (`…:9200/provider/publish`), then remove the three multi
 releases. Both topologies sign with the same identities and the same registry
 rows, so nothing in the registry changes. Reverse the steps to switch back.
 
