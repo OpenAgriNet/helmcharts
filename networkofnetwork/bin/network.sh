@@ -122,10 +122,14 @@ cmd_host_descriptor() {
   [ -n "$ttl" ] && ttl_arg=(--projection-ttl "$ttl")
 
   # The BASE registry url: oanfed appends /api/v1 to it itself.
+  #
+  # The governance key signs the descriptor and nothing else, so it is its own
+  # file -- generated on first publish -- and never the adapters' traffic key,
+  # which oanfed reads from the registry and delegates in the descriptor.
   python3 "$HERE/oanfed.py" publish \
     --network-id "$network" \
     --registry-url "http://127.0.0.1:$(port_of "$network" REGISTRY_PORT)" \
-    --key "$dir/keys/network.key" \
+    --governance-key "$dir/keys/governance.key" \
     --revision "$revision" \
     "${ttl_arg[@]}" \
     --out "$dir"
