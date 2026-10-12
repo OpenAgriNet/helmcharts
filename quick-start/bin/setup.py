@@ -125,6 +125,9 @@ REQUIRED = [
     "VISTAAR_CLIENT_SECRET", "VISTAAR_MAPPING_URL",
     "POCRA_PARTICIPANT_ID", "POCRA_CAPABILITY", "POCRA_BASE_URL",
     "POCRA_PATH", "POCRA_MAPPING_URL",
+    "PMFBY_PARTICIPANT_ID", "PMFBY_CAPABILITY", "PMFBY_BASE_URL",
+    "PMFBY_TOKEN_URL", "PMFBY_ACCESS_UID", "PMFBY_ACCESS_PWD",
+    "PMFBY_MAPPING_BASE_URL",
 ]
 
 
@@ -323,7 +326,7 @@ def upstream(participant_id, name, base_url):
 
 
 def ensure_binding(bearer, participant_id, capability, path, mapping_url,
-                   method="GET"):
+                   method="GET", actions=None):
     """Create a capability binding only when absent.
 
     actions is a list, not a map: the registry treats every nested object as an
@@ -336,7 +339,9 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url,
     method is a parameter because it is the provider's contract, not a network
     convention: Mausamgram and Agmarknet answer a GET whose query the mapping
     builds, while the knowledge provider and POCRA take a POST with a JSON body.
-    The adapter reads it from this row, so nothing about it is compiled in."""
+    The adapter reads it from this row, so nothing about it is compiled in.
+
+    actions, when given, replaces the single select."""
     binding = f"{participant_id}|{capability}"
     if search("ProviderSchema", {"bindingKey": {"eq": binding}}):
         print(f"  {binding}: already present")
@@ -344,10 +349,10 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url,
     result = post("ProviderSchema", {
         "bindingKey": binding, "participantId": participant_id,
         "capabilityCode": capability, "status": "active",
-        "actions": [{"action": "select", "method": method, "path": path,
-                     "mappings": mapping_url,
-                     "timeoutMs": 15000, "retryMax": 2,
-                     "status": "active"}]}, bearer)
+        "actions": actions or [{"action": "select", "method": method, "path": path,
+                                "mappings": mapping_url,
+                                "timeoutMs": 15000, "retryMax": 2,
+                                "status": "active"}]}, bearer)
     print(f"  {binding}: {result['params']['status']} "
           f"{result['params'].get('errmsg', '')[:160]}")
 
@@ -365,6 +370,18 @@ CAPABILITY_SCHEMAS = (
     ("VISTAAR_CAPABILITY", "Knowledge Advisory", "v0.1"),
     ("POCRA_CAPABILITY", "Agriculture Facility", "v0.1"),
 )
+
+
+def pmfby_actions():
+    """PMFBY's support and status. support is never retried: a retry files a
+    duplicate grievance."""
+    base = env("PMFBY_MAPPING_BASE_URL")
+    return [{"action": action, "method": "POST", "path": path,
+             "mappings": f"{base}/grievance.{action}.yaml",
+             "timeoutMs": 30000, "retryMax": retries, "status": "active"}
+            for action, path, retries in (
+                ("support", "/krphapi/FGMS/AddKRPHNCIPGrievenceSupportTicket", 0),
+                ("status", "/krphapi/FGMS/GetGrievenceTicketsStatus", 2))]
 
 
 def schema_url(capability, version, ref):
@@ -443,7 +460,7 @@ def seed(identities):
     # No default base URL for weather any more: falling back to the mock's
     # service name would seed a row that cannot serve the basic auth the
     # capability is configured with, and the registry cannot update it after.
-    print("registry: four upstream providers")
+    print("registry: five upstream providers")
     weather = env("MAUSAMGRAM_PARTICIPANT_ID")
     ensure_participant(bearer, weather,
                        upstream(weather, "IMD Mausamgram NWP",
@@ -474,11 +491,15 @@ def seed(identities):
                        upstream(pocra, "POCRA agriculture facilities",
                                 env("POCRA_BASE_URL")))
 
+    pmfby = env("PMFBY_PARTICIPANT_ID")
+    ensure_participant(bearer, pmfby,
+                       upstream(pmfby, "PMFBY grievance portal", env("PMFBY_BASE_URL")))
+
     # And what each of them answers. The binding key is participantId piped to
     # capabilityCode, and it has to match what the provider adapter was
     # rendered with -- both come from the same .env, which is what keeps them
     # from disagreeing.
-    print("registry: four capability bindings")
+    print("registry: five capability bindings")
     ensure_binding(bearer, weather, env("MAUSAMGRAM_CAPABILITY"),
                    env("MAUSAMGRAM_PATH", "/get-daily"), env("MAUSAMGRAM_MAPPING_URL"))
     ensure_binding(bearer, mandi, env("AGMARKNET_CAPABILITY"),
@@ -490,6 +511,8 @@ def seed(identities):
     ensure_binding(bearer, pocra, env("POCRA_CAPABILITY"),
                    env("POCRA_PATH"), env("POCRA_MAPPING_URL"),
                    method="POST")
+    ensure_binding(bearer, pmfby, env("PMFBY_CAPABILITY"),
+                   None, None, actions=pmfby_actions())
 
     # And what each capability MEANS, which is a different question from who
     # serves it. A binding above says mausamgram answers WeatherObservation
@@ -565,6 +588,7 @@ def render(identities):
     vistaar_binding = (f"{env('VISTAAR_PARTICIPANT_ID')}"
                        f"|{env('VISTAAR_CAPABILITY')}")
     pocra_binding = f"{env('POCRA_PARTICIPANT_ID')}|{env('POCRA_CAPABILITY')}"
+    pmfby_binding = f"{env('PMFBY_PARTICIPANT_ID')}|{env('PMFBY_CAPABILITY')}"
     for role in ROLES:
         identity = identities[role]
         template = (ADAPTERS / f"{role}.yaml.tmpl").read_text()
@@ -592,6 +616,9 @@ def render(identities):
                 ("__AGMARKNET_PARTICIPANT_ID__", env("AGMARKNET_PARTICIPANT_ID")),
                 ("__VISTAAR_PARTICIPANT_ID__", env("VISTAAR_PARTICIPANT_ID")),
                 ("__POCRA_PARTICIPANT_ID__", env("POCRA_PARTICIPANT_ID")),
+                ("__PMFBY_BINDING_KEY__", pmfby_binding),
+                ("__PMFBY_PARTICIPANT_ID__", env("PMFBY_PARTICIPANT_ID")),
+                ("__PMFBY_TOKEN_URL__", env("PMFBY_TOKEN_URL")),
                 # Telemetry. One switch drives all three signals: with every
                 # one false the plugin builds no exporter and never dials, so
                 # a stack running without the observability profile stays
@@ -629,19 +656,20 @@ if __name__ == "__main__":
     KEYS.write_text(json.dumps(identities, indent=2))
     render(identities)
     print(f"""
-ready. The registry holds seven participants and four capability bindings, and
+ready. The registry holds eight participants and five capability bindings, and
 the adapter configs are rendered, so nothing further has to be created by hand.
 
   {env('MAUSAMGRAM_PARTICIPANT_ID')}|{env('MAUSAMGRAM_CAPABILITY')}
   {env('AGMARKNET_PARTICIPANT_ID')}|{env('AGMARKNET_CAPABILITY')}
   {env('VISTAAR_PARTICIPANT_ID')}|{env('VISTAAR_CAPABILITY')}
   {env('POCRA_PARTICIPANT_ID')}|{env('POCRA_CAPABILITY')}
+  {env('PMFBY_PARTICIPANT_ID')}|{env('PMFBY_CAPABILITY')}
 
 Those are the binding keys the provider adapter answers to. They were rendered
 into its config from the same .env this seeded the registry from, which is what
 keeps the two from disagreeing. A payload naming anything else is answered 404
 "this module serves no capability matching the request" -- explicit, but it
-names the request rather than the mismatch, so compare it against these four.
+names the request rather than the mismatch, so compare it against these five.
 
 The left half of each key is the participant id, and it names the ENTITY that
 operates the upstream -- not the capability, which is already the right half,
@@ -649,7 +677,7 @@ and not the deployment, which is only a base URL. It is also the string a
 catalog publishes as offer.provider.id, so capability-examples/ can be run
 against this stack unedited.
 
-All four upstreams are real external providers reached over the internet, so
+All five upstreams are real external providers reached over the internet, so
 this stack needs egress to each of them and no capability depends on a mock.
 Repointing one is an .env edit and a re-run of this, but it takes a NEW
 participant id: the registry cannot update a row and its delete is soft and
