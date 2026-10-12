@@ -1,0 +1,50 @@
+Thank you for installing {{ .Chart.Name }} (release: {{ .Release.Name }}).
+
+Bharat Vistaar Docs Pipeline API.
+
+Resources in namespace "{{ .Release.Namespace }}":
+  - Deployment/{{ include "knowledge-provider-api.fullname" . }} ({{ .Values.replicaCount }} replica(s))
+  - Service/{{ include "knowledge-provider-api.fullname" . }} ({{ .Values.service.type }} on port {{ .Values.service.port }})
+  - ConfigMap/{{ include "knowledge-provider-api.envConfigMapName" . }}
+{{- if .Values.serviceAccount.enabled }}
+  - ServiceAccount/{{ include "knowledge-provider-api.serviceAccountName" . }}
+{{- end }}
+{{- if .Values.ingress.enabled }}
+  - Ingress/{{ include "knowledge-provider-api.fullname" . }}
+{{- end }}
+{{- if .Values.persistence.sqlite.enabled }}
+  - PersistentVolumeClaim/{{ .Values.persistence.sqlite.existingClaim | default (printf "%s-sqlite" (include "knowledge-provider-api.fullname" .)) }}
+{{- end }}
+{{- if .Values.persistence.documents.enabled }}
+  - PersistentVolumeClaim/{{ .Values.persistence.documents.existingClaim | default (printf "%s-documents" (include "knowledge-provider-api.fullname" .)) }}
+{{- end }}
+{{- if .Values.persistence.books.enabled }}
+  - PersistentVolumeClaim/{{ .Values.persistence.books.existingClaim | default (printf "%s-books" (include "knowledge-provider-api.fullname" .)) }}
+{{- end }}
+{{- if .Values.persistence.hfCache.enabled }}
+  - PersistentVolumeClaim/{{ .Values.persistence.hfCache.existingClaim | default (printf "%s-hf-cache" (include "knowledge-provider-api.fullname" .)) }}
+{{- end }}
+
+Image in use:
+  {{ include "knowledge-provider-api.image" . }}
+{{- if not .Values.image.repository }}
+
+WARNING: image.repository is empty. Set image.registry/repository/tag before a
+real deployment, e.g. --set image.repository=openagrinet/knowledge-provider
+{{- end }}
+
+{{- if gt (.Values.replicaCount | int) 1 }}
+
+WARNING: replicaCount is {{ .Values.replicaCount }}. This service's canonical
+metadata store is SQLite, a single-writer database - running more than one
+replica risks database corruption. See README.md before scaling this chart.
+{{- end }}
+
+Check the rollout:
+  kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "knowledge-provider-api.fullname" . }}
+
+Reach the service in-cluster:
+  {{ include "knowledge-provider-api.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+Health check:
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "knowledge-provider-api.fullname" . }} -- wget -qO- http://localhost:{{ .Values.service.targetPort }}/health

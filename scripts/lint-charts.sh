@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 #
-# Lint and render every chart under charts/.
+# Lint and render every chart under charts/, at the top level (charts/<name>)
+# or grouped one directory deeper (charts/<group>/<name>, e.g.
+# charts/knowledge-provider/knowledge-provider-api) - anywhere a Chart.yaml is
+# found up to two directories below charts/.
 #
 # A chart lives at charts/<chart>, or one level down at charts/<group>/<chart>
 # when it belongs to a group of related charts (charts/dss/model-gateway). A
@@ -9,10 +12,10 @@
 # Run locally exactly as CI runs it:
 #   ./scripts/lint-charts.sh
 #
-# Charts depending on common via file://../common carry no committed
-# dependency artifact, so the dependency is rebuilt here before linting. That
-# also means a local edit to common is only picked up after this runs (or
-# after `helm dependency update <chart>`).
+# Charts depending on common via file://../common (or file://../../common one
+# directory deeper) carry no committed dependency artifact, so the dependency
+# is rebuilt here before linting. That also means a local edit to common is
+# only picked up after this runs (or after `helm dependency update <chart>`).
 #
 # A chart whose defaults deliberately fail the render - because it requires a
 # database host or a secret reference that has no safe default - supplies the
@@ -41,6 +44,8 @@ for dir in charts/*/; do
 done
 
 for chart_dir in "${chart_dirs[@]}"; do
+while IFS= read -r chart_yaml; do
+  chart_dir="$(dirname "$chart_yaml")"
 
   name="$(basename "$chart_dir")"
   chart_type="$(helm show chart "$chart_dir" 2>/dev/null | awk '/^type:/ {print $2}')"
@@ -94,7 +99,7 @@ for chart_dir in "${chart_dirs[@]}"; do
       fi
     done
   fi
-done
+done < <(find charts -mindepth 2 -maxdepth 3 -name Chart.yaml | sort)
 
 if [[ "$failed" -ne 0 ]]; then
   echo "chart validation FAILED"

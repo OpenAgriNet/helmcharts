@@ -1,0 +1,31 @@
+# Example: knowledge-provider-temporal, dev environment.
+#
+#   helm install knowledge-provider-temporal-db charts/postgresql-cnpg -n knowledge-provider \
+#     -f charts/postgresql-cnpg/examples/knowledge-provider-temporal-db.dev.yaml
+#   helm install knowledge-provider-temporal charts/knowledge-provider/knowledge-provider-temporal -n knowledge-provider \
+#     -f charts/knowledge-provider/knowledge-provider-temporal/examples/knowledge-provider-temporal.dev.yaml
+#
+# The postgresql-cnpg release above needs BOTH databases Temporal expects,
+# created via CNPG rather than left to auto-setup to create itself:
+#
+#   bootstrap:
+#     database: temporal
+#     owner: temporal
+#     ownerSecret: knowledge-provider-temporal-db-app
+#   databases:
+#     - name: temporal_visibility
+#       owner: temporal
+
+database:
+  host: knowledge-provider-temporal-db-rw
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+commonLabels:
+  oan.in/environment: dev
