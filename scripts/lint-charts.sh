@@ -5,6 +5,10 @@
 # charts/knowledge-provider/knowledge-provider-api) - anywhere a Chart.yaml is
 # found up to two directories below charts/.
 #
+# A chart lives at charts/<chart>, or one level down at charts/<group>/<chart>
+# when it belongs to a group of related charts (charts/dss/model-gateway). A
+# group directory has no Chart.yaml of its own.
+#
 # Run locally exactly as CI runs it:
 #   ./scripts/lint-charts.sh
 #
@@ -24,6 +28,22 @@ cd "$(dirname "$0")/.."
 
 failed=0
 
+# Collect charts/<chart> and charts/<group>/<chart>. A chart's own charts/
+# directory (vendored dependencies) is never descended into.
+chart_dirs=()
+for dir in charts/*/; do
+  dir="${dir%/}"
+  if [[ -f "$dir/Chart.yaml" ]]; then
+    chart_dirs+=("$dir")
+    continue
+  fi
+  for sub in "$dir"/*/; do
+    sub="${sub%/}"
+    [[ -f "$sub/Chart.yaml" ]] && chart_dirs+=("$sub")
+  done
+done
+
+for chart_dir in "${chart_dirs[@]}"; do
 while IFS= read -r chart_yaml; do
   chart_dir="$(dirname "$chart_yaml")"
 

@@ -1,0 +1,162 @@
+{{/*
+The reconciler. Kept as a script in a ConfigMap rather than baked into an image,
+so that what it does to the gateway is reviewable in the same pull request as
+the models it applies.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "model-gateway.reconcileConfigMapName" . }}
+  labels:
+    {{- include "model-gateway.labels" . | nindent 4 }}
+data:
+  reconcile.py: |
+    """Make the gateway match models.json and credentials.json.
+
+    Runs after every install and upgrade. It is safe to run when nothing has
+    changed, and it is the only writer: the admin screen is off, so this file is
+    what the gateway is.
+
+    Reconcile means both directions. A model in the file is created or updated;
+    a model in the gateway that is not in the file is deleted. Without that last
+    part, deleting a model from the file would leave it serving, which is drift
+    in the direction nobody notices.
+
+    Vendor keys are never in the file. Each credential names a Secret, mounted
+    into this Job, and the key is read from disk here and sent to the gateway,
+    which encrypts it. The Job is the only place both halves meet, and it lives
+    for seconds.
+    """
+
+    import json
+    import os
+    import sys
+    import time
+    import urllib.error
+    import urllib.request
+
+    BASE = os.environ["GATEWAY_URL"].rstrip("/")
+    KEY = os.environ["LITELLM_MASTER_KEY"]
+    SPEC_DIR = os.environ.get("SPEC_DIR", "/spec")
+    SECRET_DIR = os.environ.get("SECRET_DIR", "/credentials")
+
+
+    def call(method, path, body=None):
+        data = json.dumps(body).encode() if body is not None else None
+        req = urllib.request.Request(
+            f"{BASE}{path}",
+            data=data,
+            method=method,
+            headers={
+                "Authorization": f"Bearer {KEY}",
+                "Content-Type": "application/json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            raw = resp.read()
+            return json.loads(raw) if raw else {}
+
+
+    def wait_for_gateway(attempts=60, delay=5):
+        """The Job may start before the gateway is serving. Waiting here beats a
+        failed release that only means "too early"."""
+        for attempt in range(1, attempts + 1):
+            try:
+                call("GET", "/health/readiness")
+                return
+            except Exception as exc:  # noqa: BLE001 - any failure means not ready
+                if attempt == attempts:
+                    sys.exit(f"gateway never became ready: {exc}")
+                print(f"waiting for the gateway ({attempt}/{attempts}): {exc}")
+                time.sleep(delay)
+
+
+    def reconcile_credentials(wanted):
+        existing = {c["credential_name"] for c in call("GET", "/credentials")["credentials"]}
+        for cred in wanted:
+            values = {}
+            for field, filename in cred.get("keys", {}).items():
+                path = os.path.join(SECRET_DIR, cred["name"], filename)
+                with open(path) as handle:
+                    values[field] = handle.read().strip()
+            for field, value in cred.get("values", {}).items():
+                values[field] = value
+            if cred["name"] in existing:
+                # The key may have been rotated in the Secret since last time.
+                call("PUT", "/credentials/" + cred["name"], {"credential_values": values})
+                print(f"credential {cred['name']} updated")
+            else:
+                call("POST", "/credentials", {
+                    "credential_name": cred["name"],
+                    "credential_info": {"description": cred.get("description", "")},
+                    "credential_values": values,
+                })
+                print(f"credential {cred['name']} created")
+
+
+    def reconcile_models(wanted):
+        live = call("GET", "/model/info")["data"]
+        live_ids = {
+            m["model_info"]["id"]: m["model_name"]
+            for m in live
+            if m.get("model_info", {}).get("db_model")
+        }
+        wanted_ids = set()
+
+        for model in wanted:
+            model_id = model.get("id", model["name"])
+            wanted_ids.add(model_id)
+            params = {
+                "model": model["model"],
+                "litellm_credential_name": model["credential"],
+                "input_cost_per_token": model["inputCostPerToken"],
+                "output_cost_per_token": model["outputCostPerToken"],
+            }
+            for optional in ("weight", "rpm", "tpm", "api_base"):
+                if optional in model:
+                    params[optional] = model[optional]
+            payload = {
+                "model_name": model["name"],
+                "litellm_params": params,
+                "model_info": {"id": model_id},
+            }
+            if model_id in live_ids:
+                # update, not delete-and-create: a delete would drop calls in
+                # the window between the two.
+                call("POST", "/model/update", {
+                    "model_info": {"id": model_id},
+                    "litellm_params": params,
+                })
+                print(f"{model['name']} -> {model['model']} (updated)")
+            else:
+                call("POST", "/model/new", payload)
+                print(f"{model['name']} -> {model['model']} (created)")
+
+        for stale_id, name in live_ids.items():
+            if stale_id not in wanted_ids:
+                call("POST", "/model/delete", {"id": stale_id})
+                print(f"{name} ({stale_id}) removed - no longer in the chart")
+
+
+    def main():
+        with open(os.path.join(SPEC_DIR, "models.json")) as handle:
+            models = json.load(handle)
+        with open(os.path.join(SPEC_DIR, "credentials.json")) as handle:
+            credentials = json.load(handle)
+
+        wait_for_gateway()
+        reconcile_credentials(credentials)
+        reconcile_models(models)
+
+        if os.environ.get("BLOCK_UNPRICED_MODELS") == "true":
+            # A call to a model with no price is otherwise recorded as free, and
+            # a spend limit over a free model never stops anything.
+            call("PATCH", "/config/block_requests_for_models_without_pricing",
+                 {"enabled": True})
+            print("requests to unpriced models are blocked")
+
+        print("gateway matches the chart")
+
+
+    if __name__ == "__main__":
+        main()
