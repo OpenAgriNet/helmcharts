@@ -402,6 +402,13 @@ smoke() {
     docker compose up -d mock-imd mock-agmarknet >/dev/null
     for s in $(seq 1 30); do curl -sf "$base_app/health" >/dev/null 2>&1 && break; sleep 1; done
     curl -sf "$base_app/health" >/dev/null 2>&1 || die "$base_app/health does not answer after 30s: docker logs ${svc%% *}"
+    # The adapter answers /health before its registry is back (e.g. right after
+    # `make restart`), and select looks the provider up in the registry.
+    for s in $(seq 1 90); do
+        [ "$(docker inspect -f '{{.State.Health.Status}}' sunbird-registry-service 2>/dev/null)" = healthy ] && break; sleep 2
+    done
+    [ "$(docker inspect -f '{{.State.Health.Status}}' sunbird-registry-service 2>/dev/null)" = healthy ] \
+        || die "sunbird-registry-service is not healthy after 3 minutes: docker logs sunbird-registry-service"
     step 2 2 "publish, discover, select through the $mode topology"
     ROOT="$ROOT" PUB="$base_pub" APP="$base_app" python3 - <<'PY'
 import json, os, pathlib, sys, urllib.error, urllib.request, uuid

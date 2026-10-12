@@ -3,6 +3,12 @@
 #
 # Every service name is <tier>-<role>, and every container_name matches it, so
 # what `docker ps` shows is what `docker logs` and the in-stack DNS name take.
+# One exception: the Network Adapter Layer is service `network-adapter-layer`
+# (profile network) with container `network-adapter`, the same container name
+# as the multi network tier's service `network-adapter`. Only one topology runs
+# at a time, so `docker ps` / `docker logs network-adapter` mean whichever runs;
+# compose commands (`docker compose logs`, `make logs SVC=`) take the service
+# name, `network-adapter-layer` in the single topology.
 # The sunbird-registry-* three are Sunbird RC's, not OAN's; the keycloak among
 # them authenticates nothing but that registry, and shares its postgres.
 #
