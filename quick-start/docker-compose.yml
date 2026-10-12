@@ -755,25 +755,23 @@ services:
     profiles: ["observability"]
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
 
-    # The docker_stats receiver needs this and nothing else does. The contrib
-    # image runs as uid 10001, and the Docker socket is mode 660 -- so the
-    # mount below is readable only by root or by a member of the socket's
-    # group. Adding that group as a SUPPLEMENTARY group is the narrower of the
-    # two ways to bridge that: the alternative, `user: "0:0"`, would run the
-    # entire collector as root for the sake of one receiver.
+    # Root, because two mounts below need it. The contrib image runs as uid
+    # 10001, which can read neither:
     #
-    # The group differs by host. Docker Desktop: gid 0, the default here.
-    # Linux with Docker Engine: the `docker` group, whose gid varies (999,
-    # 988, ...) -- set DOCKER_SOCKET_GID in .env to the output of
-    # `stat -c %g /var/run/docker.sock`. Wrong, and the collector exits on
-    # start with "permission denied while trying to connect to the docker
-    # API", taking every pipeline down with it.
+    #   /var/lib/docker/containers  mode 710 root:root. A group member can
+    #       enter it but not LIST it, so the filelog receiver's glob finds no
+    #       files and every container's stdout -- discovery-service, the
+    #       registry, Keycloak, Postgres -- is silently missing. Only services
+    #       that send logs over OTLP (the adapters) show up. A supplementary
+    #       group cannot fix this; the directory has no group read bit.
+    #   /var/run/docker.sock  mode 660, for the docker_stats receiver.
     #
-    # It is still not narrow in absolute terms -- anything that can reach the
-    # Docker API can own the host. Drop this line together with the
-    # docker.sock mount and the docker_stats receiver if that trade is not
-    # wanted; the rest of the metrics pipeline is unaffected.
-    group_add: ["${DOCKER_SOCKET_GID:-0}"]
+    # Same on Docker Desktop and on Linux with Docker Engine, so there is no
+    # per-host gid to set. Acceptable for a quick-start on a developer laptop:
+    # the docker.sock mount is root-equivalent on the host already (see
+    # below), so root inside the collector adds little to that. On Kubernetes
+    # the collector is the opentelemetry-collector chart, not this service.
+    user: "0:0"
 
     # oan-internal ONLY. Nothing on oan-edge ever needs to resolve this name --
     # NPM does not route to it, and README Appendix B says why 4317/4318 must
