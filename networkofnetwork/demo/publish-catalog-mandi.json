@@ -1,0 +1,82 @@
+{
+  "context": {
+    "action": "catalog/publish",
+    "bppUri": "https://bharatvistar.oan.local/provider",
+    "messageId": "bd83dc21-38f3-48fe-9be5-b82d4a213666",
+    "transactionId": "794abc60-4d9b-463f-ba1d-926724ade7f8",
+    "timestamp": "2026-10-07T03:50:03Z",
+    "version": "2.0.0",
+    "schemaContext": [
+      "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld"
+    ],
+    "senderId": "bharatvistar.oan.local"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "id": "catalog:mandi-price:agmarknet.bharatvistar",
+        "descriptor": {
+          "code": "MANDI_PRICE_MH",
+          "name": "Bharatvistar mandi prices",
+          "shortDesc": "On-demand commodity prices for agricultural markets.",
+          "longDesc": "Each Resource is one commodity at one market. Consumers discover by location or commodity and invoke the Provider for current prices."
+        },
+        "isActive": true,
+        "bppId": "bharatvistar.oan.local",
+        "bppUri": "https://bharatvistar.oan.local/provider",
+        "provider": {
+          "id": "agmarknet.bharatvistar",
+          "descriptor": {
+            "code": "AGMARKNET",
+            "name": "Agmarknet Vistaar",
+            "shortDesc": "Live agricultural market price information."
+          }
+        },
+        "resources": [
+          {
+            "id": "res:agmarknet:nashik:onion",
+            "descriptor": {
+              "code": "MANDI_PRICE_NASHIK_ONION",
+              "name": "Onion prices at Nashik",
+              "shortDesc": "Current onion prices for Nashik, Maharashtra."
+            },
+            "quantity": {
+              "count": 1
+            },
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "subjectCategories": [
+                "Market"
+              ],
+              "informationMode": "OnDemand",
+              "location": {
+                "geo": {
+                  "type": "Point",
+                  "coordinates": [
+                    73.7898,
+                    19.9975
+                  ]
+                }
+              },
+              "validity": {
+                "startsAt": "2026-10-01T00:00:00+05:30",
+                "endsAt": "2026-12-31T23:59:59+05:30"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:mandi-price:agmarknet.bharatvistar",
+        "catalogType": "REGULAR",
+        "updateMode": "FULL",
+        "visibleTo": [
+          "bharatvistar.oan.local"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "context": {
+    "action": "discover",
+    "domain": "agriculture",
+    "messageId": "5e511275-d9ed-442a-964c-b4f4cc574c1b",
+    "timestamp": "2026-10-07T03:23:01Z",
+    "transactionId": "df14c457-d091-48ad-8bbc-6214001f0578",
+    "version": "2.0.0",
+    "senderId": "bharatvistar.oan.local"
+  },
+  "message": {
+    "intent": {
+      "filters": {
+        "type": "jsonpath",
+        "expression": "$.catalogs[*].resources[*] ? (@.resourceAttributes.subjectCategories[*] == \"Market\" || @.resourceAttributes.subjectCategories[*] == \"Weather\")"
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+# This network's catalogue system publishing inward.
+#
+# It goes to the NETWORK module rather than straight to discovery, so a publish
+# takes the same path a publish from anywhere else takes -- one place that
+# decides what reaches discovery, rather than two.
+routingRules:
+  - version: "2.0.0"
+    targetType: "url"
+    target:
+      url: "http://localhost:9200/network"
+    endpoints:
+      - publish

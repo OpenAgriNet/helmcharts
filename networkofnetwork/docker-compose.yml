@@ -1,0 +1,326 @@
+# One OAN network, whole, on one machine.
+#
+# Separate from docker-compose.yml and deliberately so. That file is the
+# three-adapter quick-start: one stack, fixed names, fixed ports, and an
+# operator's own deployment. This one exists to be run MORE THAN ONCE on the
+# same machine, as two or three networks that can see each other -- which is the
+# only way to demonstrate federation without three laptops.
+#
+# What differs from the quick-start:
+#
+#   ONE adapter, not three. A network is one participant; running the consumer,
+#   network and provider layers as three containers is a deployment choice, and
+#   the consolidated shape is the simpler one to reason about when there are two
+#   of everything already.
+#
+#   A FRONT DOOR. A network id is a DNS domain, and a peer reaches a network at
+#   that domain over https. nginx terminates TLS, serves the two published
+#   documents, and proxies the rest inward.
+#
+#   EVERYTHING PREFIXED. Container names and docker network names are global to
+#   the daemon rather than scoped to a compose project, so two networks running
+#   the same file would collide on both without this.
+#
+# Every value comes from the network's own .env, written by bin/network-env.py.
+# Nothing here names a network.
+
+name: ${COMPOSE_PROJECT_NAME}
+
+networks:
+  # This network's own internals. Nothing outside the project reaches them.
+  internal:
+    name: ${COMPOSE_PROJECT_NAME}-internal
+  # The bridge every network on this machine shares. The ONLY crossing point,
+  # and only the front door and the adapter are on it -- which is what makes the
+  # boundary real rather than decorative.
+  federation:
+    name: oan-federation
+    external: true
+
+volumes:
+  registry-postgres-data:
+  discovery-postgres-data:
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
+
+services:
+
+  # ---------------------------------------------------------------- registry
+
+  registry-postgres:
+    image: postgres:14
+    container_name: ${COMPOSE_PROJECT_NAME}-registry-postgres
+    restart: unless-stopped
+    logging: *logging
+    networks: [internal]
+    environment:
+      POSTGRES_DB: registry
+      POSTGRES_USER: ${REGISTRY_DB_USER}
+      POSTGRES_PASSWORD: ${REGISTRY_DB_PASSWORD}
+    volumes:
+      - registry-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${REGISTRY_DB_USER} -d registry"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  registry-keycloak:
+    image: ghcr.io/sunbird-rc/sunbird-rc-keycloak:latest
+    container_name: ${COMPOSE_PROJECT_NAME}-registry-keycloak
+    restart: unless-stopped
+    logging: *logging
+    networks: [internal]
+    environment:
+      DB_VENDOR: postgres
+      DB_ADDR: registry-postgres
+      DB_PORT: "5432"
+      DB_DATABASE: registry
+      DB_USER: ${REGISTRY_DB_USER}
+      DB_PASSWORD: ${REGISTRY_DB_PASSWORD}
+      KEYCLOAK_USER: ${KEYCLOAK_ADMIN_USER}
+      KEYCLOAK_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_IMPORT: /opt/jboss/keycloak/imports/realm-export.json
+      PROXY_ADDRESS_FORWARDING: "true"
+    volumes:
+      # The realm this registry runs on. KEYCLOAK_IMPORT names it, and without
+      # the file keycloak restarts in a loop saying only that it added the admin
+      # user again.
+      - ./config/registry/imports:/opt/jboss/keycloak/imports
+    # Waited on rather than assumed: the registry service resolves its OAuth
+    # issuer at start-up, and a keycloak that is not listening yet fails it
+    # outright rather than retrying.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9990/ || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+    depends_on:
+      registry-postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${KEYCLOAK_PORT}:8080"
+
+  registry-service:
+    image: ghcr.io/sunbird-rc/sunbird-rc-core:${REGISTRY_IMAGE_TAG}
+    container_name: ${COMPOSE_PROJECT_NAME}-registry-service
+    restart: unless-stopped
+    logging: *logging
+    # internal ONLY, and that is a decision rather than an omission: the
+    # registry is this network's own record and nothing outside it has business
+    # reading it directly.
+    networks: [internal]
+    environment:
+      connectionInfo_uri: jdbc:postgresql://registry-postgres:5432/registry
+      connectionInfo_username: ${REGISTRY_DB_USER}
+      connectionInfo_password: ${REGISTRY_DB_PASSWORD}
+      search_providerName: dev.sunbirdrc.registry.service.NativeSearchService
+      authentication_enabled: "true"
+      sunbird_sso_realm: ${KEYCLOAK_REALM}
+      sunbird_sso_url: http://registry-keycloak:8080/auth
+      OAUTH2_RESOURCES_0_URI: http://registry-keycloak:8080/auth/realms/${KEYCLOAK_REALM}
+      OAUTH2_RESOURCES_0_PROPERTIES_ROLES_PATH: realm_access.roles
+      identity_provider: dev.sunbirdrc.auth.keycloak.KeycloakProviderImpl
+      sunbird_sso_admin_client_id: ${KEYCLOAK_ADMIN_CLIENT_ID}
+      sunbird_sso_client_id: ${KEYCLOAK_CLIENT_ID}
+      sunbird_sso_admin_client_secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET}
+      sunbird_keycloak_user_set_password: "true"
+      sunbird_keycloak_user_password: ${KEYCLOAK_DEFAULT_USER_PASSWORD}
+      encryption_enabled: "false"
+      event_enabled: "false"
+      idgen_enabled: "false"
+      claims_enabled: "false"
+      did_enabled: "false"
+      signature_enabled: "false"
+      certificate_enabled: "false"
+      filestorage_enabled: "false"
+      notification_enabled: "false"
+      notification_async_enabled: "false"
+      async_enabled: "false"
+      webhook_enabled: "false"
+      registry_base_apis_enable: "false"
+      manager_type: DefinitionsManager
+      expand_reference: "false"
+      swagger_title: OAN Registry
+      logging.level.root: INFO
+    volumes:
+      - ./config/registry/schemas:/home/sunbirdrc/config/public/_schemas:ro
+    depends_on:
+      registry-keycloak:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${REGISTRY_PORT}:8081"
+
+  # --------------------------------------------------------------- discovery
+
+  discovery-postgres:
+    # pgvector rather than plain postgres: the discovery service's HNSW index
+    # options arrived in 0.8.
+    image: pgvector/pgvector:0.8.0-pg16
+    container_name: ${COMPOSE_PROJECT_NAME}-discovery-postgres
+    restart: unless-stopped
+    logging: *logging
+    networks: [internal]
+    environment:
+      # Literals, matching quick-start: these never varied per deployment, and a
+      # variable that is always the same value is a question nobody needs asked.
+      POSTGRES_DB: discovery
+      POSTGRES_USER: discovery
+      POSTGRES_PASSWORD: discovery
+    volumes:
+      - discovery-postgres-data:/var/lib/postgresql/data
+      # The crawler keeps its bookkeeping in a database of its own on this same
+      # server. Created here because a destroyed stack takes the volume with it,
+      # and the adapter restart-loops on a missing database.
+      - ./config/init-crawler-db.sh:/docker-entrypoint-initdb.d/10-crawler.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U discovery -d discovery"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  discovery-service:
+    image: ${DISCOVERY_IMAGE}
+    container_name: ${COMPOSE_PROJECT_NAME}-discovery-service
+    restart: unless-stopped
+    logging: *logging
+    networks: [internal]
+    environment:
+      APP_DOMAIN: ${DISCOVERY_DOMAIN:-Agriculture}
+      APP_NETWORK_ID: ${BECKN_NETWORK_ID}
+      APP_SUBSCRIBER_ID: ${DISCOVERY_SUBSCRIBER_ID}
+      DATABASE_AUTO_MIGRATE: "true"
+      DATABASE_URL: postgres://discovery:discovery@discovery-postgres:5432/discovery?sslmode=disable
+      GEO_MAX_GEOMETRIES_PER_CATALOG: ${DISCOVERY_MAX_GEOMETRIES_PER_CATALOG:-256}
+      OTEL_EXPORTER: ${DISCOVERY_OTEL_EXPORTER:-none}
+      RATE_LIMIT_BURST: ${DISCOVERY_RATE_LIMIT_BURST:-100000}
+      RATE_LIMIT_RPS: ${DISCOVERY_RATE_LIMIT_RPS:-100000}
+      SEARCH_ENABLE_TEXT_SEARCH: "false"
+      SERVER_PORT: "8080"
+      VALIDATION_SPEC_URL: ${BECKN_SPEC_URL}
+    depends_on:
+      discovery-postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${DISCOVERY_PORT}:8080"
+
+  # ------------------------------------------------------------------- mocks
+
+  mock-imd:
+    image: ${MOCKIMD_IMAGE}
+    pull_policy: missing
+    container_name: ${COMPOSE_PROJECT_NAME}-mock-imd
+    restart: unless-stopped
+    logging: *logging
+    networks: [internal]
+    ports:
+      - "127.0.0.1:${MOCKIMD_PORT}:9100"
+
+  mock-agmarknet:
+    image: ${MOCKAGMARKNET_IMAGE}
+    pull_policy: missing
+    container_name: ${COMPOSE_PROJECT_NAME}-mock-agmarknet
+    restart: unless-stopped
+    logging: *logging
+    networks: [internal]
+    ports:
+      - "127.0.0.1:${MOCKAGMARKNET_PORT}:9101"
+
+  # ----------------------------------------------------------------- adapter
+
+  # ONE adapter, serving every layer this network has. Its modules are mounted
+  # on separate paths of one port -- see config/network/adapter.yaml.tmpl.
+  #
+  # On the federation bridge as well as the internal one, because IT is what
+  # reaches another network: the crawl asking for catalogs, and a cross-network
+  # select going out. The front door is how others reach US; this is the other
+  # direction over the same bridge.
+  adapter:
+    image: ${ADAPTER_IMAGE}
+    pull_policy: missing
+    container_name: ${COMPOSE_PROJECT_NAME}-adapter
+    restart: unless-stopped
+    logging: *logging
+    networks: [internal, federation]
+    environment:
+      BECKN_NETWORK_ID: ${BECKN_NETWORK_ID}
+      # Go reads SSL_CERT_FILE for the system roots on Linux, so an outbound
+      # call verifies another network's certificate against the local CA with no
+      # code that knows anything about local certificates.
+      #
+      # Real verification against a different root, NOT verification turned off:
+      # a certificate this CA did not sign, or one whose name does not match, is
+      # still refused.
+      SSL_CERT_FILE: /etc/oan/ca.crt
+      CONFIG_FILE: /app/config/adapter.yaml
+      MAUSAMGRAM_AUTH: ${MAUSAMGRAM_AUTH}
+      AGMARKNET_ACCESS_NAME: ${AGMARKNET_ACCESS_NAME}
+      AGMARKNET_PASSWORD: ${AGMARKNET_PASSWORD}
+      VISTAAR_CLIENT_ID: ${VISTAAR_CLIENT_ID}
+      VISTAAR_CLIENT_SECRET: ${VISTAAR_CLIENT_SECRET}
+    volumes:
+      - ${NETWORK_DIR}/config/adapter.yaml:/app/config/adapter.yaml:ro
+      # Routing is NOT rendered per network -- nothing in it differs between
+      # networks, because every target is either this same adapter on another
+      # path or a service name inside this project.
+      - ./config/routing-consumer.yaml:/app/config/routing-consumer.yaml:ro
+      - ./config/routing-network.yaml:/app/config/routing-network.yaml:ro
+      - ./config/routing-publish.yaml:/app/config/routing-publish.yaml:ro
+      - ${NETWORK_DIR}/tls/ca.crt:/etc/oan/ca.crt:ro
+    depends_on:
+      registry-service:
+        condition: service_started
+      discovery-service:
+        condition: service_started
+    ports:
+      - "127.0.0.1:${ADAPTER_PORT}:9200"
+
+  # --------------------------------------------------------------- front door
+
+  # What another network talks to. It is the whole of this network's public
+  # surface: the two published documents, and a proxy inward for the Beckn
+  # actions. Nothing else here is reachable from the bridge.
+  wellknown:
+    image: nginx:1.27-alpine
+    container_name: ${COMPOSE_PROJECT_NAME}-wellknown
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      # Read by envsubst into default.conf.template at start-up.
+      NETWORK_ID: ${BECKN_NETWORK_ID}
+      ADAPTER_HOST: adapter
+      ADAPTER_PORT: "9200"
+      MOCKIMD_HOST: mock-imd
+      MOCKIMD_INTERNAL_PORT: "9100"
+      MOCKAGMARKNET_HOST: mock-agmarknet
+      MOCKAGMARKNET_INTERNAL_PORT: "9101"
+    volumes:
+      - ${NETWORK_DIR}/.well-known:/usr/share/nginx/html/.well-known:ro
+      - ${NETWORK_DIR}/tls:/etc/nginx/tls:ro
+      - ./config/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./config/proxy-headers.inc:/etc/nginx/conf.d/proxy-headers.inc:ro
+    networks:
+      internal:
+        # The upstream provider names, on the INTERNAL bridge because it is our
+        # own adapter that calls them. Without these the adapter's lookup of
+        # mausamgram.<network> fails at DNS and the seeded baseUrl is a URL
+        # nothing can reach.
+        aliases:
+          - mausamgram.${BECKN_NETWORK_ID}
+          - agmarknet.${BECKN_NETWORK_ID}
+      federation:
+        # This is what makes the network id resolve. Another network's adapter
+        # looking up bharatvistar.oan.local reaches this container and nothing
+        # else behind it.
+        aliases:
+          - ${BECKN_NETWORK_ID}
+    depends_on:
+      adapter:
+        condition: service_started
+    ports:
+      # Published so the operator's own machine can fetch the documents. The
+      # network id only resolves inside the bridge, so a CLI reaches this port
+      # and carries the id as its Host header.
+      - "127.0.0.1:${FRONT_DOOR_PORT}:443"
