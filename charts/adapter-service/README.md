@@ -1,9 +1,10 @@
 # adapter-service
 
-One chart for the Beckn adapters, in two modes. Multi-adapter: three roles,
-`provider`, `network` and `consumer`, one release per tier. The Network Adapter
-Layer: `network-adapter-layer`, all three tiers in one adapter. All roles are the same image
-and the same config format, so `role` selects the handler role, the step list
+One chart for the Beckn adapters, in two topologies. **single (the default):**
+the Network Adapter Layer, role `network-adapter-layer`, all three tiers in one
+adapter. **multi (optional):** three roles, `provider`, `network` and
+`consumer`, one release per tier. All roles are the same image and the same
+config format, so `role` selects the handler role, the step list
 and where requests are routed.
 
 ```
@@ -131,12 +132,12 @@ the **public** half of the keypair. Missing, or carrying a different key, and
 every peer rejects what this adapter signs while the pod stays perfectly
 healthy.
 
-## Choosing a mode: multi-adapter or Network Adapter Layer
+## Choosing a topology: single (default) or multi (optional)
 
-| Mode | Releases (release = namespace) | Callers use |
+| Topology | Releases (release = namespace) | Callers use |
 |---|---|---|
-| multi | `consumer-adapter`, `network-adapter`, `provider-adapter` (examples/consumer.yaml, network.yaml, provider.yaml) | `consumer-adapter:9202/<action>`, `provider-adapter:9200/publish` |
-| Network Adapter Layer | `network-adapter` (examples/network-adapter.yaml) | `network-adapter:9200/<action>`, `network-adapter:9200/provider/publish` |
+| **single (default)**: Network Adapter Layer | `network-adapter` (examples/network-adapter.yaml) | `network-adapter:9200/<action>`, `network-adapter:9200/provider/publish` |
+| multi (optional) | `consumer-adapter`, `network-adapter`, `provider-adapter` (examples/consumer.yaml, network.yaml, provider.yaml) | `consumer-adapter:9202/<action>`, `provider-adapter:9200/publish` |
 
 `role: network-adapter-layer` runs all three tiers in one adapter, as four
 modules of one process. Its config is `config/network-adapter-config.yaml`
@@ -151,27 +152,28 @@ needed (it replaces `network-adapter-config.yaml` whole).
 
 Pick the topology per environment with ONE value where releases are chosen,
 `networkAdapterTopology: single | multi` (a helmfile environment value; no chart
-reads it). `single` installs one release, `network-adapter` (the Network Adapter
+reads it; **default `single`**). `single` installs one release, `network-adapter` (the Network Adapter
 Layer); `multi` installs the three tier releases. For a helmfile (adapt to
 infra-automation's layout):
 
 ```yaml
-# environments: values carry   networkAdapterTopology: multi      # or: single
-{{- if not (has .Values.networkAdapterTopology (list "single" "multi")) }}
-{{- fail (printf "networkAdapterTopology must be single or multi, not %q" .Values.networkAdapterTopology) }}
+# environments: values may carry   networkAdapterTopology: multi      # default: single
+{{- $topology := .Values.networkAdapterTopology | default "single" }}
+{{- if not (has $topology (list "single" "multi")) }}
+{{- fail (printf "networkAdapterTopology must be single or multi, not %q" $topology) }}
 {{- end }}
 releases:
 {{- range $tier := list "consumer" "network" "provider" }}
   - name: {{ $tier }}-adapter
     namespace: {{ $tier }}-adapter
     chart: ../helmcharts/charts/adapter-service
-    installed: {{ eq $.Values.networkAdapterTopology "multi" }}
+    installed: {{ eq $topology "multi" }}
     values: [values/{{ $tier }}-adapter.yaml]
 {{- end }}
   - name: network-adapter
     namespace: network-adapter
     chart: ../helmcharts/charts/adapter-service
-    installed: {{ eq .Values.networkAdapterTopology "single" }}
+    installed: {{ eq $topology "single" }}
     values: [values/network-adapter.yaml]
 ```
 

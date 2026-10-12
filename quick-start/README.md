@@ -4,9 +4,11 @@ The whole OAN stack in Docker Compose: a registry, a discovery service, the
 adapter tiers, and two mock upstreams standing in for real provider APIs.
 
 The three adapter tiers (consumer, network, provider) run as **one** container
-by default, the Network Adapter Layer (container `network-adapter`): the tiers
-as modules of one process on port 9200. `make up-core-multi` runs them as three containers instead. Same
-compose file, same keys, same registry → [Two topologies](#two-topologies).
+by default: the Network Adapter Layer (container `network-adapter`), the tiers
+as modules of one process on port 9200. **Single is the default topology;
+multi is optional:** `make up-core-multi` runs the tiers as three containers
+instead. Same compose file, same keys, same registry →
+[Two topologies](#two-topologies).
 
 Nothing is built here — the images are pulled. Locally that is about ten
 minutes, most of it waiting for Keycloak. Discovery is the one exception, and
@@ -93,9 +95,9 @@ Locally, nothing in it needs changing. It publishes these on `localhost`:
 ```
 
 If one is already taken, change it here — that is the only edit a local run
-needs. The single adapter's host port is `NETWORK_ADAPTER_LAYER_PORT`;
-in multi mode 9200 is `PROVIDER_ADAPTER_PORT`. Adapters reach each other by Compose service name, so it only changes
-what you type into Postman.
+needs. The single adapter's host port is `NETWORK_ADAPTER_LAYER_PORT`; in
+multi mode 9200 is `PROVIDER_ADAPTER_PORT`. Adapters reach each other by
+Compose service name, so it only changes what you type into Postman.
 
 ## Step 4 — Start it
 
@@ -233,8 +235,9 @@ collection. → Appendix N.
 
 The three adapter tiers can run two ways. Same `docker-compose.yml`, same
 image, same keys, registry and data; a compose profile picks the adapters.
+**single is the default; multi is optional.**
 
-| | Network Adapter Layer (default) | Multi-adapter |
+| | single (default): Network Adapter Layer | multi (optional) |
 |---|---|---|
 | What runs | one container, `network-adapter` | `consumer-adapter`, `network-adapter`, `provider-adapter` |
 | Compose profile | `single` | `multi` |

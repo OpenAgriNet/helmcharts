@@ -1,24 +1,31 @@
 # ===========================================================================
 # adapter-service
 #
-# One chart for the Beckn adapters: provider, network and consumer (one release
-# per tier), or network-adapter-layer (all three tiers in one adapter). Same image and
-# config format; `role` below decides the handler role, the step list and
-# where requests are routed.
+# One chart for the Beckn adapters, in two topologies. Same image and config
+# format; `role` below decides the handler role, the step list and where
+# requests are routed.
 #
-# INSTALL ONCE PER ROLE, and keep the RELEASE name per-role:
+#   single (the DEFAULT): ONE release, the Network Adapter Layer, serving all
+#   three tiers as modules of one process (role network-adapter-layer):
 #
-#   helm install provider-adapter . -f examples/provider.yaml
-#   helm install network-adapter  . -f examples/network.yaml
-#   helm install consumer-adapter      . -f examples/consumer.yaml
+#     helm install network-adapter . -f examples/network-adapter.yaml
 #
-# OR, all three tiers in one adapter (one release instead of the three above):
+#   multi (OPTIONAL): one release per tier. INSTALL ONCE PER ROLE, and keep the
+#   RELEASE name per-role:
 #
-#   helm install network-adapter . -f examples/network-adapter.yaml
+#     helm install provider-adapter . -f examples/provider.yaml
+#     helm install network-adapter  . -f examples/network.yaml
+#     helm install consumer-adapter . -f examples/consumer.yaml
+#
+# Run one topology per environment. The Network Adapter Layer is released as
+# `network-adapter`, the same name as the multi network tier, so they cannot be
+# installed under that name together.
 #
 # The release name is what the Service is called, which is the DNS name the
-# other adapters address. Rename a release and you must update whatever routes
-# to it -- consumer routes to the network adapter, provider is routed to by network.
+# other adapters address. In multi, rename a release and you must update
+# whatever routes to it -- consumer routes to the network adapter, provider is
+# routed to by network. The single topology has no such addresses: its tiers
+# call each other over loopback inside the pod.
 #
 # Two things every role needs that this chart cannot give it:
 #

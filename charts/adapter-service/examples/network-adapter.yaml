@@ -1,5 +1,6 @@
 # ===========================================================================
-# network-adapter-layer role -- the Network Adapter.
+# network-adapter-layer role -- the Network Adapter Layer: the DEFAULT topology
+# (single). The optional alternative is multi: examples/{consumer,network,provider}.yaml.
 #
 # The consumer, network and provider tiers as four modules of ONE adapter
 # process, on one Service:

@@ -8,22 +8,49 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 ## [0.5.3] - 2026-10-09
 
 ### Added
-- `role: network-adapter-layer`: all three tiers in one adapter (four modules:
-  `/` (consumer), `/network/`, `/provider/`, `/provider/publish`), as in the
-  quick-start's `single` topology (compose profile). Its config is
-  `config/network-adapter-config.yaml` (extended schema, an outbound
-  connection pool and log level info on every module); its routing is generated
-  at render time from `config/routing-*.yaml`. Tier hops are loopback HTTP
-  inside the pod. Signs as three identities from
-  `networkAdapterLayer.keys.{consumer,network,provider}`; `routing.config` fails the
-  render for this role.
-- network-adapter-layer ingress may expose only single-segment `/<action>` and
-  `/provider/<action>`, as literal paths with `pathType` Prefix or Exact and
-  no `use-regex` / `rewrite-target` annotation. Example
-  `examples/network-adapter.yaml`.
+- **Two topologies, with single as the default.** `role: network-adapter-layer`
+  is the Network Adapter Layer: the consumer, network and provider tiers as four
+  modules of one process (`/` for the consumer, `/network/`, `/provider/`,
+  `/provider/publish`), one release called `network-adapter`. It is the default;
+  the existing roles `provider`, `network` and `consumer` (one release per
+  tier) are the optional multi topology and are unchanged. The README's
+  "Choosing a topology" has the helmfile snippet with
+  `networkAdapterTopology: single | multi` (default `single`; a deploy-layer
+  value, not a chart value).
+- `config/network-adapter-config.yaml`: the layer's adapter config, mounted
+  like any role's file (extended schema, an outbound connection pool and log
+  level info on every module). Each module is its tier's module, so a change to
+  a tier file that should apply to both topologies is made in both. Its routing
+  is generated at render time from `config/routing-*.yaml`
+  (`routing-network-adapter-{consumer,publish}.yaml`), with tier hosts rewritten
+  to `http://localhost:<targetPort>`. Tier hops are loopback HTTP inside the
+  pod. The render fails if `http.port` differs from `service.targetPort`.
+- Three identities: each module signs as its own tier from
+  `networkAdapterLayer.keys.{consumer,network,provider}.existingSecret`
+  (`networkAdapterLayer.extraSubstitutions` for extra placeholders). A literal
+  private key in the config, including a `config:` override, fails the render.
+- Ingress for the layer may expose only single-segment `/<action>` and
+  `/provider/<action>`, as literal paths with `pathType` Prefix or Exact and no
+  `use-regex` / `rewrite-target` annotation; `/`, `/network*` and
+  `/provider/publish` are refused. `routing.config` fails the render for this
+  role.
+- `examples/network-adapter.yaml` and `ci/network-adapter-values.yaml`
+  (HPA 3-10, PDB, spread, graceful shutdown).
 - `autoscaling.behavior`, `topologySpreadConstraints`,
   `terminationGracePeriodSeconds`, `preStopSleepSeconds`, `goMemLimit`; all off
   by default.
+
+### Changed
+- Docs, `values.yaml` and the example headers say single is the default
+  topology and multi is optional.
+- Naming: the layer's release, namespace, Service and app name are
+  `network-adapter` (telemetry service `oan-network-adapter`); "layer" appears
+  only in the role, the values key and helper names, where it must differ from
+  the `network` role. The `<role>-adapter` default for app name and telemetry
+  service name is special-cased for it. The layer shares the name
+  `network-adapter` with the multi network tier, so they cannot be installed
+  under that name together: switch an environment in place, or trial the layer
+  in its own namespace.
 
 ### Fixed
 - Liveness and readiness probes now render. Values used `probes.liveness` /
@@ -34,7 +61,7 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - **Breaking:** the `probes.liveness` and `probes.readiness` values keys, renamed to
   `livenessProbe` / `readinessProbe` (and a new `startupProbe`, off). The
   timings are unchanged. An environment that overrides `probes.*` must rename
-  those keys.
+  those keys; the old keys never took effect.
 
 ### Unchanged
 - Roles `provider`, `network`, `consumer`: same config, routing and manifests
