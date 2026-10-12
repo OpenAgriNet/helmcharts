@@ -41,9 +41,10 @@ capability's provider lives.
 
 A `select` answers in the same HTTP round trip — there is no callback.
 
-That is the request order. **Startup order is the reverse**: the consumer
-adapter depends on the other two, so Compose brings them up first. The steps
-below follow startup order, so they work top to bottom.
+That is the request order. **Startup order is the reverse**: in the multi
+topology the consumer adapter depends on the other two, so Compose brings them
+up first (in single there is one container). The steps below follow startup
+order, so they work top to bottom.
 
 ## Which path are you on?
 
@@ -248,6 +249,11 @@ image, same keys, registry and data; a compose profile picks the adapters.
 | App calls | `:9200/discover`, `:9200/select` | `:9202/discover`, `:9202/select` |
 | Catalogue publishes to | `:9200/provider/publish` | `:9200/publish` |
 | Tier-to-tier hops | loopback HTTP inside the container (`http://localhost:9200/...`) | HTTP between containers |
+
+**When to use which.** Single is the everyday choice: one container, fewer
+hops, the same requests. Use multi to reproduce a deployment where the tiers
+run separately (different teams, separate scaling or rollouts), or to compare
+the two.
 
 Only one topology runs at a time (both use 9200). Switching is running the
 other target: it removes the running topology's adapters first. `make down`,

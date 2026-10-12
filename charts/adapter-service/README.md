@@ -39,26 +39,45 @@ reads from the registry at request time.
 
 ## Install
 
-Once per role. **Keep the release name per-role** — it is what the Service is
-called, which is the DNS name the other adapters address.
+Pick **one** topology per environment (→ [Choosing a topology](#choosing-a-topology-single-default-or-multi-optional)).
+Install the Secrets first: the render fails without them.
 
 ```sh
 helm dependency build charts/adapter-service
-
-helm upgrade --install provider-adapter charts/adapter-service -n oan \
-  -f charts/adapter-service/examples/provider.yaml
-helm upgrade --install network-adapter charts/adapter-service -n oan \
-  -f charts/adapter-service/examples/network.yaml
-helm upgrade --install consumer-adapter charts/adapter-service -n oan \
-  -f charts/adapter-service/examples/consumer.yaml
 ```
 
-Each example sets `fullnameOverride` to `<role>-adapter`. Without it the Service
-would be named `<release>-adapter-service`, and nothing routing by name would
-resolve. Rename a release and you must update whatever routes to it — `consumer`
-points at the network adapter, `network` points at discovery.
+**single (default): one release, the Network Adapter Layer**
 
-The Secret comes first — the render fails without it.
+```sh
+helm upgrade --install network-adapter charts/adapter-service \
+  -n network-adapter-layer --create-namespace \
+  -f charts/adapter-service/examples/network-adapter.yaml
+```
+
+It needs `consumer-adapter-keys`, `network-adapter-keys`,
+`provider-adapter-keys` and `provider-upstream` in `network-adapter-layer`
+(openbao-secrets mirrors them there).
+
+**multi (optional): one release per tier, each in its own namespace.** **Keep
+the release and namespace names**: they make the Service DNS name the other
+adapters address (the consumer routes to
+`network-adapter.network-adapter.svc` and `provider-adapter.provider-adapter.svc`).
+
+```sh
+helm upgrade --install provider-adapter charts/adapter-service \
+  -n provider-adapter --create-namespace -f charts/adapter-service/examples/provider.yaml
+helm upgrade --install network-adapter charts/adapter-service \
+  -n network-adapter --create-namespace -f charts/adapter-service/examples/network.yaml
+helm upgrade --install consumer-adapter charts/adapter-service \
+  -n consumer-adapter --create-namespace -f charts/adapter-service/examples/consumer.yaml
+```
+
+Each example sets `fullnameOverride` to `<role>-adapter` (`network-adapter` for the layer). Without it the Service
+would be named `<release>-adapter-service`, and nothing routing by name would
+resolve. In multi, rename a release and you must update whatever routes to it —
+`consumer` points at the network adapter, `network` points at discovery. In
+single nothing routes to another release: the tiers call each other inside the
+pod.
 
 ## What you must decide
 
@@ -134,19 +153,30 @@ healthy.
 
 ## Choosing a topology: single (default) or multi (optional)
 
-| Topology | Releases (release = namespace) | Callers use |
-|---|---|---|
-| **single (default)**: Network Adapter Layer | `network-adapter` (examples/network-adapter.yaml) | `network-adapter:9200/<action>`, `network-adapter:9200/provider/publish` |
-| multi (optional) | `consumer-adapter`, `network-adapter`, `provider-adapter` (examples/consumer.yaml, network.yaml, provider.yaml) | `consumer-adapter:9202/<action>`, `provider-adapter:9200/publish` |
+| Topology | Releases → namespaces | Values | App calls | Catalogue publishes to |
+|---|---|---|---|---|
+| **single (default)**: Network Adapter Layer | `network-adapter` → `network-adapter-layer` | `examples/network-adapter.yaml` | `network-adapter.network-adapter-layer.svc:9200/<action>` | `network-adapter.network-adapter-layer.svc:9200/provider/publish` |
+| multi (optional) | `consumer-adapter`, `network-adapter`, `provider-adapter` → one namespace each, same name | `examples/{consumer,network,provider}.yaml` | `consumer-adapter.consumer-adapter.svc:9202/<action>` | `provider-adapter.provider-adapter.svc:9200/publish` |
+
+**When to use which**
+
+| Use **single** (default) when | Use **multi** when |
+|---|---|
+| One team runs all three tiers in one cluster | The tiers are run by different parties or in different trust zones |
+| You want fewer hops and fewer objects (one Deployment, Service, HPA, PDB) | A tier needs its own scaling or resource profile (e.g. a provider with heavy upstream calls) |
+| | You need to roll out or roll back one tier without the others |
+
+Both sign as the same three identities from the same registry rows, so the
+choice changes nothing in the registry.
 
 `role: network-adapter-layer` runs all three tiers in one adapter, as four
 modules of one process. Its config is `config/network-adapter-config.yaml`
 (each module is its tier's module from `config/<tier>-config.yaml`, so a change
-to a tier file that should apply to both modes goes in both files). Its routing
+to a tier file that should apply to both topologies goes in both files). Its routing
 is **generated** at render time from `config/routing-*.yaml`, so routes stay in
 one place. Tier hops are loopback HTTP inside the pod (any image). It signs as
 the same three identities, from the same three Secrets, so the registry is the
-same in both modes. An environment's `config:` override for a multi role is NOT
+same in both topologies. An environment's `config:` override for a multi role is NOT
 seen by the Network Adapter Layer; give its release its own `config:` if
 needed (it replaces `network-adapter-config.yaml` whole).
 
@@ -200,7 +230,7 @@ rows, so nothing in the registry changes. Reverse the steps to switch back.
 
 See `values.yaml` — every field is commented with what it does and what breaks
 without it. `examples/{provider,network,consumer}.yaml` are working dev deployments for the
-multi-adapter mode, and `examples/network-adapter.yaml` for the Network Adapter Layer;
+multi topology, and `examples/network-adapter.yaml` for the single topology (the Network Adapter Layer, default);
 `ci/` holds the files lint renders, including `ci/network-adapter-values.yaml`.
 
 ## Related

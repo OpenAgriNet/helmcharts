@@ -1,8 +1,10 @@
 {{ .Chart.Name }} {{ .Chart.Version }} — {{ include "adapter-service.fullname" . }}
 {{ if include "adapter-service.isNetworkAdapterLayer" . }}
+  topology   single (the default): the Network Adapter Layer
   role       network-adapter-layer (all three tiers in one adapter: / consumer bap, /network/ bpp, /provider/ bpp, /provider/publish bap)
   hops       loopback HTTP between tiers (http://localhost:{{ .Values.service.targetPort }}/<tier>)
 {{- else }}
+  topology   multi (optional): one release per tier; the default is role network-adapter-layer
   role       {{ include "adapter-service.role" . }} ({{ include "adapter-service.handlerRole" . }})
   steps      {{ include "adapter-service.steps" . | fromYamlArray | join " -> " }}
 {{- end }}
@@ -12,9 +14,14 @@
   routes     {{ if include "adapter-service.isNetworkAdapterLayer" . }}generated from config/routing-{consumer,network,provider}.yaml{{ else }}from config/routing-{{ include "adapter-service.role" . }}.yaml{{ end }}
   telemetry  {{ if .Values.otel.enabled }}{{ .Values.otel.endpoint }}{{ else }}off{{ end }}
 
-This Service is reachable in-cluster as {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}.
+This Service is reachable in-cluster as {{ include "adapter-service.fullname" . }}.{{ include "common.namespace" . }}.svc:{{ .Values.service.port }}.
+{{- if include "adapter-service.isNetworkAdapterLayer" . }}
+The app and the catalogue publisher call it there; its tiers call each other
+inside the pod, so no other adapter routes to it.
+{{- else }}
 That name comes from the RELEASE name — whatever routes here must use it, so
 renaming this release means updating the adapter that points at it.
+{{- end }}
 
 Check it is serving:
 
