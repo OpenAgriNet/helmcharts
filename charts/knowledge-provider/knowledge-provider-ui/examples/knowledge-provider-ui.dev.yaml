@@ -1,0 +1,29 @@
+# Example: knowledge-provider-ui, dev environment.
+#
+#   helm install knowledge-provider-ui charts/knowledge-provider/knowledge-provider-ui \
+#     -n knowledge-provider -f charts/knowledge-provider/knowledge-provider-ui/examples/knowledge-provider-ui.dev.yaml
+#
+# Assumes an image built with dev-appropriate --build-arg values (VITE_API_BASE,
+# VITE_AUTH_ENABLED=false for a no-auth dev stack, etc.) - see README.md,
+# "Build-time configuration". This values file cannot change any of that.
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/knowledge-provider-ui
+  tag: "latest"
+  pullSecrets:
+    - ghcr-pull-secret
+
+ingress:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi
+
+commonLabels:
+  oan.in/environment: dev

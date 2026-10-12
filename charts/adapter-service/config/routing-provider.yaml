@@ -1,0 +1,33 @@
+# Where the provider adapter hands requests on -- for the publish module only.
+#
+# Mounted verbatim, like the adapter config beside it. Routing is topology, not
+# environment: these are in-cluster names built from the namespace-per-component
+# convention, and they are the same in every environment. An environment that
+# genuinely differs sets `routing.config` in values, which replaces this file
+# whole.
+#
+# Publishing is the one thing this adapter sends rather than answers. The
+# provider's own catalogue system posts POST /publish here, and the catalogue
+# has to reach the network layer, which fronts the discovery service.
+#
+# WHY THE ENDPOINT IS EMPTY, AND WHY THE TARGET IS SPELT OUT IN FULL.
+#
+# The adapter derives the action from the URL, not from the payload: it strips
+# the module's mount path off the front of the request path and whatever is left
+# is the endpoint it matches here. Every other module is mounted on a subtree --
+# "/" -- so /select leaves "select" and /discover leaves "discover".
+#
+# This module is mounted on the exact path /publish, because "/" already belongs
+# to the module that answers select and two modules cannot share a pattern.
+# Stripping /publish off /publish leaves the empty string, so the empty string is
+# the endpoint, and there is no action left to append to a target. Hence
+# excludeAction and the full URL -- which is also why this one target legitimately
+# carries a path where the others must not.
+routingRules:
+  - version: "2.0.0"
+    targetType: url
+    target:
+      url: http://network-adapter.network-adapter.svc.cluster.local:9201/publish
+      excludeAction: true
+    endpoints:
+      - ""

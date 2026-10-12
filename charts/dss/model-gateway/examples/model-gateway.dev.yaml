@@ -1,0 +1,62 @@
+# Development. One replica, so no Redis is needed, and the admin screen is on
+# because losing an experiment there costs nothing.
+replicaCount: 1
+
+image:
+  registry: ghcr.io
+  repository: berriai/litellm
+
+database:
+  urlSecret:
+    name: model-gateway-db-app
+
+masterKeySecret:
+  name: model-gateway-master-key
+saltKeySecret:
+  name: model-gateway-salt-key
+
+adminUI:
+  enabled: true
+
+credentials:
+  - name: azure-oan
+    description: Azure OpenAI, OAN development account
+    secretName: model-gateway-azure
+    keys:
+      api_key: AZURE_OPENAI_API_KEY
+    values:
+      api_base: https://<resource>.services.ai.azure.com/openai/v1
+
+models:
+  - name: dss-intent
+    model: openai/<deployment>
+    credential: azure-oan
+    inputCostPerToken: 0.00000015
+    outputCostPerToken: 0.00000060
+  - name: dss-moderation
+    model: openai/<deployment>
+    credential: azure-oan
+    inputCostPerToken: 0.00000015
+    outputCostPerToken: 0.00000060
+  - name: dss-planner
+    model: openai/<deployment>
+    credential: azure-oan
+    inputCostPerToken: 0.00000015
+    outputCostPerToken: 0.00000060
+  - name: dss-composer
+    model: openai/<deployment>
+    credential: azure-oan
+    inputCostPerToken: 0.00000015
+    outputCostPerToken: 0.00000060
+
+otel:
+  enabled: true
+  endpoint: http://otel-collector:4318/v1/traces
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi

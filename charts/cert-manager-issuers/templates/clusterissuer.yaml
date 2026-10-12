@@ -1,0 +1,52 @@
+{{/*
+Angle brackets mark a value nobody has filled in, the same convention the
+environment values files use. Let's Encrypt would reject `<ops@example.com>` as
+a contact, and the order would fail at registration -- far from this file.
+*/}}
+{{- range $k, $v := (dict "email" ($.Values.email | toString) "ingressClassName" ($.Values.ingressClassName | toString)) }}
+{{- if regexMatch "[<>]" $v }}
+{{- fail (printf "cert-manager-issuers: %s is still a placeholder (%s). Fill it in before installing." $k $v) }}
+{{- end }}
+{{- end }}
+{{- range $name, $issuer := .Values.issuers }}
+{{- if $issuer.enabled }}
+---
+{{/*
+A ClusterIssuer, not an Issuer: an Issuer is namespaced and only serves
+Certificates in its own namespace, which would mean one per namespace across
+consumer-adapter, network-adapter, provider-adapter, registry and the rest.
+*/}}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "cert-manager-issuers.labels" $ | nindent 4 }}
+  {{- with $.Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  acme:
+    server: {{ required (printf "cert-manager-issuers: issuers.%s.server is required" $name) $issuer.server | quote }}
+    {{- with ($issuer.email | default $.Values.email) }}
+    # Let's Encrypt sends expiry warnings here. A wrong address is not fatal to
+    # issuance, so nothing fails loudly if it is never read.
+    email: {{ . | quote }}
+    {{- end }}
+    privateKeySecretRef:
+      # cert-manager creates this and stores the ACME ACCOUNT key in it -- not a
+      # certificate key. Deleting it makes cert-manager register a NEW account,
+      # which resets nothing but loses the issuance history tied to the old one.
+      name: {{ $issuer.privateKeySecretName | default (printf "%s-account-key" $name) | quote }}
+    solvers:
+      - http01:
+          ingress:
+            # Routes the ACME challenge through the same ingress controller that
+            # serves the host being validated. Let's Encrypt fetches
+            # http://<host>/.well-known/acme-challenge/<token> over PLAIN HTTP,
+            # so port 80 must reach Kong from the internet or every order fails
+            # with a connection error rather than a certificate error.
+            ingressClassName: {{ $issuer.ingressClassName | default $.Values.ingressClassName | quote }}
+{{- end }}
+{{- end }}

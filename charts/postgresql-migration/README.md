@@ -15,7 +15,7 @@ finish before the services that depend on them start.
 ```bash
 helm dependency update charts/postgresql-migration
 helm install migrate charts/postgresql-migration \
-  -n oan-registry -f charts/postgresql-migration/examples/registry-stack.dev.yaml
+  -n postgres -f charts/postgresql-migration/examples/registry-stack.dev.yaml
 ```
 
 Run it **after** the database cluster and **before** Keycloak — Keycloak needs the
@@ -137,7 +137,7 @@ from blocking `helm install` until Helm's own timeout.
 ## Reading what it did
 
 ```bash
-kubectl -n oan-registry logs job/migrate-postgresql-migration
+kubectl -n postgres logs job/migrate-postgresql-migration
 ```
 
 The log names each target, the URL, the migration files it found, and whether it

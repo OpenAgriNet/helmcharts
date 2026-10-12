@@ -1,0 +1,176 @@
+# ============================================================================
+# openbao -- prod
+#
+# The same store as openbao.dev.yaml, as a three-node raft cluster: any one
+# pod, or the node under it, can go without the store going with it.
+#
+#   helm install openbao charts/openbao -n openbao --create-namespace \
+#     -f charts/openbao/examples/openbao.prod.yaml
+#
+# Differences from dev, and why:
+#   - server.ha with raft, three replicas. Raft needs a majority, so three
+#     survive one loss; two would survive none.
+#   - retry_join: pods 1 and 2 find pod 0 and join it on their own. Only
+#     openbao-0 is ever initialised (infra-automation's
+#     scripts/openbao-configure.sh targets it).
+#   - service_registration "kubernetes": labels each pod active or standby, so
+#     the openbao-active Service reaches the leader. Standbys forward requests,
+#     so ESO and the scripts may talk to any pod.
+#   - The chart's pod anti-affinity is required, not preferred: the three pods
+#     need three nodes, or the third stays Pending.
+#   - A PodDisruptionBudget of one, so a node drain never takes two at once.
+#   - Backups on (see snapshotAgent at the end).
+#
+# Start prod in HA rather than converting a running single node: the node ID and
+# peer set are fixed at first start, and moving a live store between them is a
+# procedure, not a values change.
+#
+# BEFORE INSTALLING, the unseal key Secret must exist, exactly as for dev (see
+# the header of openbao.dev.yaml). All three pods mount the same key.
+# ============================================================================
+
+global:
+  # As in dev: ESO is the only client and talks over the pod network. Turn on
+  # with listener TLS before anything outside the cluster may reach OpenBao.
+  tlsDisable: true
+
+injector:
+  enabled: false
+
+server:
+  image:
+    registry: quay.io
+    repository: openbao/openbao
+    tag: "2.6.3"
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 1Gi
+
+  dataStorage:
+    enabled: true
+    size: 10Gi
+    storageClass: null
+
+  auditStorage:
+    enabled: true
+    size: 5Gi
+
+  # OnDelete, as in dev: `helm upgrade` leaves the pods alone. Roll a change
+  # one pod at a time, standbys first and the active (label
+  # openbao-active=true) last, waiting for each to rejoin:
+  #   kubectl -n openbao delete pod openbao-2   # ... then 1, then 0
+  updateStrategyType: OnDelete
+
+  # As in dev. 8201 is raft between the pods, so only this namespace.
+  networkPolicy:
+    enabled: true
+    ingress:
+      - from:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: external-secrets
+          - podSelector: {}
+        ports:
+          - port: 8200
+            protocol: TCP
+      - from:
+          - podSelector: {}
+        ports:
+          - port: 8201
+            protocol: TCP
+
+  volumes:
+    - name: unseal-key
+      secret:
+        secretName: openbao-unseal-key
+        defaultMode: 0400
+  volumeMounts:
+    - name: unseal-key
+      mountPath: /openbao/unseal
+      readOnly: true
+
+  standalone:
+    enabled: false
+
+  ha:
+    enabled: true
+    replicas: 3
+    disruptionBudget:
+      enabled: true
+      maxUnavailable: 1
+    raft:
+      enabled: true
+      # Node ID = pod name, so `bao operator raft list-peers` reads openbao-0,
+      # -1, -2 rather than random IDs.
+      setNodeId: true
+      # Everything that is not HA-specific is as in openbao.dev.yaml, which
+      # explains the seal and the two audit devices.
+      config: |
+        ui = true
+
+        listener "tcp" {
+          tls_disable = 1
+          address = "[::]:8200"
+          cluster_address = "[::]:8201"
+        }
+
+        storage "raft" {
+          path = "/openbao/data"
+
+          retry_join {
+            leader_api_addr = "http://openbao-0.openbao-internal:8200"
+          }
+          retry_join {
+            leader_api_addr = "http://openbao-1.openbao-internal:8200"
+          }
+          retry_join {
+            leader_api_addr = "http://openbao-2.openbao-internal:8200"
+          }
+        }
+
+        seal "static" {
+          current_key_id = "oan-prod-1"
+          current_key = "file:///openbao/unseal/unseal.key"
+        }
+
+        audit "file" "file" {
+          description = "Every request, to the audit volume"
+          options {
+            file_path = "/openbao/audit/audit.log"
+          }
+        }
+
+        audit "file" "stdout" {
+          description = "Every request, to the pod log"
+          options {
+            file_path = "stdout"
+          }
+        }
+
+        service_registration "kubernetes" {}
+
+  authDelegator:
+    enabled: true
+
+ui:
+  enabled: true
+  serviceType: ClusterIP
+
+# BACKUPS, on: in prod the store is not optional. The bucket and the
+# openbao-snapshot-s3 Secret must exist first -- see openbao.dev.yaml. The
+# snapshot is taken through the active pod.
+snapshotAgent:
+  enabled: true
+  schedule: "0 * * * *"
+  s3CredentialsSecret: openbao-snapshot-s3
+  config:
+    s3Host: s3.ap-south-1.amazonaws.com
+    s3Bucket: oan-openbao-snapshots-prod
+    s3Uri: s3://oan-openbao-snapshots-prod
+    s3ExpireDays: "30"
+    baoAuthPath: kubernetes
+    baoRole: snapshot

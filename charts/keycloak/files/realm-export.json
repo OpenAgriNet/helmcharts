@@ -100,6 +100,14 @@
         "clientRole": false,
         "containerId": "sunbird-rc",
         "attributes": {}
+      },
+      {
+        "name": "registryOperator",
+        "description": "Registry Operator - manages SchemaRegistry, Participant and ProviderSchema records",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "sunbird-rc",
+        "attributes": {}
       }
     ],
     "client": {
@@ -489,13 +497,14 @@
       "credentials": [
         {
           "type": "password",
-          "value": "no-user-password",
+          "value": "${env.REGISTRY_SEED_PASSWORD}",
           "temporary": false
         }
       ],
       "realmRoles": [
         "default-roles-sunbird-rc",
-        "network_operator"
+        "network_operator",
+        "registryOperator"
       ]
     }
   ],
@@ -619,7 +628,7 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "**********",
+      "secret": "${env.KEYCLOAK_ADMIN_CLIENT_SECRET}",
       "redirectUris": [
         "*",
         "http://localhost:4200/",

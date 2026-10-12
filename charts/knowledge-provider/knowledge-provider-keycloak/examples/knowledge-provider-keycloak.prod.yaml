@@ -1,0 +1,45 @@
+# Example: knowledge-provider-keycloak, prod environment.
+#
+#   helm install knowledge-provider-keycloak charts/knowledge-provider/knowledge-provider-keycloak \
+#     -n knowledge-provider -f charts/knowledge-provider/knowledge-provider-keycloak/examples/knowledge-provider-keycloak.prod.yaml
+#
+# All secret values below are referenced by name only - create the Secrets
+# out-of-band before installing (see README.md, "Secrets").
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/knowledge-provider-keycloak
+  tag: "v0.1.0"
+  pullSecrets:
+    - ghcr-pull-secret
+
+hostname: dev-auth-vistaar.da.gov.in
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: dev-auth-vistaar.da.gov.in
+      paths:
+        - path: /auth
+          pathType: Prefix
+
+database:
+  host: knowledge-provider-keycloak-db-rw
+  sslmode: require
+
+smtp:
+  host: smtp.example.com
+  from: noreply@example.com
+  username: ""
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "1"
+    memory: 2Gi
+
+commonLabels:
+  oan.in/environment: prod

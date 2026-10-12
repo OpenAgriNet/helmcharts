@@ -1,0 +1,32 @@
+# MandiPrice select requests.
+#
+# Each names one published resource and one commodity that market really
+# trades, both read out of the published payloads. A select for something that was
+# not published would measure the provider's rejection path — and rejections
+# are fast, so it would read as a good result.
+
+# --- where things come from -------------------------------------------------
+
+source: data/publish-payload/mandiprice
+template: capabilities/mandiprice/templates/select.json
+output: data/select-payload/mandiprice
+
+# --- what goes in every request ---------------------------------------------
+
+context:
+  action: select
+  version: "2.0.0"
+
+schemaContext:
+  - https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld#openagrinet:MandiPrice
+
+providerId: agmarknet
+offerId: "offer:mandi-price:open-data"
+
+# How much of the resource is asked for. One market's prices is one thing.
+quantity: 1
+
+# --- how many ---------------------------------------------------------------
+
+seed: 20260919
+requests: 300

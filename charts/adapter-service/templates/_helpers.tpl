@@ -5,7 +5,7 @@
 # Purpose: chart-local helpers delegating to common, plus the role,
 #          identity, upstream and config-rendering wiring an adapter needs.
 #
-# One chart, three roles. provider, network and experience are the same image and the
+# One chart, three roles. provider, network and consumer are the same image and the
 # same config format; the role decides the handler role, the step list and
 # where requests are routed. Install once per role, and keep the RELEASE name
 # per-role -- the release name is what becomes the Service DNS name that the
@@ -14,7 +14,7 @@
 */}}
 
 {{/*
-The adapter's role: provider | network | experience.
+The adapter's role: provider | network | consumer.
 
 Required, with no default. A default would silently give one role's step list
 and handler role to a different adapter -- which renders, starts, reports Ready
@@ -23,10 +23,10 @@ and then mis-handles every request, at the far end, in a peer's logs.
 {{- define "adapter-service.role" -}}
 {{- $role := .Values.role | default "" -}}
 {{- if not $role -}}
-{{- fail (printf "%s: role is required -- one of provider, network, experience. It decides the handler role, the step list and the routing target, so there is no safe default. See examples/ for a values file per role." .Chart.Name) -}}
+{{- fail (printf "%s: role is required -- one of provider, network, consumer. It decides the handler role, the step list and the routing target, so there is no safe default. See examples/ for a values file per role." .Chart.Name) -}}
 {{- end -}}
-{{- if not (has $role (list "provider" "network" "experience")) -}}
-{{- fail (printf "%s: role must be one of provider, network, experience (got %q)." .Chart.Name $role) -}}
+{{- if not (has $role (list "provider" "network" "consumer")) -}}
+{{- fail (printf "%s: role must be one of provider, network, consumer (got %q)." .Chart.Name $role) -}}
 {{- end -}}
 {{- $role -}}
 {{- end }}
@@ -48,14 +48,14 @@ in the compose stack so traces from either deployment line up.
 {{- end }}
 
 {{/*
-bap originates a call, bpp receives one. experience is the caller; network and
+bap originates a call, bpp receives one. consumer is the caller; network and
 provider receive. Overridable, because the role is a shorthand for a default
 rather than a constraint.
 */}}
 {{- define "adapter-service.handlerRole" -}}
 {{- if .Values.handler.role -}}
 {{- .Values.handler.role -}}
-{{- else if eq (include "adapter-service.role" .) "experience" -}}
+{{- else if eq (include "adapter-service.role" .) "consumer" -}}
 bap
 {{- else -}}
 bpp
@@ -65,14 +65,14 @@ bpp
 {{/*
 The step list, as a YAML array.
 
-experience sits inside the trust boundary and accepts unsigned requests, so it has no
+consumer sits inside the trust boundary and accepts unsigned requests, so it has no
 signature to validate; the other two receive from the network and must verify
 first. Set handler.steps to override.
 */}}
 {{- define "adapter-service.steps" -}}
 {{- if .Values.handler.steps -}}
 {{- toYaml .Values.handler.steps -}}
-{{- else if eq (include "adapter-service.role" .) "experience" -}}
+{{- else if eq (include "adapter-service.role" .) "consumer" -}}
 {{- toYaml (list "addRoute" "sign") -}}
 {{- else -}}
 {{- toYaml (list "validateSign" "addRoute" "sign") -}}
@@ -87,33 +87,6 @@ self-describing when you exec into a pod.
 routing-{{ include "adapter-service.role" . }}.yaml
 {{- end }}
 
-{{/*
-The routing rules, as a YAML array.
-
-A list rather than one rule: provider fans out to several upstreams, while
-network and experience each have a single target. Every rule needs a target url,
-and a trailing slash on one produces //discover once the router appends the
-action -- so that is caught here rather than at request time.
-*/}}
-{{- define "adapter-service.routingRules" -}}
-{{- $rules := .Values.routing.rules | default list -}}
-{{- if not $rules -}}
-{{- fail (printf "%s: routing.rules is required and must hold at least one rule. An adapter with no route accepts requests and has nowhere to send them. See examples/%s.yaml." .Chart.Name (include "adapter-service.role" .)) -}}
-{{- end -}}
-{{- range $i, $rule := $rules -}}
-{{- $url := $rule.target.url | default "" -}}
-{{- if not $url -}}
-{{- fail (printf "%s: routing.rules[%d].target.url is required -- e.g. http://discovery:8080. In-cluster this is the RELEASE name of the target, which is what its Service is called." $.Chart.Name $i) -}}
-{{- end -}}
-{{- if hasSuffix "/" $url -}}
-{{- fail (printf "%s: routing.rules[%d].target.url must not end in a slash (%q). The router appends the action to it, so a trailing slash produces //discover." $.Chart.Name $i $url) -}}
-{{- end -}}
-{{- if not $rule.endpoints -}}
-{{- fail (printf "%s: routing.rules[%d].endpoints is required -- e.g. [discover, publish]. A rule with no endpoints matches nothing." $.Chart.Name $i) -}}
-{{- end -}}
-{{- end -}}
-{{- toYaml $rules -}}
-{{- end }}
 
 {{- define "adapter-service.name" -}}
 {{- include "common.name" . -}}

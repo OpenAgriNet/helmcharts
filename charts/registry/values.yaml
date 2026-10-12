@@ -72,11 +72,21 @@ ingress:
 # CNPG cluster's bootstrap owner and give Keycloak its own database.
 # ---------------------------------------------------------------------------
 database:
-  # PostgreSQL primary service, e.g. "registry-db-rw"
+  # PostgreSQL primary service. The CNPG Clusters run in their own namespace,
+  # so this is an FQDN: "postgres-rw.postgres.svc.cluster.local"
   host: ""
   port: 5432
   name: registry
   user: postgres
+  # pgjdbc's own default is `prefer`, which cannot be used here: it falls back
+  # to plaintext only if the server refuses SSL, and CNPG never refuses. The
+  # registry runs on Java 8, whose TLS support PostgreSQL 18 on Debian trixie
+  # rejects with `Received fatal alert: protocol_version`.
+  #
+  # `disable` is safe for in-cluster traffic to a Service in a namespace the
+  # adapters cannot reach. Set it to `require` once the registry moves to a JRE
+  # that can negotiate TLS 1.2, or put a mesh in front of it.
+  sslMode: disable
   # Secret holding the database password. Required.
   passwordSecret:
     name: ""
@@ -93,7 +103,7 @@ database:
 # The keycloak chart prints the exact value to use in its NOTES.
 # ---------------------------------------------------------------------------
 keycloak:
-  # e.g. http://keycloak.oan-registry.svc.cluster.local:8080/auth
+  # e.g. http://keycloak.keycloak.svc.cluster.local:8080/auth
   url: ""
   realm: sunbird-rc
   # Confidential client the registry uses for admin operations on Keycloak
@@ -104,10 +114,10 @@ keycloak:
   identityProvider: dev.sunbirdrc.auth.keycloak.KeycloakProviderImpl
   # Secret holding the admin-api client secret.
   #
-  # The realm export ships this masked, so it is NOT usable until someone
-  # regenerates it: Keycloak console -> realm sunbird-rc -> Clients -> admin-api
-  # -> Credentials -> Regenerate Secret. First install is two-phase because of
-  # this.
+  # The keycloak chart substitutes this same Secret into the realm at import
+  # (realmImport.adminClientSecret), so point both charts at one Secret and the
+  # value the registry sends is by construction the one Keycloak holds. No
+  # console step, and no two-phase install.
   adminClientSecret:
     name: ""
     key: keycloakAdminClientSecret
@@ -128,9 +138,19 @@ defaultUserPasswordSecret:
 # Every .json under the registry's schema directory is an entity definition.
 # The chart ships the participant schema and mounts it at mountPath.
 #
-# NOTE: this schema was built and verified against the local stack, but per
-# engineering-tracker #33 it has no design issue of its own yet. Expect it to
-# change - a schema change is a chart release.
+# The three schemas are the ones the verified compose stack runs, copied from
+# quick-start/config/registry/schemas. registry-seed writes Participant,
+# ProviderSchema and SchemaRegistry, and its payloads are shaped for these.
+#
+# A snake_case Participant schema (participant_id, display_name, roles,
+# signing_public_key, ...) lived here until 0.4.0. It is a different data model
+# from the one the seed produces, so the registry rejected every write with
+# `required key [participant_id] not found` alongside `extraneous key
+# [participantId] is not permitted`, and ProviderSchema/SchemaRegistry did not
+# exist at all, which is a 404 on those entities.
+#
+# Per engineering-tracker #33 the model is expected to change. When it does,
+# the seed's payloads change with it -- they are one decision, not two.
 # ---------------------------------------------------------------------------
 schemas:
   filesGlob: "files/schemas/*.json"

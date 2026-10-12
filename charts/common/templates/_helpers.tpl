@@ -182,7 +182,7 @@ expects (CNPG writes `password`; Sunbird RC wants `connectionInfo_password`):
 
   secretEnv:
     connectionInfo_password:
-      name: registry-db-app
+      name: registry-db
       key: password
       optional: false      # optional
 

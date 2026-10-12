@@ -1,0 +1,200 @@
+# ============================================================================
+# openbao -- dev
+#
+# The secret store every OAN credential lives in. External Secrets Operator
+# reads it (see openbao-cluster-secret-store and openbao-secrets); nothing else
+# should need to.
+#
+#   helm install openbao charts/openbao -n openbao --create-namespace \
+#     -f charts/openbao/examples/openbao.dev.yaml
+#
+# The chart itself is the official one, unmodified. Everything OAN decides is
+# in this file.
+#
+# BEFORE INSTALLING, the unseal key Secret must exist -- the pod mounts it and
+# will not start without it:
+#
+#   openssl rand -out unseal.key 32
+#   kubectl create namespace openbao
+#   kubectl -n openbao create secret generic openbao-unseal-key \
+#     --from-file=unseal.key=unseal.key
+#   # then move unseal.key somewhere safe OFF the cluster, and delete it here
+#
+# Lose that key and the data is gone: it is what decrypts the store. Keep a copy
+# outside the cluster (the password manager, not a laptop).
+# ============================================================================
+
+global:
+  # No TLS inside the cluster yet: only ESO talks to OpenBao, over the pod
+  # network. Turn this on, with server TLS below, before anything outside the
+  # cluster is allowed to reach it.
+  tlsDisable: true
+
+# The Agent Injector is OpenBao's way of getting secrets into pods. OAN uses
+# External Secrets Operator for that instead, so the webhook would be a second,
+# unused path that intercepts every pod creation in the cluster.
+injector:
+  enabled: false
+
+server:
+  image:
+    registry: quay.io
+    repository: openbao/openbao
+    # Pinned rather than following the chart's appVersion, so a chart bump
+    # cannot move the server version by accident.
+    tag: "2.6.3"
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+  # Raft, not the chart's default "file" backend: the same storage an HA cluster
+  # uses, so going to three replicas later needs no data migration. It is not
+  # just a replica count, though: HA moves the config to server.ha.raft, adds
+  # retry_join and service registration -- see openbao.prod.yaml.
+  dataStorage:
+    enabled: true
+    size: 5Gi
+    storageClass: null
+
+  auditStorage:
+    enabled: true
+    size: 2Gi
+
+  # The chart's default is OnDelete: `helm upgrade` changes the StatefulSet but
+  # leaves the running pod alone, so a new config or image only takes effect
+  # once someone runs `kubectl -n openbao delete pod openbao-0`. Harmless with
+  # the static seal (the pod unseals itself on restart), but easy to miss:
+  # Argo CD shows the app Synced either way.
+  updateStrategyType: OnDelete
+
+  # Who may reach the API (8200) and the raft port (8201). ESO is the only
+  # client; the snapshot CronJob and, in HA, the other OpenBao pods sit in this
+  # namespace. `kubectl exec` and `kubectl port-forward` go through the kubelet,
+  # not the pod network, so the scripts and admin access are unaffected. Add a
+  # rule here for anything new that must call OpenBao (e.g. Prometheus).
+  networkPolicy:
+    enabled: true
+    ingress:
+      - from:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: external-secrets
+          - podSelector: {}
+        ports:
+          - port: 8200
+            protocol: TCP
+      - from:
+          - podSelector: {}
+        ports:
+          - port: 8201
+            protocol: TCP
+
+  # The static seal key, from the Secret created before install. Mounted
+  # read-only and nowhere else.
+  volumes:
+    - name: unseal-key
+      secret:
+        secretName: openbao-unseal-key
+        defaultMode: 0400
+  volumeMounts:
+    - name: unseal-key
+      mountPath: /openbao/unseal
+      readOnly: true
+
+  standalone:
+    enabled: true
+    # The whole config, replacing the chart's default.
+    #
+    # UNSEALING. The "static" seal unseals from a key file on every start, so a
+    # restarted pod comes back ready by itself. This is what AWS KMS auto-unseal
+    # would otherwise do, without AWS. The catch: the key is a Kubernetes Secret,
+    # so anyone who can read Secrets in the openbao namespace can decrypt the
+    # store. Keep RBAC on this namespace tight.
+    #
+    # To rotate the key: put the new key in the Secret as unseal-<id>.key, set
+    # current_key_id / current_key to it, move the old one to previous_key_id /
+    # previous_key, and restart the pod.
+    config: |
+      ui = true
+
+      listener "tcp" {
+        tls_disable = 1
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+      }
+
+      storage "raft" {
+        path = "/openbao/data"
+      }
+
+      seal "static" {
+        current_key_id = "oan-dev-1"
+        current_key = "file:///openbao/unseal/unseal.key"
+      }
+
+      # AUDIT LOG. Every request -- who made it, which path, allowed or denied --
+      # to the audit volume above. Secret values are HMAC'd, never written in
+      # clear. Declared here because OpenBao 2.x refuses to enable an audit
+      # device through the API; removing this block disables it on restart.
+      #
+      # TWO devices, on purpose. OpenBao fails closed: a request that no audit
+      # device can record is refused. With the file alone, a full audit volume
+      # (nothing rotates it) would refuse every request -- ESO's reads and
+      # admin logins alike. A request now fails only if BOTH fail, and the
+      # stdout copy reaches the cluster's log pipeline, so the file is the
+      # local fallback rather than the only record.
+      audit "file" "file" {
+        description = "Every request, to the audit volume"
+        options {
+          file_path = "/openbao/audit/audit.log"
+        }
+      }
+
+      audit "file" "stdout" {
+        description = "Every request, to the pod log"
+        options {
+          file_path = "stdout"
+        }
+      }
+
+      # No service_registration "kubernetes" here: it labels pods active/standby,
+      # which only means something in HA, and the chart grants the RBAC for it
+      # only when ha.enabled is true. In standalone it fails with a 403.
+
+  # ESO authenticates with its ServiceAccount token, and OpenBao checks that
+  # token against the Kubernetes API. That check needs this ClusterRoleBinding
+  # (system:auth-delegator).
+  authDelegator:
+    enabled: true
+
+ui:
+  enabled: true
+  serviceType: ClusterIP
+
+# BACKUPS. A CronJob that takes a raft snapshot every hour and uploads it to
+# S3-compatible storage (AWS S3, MinIO, ...). Without it the data lives on one
+# PVC and nowhere else. Off until the bucket exists -- on without one, the job
+# just fails every hour. To turn it on:
+#   1. Create the bucket, and a Secret with AWS_ACCESS_KEY_ID and
+#      AWS_SECRET_ACCESS_KEY in the openbao namespace, named as below.
+#   2. Run scripts/openbao-configure.sh in infra-automation (it creates the
+#      "snapshot" role and a policy allowing only the snapshot read).
+#   3. Set enabled: true and s3Host / s3Bucket / s3Uri, and helm upgrade. For
+#      an http endpoint (an in-cluster MinIO, say) add s3cmdExtraFlag: --no-ssl.
+# A snapshot is encrypted by the seal: restoring one needs the unseal key it
+# was taken under. Keep the two together, off the cluster.
+snapshotAgent:
+  enabled: false
+  schedule: "0 * * * *"
+  s3CredentialsSecret: openbao-snapshot-s3
+  config:
+    s3Host: s3.ap-south-1.amazonaws.com
+    s3Bucket: oan-openbao-snapshots-dev
+    s3Uri: s3://oan-openbao-snapshots-dev
+    s3ExpireDays: "14"
+    baoAuthPath: kubernetes
+    baoRole: snapshot

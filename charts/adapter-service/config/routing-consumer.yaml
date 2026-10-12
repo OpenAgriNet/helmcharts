@@ -1,0 +1,32 @@
+# Where the consumer adapter hands requests on.
+#
+# Mounted verbatim, like the adapter config beside it. Routing is topology, not
+# environment: these are in-cluster names built from the namespace-per-component
+# convention, and they are the same in every environment. An environment that
+# genuinely differs sets `routing.config` in values, which replaces this file
+# whole.
+#
+# targetType "url" APPENDS THE ACTION to whatever base is given, so a base is a
+# bare host and port with no path and no trailing slash -- a slash produces
+# //discover. The render refuses one.
+#
+# Branches by action: discovery goes to the network layer, everything
+# transactional goes straight to the provider adapter. For v2.x the router
+# ignores domain and matches on version and endpoint alone.
+routingRules:
+  - version: "2.0.0"
+    targetType: url
+    target:
+      url: http://network-adapter.network-adapter.svc.cluster.local:9201
+    endpoints:
+      - discover
+
+  - version: "2.0.0"
+    targetType: url
+    target:
+      url: http://provider-adapter.provider-adapter.svc.cluster.local:9200
+    endpoints:
+      - select
+      - init
+      - confirm
+      - status

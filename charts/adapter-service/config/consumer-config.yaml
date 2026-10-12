@@ -1,0 +1,135 @@
+# OAN consumer adapter. The caller: routes by action -- discovery to the
+# network layer, transactions straight to the provider adapter.
+#
+# This file is mounted verbatim. Values that differ per environment are the
+# __ADAPTER_*__ placeholders below, which an init container substitutes from the
+# mounted Secret at pod start -- that Secret is pulled from OpenBao by External
+# Secrets Operator, so no key is in this file, in the ConfigMap, or in git.
+appName: "consumer-adapter"
+
+log:
+  level: debug
+  destinations:
+    - type: stdout
+  contextKeys: [transaction_id, message_id, subscriber_id, module_id]
+
+http:
+  port: 9202
+  timeout:
+    read: 30
+    write: 30
+    idle: 30
+
+pluginManager:
+  root: ./plugins
+
+plugins:
+  # Ships metrics, traces and logs over OTLP/gRPC. All three flags false builds
+  # no exporter at all, which is the right setting for a stack with no
+  # collector -- so these are on only because clickstack is deployed alongside.
+  # Turn them back off for a cluster without it: the exporter dials on an
+  # interval and logs a connection failure every few seconds when nothing
+  # answers.
+  otelsetup:
+    id: otelsetup
+    config:
+      serviceName: "consumer-adapter"
+      environment: "dev"
+      otlpEndpoint: "clickstack-otel-collector.observability.svc.cluster.local:4317"
+      enableMetrics: "true"
+      enableTracing: "true"
+      enableLogs: "true"
+
+modules:
+  - name: consumer-adapter
+    # A subtree: every action lands here and the payload says which one it is.
+    path: /
+    handler:
+      type: std
+      # bap because this adapter SENDS. role sets direction, not participant type.
+      role: bap
+      subscriberId: "__ADAPTER_SUBSCRIBER_ID__"
+
+      plugins:
+        registry:
+          id: sunbirdRegistry
+          config:
+            # In-cluster address. The compose stack reaches
+            # sunbird-registry-service on the compose network; here the registry
+            # runs in its own namespace.
+            url: http://registry.registry.svc.cluster.local:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+            # 0 because no cache plugin is configured. A non-zero TTL here only
+            # warns at startup and caches nothing.
+            cacheTTL: 0
+            # Plain seconds, per attempt.
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            # A search response past this is refused, not truncated.
+            maxResponseBytes: 1048576
+
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: "__ADAPTER_SUBSCRIBER_ID__"
+            # The key's osid, not a friendly name: the registry indexes on it.
+            # Assigned when registry-seed writes the public key, and written
+            # into the Secret afterwards by scripts/resolve-key-ids.sh.
+            keyId: "__ADAPTER_KEY_ID__"
+            signingPrivateKey: "__ADAPTER_SIGNING_PRIVATE__"
+            signingPublicKey: "__ADAPTER_SIGNING_PUBLIC__"
+            encrPrivateKey: "__ADAPTER_ENCR_PRIVATE__"
+            encrPublicKey: "__ADAPTER_ENCR_PUBLIC__"
+
+        signer:
+          id: signer
+        signValidator:
+          id: signvalidator
+
+        # Populates transaction_id and message_id on the context so every log
+        # line carries them. subscriber_id is resolved separately, not listed.
+        middleware:
+          - id: reqpreprocessor
+            config:
+              contextKeys: transaction_id,message_id
+              role: bap
+
+        # The extended layer is ON: it fetches each resource's own @context and
+        # validates against that, on top of the base Beckn v2 spec. That is a
+        # network call the first time a @context is seen and a second thing that
+        # can fail on the request path -- allowedDomains below is what stops a
+        # payload pointing the adapter at an arbitrary host.
+        #
+        # It is not full conformance: if/then is never enforced, so a pass here
+        # does not mean the payload matches the pack.
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            cacheTTL: "3600"
+            extendedSchema_enabled: "true"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
+
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/routing-consumer.yaml
+
+      # This tier SIGNS what it forwards, and the far side of both its hops
+      # validates that signature: the network adapter for discover, the
+      # provider adapter for select. Removing `sign` here without removing
+      # `validateSign` there rejects every request.
+      #
+      # No validateSign inbound: the app calling this is inside the trust
+      # boundary, so there is no network signature to check.
+      steps:
+        - validateSchema
+        - addRoute
+        - sign

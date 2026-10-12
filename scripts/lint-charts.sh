@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
 #
-# Lint and render every chart under charts/.
+# Lint and render every chart under charts/, at the top level (charts/<name>)
+# or grouped one directory deeper (charts/<group>/<name>, e.g.
+# charts/knowledge-provider/knowledge-provider-api) - anywhere a Chart.yaml is
+# found up to two directories below charts/.
+#
+# A chart lives at charts/<chart>, or one level down at charts/<group>/<chart>
+# when it belongs to a group of related charts (charts/dss/model-gateway). A
+# group directory has no Chart.yaml of its own.
 #
 # Run locally exactly as CI runs it:
 #   ./scripts/lint-charts.sh
 #
-# Charts depending on common via file://../common carry no committed
-# dependency artifact, so the dependency is rebuilt here before linting. That
-# also means a local edit to common is only picked up after this runs (or
-# after `helm dependency update <chart>`).
+# Charts depending on common via file://../common (or file://../../common one
+# directory deeper) carry no committed dependency artifact, so the dependency
+# is rebuilt here before linting. That also means a local edit to common is
+# only picked up after this runs (or after `helm dependency update <chart>`).
 #
 # A chart whose defaults deliberately fail the render - because it requires a
 # database host or a secret reference that has no safe default - supplies the
@@ -21,9 +28,24 @@ cd "$(dirname "$0")/.."
 
 failed=0
 
-for chart_dir in charts/*/; do
-  chart_dir="${chart_dir%/}"
-  [[ -f "$chart_dir/Chart.yaml" ]] || continue
+# Collect charts/<chart> and charts/<group>/<chart>. A chart's own charts/
+# directory (vendored dependencies) is never descended into.
+chart_dirs=()
+for dir in charts/*/; do
+  dir="${dir%/}"
+  if [[ -f "$dir/Chart.yaml" ]]; then
+    chart_dirs+=("$dir")
+    continue
+  fi
+  for sub in "$dir"/*/; do
+    sub="${sub%/}"
+    [[ -f "$sub/Chart.yaml" ]] && chart_dirs+=("$sub")
+  done
+done
+
+for chart_dir in "${chart_dirs[@]}"; do
+while IFS= read -r chart_yaml; do
+  chart_dir="$(dirname "$chart_yaml")"
 
   name="$(basename "$chart_dir")"
   chart_type="$(helm show chart "$chart_dir" 2>/dev/null | awk '/^type:/ {print $2}')"
@@ -77,7 +99,7 @@ for chart_dir in charts/*/; do
       fi
     done
   fi
-done
+done < <(find charts -mindepth 2 -maxdepth 3 -name Chart.yaml | sort)
 
 if [[ "$failed" -ne 0 ]]; then
   echo "chart validation FAILED"

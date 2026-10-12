@@ -7,7 +7,7 @@
 #
 #   helm install network-adapter . -f examples/network.yaml
 #
-# Keep the release name `network-adapter`: experience routes to this Service by name.
+# Keep the release name `network-adapter`: consumer routes to this Service by name.
 # ===========================================================================
 role: network
 
@@ -34,17 +34,11 @@ service:
   targetPort: 9201
 
 # Both actions share one rule because they share a target: publish arrives
-# from the provider adapter, discover from the experience adapter, and neither
+# from the provider adapter, discover from the consumer adapter, and neither
 # is answered here.
-routing:
-  rules:
-    - version: "2.0.0"
-      targetType: url
-      target:
-        url: http://discovery:8080
-      endpoints:
-        - discover
-        - publish
+# Routing is no longer a value: it comes from config/routing-<role>.yaml in
+# the chart, like the adapter config. Set `routing.config` to a whole routing
+# file only if this deployment must differ.
 
 # The upstreams this adapter cannot serve a request without.
 waitFor:

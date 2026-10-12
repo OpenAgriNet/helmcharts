@@ -1,0 +1,37 @@
+apiVersion: v2
+name: langfuse
+version: 2.1.1
+description: Open source LLM engineering platform - LLM observability, metrics, evaluations, prompt management.
+type: application
+keywords:
+  - langfuse
+  - llm
+  - observability
+  - prompt management
+  - metrics
+home: https://langfuse.com/
+sources:
+  - https://github.com/langfuse/langfuse
+  - https://github.com/langfuse/langfuse-k8s
+dependencies:
+  - name: postgres
+    version: 1.6.3
+    repository: https://groundhog2k.github.io/helm-charts/
+    condition: postgresql.deploy
+    alias: postgresql
+  - name: valkey
+    version: 0.9.4
+    repository: https://valkey-io.github.io/valkey-helm
+    condition: redis.deploy
+    alias: redis
+  - name: seaweedfs
+    version: 4.23.0
+    repository: https://seaweedfs.github.io/seaweedfs/helm
+    condition: s3.deploy
+    alias: s3
+maintainers:
+  - name: langfuse
+    email: contact@langfuse.com
+    url: https://langfuse.com/
+icon: https://langfuse.com/langfuse_logo.png
+appVersion: "4.35.0"
