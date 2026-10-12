@@ -3,8 +3,10 @@
 # startup order matters, and a good place to make the right order the shortest
 # thing to type.
 #
-#     make up        the whole stack, in the order it has to start
+#     make up        the whole stack (single network layer adapter), in order
 #     make up-core   the same minus the reverse proxy and hyperdx
+#     make up-multi  the whole stack with three adapters instead of one
+#     make smoke     publish, discover, select through what is running
 #     make down      stop everything, keep the data
 #     make help      the rest
 #
@@ -13,7 +15,7 @@
 
 STACK := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))bin/stack.sh
 
-.PHONY: help up up-core up-single-network-layer down-single-network-layer down destroy setup reverse-proxy observability pull restart restart-edge ps logs
+.PHONY: help up up-core up-multi up-core-multi smoke down destroy setup reverse-proxy observability pull restart restart-edge ps logs
 
 # Default target: running a bare `make` in a directory that can delete a
 # Postgres volume should print the menu, not pick something from it.
@@ -25,8 +27,9 @@ help:
 up:            ; @$(STACK) up
 up-core:       ; @$(STACK) up-core
 down:          ; @$(STACK) down
-up-single-network-layer:   ; @$(STACK) up-single-network-layer
-down-single-network-layer: ; @$(STACK) down-single-network-layer
+up-multi:      ; @$(STACK) up-multi
+up-core-multi: ; @$(STACK) up-core-multi
+smoke:         ; @$(STACK) smoke
 destroy:       ; @$(STACK) destroy
 
 # --------------------------------------------- the optional tiers, on their own

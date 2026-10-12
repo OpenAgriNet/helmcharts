@@ -1,7 +1,12 @@
 # OAN quick-start
 
-The whole OAN stack in Docker Compose: a registry, a discovery service, three
-adapters, and two mock upstreams standing in for real provider APIs.
+The whole OAN stack in Docker Compose: a registry, a discovery service, the
+adapter tiers, and two mock upstreams standing in for real provider APIs.
+
+The three adapter tiers (consumer, network, provider) run as **one** container
+by default: `single-network-layer-adapter`, the tiers as modules of one process
+on port 9200. `make up-core-multi` runs them as three containers instead. Same
+compose file, same keys, same registry → [Two topologies](#two-topologies).
 
 Nothing is built here — the images are pulled. Locally that is about ten
 minutes, most of it waiting for Keycloak. Discovery is the one exception, and
@@ -25,6 +30,10 @@ where the reason lives.
 `publish` runs the other way: the provider adapter sends it to the network
 adapter, which files the catalogue in discovery.
 
+In the default single topology each box above is a module of the one
+`single-network-layer-adapter`, and the arrows between them are loopback calls
+inside that container.
+
 All three adapters read the registry — who signed this request, and where this
 capability's provider lives.
 
@@ -43,6 +52,7 @@ below follow startup order, so they work top to bottom.
 | Observability        | not started              | optional, wants 2–4 GB      |
 | Credentials          | shipped defaults are ok  | **must all be changed**     |
 | Command              | `make up-core`           | `make up`                   |
+| Three adapters instead | `make up-core-multi`   | `make up-multi`             |
 
 **Local** is Part 1. **VM** is Part 1, then Part 2 for the differences.
 
@@ -76,14 +86,15 @@ cp .env.example .env
 Locally, nothing in it needs changing. It publishes these on `localhost`:
 
 ```
-8081  registry        9200  provider adapter     9100  mock-imd
-8080  keycloak        9201  network adapter      9101  mock-agmarknet
-9990  keycloak admin  9202  consumer adapter
-8090  discovery
+8081  registry        9200  single network layer adapter (default)   9100  mock-imd
+8080  keycloak              or provider adapter (multi)              9101  mock-agmarknet
+9990  keycloak admin  9201  network adapter   (multi only)
+8090  discovery       9202  consumer adapter  (multi only)
 ```
 
 If one is already taken, change it here — that is the only edit a local run
-needs. Adapters reach each other by Compose service name, so it only changes
+needs. The single adapter's host port is `SINGLE_NETWORK_LAYER_ADAPTER_PORT`;
+in multi mode 9200 is `PROVIDER_ADAPTER_PORT`. Adapters reach each other by Compose service name, so it only changes
 what you type into Postman.
 
 ## Step 4 — Start it
@@ -93,19 +104,30 @@ make up-core
 ```
 
 Three tiers, in the only order that works: registry and discovery, then
-`bin/setup.py`, then the mocks and the three adapters. Allow up to five minutes
-the first time — Keycloak on a cold volume.
+`bin/setup.py`, then the adapter: `single-network-layer-adapter` on 9200.
+Allow up to five minutes the first time — Keycloak on a cold volume.
 
-`setup.py` generates a keypair per adapter, registers seven participants and four
-capability bindings, and renders the three adapter configs. Nothing needs
-creating by hand. → Appendix C for why the order matters, Appendix D for what
-it wrote.
+Three adapters instead: `make up-core-multi`. Either target stops the other
+topology's adapters first (both use 9200), so switching is just running the
+other one.
+
+`setup.py` generates a keypair per tier, registers seven participants and four
+capability bindings, and renders all four adapter configs (the three tier
+configs and the single one). Nothing needs creating by hand. → Appendix C for
+why the order matters, Appendix D for what it wrote.
 
 ```sh
 make ps
+make smoke      # publish, discover, select through whatever is running
 ```
 
 ## Step 5 — Provider layer
+
+> Steps 5–7 describe the three tiers. In the default single topology they are
+> modules of one container, so read `single-network-layer-adapter` wherever a
+> command names `provider-adapter`, `network-adapter` or `consumer-adapter`
+> (e.g. `docker compose logs single-network-layer-adapter`). The `.env` keys
+> are the same in both.
 
 Answers `select`, and the only layer that calls an upstream. Serves all four
 capabilities from one adapter.
@@ -154,11 +176,28 @@ straight to the provider layer, per `config/adapters/routing-consumer.yaml`.
 docker compose logs consumer-adapter | grep 'Server listening'
 ```
 
-`setup.py` renders all three configs from these keys. **Do not edit the
+`setup.py` renders all four configs from these keys. **Do not edit the
 rendered `config/adapters/*.yaml`** — they are regenerated and hold private
 keys. Change `.env`, re-run `make up`.
 
 ## Step 8 — Verify end to end
+
+Quickest, in either topology:
+
+```sh
+make smoke
+```
+
+It starts the mocks, sends publish, discover and select to whichever adapters
+are running, and prints each HTTP status and the tier hops from the adapter
+log. All three should be 200.
+
+Two copies of the full collection, same requests, in `../api-collection/`:
+
+| Topology | Collection | Environment |
+|---|---|---|
+| single (`make up-core`, default) | `OpenAgriNet.single-network-layer.api-collection.json` | `OpenAgriNet.single-network-layer.local-environment.json` |
+| multi (`make up-core-multi`) | `OpenAgriNet.api-collection.json` | `OpenAgriNet.local-environment.json` |
 
 Import both files from `../api-collection/` into Postman —
 `OpenAgriNet.api-collection.json` and `OpenAgriNet.local-environment.json`.
@@ -189,20 +228,32 @@ collection. → Appendix N.
 
 ---
 
-## Single network layer (optional)
+## Two topologies
 
-The same network can run two ways. Both use the same registry, keys and data:
+The three adapter tiers can run two ways. Same `docker-compose.yml`, same
+image, same keys, registry and data; a compose profile picks the adapters.
 
-| | Multi-adapter (default) | Single network layer |
+| | Single network layer (default) | Multi-adapter |
 |---|---|---|
-| What runs | `consumer-adapter`, `network-adapter`, `provider-adapter` | one `single-network-layer-adapter` (the single network layer adapter) |
-| Compose file | `docker-compose.yml` | `docker-compose.single-network-layer.yml` |
-| Start / stop | `make up` / `make down` | `make up-single-network-layer` / `make down-single-network-layer` |
-| Tier-to-tier hops | HTTP between containers | HTTP over loopback (`http://localhost:9200`) inside the one container |
-| Port | 9202 / 9201 / 9200 | `127.0.0.1:9200` (so only one mode runs at a time) |
+| What runs | one `single-network-layer-adapter` | `consumer-adapter`, `network-adapter`, `provider-adapter` |
+| Compose profile | `single` | `multi` |
+| Start | `make up-core` / `make up` | `make up-core-multi` / `make up-multi` |
+| Ports | `127.0.0.1:9200` | 9200 provider, 9201 network, 9202 consumer |
+| App calls | `:9200/discover`, `:9200/select` | `:9202/discover`, `:9202/select` |
+| Catalogue publishes to | `:9200/provider/publish` | `:9200/publish` |
+| Tier-to-tier hops | loopback HTTP inside the container (`http://localhost:9200/...`) | HTTP between containers |
 
-Use one or the other, not both: they share the project name and data volumes.
-Both use `ADAPTER_IMAGE` from `.env`; nothing else needs setting.
+Only one topology runs at a time (both use 9200). Switching is running the
+other target: it stops the running topology's adapters first. `make down`,
+`make ps` and `make logs` cover both. `MODE=multi` also works with `make up`,
+`make up-core` and `make restart`.
+
+Plain compose, without make: `docker compose --profile single up -d` (or
+`--profile multi`). A bare `docker compose up -d` follows `COMPOSE_PROFILES`
+in `.env` (`single` in `.env.example`); without it no adapter starts.
+
+Signing is off in every quick-start template, in both topologies, so keep the
+adapter ports on `127.0.0.1` (the compose file does).
 
 **Config.** `config/adapters/single-network-layer.yaml.tmpl`, beside the three
 tier templates. `bin/setup.py` fills it into `config/adapters/single-network-layer.yaml`
@@ -223,8 +274,7 @@ The hops between modules are loopback HTTP calls to the same container. In the
 multi-adapter stack only the hosts differ. 9200 is the container's own listener
 and must match `http.port` in `single-network-layer.yaml.tmpl`.
 
-Tools:
-- `bin/single-network-layer-up.sh`: start and smoke-test (publish, discover, select).
+Check it: `make smoke`.
 
 # Part 2 — Run it on a VM
 
@@ -267,7 +317,9 @@ make up
 
 `make up`, not `make up-core`: two more tiers on top of Part 1's three —
 nginx-proxy-manager on 80 and 443, and HyperDX. **This is the step that makes
-the VM reachable from the internet.**
+the VM reachable from the internet.** It runs the single network layer
+adapter; `make up-multi` runs the three adapters instead, and decides what the
+proxy hosts in Appendix B forward to.
 
 ## Step V4 — Decide what is exposed
 
@@ -286,7 +338,8 @@ ssh -L 9202:127.0.0.1:9202 -L 9200:127.0.0.1:9200 \
 ```
 
 The collection's defaults then work unchanged, since they already point at
-loopback.
+loopback. With the default single topology only 9200 is needed for the
+adapter (`-L 9200:127.0.0.1:9200`); 9202 is for `make up-multi`.
 
 ## Step V6 — Observability (optional)
 
@@ -397,6 +450,15 @@ inside `oan-edge`. Turn on **Block Common Exploits**; leave Websockets off.
 Three hosts rather than one with path prefixes, so a rate limit or a block
 attaches to a hostname instead of a regex in a textarea, and each gets its own
 certificate. An unknown `Host` gets NPM's default page, not an adapter.
+
+**Single topology (`make up`, the default).** The table above is for
+`make up-multi`. With the single adapter there is no `consumer-adapter`,
+`network-adapter` or `provider-adapter` to forward to: point the consumer host
+at `single-network-layer-adapter`, port 9200, with the same Advanced paste. The
+app's paths (`/discover`, `/select`, …) do not change. Do **not** make
+`/network/…` or `/provider/publish` reachable from a public host: `/network/` is
+an internal tier and `/provider/publish` publishes as the provider without
+checking the caller, and signing is off in quick-start.
 
 **A fourth host for HyperDX**, if the `observability` profile is up — this is
 what replaces `ssh -L 8085` for reading telemetry:
@@ -550,8 +612,8 @@ loopback. A registry route would depend on that silently.
 
 ```
 1. registry and discovery        (also sunbird-registry-postgres, sunbird-registry-keycloak, discovery-postgres)
-2. bin/setup.py                  keys, seven participants, four bindings, three configs
-3. mock upstreams, then the three adapters
+2. bin/setup.py                  keys, seven participants, four bindings, four configs
+3. the adapters                  single-network-layer-adapter (default), or the three with MODE=multi
 4. nginx-proxy-manager           the public edge — 80 and 443, all interfaces
 5. hyperdx                       ClickStack
 ```

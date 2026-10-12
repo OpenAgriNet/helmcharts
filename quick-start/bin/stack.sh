@@ -30,11 +30,37 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-# Both optional profiles, named explicitly. This matters for `down`: compose
+# Every optional profile, named explicitly. This matters for `down`: compose
 # only acts on services whose profile is active, so a plain `docker compose
-# down` leaves the gateway and hyperdx containers running and then reports
-# success. Naming them on teardown is what makes "down" mean down.
-PROFILES=(--profile reverse-proxy --profile observability)
+# down` leaves the gateway, hyperdx and the adapters (both topologies are
+# profiled) running and then reports success. Naming them on teardown is what
+# makes "down" mean down.
+PROFILES=(--profile reverse-proxy --profile observability --profile single --profile multi)
+
+# Adapter topology: "single" (default) runs single-network-layer-adapter, one
+# process for all three tiers; "multi" runs provider-, network- and
+# consumer-adapter. Both publish 127.0.0.1:9200, so only one runs at a time.
+# Validated only by the commands that use it (check_mode), so an unrelated
+# MODE in the shell never blocks `down`, `destroy` or `help`.
+MODE="${MODE:-single}"
+check_mode() {
+    case "$MODE" in single|multi) ;; *) die "MODE must be single or multi, not '$MODE'" ;; esac
+}
+
+# The topology whose adapters are running now: single, multi, or empty.
+running_mode() {
+    if [ "$(docker inspect -f '{{.State.Running}}' single-network-layer-adapter 2>/dev/null)" = true ]; then echo single
+    elif [ "$(docker inspect -f '{{.State.Running}}' consumer-adapter 2>/dev/null)" = true ]; then echo multi
+    fi
+}
+
+adapters_for() { # $1 mode
+    case "$1" in
+        single) echo single-network-layer-adapter ;;
+        multi)  echo provider-adapter network-adapter consumer-adapter ;;
+    esac
+}
+other_mode() { [ "$1" = single ] && echo multi || echo single; }
 
 # ------------------------------------------------------------------ output
 
@@ -44,6 +70,10 @@ step()  { printf '\n\033[1;36m==> [%s/%s] %s\033[0m\n' "$1" "$2" "$3"; }
 info()  { printf '    %s\n' "$1"; }
 warn()  { printf '\033[1;33mwarning: %s\033[0m\n' "$1" >&2; }
 die()   { printf '\033[1;31mstack: %s\033[0m\n' "$1" >&2; exit 1; }
+envv()  { # $1 key, $2 default -- value from .env, else the default
+    local v; v=$(grep -E "^$1=" .env 2>/dev/null | tail -1 | cut -d= -f2-)
+    echo "${v:-$2}"
+}
 
 # -------------------------------------------------------------- preflight
 
@@ -74,6 +104,7 @@ preflight() {
 # `up-core` below is the same thing minus steps 4 and 5, for when you want
 # neither a public port nor ClickHouse's memory.
 up() {
+    check_mode
     preflight
     up_registry_tier 5
     up_setup         5
@@ -97,6 +128,7 @@ up() {
 # 16 GB -- this is the stack you can actually exercise, which is the reason the
 # profiles exist in the first place.
 up_core() {
+    check_mode
     preflight
     up_registry_tier 3
     up_setup         3
@@ -125,9 +157,10 @@ up_registry_tier() {
 }
 
 # Generates the adapter keypairs, registers the three adapter identities, and
-# renders config/adapters/{provider,network,consumer}.yaml from the .tmpl files
-# beside them. Safe to re-run: keys come from keys/keys.json once it exists,
-# and participants already registered are left alone.
+# renders every adapter config (provider, network, consumer and
+# single-network-layer) from the .tmpl files beside them. Safe to re-run:
+# keys come from keys/keys.json once it exists, and participants already
+# registered are left alone.
 up_setup() {
     step 2 "$1" "bin/setup.py -- keys, seven registry participants, adapter configs"
     python3 bin/setup.py
@@ -135,17 +168,33 @@ up_setup() {
 
 # Only now do the bind-mounted config files exist.
 up_adapters() {
-    # The mocks are NOT started. All four capabilities point at real external
-    # upstreams, so starting them would pull two images and run two containers
-    # nothing calls. They are still defined in docker-compose.yml, so
+    # The mocks are NOT started here (`make smoke` starts them for its select
+    # test). All four capabilities point at real external upstreams, so
+    # starting them would pull two images and run two containers nothing
+    # calls. They are still defined in docker-compose.yml, so
     # `docker compose up -d mock-imd mock-agmarknet` brings them up for anyone
     # debugging a mapping without the real credentials -- but that also needs a
     # new participant id and base URL in .env plus a setup.py re-run, because
     # the registry cannot repoint an existing row.
-    step 3 "$1" "adapters (provider, network, consumer)"
-    # The single network layer adapter also publishes 9200: stop it first.
-    docker compose -f docker-compose.single-network-layer.yml stop single-network-layer-adapter >/dev/null 2>&1 || true
-    docker compose up -d provider-adapter network-adapter consumer-adapter
+    check_mode
+    local other f; other=$(other_mode "$MODE")
+    step 3 "$1" "adapters, mode $MODE ($(adapters_for "$MODE"))"
+    # The other topology also publishes 127.0.0.1:9200: stop it first.
+    # shellcheck disable=SC2046
+    docker compose --profile "$other" stop $(adapters_for "$other") >/dev/null 2>&1 || true
+    # Never let compose create a directory where a bind-mounted config belongs.
+    for f in $( [ "$MODE" = single ] && echo single-network-layer || echo provider network consumer ); do
+        [ -f "config/adapters/$f.yaml" ] \
+            || die "config/adapters/$f.yaml was not rendered (a directory there? rm -r it, then re-run)"
+    done
+    # shellcheck disable=SC2046
+    docker compose --profile "$MODE" up -d --force-recreate $(adapters_for "$MODE")
+    # NPM resolves adapter names when nginx loads and caches the addresses, so
+    # a recreated or switched adapter 502s through it until it restarts.
+    if [ "$(docker inspect -f '{{.State.Running}}' nginx-proxy-manager 2>/dev/null)" = true ]; then
+        info "restarting nginx-proxy-manager so it re-resolves the adapter addresses"
+        docker compose --profile reverse-proxy restart nginx-proxy-manager >/dev/null
+    fi
 }
 
 done_banner() {
@@ -165,46 +214,6 @@ done_banner() {
   it before creating anything.
 
 NEXT
-}
-
-# ----------------------------------------------- single network layer
-
-# The single network layer: ONE adapter runs the consumer, network and
-# provider tiers as modules of one process (the single network layer adapter), with
-# tier-to-tier hops over loopback HTTP inside the container. The multi-adapter
-# containers are NOT started. `make up-single-network-layer` does not start the
-# mocks either, as in `up`; bin/single-network-layer-up.sh does start them, for
-# its local smoke test.
-#
-# Its stack is its own complete compose file (docker-compose.single-network-layer.yml),
-# so docker-compose.yml is not touched. Passing -f overrides COMPOSE_FILE, so
-# the Apple-silicon override is added here when it exists.
-single_network_layer_compose() {
-    local files=(-f docker-compose.single-network-layer.yml)
-    [ -f docker-compose.arm64.yml ] && files+=(-f docker-compose.arm64.yml)
-    docker compose "${files[@]}" "$@"
-}
-
-up_single_network_layer() {
-    preflight
-    step 1 3 "registry and discovery (single network layer compose file)"
-    single_network_layer_compose up -d sunbird-registry-service discovery-service
-    up_setup 3
-    # Never let compose create a directory where the bind-mounted config file belongs.
-    [ -f config/adapters/single-network-layer.yaml ] \
-        || die "config/adapters/single-network-layer.yaml was not rendered (is it a directory? rm -r it, then re-run)"
-    step 3 3 "single-network-layer-adapter (consumer + network + provider in one process)"
-    # The multi-adapter containers share this project; one topology at a time.
-    docker compose stop provider-adapter network-adapter consumer-adapter >/dev/null 2>&1 || true
-    single_network_layer_compose up -d --force-recreate single-network-layer-adapter
-    printf '\n\033[1;32m==> single network layer is up\033[0m on 127.0.0.1:9200\n'
-}
-
-# Stops only the single network layer adapter; registry, discovery and data stay.
-down_single_network_layer() {
-    step 1 1 "stopping single-network-layer-adapter only"
-    single_network_layer_compose stop single-network-layer-adapter
-    single_network_layer_compose rm -f single-network-layer-adapter
 }
 
 # ----------------------------------------------------------------- down
@@ -324,7 +333,6 @@ NEXT
 # It also excludes nginx-proxy-manager, whose routing table lives in a SQLite
 # database rather than in anything a restart would re-read. `restart-edge` is
 # the separate target for the one case that does need it.
-APP_SERVICES=(registry discovery provider-adapter network-adapter consumer-adapter)
 
 # `restart`, not `up -d --force-recreate`. A restart keeps the container and
 # therefore its address, so NPM's cached proxy_pass targets stay valid -- a
@@ -336,10 +344,14 @@ APP_SERVICES=(registry discovery provider-adapter network-adapter consumer-adapt
 # up is a changed image or a changed environment, both of which need the
 # container recreated -- use `make up` for those.
 restart_app() {
-    step 1 1 "restarting registry, discovery and the three adapters"
+    local running; running=$(running_mode)
+    [ -n "$running" ] && MODE=$running
+    check_mode
+    step 1 1 "restarting registry, discovery and the $MODE-mode adapters"
     info "keycloak, both databases and the edge are left alone"
-    docker compose restart "${APP_SERVICES[@]}"
-    docker compose ps --format 'table {{.Service}}\t{{.Status}}'
+    # shellcheck disable=SC2046
+    docker compose --profile "$MODE" restart sunbird-registry-service discovery-service $(adapters_for "$MODE")
+    docker compose --profile "$MODE" ps --format 'table {{.Service}}\t{{.Status}}'
 }
 
 # ----------------------------------------------------------------- misc
@@ -354,6 +366,66 @@ restart_edge() {
     docker compose --profile reverse-proxy restart nginx-proxy-manager
 }
 
+# ---------------------------------------------------------------- smoke
+
+# publish -> discover -> select against whichever topology is running. Starts
+# the mocks (select's upstream is mock-imd in the shipped .env). Exits non-zero
+# on any non-200 and prints the tier hops from the adapter log.
+smoke() {
+    local mode base_pub base_app svc s
+    mode=$(running_mode)
+    if [ "$mode" = single ]; then
+        base_app="http://127.0.0.1:$(envv SINGLE_NETWORK_LAYER_ADAPTER_PORT 9200)"; base_pub="$base_app/provider"
+        svc=single-network-layer-adapter
+    elif [ "$mode" = multi ]; then base_pub="http://127.0.0.1:$(envv PROVIDER_ADAPTER_PORT 9200)"
+        base_app="http://127.0.0.1:$(envv CONSUMER_ADAPTER_PORT 9202)"
+        svc="provider-adapter network-adapter consumer-adapter"
+    else
+        die "no adapter is running: make up-core (or make up-core-multi) first"
+    fi
+    step 1 2 "mocks (mock-imd, mock-agmarknet), and wait for the adapter"
+    docker compose up -d mock-imd mock-agmarknet >/dev/null
+    for s in $(seq 1 30); do curl -sf "$base_app/health" >/dev/null 2>&1 && break; sleep 1; done
+    curl -sf "$base_app/health" >/dev/null 2>&1 || die "$base_app/health does not answer after 30s: make logs SVC=${svc%% *}"
+    step 2 2 "publish, discover, select through the $mode topology"
+    ROOT="$ROOT" PUB="$base_pub" APP="$base_app" python3 - <<'PY'
+import json, os, pathlib, sys, urllib.error, urllib.request, uuid
+root = pathlib.Path(os.environ["ROOT"])
+env = {}
+for line in (root / ".env").read_text().splitlines():
+    if "=" in line and not line.lstrip().startswith("#"):
+        k, v = line.split("=", 1); env[k.strip()] = v.strip()
+steps = (("publish", os.environ["PUB"] + "/publish"),
+         ("discover", os.environ["APP"] + "/discover"),
+         ("select", os.environ["APP"] + "/select"))
+rc = 0
+for step, url in steps:
+    text = next((root / "capability-examples/WeatherObservation" / step).glob("*.json")).read_text()
+    for old, key in (("provider.oan.dev", "PROVIDER_SUBSCRIBER_ID"),
+                     ("consumer.oan.dev", "CONSUMER_SUBSCRIBER_ID"),
+                     ("network.oan.dev", "NETWORK_SUBSCRIBER_ID")):
+        text = text.replace(old, env[key])
+    text = text.replace('"mausamgram"', json.dumps(env["MAUSAMGRAM_PARTICIPANT_ID"]))
+    body = json.loads(text)
+    body["context"]["transactionId"], body["context"]["messageId"] = str(uuid.uuid4()), str(uuid.uuid4())
+    req = urllib.request.Request(url, json.dumps(body).encode(), {"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            status, data = r.status, r.read()
+    except urllib.error.HTTPError as e:
+        status, data = e.code, e.read()
+    except (urllib.error.URLError, ConnectionError) as e:
+        status, data = 0, str(e).encode()
+    print(f"   {step:9} {url:42} HTTP {status}")
+    if status != 200 or b"NACK" in data:
+        rc = 1; print("   body:", data[:300].decode(errors="replace"))
+sys.exit(rc)
+PY
+    echo; echo "   tier hops in the adapter log:"
+    for s in $svc; do docker logs --since 2m "$s" 2>&1; done \
+        | grep -o 'Forwarding request to URL: [^"]*' | sort | uniq -c | sed 's/^/   /' || true
+}
+
 # Just step 2. Re-run it after editing a .tmpl, or to re-render configs that
 # were deleted. It is idempotent, so this is always safe.
 setup() {
@@ -366,12 +438,14 @@ usage() {
     cat <<'USAGE'
 bin/stack.sh <command>
 
-  up             the whole stack: registry+discovery -> setup.py -> adapters
+  up             the whole stack, single network layer (default):
+                 registry+discovery -> setup.py -> single-network-layer-adapter
                  -> gateway (public, 80/443) -> hyperdx (wants 16 GB)
   up-core        steps 1-3 only. Nothing public, no ClickHouse.
-  up-single-network-layer    docker-compose.single-network-layer.yml: registry+discovery
-                              -> setup.py -> single-network-layer-adapter
-  down-single-network-layer  stop and remove single-network-layer-adapter only
+  up-multi       as up, with the three adapters (provider, network, consumer)
+  up-core-multi  as up-core, with the three adapters
+  smoke          publish, discover, select through whichever topology runs
+                 (MODE=multi also works with up, up-core and restart)
   down           stop everything, keep the data
   destroy        stop everything and DELETE every volume
   setup          re-run bin/setup.py only
@@ -389,8 +463,9 @@ USAGE
 case "${1:-}" in
     up)             up ;;
     up-core)        up_core ;;
-    up-single-network-layer)   up_single_network_layer ;;
-    down-single-network-layer) down_single_network_layer ;;
+    up-multi)       MODE=multi; up ;;
+    up-core-multi)  MODE=multi; up_core ;;
+    smoke)          smoke ;;
     down)           down ;;
     destroy)        destroy ;;
     setup)          setup ;;

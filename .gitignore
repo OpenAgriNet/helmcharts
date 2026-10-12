@@ -78,3 +78,7 @@ api-collection/OpenAgriNet.unified-network-layer.environment.json
 # Python bytecode
 __pycache__/
 *.pyc
+# Local demo and POC Postman collections (the committed ones are
+# OpenAgriNet.api-collection.json and OpenAgriNet.single-network-layer.api-collection.json)
+/api-collection/OpenAgriNet.single-network-layer-demo.*
+/api-collection/OpenAgriNet.unified-network-layer.*

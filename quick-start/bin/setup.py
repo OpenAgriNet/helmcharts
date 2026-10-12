@@ -640,7 +640,7 @@ def _render_one(name, template, substitutions):
 # ------------------------------------------------------ single network layer
 #
 # The single network layer runs the consumer, network and provider tiers as
-# modules of ONE adapter (docker-compose.single-network-layer.yml). Its
+# modules of ONE adapter (docker-compose.yml, profile "single"). Its
 # template, single-network-layer.yaml.tmpl, carries all three tiers'
 # placeholders: each module keeps its own tier identity, so both stacks use the
 # same keys and registry rows.
