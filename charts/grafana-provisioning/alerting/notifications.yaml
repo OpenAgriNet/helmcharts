@@ -35,9 +35,9 @@ contactPoints:
           url: $SLACK_WEBHOOK_URL
           # Kept short on purpose. Firing:
           #
-          #   :red_circle: Service down
-          #   *discovery-service is down*
-          #   No logs, traces or metrics for 6m 12s.
+          #   :red_circle: Service restarting
+          #   *provider-adapter is restarting*
+          #   Check its logs.
           #   Open dashboard
           #
           # Resolved: a green title and "<service> [<route>] is back to normal".

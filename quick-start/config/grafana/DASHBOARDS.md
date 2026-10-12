@@ -153,11 +153,12 @@ waiting.
 
 ## Part 2 — Building the Service Overview dashboard
 
-> **This is already built and provisioned.** Two dashboards live in
+> **This is already built and provisioned.** These dashboards, among others, live in
 > `provisioning/dashboards/json/` and appear in the **OAN** folder on boot:
 >
 > | Dashboard | URL |
 > |---|---|
+> | OAN Alerts | http://127.0.0.1:8085/d/oan-alerts |
 > | OAN Discovery — Service Overview | http://127.0.0.1:8085/d/oan-discovery-overview |
 > | OAN Discovery — Request Troubleshooting | http://127.0.0.1:8085/d/oan-discovery-troubleshoot |
 >

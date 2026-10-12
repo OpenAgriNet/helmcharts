@@ -5,6 +5,25 @@ All notable changes to the `grafana-provisioning` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-10-12
+
+### Added
+- Dashboard (#34): `oan-alerts`, **OAN Alerts**, in the `OAN` folder. One
+  section per alert, each charting every service against that alert's
+  threshold: error rate (5%), p95 response time (2 s), and data received per
+  service with the time since each last reported (5 min). Then log lines per
+  service and the logs themselves, filtered by Service and Level, and a list
+  of the alerts firing now. Byte-identical to its quick-start copy.
+
+### Changed
+- Every alert's Slack link opens OAN Alerts, on the chart for that alert,
+  instead of the discovery overview.
+- Alert messages are shorter and in plain English, and end by saying what to
+  check.
+- **Service down** is renamed **Service restarting**, and reads
+  "<service> is restarting". The rule is unchanged: a stopped container is
+  usually being restarted, and the logs say which.
+
 ## [0.2.0] - 2026-10-06
 
 ### Added

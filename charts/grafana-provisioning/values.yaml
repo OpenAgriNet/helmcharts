@@ -40,7 +40,7 @@ alerting:
     name: grafana_alert
     value: "1"
   files:
-    # alerting/functional.yaml: API failure rate, High latency, Service down.
+    # alerting/functional.yaml: API failure rate, High latency, Service restarting.
     functional:
       enabled: true
     # alerting/notifications.yaml: the Slack contact point and the policy
