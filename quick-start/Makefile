@@ -3,7 +3,7 @@
 # startup order matters, and a good place to make the right order the shortest
 # thing to type.
 #
-#     make up        the whole stack (single network layer adapter), in order
+#     make up        the whole stack (Network Adapter), in order
 #     make up-core   the same minus the reverse proxy and hyperdx
 #     make up-multi  the whole stack with three adapters instead of one
 #     make smoke     publish, discover, select through what is running

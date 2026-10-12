@@ -6,7 +6,7 @@
 #          identity, upstream and config-rendering wiring an adapter needs.
 #
 # One chart, four roles. provider, network and consumer (one release per tier)
-# and single-network-layer (all three tiers in one adapter) are the same image and the
+# and network-adapter-layer (all three tiers in one adapter) are the same image and the
 # same config format; the role decides the handler role, the step list and
 # where requests are routed. Install once per role, and keep the RELEASE name
 # per-role -- the release name is what becomes the Service DNS name that the
@@ -15,7 +15,7 @@
 */}}
 
 {{/*
-The adapter's role: provider | network | consumer | single-network-layer.
+The adapter's role: provider | network | consumer | network-adapter-layer.
 
 Required, with no default. A default would silently give one role's step list
 and handler role to a different adapter -- which renders, starts, reports Ready
@@ -24,20 +24,23 @@ and then mis-handles every request, at the far end, in a peer's logs.
 {{- define "adapter-service.role" -}}
 {{- $role := .Values.role | default "" -}}
 {{- if not $role -}}
-{{- fail (printf "%s: role is required -- one of provider, network, consumer (the three multi-adapter tiers) or single-network-layer (all three tiers in one adapter). It decides the handler role, the step list and the routing target, so there is no safe default. See examples/ for a values file per role." .Chart.Name) -}}
+{{- fail (printf "%s: role is required -- one of provider, network, consumer (the three multi-adapter tiers) or network-adapter-layer (all three tiers in one adapter). It decides the handler role, the step list and the routing target, so there is no safe default. See examples/ for a values file per role." .Chart.Name) -}}
 {{- end -}}
-{{- if not (has $role (list "provider" "network" "consumer" "single-network-layer")) -}}
-{{- fail (printf "%s: role must be one of provider, network, consumer, single-network-layer (got %q)." .Chart.Name $role) -}}
+{{- if not (has $role (list "provider" "network" "consumer" "network-adapter-layer")) -}}
+{{- fail (printf "%s: role must be one of provider, network, consumer, network-adapter-layer (got %q)." .Chart.Name $role) -}}
 {{- end -}}
 {{- $role -}}
 {{- end }}
 
 {{/*
 The name the adapter calls itself in its config, its logs and its module.
-Defaults to <role>-adapter, matching the compose stack's service names.
+Defaults to <role>-adapter, matching the compose stack's service names. The
+Network Adapter Layer (role network-adapter-layer) is the network adapter as
+a whole, so it is called network-adapter, not network-adapter-layer-adapter.
 */}}
 {{- define "adapter-service.appName" -}}
-{{- .Values.appName | default (printf "%s-adapter" (include "adapter-service.role" .)) -}}
+{{- $role := include "adapter-service.role" . -}}
+{{- .Values.appName | default (ternary "network-adapter" (printf "%s-adapter" $role) (eq $role "network-adapter-layer")) -}}
 {{- end }}
 
 {{/*
@@ -45,7 +48,8 @@ OTEL service name. Defaults to oan-<role>-adapter, matching OTEL_SERVICE_NAME
 in the compose stack so traces from either deployment line up.
 */}}
 {{- define "adapter-service.otelServiceName" -}}
-{{- .Values.otel.serviceName | default (printf "oan-%s-adapter" (include "adapter-service.role" .)) -}}
+{{- $role := include "adapter-service.role" . -}}
+{{- .Values.otel.serviceName | default (ternary "oan-network-adapter" (printf "oan-%s-adapter" $role) (eq $role "network-adapter-layer")) -}}
 {{- end }}
 
 {{/*

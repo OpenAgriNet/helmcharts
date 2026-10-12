@@ -1,10 +1,10 @@
-# charts/adapter-service/ci/single-network-layer-values.yaml
-# role single-network-layer: the single network layer adapter (consumer, network and
+# charts/adapter-service/ci/network-adapter-values.yaml
+# role network-adapter-layer: the Network Adapter Layer (consumer, network and
 # provider tiers as modules of one process). Renders
-# config/single-network-layer-config.yaml, the loopback routing and the three
+# config/network-adapter-config.yaml, the loopback routing and the three
 # tier identities.
-role: single-network-layer
-fullnameOverride: single-network-layer-adapter
+role: network-adapter-layer
+fullnameOverride: network-adapter
 
 image:
   registry: ghcr.io
@@ -18,7 +18,7 @@ service:
   port: 9200
   targetPort: 9200
 
-singleNetworkLayer:
+networkAdapterLayer:
   keys:
     consumer:
       existingSecret: consumer-adapter-keys
@@ -29,7 +29,7 @@ singleNetworkLayer:
   extraSubstitutions:
     __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl
 
-# Scale defaults for the single network layer adapter: roughly the three tiers'
+# Scale defaults for the Network Adapter Layer: roughly the three tiers'
 # requests in one pod, at least one replica per node.
 resources:
   requests:

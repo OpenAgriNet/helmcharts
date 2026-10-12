@@ -11,7 +11,7 @@
 #   registry        sunbird-registry-postgres, sunbird-registry-keycloak,
 #                   sunbird-registry-service
 #   discovery       discovery-postgres, discovery-service
-#   adapters        single-network-layer-adapter (profile single, default) |
+#   adapters        network-adapter-layer (profile single, default) |
 #                   provider, network, consumer (profile multi)
 #   observability   hyperdx                      profile: observability
 #   edge            nginx-proxy-manager          profile: reverse-proxy
@@ -27,7 +27,7 @@
 #                                         everything EXCEPT the adapters
 #   3. python3 bin/setup.py               keys, the three tier identities, and
 #                                         every adapter config they mount
-#   4. docker compose --profile single up -d      the single network layer adapter
+#   4. docker compose --profile single up -d      the Network Adapter
 #        (or --profile multi: provider-, network-, consumer-adapter)
 #   5. docker compose --profile reverse-proxy --profile observability up -d
 #                                         the edge and the telemetry stack
@@ -538,7 +538,7 @@ services:
   # adapters -- TWO topologies, chosen with a compose profile. Same image.
   #
   #   profile "single" (the default; `make up`)
-  #     single-network-layer-adapter: the consumer, network and provider tiers
+  #     network-adapter-layer (container network-adapter): the consumer, network and provider tiers
   #     as four modules of ONE process, one config, one port (127.0.0.1:9200).
   #     Tier-to-tier hops are loopback HTTP inside the container.
   #
@@ -600,9 +600,9 @@ services:
     ports:
       - "127.0.0.1:${MOCKAGMARKNET_PORT}:9101"
 
-  # The single network layer: the consumer, network and provider tiers as
+  # The Network Adapter Layer: the consumer, network and provider tiers as
   # modules of ONE adapter process, on ONE config rendered by bin/setup.py from
-  # config/adapters/single-network-layer.yaml.tmpl, with one routing file per
+  # config/adapters/network-adapter.yaml.tmpl, with one routing file per
   # module.
   #
   #   /<action>            the consumer, the caller's entry (bap), takes unsigned requests
@@ -614,10 +614,10 @@ services:
   # the same keys and registry rows as the multi-adapter services. Signing is
   # off, as in every quick-start template, so /network/ and /provider/ accept
   # unsigned requests: keep :9200 on 127.0.0.1.
-  single-network-layer-adapter:
+  network-adapter-layer:
     <<: *adapter
     profiles: ["single"]
-    container_name: single-network-layer-adapter
+    container_name: network-adapter
     depends_on:
       sunbird-registry-service:
         condition: service_healthy
@@ -625,7 +625,7 @@ services:
         condition: service_started
     environment:
       <<: *adapter-env
-      OTEL_SERVICE_NAME: single-network-layer-adapter
+      OTEL_SERVICE_NAME: network-adapter
       # Upstream credentials, read at call time -- the same variables and
       # reasons as provider-adapter below.
       MAUSAMGRAM_AUTH: ${MAUSAMGRAM_AUTH}
@@ -635,14 +635,14 @@ services:
       VISTAAR_CLIENT_ID: ${VISTAAR_CLIENT_ID}
       VISTAAR_CLIENT_SECRET: ${VISTAAR_CLIENT_SECRET}
     volumes:
-      - ./config/adapters/single-network-layer.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/network-adapter.yaml:/app/config/adapter.yaml:ro
       # One routing file per module. The network module reuses the
       # multi-adapter routing-network.yaml unchanged.
-      - ./config/adapters/routing-single-network-layer-consumer.yaml:/app/config/routing-single-network-layer-consumer.yaml:ro
+      - ./config/adapters/routing-network-adapter-consumer.yaml:/app/config/routing-network-adapter-consumer.yaml:ro
       - ./config/adapters/routing-network.yaml:/app/config/routing-network.yaml:ro
-      - ./config/adapters/routing-single-network-layer-publish.yaml:/app/config/routing-single-network-layer-publish.yaml:ro
+      - ./config/adapters/routing-network-adapter-publish.yaml:/app/config/routing-network-adapter-publish.yaml:ro
     ports:
-      - "127.0.0.1:${SINGLE_NETWORK_LAYER_ADAPTER_PORT:-9200}:9200"
+      - "127.0.0.1:${NETWORK_ADAPTER_LAYER_PORT:-9200}:9200"
 
   # Verifies the caller, calls the upstream provider, answers synchronously.
   # It has no provider address of its own: it reads the ProviderSchema row,
@@ -1002,7 +1002,7 @@ services:
       #
       # required: false -- only one topology's adapters exist at a time
       # (profiles "single" / "multi"); NPM starts with whichever is running.
-      single-network-layer-adapter:
+      network-adapter-layer:
         condition: service_started
         required: false
       consumer-adapter:

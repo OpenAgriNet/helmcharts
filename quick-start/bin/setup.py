@@ -637,19 +637,19 @@ def _render_one(name, template, substitutions):
     _write(f"{name}.yaml", _fill(name, template, substitutions))
 
 
-# ------------------------------------------------------ single network layer
+# ------------------------------------------------------ Network Adapter Layer
 #
-# The single network layer runs the consumer, network and provider tiers as
+# The Network Adapter Layer runs the consumer, network and provider tiers as
 # modules of ONE adapter (docker-compose.yml, profile "single"). Its
-# template, single-network-layer.yaml.tmpl, carries all three tiers'
+# template, network-adapter.yaml.tmpl, carries all three tiers'
 # placeholders: each module keeps its own tier identity, so both stacks use the
 # same keys and registry rows.
-def _render_single_network_layer(identities, shared):
+def _render_network_adapter_layer(identities, shared):
     substitutions = shared
     for role in ROLES:
         substitutions = _role_substitutions(role, identities[role]) + substitutions
-    _render_one("single-network-layer",
-                (ADAPTERS / "single-network-layer.yaml.tmpl").read_text(),
+    _render_one("network-adapter",
+                (ADAPTERS / "network-adapter.yaml.tmpl").read_text(),
                 substitutions)
 
 
@@ -660,7 +660,7 @@ def render(identities):
         template = (ADAPTERS / f"{role}.yaml.tmpl").read_text()
         _render_one(role, template,
                     _role_substitutions(role, identities[role]) + shared)
-    _render_single_network_layer(identities, shared)
+    _render_network_adapter_layer(identities, shared)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-# Single network layer adapter: the consumer, network and provider tiers as
+# Network Adapter: the consumer, network and provider tiers as
 # four modules of ONE adapter process (docker-compose.yml, profile "single").
 #
 #   /<action>            the consumer (bap); the app posts here, unsigned
@@ -9,11 +9,11 @@
 # Each module is its tier's module from consumer.yaml.tmpl, network.yaml.tmpl
 # and provider.yaml.tmpl. A change to one of those templates that should also
 # apply here must be made in this file too. The same layout as the Helm chart's
-# charts/adapter-service/config/single-network-layer-config.yaml.
+# charts/adapter-service/config/network-adapter-config.yaml.
 #
 # Differences from the three tier templates:
 #   - one listener (9200) and one appName; tier hops are loopback HTTP to this
-#     same listener (routing-single-network-layer-*.yaml beside this file);
+#     same listener (routing-network-adapter-*.yaml beside this file);
 #   - extended schema validation on in every module;
 #   - an outbound connection pool (httpClientConfig) on every module;
 #   - log level info.
@@ -22,13 +22,13 @@
 # sign or validateSign, so /network/ and /provider/ accept unsigned requests
 # from anyone who can reach :9200. Keep it on 127.0.0.1 (as the compose file
 # does) and never put /network/ or /provider/ behind the reverse proxy. The
-# Helm chart's single-network-layer-config.yaml has signing on.
+# Helm chart's network-adapter-config.yaml has signing on.
 #
 # bin/setup.py fills the placeholders -- each module's own tier identity
 # (the CONSUMER_, NETWORK_ and PROVIDER_ ones) and the shared ones -- and
-# writes config/adapters/single-network-layer.yaml (mode 600, gitignored: it
+# writes config/adapters/network-adapter.yaml (mode 600, gitignored: it
 # holds private keys).
-appName: single-network-layer-adapter
+appName: network-adapter
 
 log:
   level: info
@@ -54,7 +54,7 @@ plugins:
   otelsetup:
     id: otelsetup
     config:
-      serviceName: single-network-layer-adapter
+      serviceName: network-adapter
       environment: "__OTEL_ENVIRONMENT__"
       otlpEndpoint: "__OTLP_ENDPOINT__"
       enableMetrics: "__OTEL_ENABLED__"
@@ -66,7 +66,7 @@ modules:
   # From consumer.yaml.tmpl. Mounted at /, so the app calls /discover, /select,
   # ... as on the multi-adapter consumer-adapter. Accepts unsigned requests
   # under the consumer identity (signing is off here), routes discover to /network and transactions to
-  # /provider (routing-single-network-layer-consumer.yaml).
+  # /provider (routing-network-adapter-consumer.yaml).
   - name: consumer
     path: /
     handler:
@@ -123,7 +123,7 @@ modules:
         router:
           id: router
           config:
-            routingConfig: /app/config/routing-single-network-layer-consumer.yaml
+            routingConfig: /app/config/routing-network-adapter-consumer.yaml
       steps:
         - validateSchema
         - addRoute
@@ -301,7 +301,7 @@ modules:
   # ---------------------------------------------------------- provider-publish
   # From provider.yaml.tmpl, module 2. The catalogue publishes here, under the
   # provider identity (signing is off here); routed to /network/publish
-  # (routing-single-network-layer-publish.yaml).
+  # (routing-network-adapter-publish.yaml).
   - name: provider-publish
     path: /provider/publish
     handler:
@@ -356,7 +356,7 @@ modules:
         router:
           id: router
           config:
-            routingConfig: /app/config/routing-single-network-layer-publish.yaml
+            routingConfig: /app/config/routing-network-adapter-publish.yaml
       steps:
         - validateSchema
         - addRoute

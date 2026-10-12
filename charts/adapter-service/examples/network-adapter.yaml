@@ -1,5 +1,5 @@
 # ===========================================================================
-# single-network-layer role -- the single network layer adapter.
+# network-adapter-layer role -- the Network Adapter.
 #
 # The consumer, network and provider tiers as four modules of ONE adapter
 # process, on one Service:
@@ -13,18 +13,18 @@
 # (examples/consumer.yaml, network.yaml, provider.yaml). Run one mode or the
 # other in an environment, not both.
 #
-#   helm install single-network-layer-adapter . -n single-network-layer-adapter --create-namespace \
-#     -f examples/single-network-layer.yaml
+#   helm install network-adapter . -n network-adapter --create-namespace \
+#     -f examples/network-adapter.yaml
 #
-# The config is config/single-network-layer-config.yaml; the routing is
+# The config is config/network-adapter-config.yaml; the routing is
 # generated from config/routing-*.yaml. Tier hops are loopback HTTP inside the
 # pod, so any adapter image works.
 # ===========================================================================
-role: single-network-layer
+role: network-adapter-layer
 
 # The Service name and DNS name callers use:
-# single-network-layer-adapter.single-network-layer-adapter.svc.cluster.local:9200
-fullnameOverride: single-network-layer-adapter
+# network-adapter.network-adapter.svc.cluster.local:9200
+fullnameOverride: network-adapter
 
 image:
   registry: ghcr.io
@@ -36,12 +36,12 @@ registry:
 
 # The same port the quick-start publishes. targetPort is also the loopback port
 # the generated routing uses, and must equal http.port in
-# config/single-network-layer-config.yaml (the render checks).
+# config/network-adapter-config.yaml (the render checks).
 service:
   port: 9200
   targetPort: 9200
 
-singleNetworkLayer:
+networkAdapterLayer:
   # The three tier Secrets the multi-adapter releases use. openbao-secrets
   # reflects them into this namespace.
   keys:
@@ -108,7 +108,7 @@ ingress:
   enabled: false
   className: ""
   hosts:
-    - host: single-network-layer.oan.example.com
+    - host: network-adapter.oan.example.com
       paths:
         - path: /discover
           pathType: Exact

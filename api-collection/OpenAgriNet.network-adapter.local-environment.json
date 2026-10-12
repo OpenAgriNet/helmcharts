@@ -1,9 +1,9 @@
 {
   "id": "0a4e1c00-0000-4000-8000-0000000snle1",
-  "name": "OpenAgriNet local (single network layer)",
+  "name": "OpenAgriNet local (Network Adapter Layer)",
   "values": [
     {
-      "key": "single-network-layer-host",
+      "key": "network-adapter-host",
       "value": "http://127.0.0.1:9200",
       "enabled": true
     },

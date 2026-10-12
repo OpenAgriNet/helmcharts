@@ -8,19 +8,19 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 ## [0.5.3] - 2026-10-09
 
 ### Added
-- `role: single-network-layer`: all three tiers in one adapter (four modules:
+- `role: network-adapter-layer`: all three tiers in one adapter (four modules:
   `/` (consumer), `/network/`, `/provider/`, `/provider/publish`), as in the
-  quick-start's single-network-layer compose stack. Its config is
-  `config/single-network-layer-config.yaml` (extended schema, an outbound
+  quick-start's `single` topology (compose profile). Its config is
+  `config/network-adapter-config.yaml` (extended schema, an outbound
   connection pool and log level info on every module); its routing is generated
   at render time from `config/routing-*.yaml`. Tier hops are loopback HTTP
   inside the pod. Signs as three identities from
-  `singleNetworkLayer.keys.{consumer,network,provider}`; `routing.config` fails the
+  `networkAdapterLayer.keys.{consumer,network,provider}`; `routing.config` fails the
   render for this role.
-- single-network-layer ingress may expose only single-segment `/<action>` and
+- network-adapter-layer ingress may expose only single-segment `/<action>` and
   `/provider/<action>`, as literal paths with `pathType` Prefix or Exact and
   no `use-regex` / `rewrite-target` annotation. Example
-  `examples/single-network-layer.yaml`.
+  `examples/network-adapter.yaml`.
 - `autoscaling.behavior`, `topologySpreadConstraints`,
   `terminationGracePeriodSeconds`, `preStopSleepSeconds`, `goMemLimit`; all off
   by default.

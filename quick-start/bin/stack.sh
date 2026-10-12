@@ -37,9 +37,12 @@ cd "$ROOT"
 # makes "down" mean down.
 PROFILES=(--profile reverse-proxy --profile observability --profile single --profile multi)
 
-# Adapter topology: "single" (default) runs single-network-layer-adapter, one
-# process for all three tiers; "multi" runs provider-, network- and
-# consumer-adapter. Both publish 127.0.0.1:9200, so only one runs at a time.
+# Adapter topology: "single" (default) runs the Network Adapter Layer (compose
+# service network-adapter-layer, container network-adapter), one process for
+# all three tiers; "multi" runs provider-, network- and consumer-adapter. Both
+# publish 127.0.0.1:9200, and the single container shares the multi network
+# tier's name, so only one topology exists at a time: the other is REMOVED
+# (not just stopped) before this one starts.
 # Validated only by the commands that use it (check_mode), so an unrelated
 # MODE in the shell never blocks `down`, `destroy` or `help`.
 MODE="${MODE:-single}"
@@ -48,15 +51,19 @@ check_mode() {
 }
 
 # The topology whose adapters are running now: single, multi, or empty.
+# Both topologies have a container called network-adapter, so single is told
+# apart by its compose service label.
 running_mode() {
-    if [ "$(docker inspect -f '{{.State.Running}}' single-network-layer-adapter 2>/dev/null)" = true ]; then echo single
-    elif [ "$(docker inspect -f '{{.State.Running}}' consumer-adapter 2>/dev/null)" = true ]; then echo multi
+    if [ "$(docker inspect -f '{{.State.Running}}' consumer-adapter 2>/dev/null)" = true ]; then echo multi
+    elif [ "$(docker inspect -f '{{.State.Running}}' network-adapter 2>/dev/null)" = true ] \
+      && [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' network-adapter 2>/dev/null)" = network-adapter-layer ]; then
+        echo single
     fi
 }
 
 adapters_for() { # $1 mode
     case "$1" in
-        single) echo single-network-layer-adapter ;;
+        single) echo network-adapter-layer ;;
         multi)  echo provider-adapter network-adapter consumer-adapter ;;
     esac
 }
@@ -157,8 +164,8 @@ up_registry_tier() {
 }
 
 # Generates the adapter keypairs, registers the three adapter identities, and
-# renders every adapter config (provider, network, consumer and
-# single-network-layer) from the .tmpl files beside them. Safe to re-run:
+# renders every adapter config (provider, network, consumer and the
+# Network Adapter Layer's network-adapter.yaml) from the .tmpl files beside them. Safe to re-run:
 # keys come from keys/keys.json once it exists, and participants already
 # registered are left alone.
 up_setup() {
@@ -179,11 +186,15 @@ up_adapters() {
     check_mode
     local other f; other=$(other_mode "$MODE")
     step 3 "$1" "adapters, mode $MODE ($(adapters_for "$MODE"))"
-    # The other topology also publishes 127.0.0.1:9200: stop it first.
+    # The other topology also publishes 127.0.0.1:9200, and the single container
+    # shares the multi network tier's name: remove it (stopped is not enough).
     # shellcheck disable=SC2046
-    docker compose --profile "$other" stop $(adapters_for "$other") >/dev/null 2>&1 || true
+    docker compose --profile "$other" rm -sf $(adapters_for "$other") >/dev/null 2>&1 || true
+    # Containers from before the rename (single-network-layer-adapter, and the
+    # earlier network-layer-adapter) would hold 127.0.0.1:9200.
+    docker rm -f single-network-layer-adapter network-layer-adapter >/dev/null 2>&1 || true
     # Never let compose create a directory where a bind-mounted config belongs.
-    for f in $( [ "$MODE" = single ] && echo single-network-layer || echo provider network consumer ); do
+    for f in $( [ "$MODE" = single ] && echo network-adapter || echo provider network consumer ); do
         [ -f "config/adapters/$f.yaml" ] \
             || die "config/adapters/$f.yaml was not rendered (a directory there? rm -r it, then re-run)"
     done
@@ -375,8 +386,8 @@ smoke() {
     local mode base_pub base_app svc s
     mode=$(running_mode)
     if [ "$mode" = single ]; then
-        base_app="http://127.0.0.1:$(envv SINGLE_NETWORK_LAYER_ADAPTER_PORT 9200)"; base_pub="$base_app/provider"
-        svc=single-network-layer-adapter
+        base_app="http://127.0.0.1:$(envv NETWORK_ADAPTER_LAYER_PORT 9200)"; base_pub="$base_app/provider"
+        svc=network-adapter
     elif [ "$mode" = multi ]; then base_pub="http://127.0.0.1:$(envv PROVIDER_ADAPTER_PORT 9200)"
         base_app="http://127.0.0.1:$(envv CONSUMER_ADAPTER_PORT 9202)"
         svc="provider-adapter network-adapter consumer-adapter"
@@ -438,8 +449,8 @@ usage() {
     cat <<'USAGE'
 bin/stack.sh <command>
 
-  up             the whole stack, single network layer (default):
-                 registry+discovery -> setup.py -> single-network-layer-adapter
+  up             the whole stack, Network Adapter Layer (default):
+                 registry+discovery -> setup.py -> network-adapter (Network Adapter Layer)
                  -> gateway (public, 80/443) -> hyperdx (wants 16 GB)
   up-core        steps 1-3 only. Nothing public, no ClickHouse.
   up-multi       as up, with the three adapters (provider, network, consumer)
