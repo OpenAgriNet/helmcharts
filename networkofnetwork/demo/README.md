@@ -99,6 +99,17 @@ Two signed documents per network, served over TLS at the network's own domain:
 Peers store only the delegated operational keys on `admit`, so the governance
 key can never pass their traffic check.
 
+To check it end to end -- publish, fetch over TLS as the peer would, then
+tamper with the served files and confirm each forgery is refused:
+
+```bash
+python3 -m unittest bin/test_oanfed.py
+make e2e-descriptor NETWORK_ID=bharatvistar.oan.local PEER=mahavistara.oan.local
+```
+
+The second restores whatever the network served before and writes nothing to
+either registry.
+
 ---
 
 ## 3. Each network admits the other  (instant)
