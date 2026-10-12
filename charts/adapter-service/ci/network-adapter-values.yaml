@@ -1,8 +1,12 @@
 # charts/adapter-service/ci/network-adapter-values.yaml
-# role network-adapter-layer: the Network Adapter Layer (consumer, network and
-# provider tiers as modules of one process). Renders
-# config/network-adapter-config.yaml, the loopback routing and the three
-# tier identities.
+# CI only (scripts/lint-charts.sh lints and renders every ci/*-values.yaml).
+# Not for installs: use examples/network-adapter.yaml.
+#
+# Renders the single topology, role network-adapter-layer (the Network Adapter
+# Layer): config/network-adapter-config.yaml, the generated loopback routing,
+# the three tier identities, and the HPA / PDB / spread / graceful-shutdown
+# settings, so those templates are linted too. Pinned image tag so the render
+# is reproducible.
 role: network-adapter-layer
 fullnameOverride: network-adapter
 

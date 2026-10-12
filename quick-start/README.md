@@ -333,6 +333,11 @@ the VM reachable from the internet.** It runs the Network Adapter Layer
 adapter; `make up-multi` runs the three adapters instead, and decides what the
 proxy hosts in Appendix B forward to.
 
+Switching topology on a running VM (`make up` ⇄ `make up-multi`) recreates the
+adapters and restarts nginx-proxy-manager so it picks up the new addresses: the
+public hosts drop connections for a few seconds. Repoint the proxy hosts
+(Appendix B) in the same window.
+
 ## Step V4 — Decide what is exposed
 
 Everything except the edge's 80 and 443 is bound to `127.0.0.1`, written
