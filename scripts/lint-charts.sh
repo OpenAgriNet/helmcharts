@@ -44,8 +44,6 @@ for dir in charts/*/; do
 done
 
 for chart_dir in "${chart_dirs[@]}"; do
-while IFS= read -r chart_yaml; do
-  chart_dir="$(dirname "$chart_yaml")"
 
   name="$(basename "$chart_dir")"
   chart_type="$(helm show chart "$chart_dir" 2>/dev/null | awk '/^type:/ {print $2}')"
@@ -99,7 +97,7 @@ while IFS= read -r chart_yaml; do
       fi
     done
   fi
-done < <(find charts -mindepth 2 -maxdepth 3 -name Chart.yaml | sort)
+done
 
 if [[ "$failed" -ne 0 ]]; then
   echo "chart validation FAILED"
