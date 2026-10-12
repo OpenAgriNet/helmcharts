@@ -31,6 +31,51 @@ plugins:
       enableTracing: "__OTEL_ENABLED__"
       enableLogs: "__OTEL_ENABLED__"
 
+  # -------------------------------------------------------------------------
+  # Scheduled catalog publishing (the catalogcrawler's publish sweep).
+  #
+  # Application-level, like otelsetup: started once at boot, not per request.
+  # On every tick it lists the registry's bindings, keeps the ones whose
+  # `publish` action names a pipeline URL (bin/add-publish-action.py adds it),
+  # and runs each pipeline that is due: fetch the upstream, build the catalogs,
+  # POST each to the provider adapter's /publish, which signs it and routes it
+  # back through this adapter to discovery. The pipeline's inputs (MANDI_*) come
+  # from this container's environment, set in docker-compose.yml.
+  #
+  # This registry block is the CRAWLER's own lookup; the module's
+  # plugins.registry below is separate and unchanged.
+  registry:
+    id: sunbirdRegistry
+    config:
+      url: http://sunbird-registry-service:8081/api/v1
+      entity: Participant
+      providerEntity: ProviderSchema
+
+  crawler:
+    id: catalogcrawler
+    config:
+      # The run log. Its own database on the discovery Postgres, created by
+      # config/discovery/initdb/ on a fresh volume (or by hand: see README).
+      dbDsn: "postgres://discovery:discovery@discovery-postgres:5432/catalogcrawler?sslmode=disable"
+      # Where built catalogs are POSTed: the provider adapter's /publish.
+      discoveryPushUrl: "http://provider-adapter:9200/publish"
+      # Who the catalogs are published AS and TO (context.senderId / receiverId).
+      participantId: "__PROVIDER_PUBLISH_ID__"
+      receiverId: "__DISCOVERY_PUBLISH_ID__"
+      publishPipelines: "true"
+      publishEnabled: "true"
+      # One cadence for catalog sync and the publish sweep. 60 s so clearing the
+      # run log re-runs a pipeline within a minute; use 3600 for anything longer
+      # lived (a pipeline due at 13:00 then starts between 13:00 and 14:00).
+      catalogIntervalSeconds: "60"
+      publishCatalogOutputDir: "/tmp/catalogs"
+      # Per-pipeline overrides, by the pipeline's metadata.name. The Agmarknet
+      # upstream's data lags 1-3 weeks and states report in bursts, so the
+      # pipeline's default window (yesterday) usually returns nothing: ask for
+      # a relative window instead of a fixed date.
+      publish.mandi-price.schedule: "0 13 * * *"
+      publish.mandi-price.fromDate: "21 days ago"
+
 modules:
   - name: network-adapter
     # A subtree: every action lands here and the payload says which one it is.
