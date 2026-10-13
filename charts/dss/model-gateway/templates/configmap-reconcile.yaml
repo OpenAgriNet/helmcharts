@@ -17,10 +17,12 @@ data:
     changed, and it is the only writer: the admin screen is off, so this file is
     what the gateway is.
 
-    Reconcile means both directions. A model in the file is created or updated;
-    a model in the gateway that is not in the file is deleted. Without that last
-    part, deleting a model from the file would leave it serving, which is drift
-    in the direction nobody notices.
+    Reconcile means both directions, but deleting is opt-in. A model or
+    credential in the file is created or updated. One in the gateway that is not
+    in the file is only reported ("would remove") unless PRUNE=true, because the
+    file is a list that replaces the previous one: a model left out by mistake
+    would otherwise be deleted from a live gateway on the next sync. With prune
+    off, drift in that direction is visible in the Job log instead of silent.
 
     Vendor keys are never in the file. Each credential names a Secret, mounted
     into this Job, and the key is read from disk here and sent to the gateway,
@@ -39,6 +41,7 @@ data:
     KEY = os.environ["LITELLM_MASTER_KEY"]
     SPEC_DIR = os.environ.get("SPEC_DIR", "/spec")
     SECRET_DIR = os.environ.get("SECRET_DIR", "/credentials")
+    PRUNE = os.environ.get("PRUNE", "false") == "true"
 
 
     def call(method, path, body=None):
@@ -94,6 +97,22 @@ data:
                 print(f"credential {cred['name']} created")
 
 
+    def prune_credentials(wanted):
+        """Runs after the models, so a credential no model uses any more can go.
+
+        A credential dropped from the file stays in the gateway, with its key,
+        until it is pruned. Removing a leaked key from the values does not
+        remove it from the gateway unless reconcile.prune is on."""
+        existing = {c["credential_name"] for c in call("GET", "/credentials")["credentials"]}
+        for stale in sorted(existing - {c["name"] for c in wanted}):
+            if PRUNE:
+                call("DELETE", "/credentials/" + stale)
+                print(f"credential {stale} removed - no longer in the chart")
+            else:
+                print(f"credential {stale} would be removed - not in the chart "
+                      "(set reconcile.prune=true to delete it)")
+
+
     def reconcile_models(wanted):
         live = call("GET", "/model/info")["data"]
         live_ids = {
@@ -134,8 +153,12 @@ data:
 
         for stale_id, name in live_ids.items():
             if stale_id not in wanted_ids:
-                call("POST", "/model/delete", {"id": stale_id})
-                print(f"{name} ({stale_id}) removed - no longer in the chart")
+                if PRUNE:
+                    call("POST", "/model/delete", {"id": stale_id})
+                    print(f"{name} ({stale_id}) removed - no longer in the chart")
+                else:
+                    print(f"{name} ({stale_id}) would be removed - not in the chart "
+                          "(set reconcile.prune=true to delete it)")
 
 
     def main():
@@ -147,6 +170,7 @@ data:
         wait_for_gateway()
         reconcile_credentials(credentials)
         reconcile_models(models)
+        prune_credentials(credentials)
 
         if os.environ.get("BLOCK_UNPRICED_MODELS") == "true":
             # A call to a model with no price is otherwise recorded as free, and

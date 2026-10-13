@@ -36,6 +36,15 @@ Two things follow from that, and both are deliberate:
   Only a Helm or Argo sync runs the Job. That closes the same door as turning
   the admin screen off.
 
+- **Deleting is opt-in.** `models` and `credentials` are lists that replace the
+  previous ones, so a model left out by mistake would otherwise vanish from a live
+  gateway. By default (`reconcile.prune: false`) the Job only logs
+  `... would be removed` for models and credentials that are in the gateway but not
+  in the chart. Set `reconcile.prune: true` to delete them. Credentials are pruned
+  after models, so one that no model uses any more can go. This is also how a
+  leaked key is taken out of the gateway: remove it from `credentials`, then run
+  one sync with `--set reconcile.prune=true`.
+
 ## What this chart will not let you do
 
 The render fails, naming the value, rather than applying something that fails
@@ -109,9 +118,18 @@ answer.
 ```bash
 helm dependency update charts/dss/model-gateway
 helm upgrade --install model-gateway charts/dss/model-gateway \
-  -f charts/dss/model-gateway/examples/model-gateway.prod.yaml
+  -f charts/dss/model-gateway/examples/model-gateway.prod.yaml \
+  --wait --timeout 10m
 helm test model-gateway
 ```
+
+**Use `--timeout 10m`.** Helm's default is 5 minutes and covers the whole release,
+including waiting for the reconcile Job. The Job itself waits up to 5 minutes for
+the gateway to become ready (first start runs database migrations), so a slow
+start would fail the release at the default. `reconcile.activeDeadlineSeconds`
+(540) stops the Job with its own error just before 10 minutes. Under Argo CD the
+Job runs as a PostSync hook and Helm's timeout does not apply. If you shorten
+the timeout, shorten `activeDeadlineSeconds` with it.
 
 The assistant is then pointed at it with its own settings: the four names below,
 `DSS_GATEWAY_URL` set to `http://model-gateway:4000/v1`, and `DSS_GATEWAY_API_KEY`
