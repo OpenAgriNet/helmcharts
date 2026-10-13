@@ -6,7 +6,7 @@ description: >-
   and records what each call cost. Implemented with LiteLLM; PostgreSQL is its
   only datastore, and Redis is required once it runs more than one replica.
 type: application
-version: 0.1.0
+version: 0.1.1
 # The LiteLLM proxy image. Pinned rather than floating on `main-stable`: the
 # gateway sits in front of every model call, so which build is running has to be
 # a fact about this chart.
@@ -26,4 +26,4 @@ sources:
 dependencies:
   - name: common
     version: "0.2.x"
-    repository: "file://../../common"
+    repository: "file://../common"
