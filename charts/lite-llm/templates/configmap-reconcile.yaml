@@ -86,7 +86,11 @@ data:
                 values[field] = value
             if cred["name"] in existing:
                 # The key may have been rotated in the Secret since last time.
-                call("PUT", "/credentials/" + cred["name"], {"credential_values": values})
+                call("PATCH", "/credentials/" + cred["name"], {
+                    "credential_name": cred["name"],
+                    "credential_info": {"description": cred.get("description", "")},
+                    "credential_values": values,
+                })
                 print(f"credential {cred['name']} updated")
             else:
                 call("POST", "/credentials", {
@@ -114,7 +118,15 @@ data:
 
 
     def reconcile_models(wanted):
-        live = call("GET", "/model/info")["data"]
+        try:
+            live = call("GET", "/model/info")["data"]
+        except urllib.error.HTTPError as exc:
+            # A gateway with no models yet answers 500 "LLM Model List not
+            # loaded in" instead of an empty list. That is every first install.
+            if exc.code == 500 and b"Model List not loaded" in exc.read():
+                live = []
+            else:
+                raise
         live_ids = {
             m["model_info"]["id"]: m["model_name"]
             for m in live

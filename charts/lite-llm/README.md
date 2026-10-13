@@ -116,9 +116,9 @@ answer.
 ## Install
 
 ```bash
-helm dependency update charts/dss/model-gateway
-helm upgrade --install model-gateway charts/dss/model-gateway \
-  -f charts/dss/model-gateway/examples/model-gateway.prod.yaml \
+helm dependency update charts/lite-llm
+helm upgrade --install model-gateway charts/lite-llm \
+  -f charts/lite-llm/examples/model-gateway.prod.yaml \
   --wait --timeout 10m
 helm test model-gateway
 ```
