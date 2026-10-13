@@ -100,6 +100,10 @@ cmd_host_descriptor() {
   local dir; dir="$(network_dir "$network")"
   local descriptor="$dir/.well-known/openagrinet"
 
+  # The state lives with the checkout that brought the network up. Without
+  # this, the .env read below fails under set -e and make exits with no word.
+  [ -f "$dir/.env" ] || die "$network is not set up in $STATE -- run 'make network NETWORK_ID=$network' from this checkout first"
+
   # A revision must only ever INCREASE -- another network refuses a descriptor
   # offering one at or below what it already holds, which is what stops a
   # withdrawn declaration being replayed as current. So it is derived from the
