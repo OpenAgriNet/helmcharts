@@ -16,7 +16,7 @@
 
 NET := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))bin/network.sh
 
-.PHONY: help network setup host-descriptor admit down destroy teardown ps logs ls
+.PHONY: help network setup host-descriptor e2e-descriptor admit down destroy teardown ps logs ls
 
 # Default target: running a bare `make` in a directory that can delete a
 # Postgres volume should print the menu, not pick something from it.
@@ -40,6 +40,13 @@ setup:    ; @$(NET) setup   $(NETWORK_ID)
 # publishing a CATALOG, which is a different thing entirely and goes to the
 # adapter's /publish/ mount.
 host-descriptor: ; @$(NET) host-descriptor $(NETWORK_ID)
+
+# End-to-end check of the hosted descriptor and jwks: publishes a new revision,
+# fetches it over TLS as PEER would, tampers with it, and restores what was
+# served. Writes nothing to either registry.
+#
+#     make e2e-descriptor NETWORK_ID=bharatvistar.oan.local PEER=mahavistara.oan.local
+e2e-descriptor: ; @python3 $(dir $(NET))e2e_descriptor.py $(NETWORK_ID) $(PEER)
 
 # Record our decision to deal with another network: fetch its descriptor over
 # TLS, verify the signature against the key it publishes, and store it.

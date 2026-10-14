@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "d90ecfa3-df76-4844-a51c-32d73de9a2f9",
-    "name": "OAN \u2014 Network of Networks",
-    "description": "Two OAN networks side by side, each with its own registry, discovery and adapter.\n\n**The demo, in order:**\n1. Bharat 1 \u2014 publish mandi into A\n2. Bharat 2 \u2014 search A, returns mandi only\n3. Maha 1 \u2014 publish weather into B\n4. wait ~30s, no manual crawl\n5. Bharat 2 again \u2014 now returns mandi AND weather\n6. Bharat 3 \u2014 select mandi, answered locally\n7. Bharat 4 \u2014 select weather, crosses to B\n\nBring the stack up with `make network NETWORK_ID=...` in helmcharts/networkofnetwork. Full runbook in demo/README.md.",
+    "name": "OAN — Network of Networks",
+    "description": "Two OAN networks side by side, each with its own registry, discovery and adapter.\n\n**Identity documents (#74):** run the *Identity documents* folder first -- each network's signed Descriptor and JWKS.\n\n**The demo, in order:**\n1. Bharat 1 — publish mandi into A\n2. Bharat 2 — search A, returns mandi only\n3. Maha 1 — publish weather into B\n4. wait ~30s, no manual crawl\n5. Bharat 2 again — now returns mandi AND weather\n6. Bharat 3 — select mandi, answered locally\n7. Bharat 4 — select weather, crosses to B\n\nBring the stack up with `make network NETWORK_ID=...` in helmcharts/networkofnetwork. Full runbook in demo/README.md.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -21,11 +21,313 @@
     {
       "key": "maha_discovery",
       "value": "http://localhost:9401"
+    },
+    {
+      "key": "bharat_front_door",
+      "value": "https://localhost:9306"
+    },
+    {
+      "key": "maha_front_door",
+      "value": "https://localhost:9406"
+    },
+    {
+      "key": "bharat_network_id",
+      "value": "bharatvistar.oan.local"
+    },
+    {
+      "key": "maha_network_id",
+      "value": "mahavistara.oan.local"
     }
   ],
   "item": [
     {
-      "name": "Bharat  (network A \u2014 has mandi)",
+      "name": "Identity documents  (issue #74)",
+      "description": "Each network's two published documents, fetched from its front door exactly where a peer reads them.\n\n**Before running:** Postman → Settings → turn OFF *SSL certificate verification* (the stack uses a local CA), and run `make host-descriptor NETWORK_ID=...` for each network with this branch's code.\n\nRun each Descriptor request before its JWKS request: the JWKS checks use the kids the Descriptor named.\n\nPostman cannot verify an Ed25519 signature, so these check shape and keys. For the signature and the tampering cases run `make e2e-descriptor NETWORK_ID=... PEER=...`.",
+      "item": [
+        {
+          "name": "1. Bharat — Network Descriptor",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('net', 'bharat');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const prefix = pm.variables.get('net');",
+                  "pm.test('200 and JSON', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "pm.test('not cached stale (Cache-Control: no-cache)', () => {",
+                  "  pm.expect(pm.response.headers.get('Cache-Control') || '').to.include('no-cache');",
+                  "});",
+                  "const d = pm.response.json();",
+                  "pm.test('every required field of the Descriptor contract', () => {",
+                  "  ['version','networkId','name','operator','revision','status','issuedAt',",
+                  "   'operatingProfile','schemaPacks','services','signature']",
+                  "    .forEach(f => pm.expect(d, f).to.have.property(f));",
+                  "  pm.expect(d.version).to.eql('1.0');",
+                  "  pm.expect(d.operator.name).to.be.a('string').and.not.empty;",
+                  "  pm.expect(d.revision).to.be.a('number').and.above(0);",
+                  "  pm.expect(['Active','Suspended','Retired']).to.include(d.status);",
+                  "  pm.expect(d.issuedAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/);",
+                  "  pm.expect(d.operatingProfile).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "pm.test('networkId is the network this was fetched for', () => {",
+                  "  pm.expect(d.networkId).to.eql(pm.variables.get(prefix + '_network_id'));",
+                  "});",
+                  "pm.test('discovery URL and schema packs are https', () => {",
+                  "  pm.expect(d.services.discovery).to.match(/^https:\\/\\//);",
+                  "  d.schemaPacks.forEach(u => pm.expect(u).to.match(/^https:\\/\\//));",
+                  "});",
+                  "pm.test('signed with Ed25519, naming its key', () => {",
+                  "  pm.expect(d.signature.algorithm).to.eql('Ed25519');",
+                  "  pm.expect(d.signature.value).to.match(/^[A-Za-z0-9_-]{86}$/);",
+                  "  pm.expect(d.signature.keyId).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.collectionVariables.set(prefix + '_signing_kid', d.signature.keyId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{bharat_front_door}}/.well-known/openagrinet",
+              "host": [
+                "{{bharat_front_door}}"
+              ],
+              "path": [
+                ".well-known",
+                "openagrinet"
+              ]
+            },
+            "description": "The signed ID card: who the network is, its status, revision, versions, schema packs, discovery URL and which key it signs with."
+          }
+        },
+        {
+          "name": "2. Bharat — JWKS",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('net', 'bharat');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const prefix = pm.variables.get('net');",
+                  "pm.test('200 and JSON', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "const keys = pm.response.json().keys;",
+                  "pm.test('every key is a 32-byte Ed25519 signing key with a unique kid', () => {",
+                  "  pm.expect(keys).to.be.an('array').that.is.not.empty;",
+                  "  const kids = keys.map(k => k.kid);",
+                  "  pm.expect(new Set(kids).size).to.eql(kids.length);",
+                  "  keys.forEach(k => {",
+                  "    pm.expect(k.kty).to.eql('OKP');",
+                  "    pm.expect(k.crv).to.eql('Ed25519');",
+                  "    pm.expect(k.alg).to.eql('Ed25519');",
+                  "    pm.expect(k.use).to.eql('sig');",
+                  "    pm.expect(k.x).to.match(/^[A-Za-z0-9_-]{43}$/);",
+                  "  });",
+                  "});",
+                  "pm.test('publishes the key that signed the Descriptor', () => {",
+                  "  const signer = pm.collectionVariables.get(prefix + '_signing_kid');",
+                  "  pm.expect(signer, 'run the Descriptor request first').to.be.a('string');",
+                  "  pm.expect(keys.map(k => k.kid)).to.include(signer);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{bharat_front_door}}/.well-known/jwks.json",
+              "host": [
+                "{{bharat_front_door}}"
+              ],
+              "path": [
+                ".well-known",
+                "jwks.json"
+              ]
+            },
+            "description": "The public key that verifies the Descriptor, and that peers verify this network's traffic against."
+          }
+        },
+        {
+          "name": "3. Maha — Network Descriptor",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('net', 'maha');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const prefix = pm.variables.get('net');",
+                  "pm.test('200 and JSON', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "pm.test('not cached stale (Cache-Control: no-cache)', () => {",
+                  "  pm.expect(pm.response.headers.get('Cache-Control') || '').to.include('no-cache');",
+                  "});",
+                  "const d = pm.response.json();",
+                  "pm.test('every required field of the Descriptor contract', () => {",
+                  "  ['version','networkId','name','operator','revision','status','issuedAt',",
+                  "   'operatingProfile','schemaPacks','services','signature']",
+                  "    .forEach(f => pm.expect(d, f).to.have.property(f));",
+                  "  pm.expect(d.version).to.eql('1.0');",
+                  "  pm.expect(d.operator.name).to.be.a('string').and.not.empty;",
+                  "  pm.expect(d.revision).to.be.a('number').and.above(0);",
+                  "  pm.expect(['Active','Suspended','Retired']).to.include(d.status);",
+                  "  pm.expect(d.issuedAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/);",
+                  "  pm.expect(d.operatingProfile).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "pm.test('networkId is the network this was fetched for', () => {",
+                  "  pm.expect(d.networkId).to.eql(pm.variables.get(prefix + '_network_id'));",
+                  "});",
+                  "pm.test('discovery URL and schema packs are https', () => {",
+                  "  pm.expect(d.services.discovery).to.match(/^https:\\/\\//);",
+                  "  d.schemaPacks.forEach(u => pm.expect(u).to.match(/^https:\\/\\//));",
+                  "});",
+                  "pm.test('signed with Ed25519, naming its key', () => {",
+                  "  pm.expect(d.signature.algorithm).to.eql('Ed25519');",
+                  "  pm.expect(d.signature.value).to.match(/^[A-Za-z0-9_-]{86}$/);",
+                  "  pm.expect(d.signature.keyId).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.collectionVariables.set(prefix + '_signing_kid', d.signature.keyId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{maha_front_door}}/.well-known/openagrinet",
+              "host": [
+                "{{maha_front_door}}"
+              ],
+              "path": [
+                ".well-known",
+                "openagrinet"
+              ]
+            },
+            "description": "Same as Bharat, for Maha Vistara."
+          }
+        },
+        {
+          "name": "4. Maha — JWKS",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('net', 'maha');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const prefix = pm.variables.get('net');",
+                  "pm.test('200 and JSON', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "const keys = pm.response.json().keys;",
+                  "pm.test('every key is a 32-byte Ed25519 signing key with a unique kid', () => {",
+                  "  pm.expect(keys).to.be.an('array').that.is.not.empty;",
+                  "  const kids = keys.map(k => k.kid);",
+                  "  pm.expect(new Set(kids).size).to.eql(kids.length);",
+                  "  keys.forEach(k => {",
+                  "    pm.expect(k.kty).to.eql('OKP');",
+                  "    pm.expect(k.crv).to.eql('Ed25519');",
+                  "    pm.expect(k.alg).to.eql('Ed25519');",
+                  "    pm.expect(k.use).to.eql('sig');",
+                  "    pm.expect(k.x).to.match(/^[A-Za-z0-9_-]{43}$/);",
+                  "  });",
+                  "});",
+                  "pm.test('publishes the key that signed the Descriptor', () => {",
+                  "  const signer = pm.collectionVariables.get(prefix + '_signing_kid');",
+                  "  pm.expect(signer, 'run the Descriptor request first').to.be.a('string');",
+                  "  pm.expect(keys.map(k => k.kid)).to.include(signer);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{maha_front_door}}/.well-known/jwks.json",
+              "host": [
+                "{{maha_front_door}}"
+              ],
+              "path": [
+                ".well-known",
+                "jwks.json"
+              ]
+            },
+            "description": "Same as Bharat, for Maha Vistara."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bharat  (network A — has mandi)",
       "description": "Network A. Publishes its OWN mandi catalogue, and crawls B every 30s so B's weather also answers here.\n\nPorts: adapter 9300, discovery 9301.",
       "item": [
         {
@@ -162,7 +464,7 @@
       ]
     },
     {
-      "name": "Maha  (network B \u2014 has weather)",
+      "name": "Maha  (network B — has weather)",
       "description": "Network B. Publishes its OWN weather catalogue and shares it with A.\n\nB does NOT crawl: FEDERATION_CRAWL_PEERS=off. Otherwise each network mirrors the other and B ends up re-importing its own catalogue through A's copy of it.\n\nPorts: adapter 9400, discovery 9401.",
       "item": [
         {

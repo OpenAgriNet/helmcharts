@@ -72,14 +72,36 @@ make host-descriptor NETWORK_ID=mahavistara.oan.local
 
 ```
 bharatvistar.oan.local now hosts its descriptor at revision 1
-  descriptor networks/bharatvistar.oan.local/.well-known/openagrinet
-  keys       networks/bharatvistar.oan.local/.well-known/jwks.json
+  descriptor  networks/bharatvistar.oan.local/.well-known/openagrinet
+  keys        networks/bharatvistar.oan.local/.well-known/jwks.json
+  key         <kid>
 ```
 
-Two signed documents per network, served over TLS at the network's own domain.
-One identity, one keypair: the `networkId` IS the `participantId`, the key that
-signs the descriptor is the key that signs traffic, and its public half is the
-registry entry's key.
+Two signed documents per network, served over TLS at the network's own domain:
+`/.well-known/openagrinet` (the Network Descriptor) and `/.well-known/jwks.json`.
+
+- **Signature:** Ed25519 (`"algorithm": "Ed25519"`, RFC 9864 name) over the
+  RFC 8785 (JCS) form of the descriptor minus its `signature`. Floats are
+  refused, so every implementation rebuilds the same bytes.
+- **One key:** `keys/network.key`, the registry entry's key the adapters sign
+  traffic with, also signs the descriptor. `oanfed publish` refuses a key the
+  registry does not hold as active, and a key file others can read.
+- **kid** is the key's RFC 7638 thumbprint, so a rotated key gets a new kid on
+  its own.
+- **revision** must increase: re-running bumps it, and `oanfed publish` refuses
+  one at or below what is already published. The JWKS is written before the
+  descriptor, each in one atomic step.
+
+To check it end to end -- publish, fetch over TLS as the peer would, then
+tamper with the served files and confirm each forgery is refused:
+
+```bash
+python3 -m unittest bin/test_oanfed.py
+make e2e-descriptor NETWORK_ID=bharatvistar.oan.local PEER=mahavistara.oan.local
+```
+
+The second restores whatever the network served before and writes nothing to
+either registry.
 
 ---
 
