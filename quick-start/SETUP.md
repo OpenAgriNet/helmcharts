@@ -153,19 +153,21 @@ which differs: `make logs SVC=network-adapter-layer` in single mode,
 
 ## Step 6 — Verify end to end
 
-Run the API collection in `../api-collection/`, one copy per mode:
+Run the API collection in `../api-collection/`. One collection serves both
+modes, since the paths are the same; the environment picks the mode:
 
 | Mode | Collection | Environment |
 |---|---|---|
-| single (default) | `OpenAgriNet.network-adapter.api-collection.json` | `OpenAgriNet.network-adapter.local-environment.json` |
+| single (default) | `OpenAgriNet.api-collection.json` | `OpenAgriNet.network-adapter.local-environment.json` (every adapter host is `:9200`) |
 | multi | `OpenAgriNet.api-collection.json` | `OpenAgriNet.local-environment.json` |
 
-Import the pair for your mode into Postman and select the environment, or
-every `{{...-host}}` resolves to nothing. Or run it with newman:
+Import the collection and the environment for your mode into Postman and
+select the environment, or every `{{...-host}}` resolves to nothing. Or run it
+with newman:
 
 ```sh
 # single mode
-newman run ../api-collection/OpenAgriNet.network-adapter.api-collection.json \
+newman run ../api-collection/OpenAgriNet.api-collection.json \
   -e ../api-collection/OpenAgriNet.network-adapter.local-environment.json
 
 # multi mode

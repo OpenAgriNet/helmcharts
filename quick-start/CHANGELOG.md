@@ -28,8 +28,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `.env.example` gains `NETWORK_ADAPTER_LAYER_PORT=9200` and
   `COMPOSE_PROFILES=network`, so a plain `docker compose up -d` starts single
   mode.
-- API collection for the single adapter:
-  `api-collection/OpenAgriNet.network-adapter.api-collection.json`.
+- Postman environment for single mode:
+  `api-collection/OpenAgriNet.network-adapter.local-environment.json`. It
+  runs the same `OpenAgriNet.api-collection.json` as multi mode, with every
+  adapter host on `:9200`.
 
 - `SETUP.md`: install and run steps, local and VM, for both modes. The
   README now covers the modes, how to switch, and the reference appendices.

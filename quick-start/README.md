@@ -84,8 +84,9 @@ docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' networ
 # network-adapter-layer = single, network-adapter = multi
 ```
 
-Use the API collection for the running mode (SETUP.md Step 6):
-`OpenAgriNet.network-adapter.*` for single, `OpenAgriNet.*` for multi.
+One API collection serves both modes; pick the environment for the running
+mode (SETUP.md Step 6): `OpenAgriNet.network-adapter.local-environment.json`
+for single, `OpenAgriNet.local-environment.json` for multi.
 
 ## The stack in one picture
 
