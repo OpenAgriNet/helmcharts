@@ -163,7 +163,7 @@ healthy.
 | Use **single** (default) when | Use **multi** when |
 |---|---|
 | One team runs all three tiers in one cluster | The tiers are run by different parties or in different trust zones |
-| You want fewer hops and fewer objects (one Deployment, Service, HPA, PDB) | A tier needs its own scaling or resource profile (e.g. a provider with heavy upstream calls) |
+| You want fewer hops and fewer objects (one Deployment, Service, PDB, and an opt-in HPA) | A tier needs its own scaling or resource profile (e.g. a provider with heavy upstream calls) |
 | | You need to roll out or roll back one tier without the others |
 
 Both sign as the same three identities from the same registry rows, so the

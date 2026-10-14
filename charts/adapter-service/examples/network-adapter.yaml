@@ -72,8 +72,12 @@ resources:
     memory: 1Gi
 goMemLimit: 900MiB
 
+# Fixed replica count by default; the HPA is opt-in. Turning it on needs
+# metrics-server in the cluster -- without it the HPA reports
+# <unknown> CPU and never scales. With it off, replicaCount applies.
+replicaCount: 3
 autoscaling:
-  enabled: true
+  enabled: false
   minReplicas: 3          # one per node with the spread constraint below
   maxReplicas: 10
   targetCPUUtilizationPercentage: 70
