@@ -12,16 +12,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - service `network-adapter-layer`, container `network-adapter`, compose
     profile `network`;
   - default port `127.0.0.1:9200`, set with `NETWORK_ADAPTER_LAYER_PORT`;
-  - paths `/<action>` (consumer), `/network/*`, `/provider/*`,
-    `/provider/publish`;
+  - paths `/<action>` (consumer) and `/publish`, the same as multi mode; the
+    network and provider tiers under `/_internal/`, which only the process
+    itself calls;
+  - `server_proxy.conf` now denies `/publish` (it was commented out) and
+    `/_internal` on every proxy host;
   - config `config/adapters/network-adapter.yaml`, rendered by
     `bin/setup.py` from `network-adapter.yaml.tmpl`; it uses the same keys
     and registry rows as the three tier adapters.
 - **Multi mode stays available as an option.** The three tier adapters
   (`provider-adapter` :9200, `network-adapter` :9201, `consumer-adapter`
   :9202) are now under compose profile `multi`.
-- Make targets: `make up-multi` and `make up-core-multi` start multi mode;
-  `make smoke` runs publish, discover and select through the running mode.
+- Make targets: `make up-multi` and `make up-core-multi` start multi mode.
 - `bin/stack.sh` takes `MODE=single|multi` (default `single`).
 - `.env.example` gains `NETWORK_ADAPTER_LAYER_PORT=9200` and
   `COMPOSE_PROFILES=network`, so a plain `docker compose up -d` starts single

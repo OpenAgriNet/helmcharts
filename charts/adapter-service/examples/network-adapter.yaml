@@ -5,10 +5,10 @@
 # The consumer, network and provider tiers as four modules of ONE adapter
 # process, on one Service:
 #
-#   /<action>            the consumer (bap); the app posts here, unsigned
-#   /network/<action>    internal: verifies and forwards to discovery
-#   /provider/<action>   answers from the upstream APIs (bpp)
-#   /provider/publish    the catalogue system publishes here
+#   /<action>                    the consumer (bap); the app posts here, unsigned
+#   /publish                     the catalogue system publishes here (internal)
+#   /_internal/network/<action>  internal: verifies and forwards to discovery
+#   /_internal/provider/<action> internal: answers from the upstream APIs (bpp)
 #
 # The alternative to installing the three multi-adapter releases
 # (examples/consumer.yaml, network.yaml, provider.yaml). Run one mode or the
@@ -33,8 +33,10 @@ image:
   repository: openagrinet/network-adapter
   tag: "latest"
 
-registry:
-  url: http://registry:8081/api/v1
+# registry.url, otel.*, appName, logLevel, http.timeout.*, routing.* and
+# handler.* are not used by this role: the adapter config is mounted from
+# config/network-adapter-config.yaml as is (registry URL, OTLP endpoint and
+# log level are set there), so they are left out here. Edit that file instead.
 
 # The same port the quick-start publishes. targetPort is also the port the
 # generated routing uses, and must equal http.port in
@@ -107,9 +109,8 @@ topologySpreadConstraints:
 terminationGracePeriodSeconds: 40
 preStopSleepSeconds: 10   # needs Kubernetes 1.30+; 0 on older clusters
 
-# Off here. When on, only single-segment /<action> paths (the consumer) and
-# /provider/<action> are accepted: /, /network*, /provider and
-# /provider/publish fail the render.
+# Off here. When on, only single-segment /<action> paths (the consumer) are
+# accepted: /, /publish and /_internal* fail the render.
 ingress:
   enabled: false
   className: ""
@@ -126,18 +127,6 @@ ingress:
           pathType: Exact
         - path: /status
           pathType: Exact
-        - path: /provider/select
-          pathType: Prefix
-        - path: /provider/init
-          pathType: Prefix
-        - path: /provider/confirm
-          pathType: Prefix
-        - path: /provider/status
-          pathType: Prefix
 
 waitFor:
   enabled: false
-
-otel:
-  enabled: false
-  endpoint: ""

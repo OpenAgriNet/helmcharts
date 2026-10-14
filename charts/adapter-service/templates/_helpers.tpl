@@ -33,26 +33,6 @@ and then mis-handles every request, at the far end, in a peer's logs.
 {{- end }}
 
 {{/*
-The name the adapter calls itself in its config, its logs and its module.
-Defaults to <role>-adapter, matching the compose stack's service names. The
-Network Adapter Layer (role network-adapter-layer) is the network adapter as
-a whole, so it is called network-adapter, not network-adapter-layer-adapter.
-*/}}
-{{- define "adapter-service.appName" -}}
-{{- $role := include "adapter-service.role" . -}}
-{{- .Values.appName | default (ternary "network-adapter" (printf "%s-adapter" $role) (eq $role "network-adapter-layer")) -}}
-{{- end }}
-
-{{/*
-OTEL service name. Defaults to oan-<role>-adapter, matching OTEL_SERVICE_NAME
-in the compose stack so traces from either deployment line up.
-*/}}
-{{- define "adapter-service.otelServiceName" -}}
-{{- $role := include "adapter-service.role" . -}}
-{{- .Values.otel.serviceName | default (ternary "oan-network-adapter" (printf "oan-%s-adapter" $role) (eq $role "network-adapter-layer")) -}}
-{{- end }}
-
-{{/*
 bap originates a call, bpp receives one. consumer is the caller; network and
 provider receive. Overridable, because the role is a shorthand for a default
 rather than a constraint.
@@ -92,11 +72,6 @@ self-describing when you exec into a pod.
 routing-{{ include "adapter-service.role" . }}.yaml
 {{- end }}
 
-
-{{- define "adapter-service.name" -}}
-{{- include "common.name" . -}}
-{{- end }}
-
 {{- define "adapter-service.fullname" -}}
 {{- include "common.fullname" . -}}
 {{- end }}
@@ -132,34 +107,6 @@ why.
 {{- fail (printf "%s: keys.existingSecret.name is required. This adapter's identity is a keypair, this chart renders no Secrets, and a pod without one starts and reports Ready while failing every signature it makes. See values.yaml for the six keys it must hold." .Chart.Name) -}}
 {{- end -}}
 {{- $name -}}
-{{- end }}
-
-{{/*
-The registry API base. Required for the same reason as the keys: absent, the
-adapter builds a plugin pointed at nothing and every signature verification
-fails on a lookup rather than on the signature.
-*/}}
-{{- define "adapter-service.registryUrl" -}}
-{{- $url := .Values.registry.url | default "" -}}
-{{- if not $url -}}
-{{- fail (printf "%s: registry.url is required -- e.g. http://registry:8081/api/v1. The adapter verifies every caller against the key the registry publishes for them, so with no registry it can verify nobody." .Chart.Name) -}}
-{{- end -}}
-{{- $url -}}
-{{- end }}
-
-{{/*
-OTLP endpoint, required only when telemetry is on. An enabled exporter with
-no endpoint dials nothing and logs a failure per export interval, which is
-the noise the three enable flags exist to avoid.
-*/}}
-{{- define "adapter-service.otlpEndpoint" -}}
-{{- if .Values.otel.enabled -}}
-{{- $ep := .Values.otel.endpoint | default "" -}}
-{{- if not $ep -}}
-{{- fail (printf "%s: otel.endpoint is required when otel.enabled is true -- e.g. otel-collector.observability.svc.cluster.local:4317. An enabled exporter with nowhere to send logs a failure every export interval." .Chart.Name) -}}
-{{- end -}}
-{{- $ep -}}
-{{- end -}}
 {{- end }}
 
 {{/*

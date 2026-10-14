@@ -15,8 +15,10 @@ image:
   repository: openagrinet/network-adapter
   tag: "v1.9.0"
 
-registry:
-  url: http://registry:8081/api/v1
+# registry.url, otel.*, appName, logLevel, http.timeout.*, routing.* and
+# handler.* are not used by this role: the adapter config is mounted from
+# config/network-adapter-config.yaml as is (registry URL, OTLP endpoint and
+# log level are set there), so they are left out here. Edit that file instead.
 
 service:
   port: 9200

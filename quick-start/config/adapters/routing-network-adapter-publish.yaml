@@ -5,14 +5,14 @@
 # takes the same path a publish from anywhere else takes -- one place that
 # decides what reaches discovery, rather than two.
 #
-# The publish module is mounted at the exact path /provider/publish, so the
+# The publish module is mounted at the exact path /publish, so the
 # endpoint left after stripping it is "" -- which is what this rule keys on,
 # with excludeAction so nothing is appended to the target.
 routingRules:
   - version: "2.0.0"
     targetType: "url"
     target:
-      url: "http://localhost:9200/network/publish"
+      url: "http://localhost:9200/_internal/network/publish"
       excludeAction: true
     endpoints:
       - ""

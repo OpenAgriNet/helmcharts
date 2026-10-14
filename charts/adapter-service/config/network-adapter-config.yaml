@@ -1,10 +1,15 @@
 # OAN Network Adapter Layer (role network-adapter-layer). The consumer, network
 # and provider tiers as four modules of ONE adapter process:
 #
-#   /<action>            the consumer (bap); the app posts here, unsigned
-#   /network/<action>    verifies and forwards to discovery
-#   /provider/<action>   answers from the upstream APIs (bpp)
-#   /provider/publish    the catalogue system publishes here
+#   /<action>                    the consumer (bap); the app posts here, unsigned
+#   /publish                     the catalogue system publishes here
+#   /_internal/network/<action>  verifies and forwards to discovery
+#   /_internal/provider/<action> answers from the upstream APIs (bpp)
+#
+# The public surface is flat: /discover, /publish, /<action> and /health. The
+# tiers are not part of it. /_internal/ is only ever called by this process's
+# own modules (http://localhost:9200/_internal/...), so the edge denies the
+# whole prefix with one rule.
 #
 # Each module is its tier's module from consumer-config.yaml, network-config.yaml
 # and provider-config.yaml. A change to one of those files that should also
@@ -60,7 +65,15 @@ plugins:
 modules:
   # ------------------------------------------------------------------ consumer
   # From consumer-config.yaml. Accepts unsigned requests from the app, signs as
-  # the consumer, and routes discover to /network and transactions to /provider.
+  # the consumer, and routes discover to /_internal/network and transactions to
+  # /_internal/provider.
+  #
+  # Mounted at / on purpose: it is the one catch-all mount, and that is
+  # load-bearing, not accidental. /publish is an exact pattern, so it wins over
+  # this subtree, and /_internal/<tier>/ are longer subtrees, so they win too.
+  # Everything else lands here, and the routing config is in effect an action
+  # allow-list: addRoute runs before sign, so an action with no routing rule is
+  # an error, never a forwarded request.
   - name: consumer
     path: /
     handler:
@@ -131,7 +144,7 @@ modules:
   # From network-config.yaml. Verifies the caller's signature and forwards
   # discover and publish to discovery. Internal: never expose it on an Ingress.
   - name: network
-    path: /network/
+    path: /_internal/network/
     handler:
       type: std
       role: bpp
@@ -198,7 +211,7 @@ modules:
   # the upstream APIs itself, so it has no router. Upstream credentials come
   # from the environment (envFromSecrets: provider-upstream).
   - name: provider
-    path: /provider/
+    path: /_internal/provider/
     handler:
       type: std
       role: bpp
@@ -301,10 +314,12 @@ modules:
 
   # ---------------------------------------------------------- provider-publish
   # From provider-config.yaml, module 2. The catalogue system publishes here;
-  # signed as the provider and routed to /network/publish. No validateSign:
-  # never expose it on an Ingress.
+  # signed as the provider and routed to /_internal/network/publish. No
+  # validateSign: never expose it on an Ingress. At top-level /publish, the
+  # same path as the multi provider adapter's publish module, so both
+  # topologies present the same URL.
   - name: provider-publish
-    path: /provider/publish
+    path: /publish
     handler:
       type: std
       role: bap

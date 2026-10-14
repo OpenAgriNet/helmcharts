@@ -342,8 +342,19 @@ resources:
 # Both hit /health, which the adapter serves from its own mux and which does
 # not touch the registry or discovery -- so a readiness failure here means
 # this process is unwell, not that something downstream is.
+# The startup probe holds liveness off until /health first answers. The
+# adapter fetches beckn.yaml from raw.githubusercontent.com at boot, so on
+# slow or proxied egress first boot can take well past liveness's ~70s budget
+# (10s + 3 x 20s). This bounds it at 180s without loosening steady-state
+# liveness.
 startupProbe:
-  enabled: false
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 36
 livenessProbe:
   enabled: true
   httpGet:
@@ -430,7 +441,7 @@ envFromSecrets: []
 # role: network-adapter-layer -- the Network Adapter Layer.
 #
 # The consumer, network and provider tiers as four modules of ONE process
-# (/ for the consumer, /network/, /provider/, /provider/publish). Its adapter config is
+# (/ for the consumer, /publish, /_internal/network/, /_internal/provider/). Its adapter config is
 # config/network-adapter-config.yaml, mounted verbatim like any role's
 # file: log level, timeouts, telemetry, extended schema and the outbound
 # connection pool are set there. The routing is generated at render time from

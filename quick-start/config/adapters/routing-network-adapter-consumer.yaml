@@ -16,7 +16,7 @@ routingRules:
   - version: "2.0.0"
     targetType: "url"
     target:
-      url: "http://localhost:9200/network"
+      url: "http://localhost:9200/_internal/network"
     endpoints:
       - discover
 
@@ -26,7 +26,7 @@ routingRules:
   - version: "2.0.0"
     targetType: "url"
     target:
-      url: "http://localhost:9200/provider"
+      url: "http://localhost:9200/_internal/provider"
     endpoints:
       - select
       - init

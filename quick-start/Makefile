@@ -6,7 +6,6 @@
 #     make up        the whole stack (Network Adapter), in order
 #     make up-core   the same minus the reverse proxy and hyperdx
 #     make up-multi  the whole stack with three adapters instead of one
-#     make smoke     publish, discover, select through what is running
 #     make down      stop everything, keep the data
 #     make help      the rest
 #
@@ -15,7 +14,7 @@
 
 STACK := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))bin/stack.sh
 
-.PHONY: help up up-core up-multi up-core-multi smoke down destroy setup reverse-proxy observability pull restart restart-edge ps logs
+.PHONY: help up up-core up-multi up-core-multi down destroy setup reverse-proxy observability pull restart restart-edge ps logs
 
 # Default target: running a bare `make` in a directory that can delete a
 # Postgres volume should print the menu, not pick something from it.
@@ -29,7 +28,6 @@ up-core:       ; @$(STACK) up-core
 down:          ; @$(STACK) down
 up-multi:      ; @$(STACK) up-multi
 up-core-multi: ; @$(STACK) up-core-multi
-smoke:         ; @$(STACK) smoke
 destroy:       ; @$(STACK) destroy
 
 # --------------------------------------------- the optional tiers, on their own

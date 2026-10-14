@@ -17,10 +17,23 @@ and where requests are routed.
 
 ```
   network-adapter-layer (one adapter, one pod):
-    /<action> ──lo──▶ /network/ ──▶ discovery
-        └──────lo────▶ /provider/ ──▶ upstream APIs
-    /provider/publish ──lo──▶ /network/publish
+    /<action> ──lo──▶ /_internal/network/ ──▶ discovery
+        └──────lo────▶ /_internal/provider/ ──▶ upstream APIs
+    /publish  ──lo──▶ /_internal/network/publish
 ```
+
+The public surface is flat and the same in both topologies: `/discover`,
+`/publish`, `/<action>` and `/health`. The network and provider tiers sit under
+`/_internal/`, which only this process calls (over loopback), so the edge
+denies the whole prefix with one rule.
+
+Why flat: OAN is single-sided today -- our app calls out, and our own
+discovery and upstreams answer. If OAN later accepts inbound calls from
+external Beckn peers, a peer's `select` and our app's `select` are both
+`POST /select`, and path alone cannot tell them apart. The distinguisher exists
+(peer calls carry an `Authorization` signature, app calls do not), but ONIX
+dispatches on path, so that would mean routing on signature presence at the
+edge or giving inbound its own hostname. Neither changes these public paths.
 
 | Role | Handler | Steps | Routes to |
 |---|---|---|---|
@@ -155,7 +168,7 @@ healthy.
 
 | Topology | Releases → namespaces | Values | App calls | Catalogue publishes to |
 |---|---|---|---|---|
-| **single (default)**: Network Adapter Layer | `network-adapter` → `network-adapter-layer` | `examples/network-adapter.yaml` | `network-adapter.network-adapter-layer.svc:9200/<action>` | `network-adapter.network-adapter-layer.svc:9200/provider/publish` |
+| **single (default)**: Network Adapter Layer | `network-adapter` → `network-adapter-layer` | `examples/network-adapter.yaml` | `network-adapter.network-adapter-layer.svc:9200/<action>` | `network-adapter.network-adapter-layer.svc:9200/publish` |
 | multi (optional) | `consumer-adapter`, `network-adapter`, `provider-adapter` → one namespace each, same name | `examples/{consumer,network,provider}.yaml` | `consumer-adapter.consumer-adapter.svc:9202/<action>` | `provider-adapter.provider-adapter.svc:9200/publish` |
 
 **When to use which**
@@ -222,7 +235,7 @@ during a switch-over. In-cluster address of the layer:
 
 To switch an environment: install the layer (namespace `network-adapter-layer`)
 next to the multi releases, repoint the app (`…:9200/<action>`) and the
-catalogue publisher (`…:9200/provider/publish`), then remove the three multi
+catalogue publisher (`…:9200/publish`), then remove the three multi
 releases. Both topologies sign with the same identities and the same registry
 rows, so nothing in the registry changes. Reverse the steps to switch back.
 

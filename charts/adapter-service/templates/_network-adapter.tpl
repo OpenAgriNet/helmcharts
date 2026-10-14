@@ -41,15 +41,16 @@ routing-network.yaml is the multi-adapter file, unchanged (discover and publish
 to discovery). The other two are generated from routing-consumer.yaml and
 routing-provider.yaml by pointing every tier address at THIS adapter's own
 listener: http://<tier>-adapter[.<ns>...][:port] becomes
-http://localhost:<targetPort>/<tier>, and any path after it is kept
-(.../publish becomes /network/publish). A target that is not a tier adapter is
+http://localhost:<targetPort>/_internal/<tier>, and any path after it is kept
+(.../publish becomes /_internal/network/publish). Only the network and provider
+tiers are ever targets, so only they are mounted under /_internal/. A target that is not a tier adapter is
 kept as it is, and a rule with no target is left alone (the same nil guard as
 configmap.yaml). So the two modes are one routing source, and splitting the
 modules across pods again changes only the hosts.
 */}}
 {{- define "adapter-service.networkAdapterLayer.routing" -}}
 {{- $ctx := . -}}
-{{- $ownListener := printf "http://localhost:%v/${1}${4}" .Values.service.targetPort -}}
+{{- $ownListener := printf "http://localhost:%v/_internal/${1}${4}" .Values.service.targetPort -}}
 {{- /* Whole URL, anchored both ends: only a tier host (optionally with a
        namespace suffix and port) followed by nothing or a path is rewritten. */ -}}
 {{- $tierHost := "^https?://(consumer|network|provider)-adapter(\\.[a-z0-9.-]+)?(:[0-9]+)?(/.*)?$" -}}

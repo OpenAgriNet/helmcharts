@@ -12,7 +12,6 @@ network adapter, and two mock upstreams standing in for real provider APIs.
 ```sh
 cp .env.example .env
 make up-core      # single mode (default): registry, discovery, setup, the network adapter on 9200
-make smoke        # publish, discover, select through it; all three should be 200
 ```
 
 Prerequisites, the VM path and the checks are in [SETUP.md](SETUP.md).
@@ -34,7 +33,7 @@ same registry and data; a compose profile picks the adapters.
 | Start, VM (with edge and observability) | `make up` | `make up-multi` |
 | Ports | `127.0.0.1:9200` | 9200 provider, 9201 network, 9202 consumer |
 | App calls | `:9200/discover`, `:9200/select` | `:9202/discover`, `:9202/select` |
-| Catalogue publishes to | `:9200/provider/publish` | `:9200/publish` |
+| Catalogue publishes to | `:9200/publish` | `:9200/publish` |
 | Tier-to-tier hops | loopback HTTP inside the container | HTTP between containers |
 | Port setting in `.env` | `NETWORK_ADAPTER_LAYER_PORT` | `PROVIDER_ADAPTER_PORT`, `NETWORK_ADAPTER_PORT`, `CONSUMER_ADAPTER_PORT` |
 
@@ -76,7 +75,7 @@ Without `COMPOSE_PROFILES` a bare `docker compose up -d` starts no adapter.
 ignores `COMPOSE_PROFILES`.
 
 These follow whichever mode is running, with nothing to set: `make down`,
-`make ps`, `make logs`, `make restart`, `make smoke`.
+`make ps`, `make logs`, `make restart`.
 
 Which mode is running:
 
@@ -129,10 +128,10 @@ layout as the Helm chart's `config/network-adapter-config.yaml`.
 
 | Module | Path | From | Routing file | Routes |
 |---|---|---|---|---|
-| `consumer` | `/<action>` | `consumer.yaml.tmpl` | `routing-network-adapter-consumer.yaml` | discover to `localhost:9200/network`; select, init, confirm, status to `localhost:9200/provider` |
-| `network` | `/network/<action>` | `network.yaml.tmpl` | `routing-network.yaml` (the multi file, reused) | discover, publish to discovery |
-| `provider` | `/provider/<action>` | `provider.yaml.tmpl` (module 1) | none: answers itself | n/a |
-| `provider-publish` | `/provider/publish` | `provider.yaml.tmpl` (module 2) | `routing-network-adapter-publish.yaml` | to `localhost:9200/network/publish` |
+| `consumer` | `/<action>` | `consumer.yaml.tmpl` | `routing-network-adapter-consumer.yaml` | discover to `localhost:9200/_internal/network`; select, init, confirm, status to `localhost:9200/_internal/provider` |
+| `network` | `/_internal/network/<action>` | `network.yaml.tmpl` | `routing-network.yaml` (the multi file, reused) | discover, publish to discovery |
+| `provider` | `/_internal/provider/<action>` | `provider.yaml.tmpl` (module 1) | none: answers itself | n/a |
+| `provider-publish` | `/publish` | `provider.yaml.tmpl` (module 2) | `routing-network-adapter-publish.yaml` | to `localhost:9200/_internal/network/publish` |
 
 The hops between modules are HTTP calls to the same container; in multi mode
 only the hosts differ. 9200 is the container's own listener and must match
@@ -218,10 +217,11 @@ certificate. An unknown `Host` gets NPM's default page, not an adapter.
 `make up-multi`. With the single adapter there is no `consumer-adapter`,
 `network-adapter` or `provider-adapter` to forward to: point the consumer host
 at `network-adapter`, port 9200, with the same Advanced paste. The
-app's paths (`/discover`, `/select`, …) do not change. Do **not** make
-`/network/…` or `/provider/publish` reachable from a public host: `/network/` is
-an internal tier and `/provider/publish` publishes as the provider without
-checking the caller, and signing is off in quick-start.
+app's paths (`/discover`, `/select`, …) do not change, and neither does
+`/publish`: both modes present the same URLs. `server_proxy.conf` denies
+`/publish` and `/_internal` on every host: `/_internal/` holds the network and
+provider tiers, `/publish` publishes as the provider without checking the
+caller, and signing is off in quick-start.
 
 **A fourth host for HyperDX**, if the `observability` profile is up — this is
 what replaces `ssh -L 8085` for reading telemetry:

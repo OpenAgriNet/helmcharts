@@ -611,14 +611,14 @@ services:
   # config/adapters/network-adapter.yaml.tmpl, with one routing file per
   # module.
   #
-  #   /<action>            the consumer, the caller's entry (bap), takes unsigned requests
-  #   /network/*           hands discover and publish on to discovery
-  #   /provider/*          calls the upstream, answers synchronously
-  #   /provider/publish    sends the provider's catalogue to /network/publish
+  #   /<action>              the consumer, the caller's entry (bap), takes unsigned requests
+  #   /publish               sends the provider's catalogue to /_internal/network/publish
+  #   /_internal/network/*   hands discover and publish on to discovery
+  #   /_internal/provider/*  calls the upstream, answers synchronously
   #
   # Each module carries its own tier identity (consumer, network, provider):
   # the same keys and registry rows as the multi-adapter services. Signing is
-  # off, as in every quick-start template, so /network/ and /provider/ accept
+  # off, as in every quick-start template, so /_internal/ and /publish accept
   # unsigned requests: keep :9200 on 127.0.0.1.
   network-adapter-layer:
     <<: *adapter

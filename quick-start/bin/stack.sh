@@ -179,10 +179,9 @@ up_setup() {
 
 # Only now do the bind-mounted config files exist.
 up_adapters() {
-    # The mocks are NOT started here (`make smoke` starts them for its select
-    # test). All four capabilities point at real external upstreams, so
-    # starting them would pull two images and run two containers nothing
-    # calls. They are still defined in docker-compose.yml, so
+    # The mocks are NOT started. All four capabilities point at real external
+    # upstreams, so starting them would pull two images and run two containers
+    # nothing calls. They are still defined in docker-compose.yml, so
     # `docker compose up -d mock-imd mock-agmarknet` brings them up for anyone
     # debugging a mapping without the real credentials -- but that also needs a
     # new participant id and base URL in .env plus a setup.py re-run, because
@@ -381,73 +380,6 @@ restart_edge() {
     docker compose --profile reverse-proxy restart nginx-proxy-manager
 }
 
-# ---------------------------------------------------------------- smoke
-
-# publish -> discover -> select against whichever topology is running. Starts
-# the mocks (select's upstream is mock-imd in the shipped .env). Exits non-zero
-# on any non-200 and prints the tier hops from the adapter log.
-smoke() {
-    local mode base_pub base_app svc s
-    mode=$(running_mode)
-    if [ "$mode" = single ]; then
-        base_app="http://127.0.0.1:$(envv NETWORK_ADAPTER_LAYER_PORT 9200)"; base_pub="$base_app/provider"
-        svc=network-adapter
-    elif [ "$mode" = multi ]; then base_pub="http://127.0.0.1:$(envv PROVIDER_ADAPTER_PORT 9200)"
-        base_app="http://127.0.0.1:$(envv CONSUMER_ADAPTER_PORT 9202)"
-        svc="provider-adapter network-adapter consumer-adapter"
-    else
-        die "no adapter is running: make up-core (or make up-core-multi) first"
-    fi
-    step 1 2 "mocks (mock-imd, mock-agmarknet), and wait for the adapter"
-    docker compose up -d mock-imd mock-agmarknet >/dev/null
-    for s in $(seq 1 30); do curl -sf "$base_app/health" >/dev/null 2>&1 && break; sleep 1; done
-    curl -sf "$base_app/health" >/dev/null 2>&1 || die "$base_app/health does not answer after 30s: docker logs ${svc%% *}"
-    # The adapter answers /health before its registry is back (e.g. right after
-    # `make restart`), and select looks the provider up in the registry.
-    for s in $(seq 1 90); do
-        [ "$(docker inspect -f '{{.State.Health.Status}}' sunbird-registry-service 2>/dev/null)" = healthy ] && break; sleep 2
-    done
-    [ "$(docker inspect -f '{{.State.Health.Status}}' sunbird-registry-service 2>/dev/null)" = healthy ] \
-        || die "sunbird-registry-service is not healthy after 3 minutes: docker logs sunbird-registry-service"
-    step 2 2 "publish, discover, select through the $mode topology"
-    ROOT="$ROOT" PUB="$base_pub" APP="$base_app" python3 - <<'PY'
-import json, os, pathlib, sys, urllib.error, urllib.request, uuid
-root = pathlib.Path(os.environ["ROOT"])
-env = {}
-for line in (root / ".env").read_text().splitlines():
-    if "=" in line and not line.lstrip().startswith("#"):
-        k, v = line.split("=", 1); env[k.strip()] = v.strip()
-steps = (("publish", os.environ["PUB"] + "/publish"),
-         ("discover", os.environ["APP"] + "/discover"),
-         ("select", os.environ["APP"] + "/select"))
-rc = 0
-for step, url in steps:
-    text = next((root / "capability-examples/WeatherObservation" / step).glob("*.json")).read_text()
-    for old, key in (("provider.oan.dev", "PROVIDER_SUBSCRIBER_ID"),
-                     ("consumer.oan.dev", "CONSUMER_SUBSCRIBER_ID"),
-                     ("network.oan.dev", "NETWORK_SUBSCRIBER_ID")):
-        text = text.replace(old, env[key])
-    text = text.replace('"mausamgram"', json.dumps(env["MAUSAMGRAM_PARTICIPANT_ID"]))
-    body = json.loads(text)
-    body["context"]["transactionId"], body["context"]["messageId"] = str(uuid.uuid4()), str(uuid.uuid4())
-    req = urllib.request.Request(url, json.dumps(body).encode(), {"Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            status, data = r.status, r.read()
-    except urllib.error.HTTPError as e:
-        status, data = e.code, e.read()
-    except (urllib.error.URLError, ConnectionError) as e:
-        status, data = 0, str(e).encode()
-    print(f"   {step:9} {url:42} HTTP {status}")
-    if status != 200 or b"NACK" in data:
-        rc = 1; print("   body:", data[:300].decode(errors="replace"))
-sys.exit(rc)
-PY
-    echo; echo "   tier hops in the adapter log:"
-    for s in $svc; do docker logs --since 2m "$s" 2>&1; done \
-        | grep -o 'Forwarding request to URL: [^"]*' | sort | uniq -c | sed 's/^/   /' || true
-}
-
 # Just step 2. Re-run it after editing a .tmpl, or to re-render configs that
 # were deleted. It is idempotent, so this is always safe.
 setup() {
@@ -466,7 +398,6 @@ bin/stack.sh <command>
   up-core        steps 1-3 only. Nothing public, no ClickHouse.
   up-multi       as up, with the three adapters (provider, network, consumer)
   up-core-multi  as up-core, with the three adapters
-  smoke          publish, discover, select through whichever topology runs
                  (MODE=multi also works with up, up-core and restart)
   down           stop everything, keep the data
   destroy        stop everything and DELETE every volume
@@ -487,7 +418,6 @@ case "${1:-}" in
     up-core)        up_core ;;
     up-multi)       MODE=multi; up ;;
     up-core-multi)  MODE=multi; up_core ;;
-    smoke)          smoke ;;
     down)           down ;;
     destroy)        destroy ;;
     setup)          setup ;;

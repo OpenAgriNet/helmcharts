@@ -24,14 +24,14 @@ minutes, most of it waiting for Keycloak.
 ## Step 1 — Prerequisites
 
 - `git`
-- Docker with **Compose v2** — `docker compose version` must work, not `docker-compose`
+- Docker with **Compose v2.20 or later** — `docker compose version` must work, not `docker-compose`; the compose file uses `depends_on: required: false`, which older v2 releases reject
 - `python3` with `cryptography` — `pip install cryptography`
 - `curl`
 
 ## Step 2 — Get the repo
 
 ```sh
-git clone -b feat/4-docker-compose https://github.com/OpenAgriNet/helmcharts.git
+git clone -b development https://github.com/OpenAgriNet/helmcharts.git
 cd helmcharts/quick-start
 ```
 
@@ -152,17 +152,7 @@ which differs: `make logs SVC=network-adapter-layer` in single mode,
 
 ## Step 6 — Verify end to end
 
-Quickest, in either mode:
-
-```sh
-make smoke
-```
-
-It starts the mocks, sends publish, discover and select to whichever adapters
-are running, and prints each HTTP status and the tier hops from the adapter
-log. All three should be 200.
-
-The full collection, in `../api-collection/`, one copy per mode:
+Run the API collection in `../api-collection/`, one copy per mode:
 
 | Mode | Collection | Environment |
 |---|---|---|
@@ -212,7 +202,7 @@ Four differences. **V1 comes before Part 1 Step 2**, because it installs `git`.
 Nothing is cloned yet, so fetch the script rather than running it from the repo:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/OpenAgriNet/helmcharts/feat/4-docker-compose/quick-start/bin/bootstrap-ubuntu.sh | bash
+curl -fsSL https://raw.githubusercontent.com/OpenAgriNet/helmcharts/development/quick-start/bin/bootstrap-ubuntu.sh | bash
 ```
 
 Installs `git`, `make`, `python3-cryptography` and Docker from Docker's own apt
@@ -311,8 +301,6 @@ time: NPM only resolves `hyperdx` on reload.
 - **NPM's default page, or a 502 that worked yesterday** — Appendix B.
 - **An adapter config is a directory** — something started before
   `setup.py`. Appendix F.
-- **`make smoke` says no adapter is running** — start one mode first:
-  `make up-core` or `make up-core-multi`.
 
 Full set, with what to run for each →
 [README Appendix F](README.md#appendix-f--when-it-does-not-work).

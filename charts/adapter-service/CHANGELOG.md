@@ -5,13 +5,13 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.3] - 2026-10-09
+## [0.6.0] - 2026-10-09
 
 ### Added
 - **Two topologies, with single as the default.** `role: network-adapter-layer`
   is the Network Adapter Layer: the consumer, network and provider tiers as four
-  modules of one process (`/` for the consumer, `/network/`, `/provider/`,
-  `/provider/publish`), one release called `network-adapter`. It is the default;
+  modules of one process (`/` for the consumer, `/publish`,
+  `/_internal/network/`, `/_internal/provider/`), one release called `network-adapter`. It is the default;
   the existing roles `provider`, `network` and `consumer` (one release per
   tier) are the optional multi topology and are unchanged. The README's
   "Choosing a topology" has the helmfile snippet with
@@ -28,10 +28,12 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   `networkAdapterLayer.keys.{consumer,network,provider}.existingSecret`
   (`networkAdapterLayer.extraSubstitutions` for extra placeholders). A literal
   private key in the config, including a `config:` override, fails the render.
-- Ingress for the layer may expose only single-segment `/<action>` and
-  `/provider/<action>`, as literal paths with `pathType` Prefix or Exact and no
-  `use-regex` / `rewrite-target` annotation; `/`, `/network*` and
-  `/provider/publish` are refused. `routing.config` fails the render for this
+- Flat public surface: `/discover`, `/publish`, `/<action>` and `/health`, the
+  same URLs as the multi topology. The network and provider tiers are mounted
+  under `/_internal/`, which only the process itself calls.
+- Ingress for the layer may expose only single-segment `/<action>`, as literal
+  paths with `pathType` Prefix or Exact and no `use-regex` / `rewrite-target`
+  annotation; `/`, `/publish` and `/_internal*` are refused. `routing.config` fails the render for this
   role.
 - `examples/network-adapter.yaml` and `ci/network-adapter-values.yaml`
   (HPA 3-10, PDB, spread, graceful shutdown).
@@ -56,12 +58,27 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - Liveness and readiness probes now render. Values used `probes.liveness` /
   `probes.readiness`, which `common.probes` never read, so no adapter pod had a
   readiness probe. Upgrading rolls every adapter pod once.
+- The startup probe bounds first boot at 180s (`periodSeconds: 5` x
+  `failureThreshold: 36`) and holds off liveness until `/health` answers.
+  Pods that had no probe before now get a liveness probe, and the adapter
+  fetches `beckn.yaml` at boot, so without this a slow or proxied egress
+  would get a cold start killed after about 70s.
+- NOTES.txt for role `network-adapter-layer` no longer prints `registry.url` and
+  `otel.*`: that role mounts `config/network-adapter-config.yaml` as is, so those
+  values never reached the pod and NOTES reported the opposite of what it ran.
+  The example and CI values no longer set them.
+- The Ingress annotations merge tolerates `ingress.annotations: null`.
+  `ci/network-adapter-ingress-values.yaml` renders the path guard in CI.
 
 ### Removed
+- Unused helpers `adapter-service.name`, `.appName`, `.otelServiceName`,
+  `.registryUrl` and `.otlpEndpoint` (nothing included them).
 - **Breaking:** the `probes.liveness` and `probes.readiness` values keys, renamed to
-  `livenessProbe` / `readinessProbe` (and a new `startupProbe`, off). The
-  timings are unchanged. An environment that overrides `probes.*` must rename
-  those keys; the old keys never took effect.
+  `livenessProbe` / `readinessProbe`, plus a new `startupProbe`, on by
+  default. The liveness and readiness timings are unchanged. An environment
+  that overrides `probes.*` must rename those keys; the old keys never took
+  effect and are now silently ignored, which is why this is a minor bump
+  rather than a patch.
 
 ### Unchanged
 - Roles `provider`, `network`, `consumer`: same config, routing and manifests

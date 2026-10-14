@@ -1,10 +1,13 @@
 # Network Adapter: the consumer, network and provider tiers as
 # four modules of ONE adapter process (docker-compose.yml, profile "network").
 #
-#   /<action>            the consumer (bap); the app posts here, unsigned
-#   /network/<action>    verifies and forwards to discovery
-#   /provider/<action>   answers from the upstream APIs (bpp)
-#   /provider/publish    the catalogue publishes here
+#   /<action>                    the consumer (bap); the app posts here, unsigned
+#   /publish                     the catalogue publishes here
+#   /_internal/network/<action>  verifies and forwards to discovery
+#   /_internal/provider/<action> answers from the upstream APIs (bpp)
+#
+# The public paths are the same as the multi adapters'. /_internal/ is only
+# called by this process's own modules over loopback.
 #
 # Each module is its tier's module from consumer.yaml.tmpl, network.yaml.tmpl
 # and provider.yaml.tmpl. A change to one of those templates that should also
@@ -19,9 +22,9 @@
 #   - log level info.
 #
 # SIGNING IS OFF, as in the three quick-start tier templates: no module runs
-# sign or validateSign, so /network/ and /provider/ accept unsigned requests
+# sign or validateSign, so /_internal/ and /publish accept unsigned requests
 # from anyone who can reach :9200. Keep it on 127.0.0.1 (as the compose file
-# does) and never put /network/ or /provider/ behind the reverse proxy. The
+# does); server_proxy.conf denies /_internal and /publish at the edge. The
 # Helm chart's network-adapter-config.yaml has signing on.
 #
 # bin/setup.py fills the placeholders -- each module's own tier identity
@@ -65,8 +68,8 @@ modules:
   # ------------------------------------------------------------------ consumer
   # From consumer.yaml.tmpl. Mounted at /, so the app calls /discover, /select,
   # ... as on the multi-adapter consumer-adapter. Accepts unsigned requests
-  # under the consumer identity (signing is off here), routes discover to /network and transactions to
-  # /provider (routing-network-adapter-consumer.yaml).
+  # under the consumer identity (signing is off here), routes discover to /_internal/network and
+  # transactions to /_internal/provider (routing-network-adapter-consumer.yaml).
   - name: consumer
     path: /
     handler:
@@ -132,7 +135,7 @@ modules:
   # From network.yaml.tmpl. Forwards discover and
   # publish to discovery (routing-network.yaml, the multi-adapter file).
   - name: network
-    path: /network/
+    path: /_internal/network/
     handler:
       type: std
       role: bpp
@@ -195,7 +198,7 @@ modules:
   # From provider.yaml.tmpl, module 1. Answers from the
   # upstream APIs itself: no router.
   - name: provider
-    path: /provider/
+    path: /_internal/provider/
     handler:
       type: std
       role: bpp
@@ -300,10 +303,11 @@ modules:
 
   # ---------------------------------------------------------- provider-publish
   # From provider.yaml.tmpl, module 2. The catalogue publishes here, under the
-  # provider identity (signing is off here); routed to /network/publish
-  # (routing-network-adapter-publish.yaml).
+  # provider identity (signing is off here); routed to /_internal/network/publish
+  # (routing-network-adapter-publish.yaml). Top-level /publish, the same path
+  # as the multi provider adapter's.
   - name: provider-publish
-    path: /provider/publish
+    path: /publish
     handler:
       type: std
       role: bap
