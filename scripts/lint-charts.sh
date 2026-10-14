@@ -6,7 +6,7 @@
 # found up to two directories below charts/.
 #
 # A chart lives at charts/<chart>, or one level down at charts/<group>/<chart>
-# when it belongs to a group of related charts (charts/dss/model-gateway). A
+# when it belongs to a group of related charts (charts/lite-llm). A
 # group directory has no Chart.yaml of its own.
 #
 # Run locally exactly as CI runs it:
