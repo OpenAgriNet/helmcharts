@@ -69,6 +69,13 @@ adapters_for() { # $1 mode
         multi)  echo provider-adapter network-adapter consumer-adapter ;;
     esac
 }
+# The rendered config files (config/adapters/<name>.yaml) a topology mounts.
+configs_for() { # $1 mode
+    case "$1" in
+        single) echo network-adapter ;;
+        multi)  echo provider network consumer ;;
+    esac
+}
 other_mode() { [ "$1" = single ] && echo multi || echo single; }
 
 # The compose profile for a topology: single runs under profile "network",
@@ -191,11 +198,8 @@ up_adapters() {
     # shares the multi network tier's name: remove it (stopped is not enough).
     # shellcheck disable=SC2046
     docker compose --profile "$(profile_for "$other")" rm -sf $(adapters_for "$other") >/dev/null 2>&1 || true
-    # Containers from before the rename (single-network-layer-adapter, and the
-    # earlier network-layer-adapter) would hold 127.0.0.1:9200.
-    docker rm -f single-network-layer-adapter network-layer-adapter >/dev/null 2>&1 || true
     # Never let compose create a directory where a bind-mounted config belongs.
-    for f in $( [ "$MODE" = single ] && echo network-adapter || echo provider network consumer ); do
+    for f in $(configs_for "$MODE"); do
         [ -f "config/adapters/$f.yaml" ] \
             || die "config/adapters/$f.yaml was not rendered (a directory there? rm -r it, then re-run)"
     done

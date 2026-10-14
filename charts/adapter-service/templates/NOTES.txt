@@ -1,5 +1,6 @@
+{{- $nal := include "adapter-service.isNetworkAdapterLayer" . -}}
 {{ .Chart.Name }} {{ .Chart.Version }} — {{ include "adapter-service.fullname" . }}
-{{ if include "adapter-service.isNetworkAdapterLayer" . }}
+{{ if $nal }}
   topology   single (the default): the Network Adapter Layer
   role       network-adapter-layer (all three tiers in one adapter: / consumer bap, /publish bap, /_internal/network/ bpp, /_internal/provider/ bpp)
   hops       between tiers inside the pod (http://localhost:{{ .Values.service.targetPort }}/_internal/<tier>)
@@ -10,7 +11,7 @@
 {{- end }}
   image      {{ include "adapter-service.image" . }}
   service    {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}
-{{- if include "adapter-service.isNetworkAdapterLayer" . }}
+{{- if $nal }}
   registry   set in config/network-adapter-config.yaml (registry.url is not used by this role)
   routes     generated from config/routing-{consumer,network,provider}.yaml
   telemetry  set in config/network-adapter-config.yaml (otel.* is not used by this role)
@@ -21,7 +22,7 @@
 {{- end }}
 
 This Service is reachable in-cluster as {{ include "adapter-service.fullname" . }}.{{ include "common.namespace" . }}.svc:{{ .Values.service.port }}.
-{{- if include "adapter-service.isNetworkAdapterLayer" . }}
+{{- if $nal }}
 The app and the catalogue publisher call it there; its tiers call each other
 inside the pod, so no other adapter routes to it.
 {{- else }}
@@ -39,7 +40,7 @@ chart's appVersion.
 
 TWO THINGS THIS CHART CANNOT CHECK FOR YOU
 
-{{ if include "adapter-service.isNetworkAdapterLayer" . -}}
+{{ if $nal -}}
 1. The Participant rows. This adapter signs as three identities -- consumer,
    network and provider -- from Secrets {{ include "adapter-service.networkAdapterLayer.tierSecret" (dict "ctx" . "tier" "consumer") }},
    {{ include "adapter-service.networkAdapterLayer.tierSecret" (dict "ctx" . "tier" "network") }} and {{ include "adapter-service.networkAdapterLayer.tierSecret" (dict "ctx" . "tier" "provider") }}: the same rows the
@@ -67,7 +68,7 @@ Callers address the tiers by path on this one Service:
      kubectl -n {{ include "common.namespace" . }} rollout restart deploy/{{ include "adapter-service.fullname" . }}
 {{- end }}
 
-{{- if and (not .Values.otel.enabled) (not (include "adapter-service.isNetworkAdapterLayer" .)) }}
+{{- if and (not .Values.otel.enabled) (not $nal) }}
 
 Telemetry is off, which is the right setting until a collector exists: with it
 on and nothing listening the exporter logs a failure every interval.
@@ -75,7 +76,7 @@ on and nothing listening the exporter logs a failure every interval.
 {{- if .Values.ingress.enabled }}
 
 Ingress is ON.
-{{- if include "adapter-service.isNetworkAdapterLayer" . }}
+{{- if $nal }}
 This is the network-adapter-layer role. /<action> (the consumer) accepts UNSIGNED requests: the consumer tier is
 inside the trust boundary and has no validateSign step, so an Ingress on it exposes an
 unauthenticated entry point to the network. Rate-limit this host.

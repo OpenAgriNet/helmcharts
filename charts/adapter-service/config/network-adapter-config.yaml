@@ -176,17 +176,8 @@ modules:
             signingPublicKey: "__NETWORK_SIGNING_PUBLIC__"
             encrPrivateKey: "__NETWORK_ENCR_PRIVATE__"
             encrPublicKey: "__NETWORK_ENCR_PUBLIC__"
-        schemaValidator:
-          id: schemav2validator
-          config:
-            type: url
-            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
-            cacheTTL: "3600"
-            extendedSchema_enabled: "true"
-            extendedSchema_cacheTTL: "86400"
-            extendedSchema_maxCacheSize: "100"
-            extendedSchema_downloadTimeout: "30"
-            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
+        # No schemaValidator: validateSchema is not a step here, and a configured
+        # validator still downloads the spec at boot and refreshes it hourly.
         signValidator:
           id: signvalidator
         signer:
