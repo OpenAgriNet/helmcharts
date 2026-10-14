@@ -1,0 +1,152 @@
+# The network's front door.
+#
+# A network is known by its networkId, which is a domain. Everything another
+# network needs therefore has to answer on that one name: the two published
+# documents, and the Beckn endpoints. This server is what makes that true
+# locally -- it is aliased to the networkId on the shared bridge, and it is the
+# only container on it.
+#
+# It is also the whole of this network's public surface. The registry, the
+# discovery service and the crawl endpoints are not reachable through it, which
+# is what makes the boundary real rather than decorative.
+#
+# nginx:alpine runs envsubst over this file at start-up, so nothing below names
+# a host or a port that is not supplied by the environment.
+
+server {
+    # TLS, because the contract says a network is reached over https and the
+    # registry's Participant schema pins baseUrl to ^https://. The certificate
+    # is signed by the local CA in networks/ca, and another network verifies
+    # against it.
+    #
+    # What this still cannot demonstrate is domain OWNERSHIP -- a laptop cannot
+    # -- which is why the CA is trusted by path rather than installed anywhere.
+    listen 443 ssl;
+    server_name ${NETWORK_ID};
+
+    ssl_certificate     /etc/nginx/tls/server.crt;
+    ssl_certificate_key /etc/nginx/tls/server.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    # The two published documents, served as files. Static on purpose: the
+    # contract calls these publication points, not APIs, and a file is the
+    # smallest thing that satisfies it.
+    location /.well-known/ {
+        root /usr/share/nginx/html;
+        default_type application/json;
+        add_header Cache-Control "no-cache";
+    }
+
+    # Discovery: where another network's crawl sends its signed discover.
+    #
+    # This is the path the registry entry's baseUrl carries, so it is what a
+    # descriptor publishes as services.discovery and what admission records.
+    #
+    # A PROXY, not a second implementation. A signed discover from elsewhere
+    # reaches the same module a local caller reaches, or the two drift and only
+    # the federated path goes untested.
+    #
+    # Two locations because baseUrl cannot end in a slash -- the Participant
+    # schema's pattern refuses it -- so the exact form has to be matched as well
+    # as the subtree below it.
+    location = /network {
+        proxy_pass http://${ADAPTER_HOST}:${ADAPTER_PORT}/network/;
+        include /etc/nginx/conf.d/proxy-headers.inc;
+    }
+    location /network/ {
+        proxy_pass http://${ADAPTER_HOST}:${ADAPTER_PORT}/network/;
+        include /etc/nginx/conf.d/proxy-headers.inc;
+    }
+
+    # The provider endpoints: where another network's select, init, confirm or
+    # status arrives, having been addressed here by a catalog's bppUri.
+    #
+    # The other direction of the same contract -- /network is how another
+    # network FINDS what we publish, this is how it then ACTS on it.
+    location = /provider {
+        proxy_pass http://${ADAPTER_HOST}:${ADAPTER_PORT}/provider/;
+        include /etc/nginx/conf.d/proxy-headers.inc;
+    }
+    location /provider/ {
+        proxy_pass http://${ADAPTER_HOST}:${ADAPTER_PORT}/provider/;
+        include /etc/nginx/conf.d/proxy-headers.inc;
+    }
+
+    # Anything else is not part of the contract. 404 rather than a default page,
+    # so a misconfigured caller sees a refusal it can act on.
+    #
+    # /consumer, /publish and /crawl are deliberately among the "anything else":
+    # the first two are this deployment's own callers and the third is an
+    # operator endpoint, and none of them is another network's business.
+    location / {
+        return 404;
+    }
+}
+
+# This network's mock upstream providers.
+#
+# SEPARATE server blocks, not more locations on the one above: these are
+# different hosts, and the block above is this network's public surface --
+# another network's business. These are our own providers, reached only from
+# inside.
+#
+# They are https on a hostname rather than http://mock-imd:9100 because the
+# registry's Participant schema pins a provider's baseUrl to ^https:// exactly
+# as it does a network's. The front door terminates TLS with the local CA the
+# adapter already trusts, so the seeded URL is one the stack can actually call.
+#
+# One block each with a literal proxy_pass, rather than one block picking the
+# upstream from $host: a proxy_pass carrying a variable is resolved per request
+# and needs an explicit resolver, which is three more moving parts for two
+# static destinations.
+#
+# Only the two providers that HAVE a mock. vistaar and pocra are in the
+# certificate but have no container, so a call to them fails at the front door
+# rather than at DNS.
+server {
+    listen 443 ssl;
+    server_name mausamgram.${NETWORK_ID};
+
+    ssl_certificate     /etc/nginx/tls/server.crt;
+    ssl_certificate_key /etc/nginx/tls/server.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    location / {
+        proxy_pass http://${MOCKIMD_HOST}:${MOCKIMD_INTERNAL_PORT};
+        include /etc/nginx/conf.d/proxy-headers.inc;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name agmarknet.${NETWORK_ID};
+
+    ssl_certificate     /etc/nginx/tls/server.crt;
+    ssl_certificate_key /etc/nginx/tls/server.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    # The token endpoint the mock does not have.
+    #
+    # mockagmarknet checks for a FIXED token in the query string and issues
+    # none -- the real Agmarknet has a separate endpoint for that, and the mock
+    # reproduces only the checking half. So the adapter's tokenQuery scheme had
+    # a tokenUrl with nothing behind it and every mandi select failed at the
+    # exchange, before the provider was ever called.
+    #
+    # Answered here rather than by changing the mock: this is local scaffolding
+    # for a credential that is not real, and keeping it in the front door means
+    # the adapter still performs a genuine exchange over TLS rather than having
+    # the auth step stubbed out.
+    #
+    # local-mandi-token is mockagmarknet's own default, and the field name is
+    # what tokenResponseField in the adapter config asks for.
+    location = /token {
+        default_type application/json;
+        return 200 '{"token":"local-mandi-token","expires_in":600}';
+    }
+
+    location / {
+        proxy_pass http://${MOCKAGMARKNET_HOST}:${MOCKAGMARKNET_INTERNAL_PORT};
+        include /etc/nginx/conf.d/proxy-headers.inc;
+    }
+}

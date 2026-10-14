@@ -1,0 +1,74 @@
+{
+  "context": {
+    "version": "2.0.0",
+    "action": "select",
+    "networkId": "bharatvistar.oan.local",
+    "transactionId": "9f2c1a8e-4b70-4d31-9c55-6f2e0b1d7a44",
+    "messageId": "7d41b9e0-52a6-4c18-8b73-1e9f0a4c6d22",
+    "timestamp": "2026-08-26T06:12:01.330Z",
+    "bppUri": "http://oan-mahavistara-oan-local-adapter:9200/provider",
+    "senderId": "seeker-network-vistaar.da.gov.in",
+    "receiverId": "mahavistara.oan.local",
+    "senderUri": "https://seeker-network-vistaar.da.gov.in/beckn"
+  },
+  "message": {
+    "contract": {
+      "commitments": [
+        {
+          "status": {
+            "descriptor": {
+              "code": "ACTIVE",
+              "name": "active"
+            }
+          },
+          "resources": [
+            {
+              "id": "res:mausamgram:point-forecast",
+              "resourceAttributes": {
+                "@context": "https://schemas.openagrinet.global/schema/WeatherObservation/v0.1/context.jsonld",
+                "@type": "openagrinet:WeatherObservation",
+                "subjectCategories": [
+                  "Weather"
+                ],
+                "location": {
+                  "geo": {
+                    "type": "Point",
+                    "coordinates": [
+                      73.7898,
+                      19.9975
+                    ]
+                  }
+                },
+                "validity": {
+                  "startsAt": "2026-08-26T00:00:00+05:30",
+                  "endsAt": "2026-08-30T23:59:59+05:30"
+                }
+              },
+              "quantity": {
+                "selected": {
+                  "measure": {
+                    "value": "1",
+                    "unit": "unit"
+                  }
+                }
+              }
+            }
+          ],
+          "offer": {
+            "id": "offer:mausamgram:open-data",
+            "resourceIds": [
+              "res:mausamgram:point-forecast"
+            ],
+            "provider": {
+              "id": "mausamgram.mahavistara",
+              "descriptor": {
+                "code": "IMD-NWP-01",
+                "name": "IMD Mausamgram NWP"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

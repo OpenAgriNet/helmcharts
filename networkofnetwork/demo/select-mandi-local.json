@@ -1,0 +1,82 @@
+{
+  "context": {
+    "version": "2.0.0",
+    "action": "select",
+    "networkId": "bharatvistar.oan.local",
+    "bppUri": "https://bharatvistar.oan.local/provider",
+    "transactionId": "9f2c1a8e-4b70-4d31-9c55-6f2e0b1d7a44",
+    "messageId": "7d41b9e0-52a6-4c18-8b73-1e9f0a4c6d23",
+    "timestamp": "2026-10-07T06:12:01.330Z",
+    "senderId": "seeker.bharatvistar.oan.local",
+    "receiverId": "bharatvistar.oan.local",
+    "senderUri": "https://seeker.bharatvistar.oan.local/beckn"
+  },
+  "message": {
+    "contract": {
+      "commitments": [
+        {
+          "status": {
+            "descriptor": {
+              "code": "ACTIVE",
+              "name": "active"
+            }
+          },
+          "offer": {
+            "id": "offer:agmarknet:open-data",
+            "provider": {
+              "id": "agmarknet.bharatvistar",
+              "descriptor": {
+                "code": "AGMARKNET",
+                "name": "Agmarknet Vistaar"
+              }
+            },
+            "resourceIds": [
+              "res:agmarknet:nashik:onion"
+            ]
+          },
+          "resources": [
+            {
+              "id": "res:agmarknet:nashik:onion",
+              "quantity": {
+                "count": 1
+              },
+              "resourceAttributes": {
+                "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+                "@type": "openagrinet:MandiPrice",
+                "subjectCategories": [
+                  "Market"
+                ],
+                "informationMode": "OnDemand",
+                "location": {
+                  "geo": {
+                    "type": "Point",
+                    "coordinates": [
+                      73.7898,
+                      19.9975
+                    ]
+                  }
+                },
+                "validity": {
+                  "startsAt": "2026-10-01T00:00:00+05:30",
+                  "endsAt": "2026-12-31T23:59:59+05:30"
+                },
+                "supportedCommodities": [
+                  {
+                    "code": "149",
+                    "name": "Onion"
+                  }
+                ],
+                "market": {
+                  "district": "96",
+                  "state": "MH",
+                  "marketCode": "2056",
+                  "name": "Nashik"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
