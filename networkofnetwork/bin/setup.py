@@ -209,7 +209,6 @@ def load_or_generate_keys():
                 print(f"  {role}: id is now {network}, keeping the keypair")
                 identities[role]["participantId"] = network
         KEYS.write_text(json.dumps(identities, indent=2))
-        write_network_key(identities)
         return identities
 
     print(f"keys: generating one identity for {network}")
@@ -225,25 +224,7 @@ def load_or_generate_keys():
     KEYS.parent.mkdir(parents=True, exist_ok=True)
     KEYS.write_text(json.dumps(identities, indent=2))
     KEYS.chmod(0o600)
-    write_network_key(identities)
     return identities
-
-
-def write_network_key(identities):
-    """The same private key, in the one-line form oanfed.py reads.
-
-    oanfed publishes this network's descriptor and signs it; the adapters sign
-    traffic with it; the registry holds its public half. One key, so one file --
-    written here rather than generated there, so the two cannot drift into
-    publishing one key and signing with another.
-
-    base64url unpadded, which is what a JWKS carries, so the file and the
-    published `x` are the same alphabet.
-    """
-    raw = base64.b64decode(identities["network"]["signingPrivate"])
-    path = KEYS.parent / "network.key"
-    path.write_text(base64.urlsafe_b64encode(raw).rstrip(b"=").decode() + "\n")
-    path.chmod(0o600)
 
 
 # ----------------------------------------------------------------- registry

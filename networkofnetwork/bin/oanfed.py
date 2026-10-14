@@ -183,19 +183,20 @@ def jwk(public):
 
 
 def load_or_create_key(path):
-    """Read this network's private key, generating one if the file is absent.
+    """Read the governance private key, generating one if the file is absent.
 
     Stored as the raw 32-byte seed, base64url-unpadded -- the same encoding the
     public half uses in the JWKS, so an operator reading either file sees one
     format rather than two.
 
     A key file anyone but its owner can read is refused, not used. This key
-    decides what the network says about itself; a copy of it is the network.
+    decides what the network says about itself, including which keys may sign
+    as it; a copy of it is the network.
     """
     path = pathlib.Path(path)
     if path.exists():
         if not path.is_file():
-            raise FederationError(f"{path} is not a file; point --key at the key file")
+            raise FederationError(f"{path} is not a file; point --governance-key at the key file")
         if path.stat().st_mode & 0o077:
             raise FederationError(
                 f"{path} is readable by group or others; chmod 600 it before signing with it")
@@ -335,6 +336,10 @@ def validate_descriptor(descriptor, now=None):
     ttl = descriptor.get("projectionTtl")
     need(ttl is None or (isinstance(ttl, int) and not isinstance(ttl, bool) and ttl >= 0),
          f"projectionTtl {ttl!r} is not a non-negative integer")
+    delegated = descriptor.get("operationalKeys")
+    need(isinstance(delegated, list) and delegated
+         and all(_nonempty_str(k) for k in delegated) and len(set(delegated)) == len(delegated),
+         "operationalKeys is not a non-empty list of distinct kids")
 
 
 # --- sign and verify ------------------------------------------------------
@@ -354,10 +359,11 @@ class StaleRevision(FederationError):
 
 
 def sign(descriptor, private):
-    """Return a copy of the descriptor carrying its signature.
+    """Return a copy of the descriptor carrying the governance signature.
 
-    The key is named by its own thumbprint, so the signature cannot point at a
-    different key than the one that made it.
+    The governance key signs this and nothing else. It is named by its own
+    thumbprint, so the signature cannot point at a different key than the one
+    that made it.
     """
     signed = {k: v for k, v in descriptor.items() if k != "signature"}
     signed["signature"] = {
@@ -371,10 +377,14 @@ def sign(descriptor, private):
 def verify(descriptor, keyset, now=None):
     """Check a descriptor, its shape, and its signature against the JWKS.
 
-    It answers ONE question -- did the holder of a published key write this
-    document -- and deliberately not whether the network should be trusted. The
-    keys came from the same domain as the document, so a network can always
-    verify its own lies. Admission is what decides trust.
+    It answers ONE question -- did the holder of a published governance key
+    write this document -- and deliberately not whether the network should be
+    trusted. The keys came from the same domain as the document, so a network
+    can always verify its own lies. Admission is what decides trust.
+
+    The key that signed the descriptor must not also be one it delegates for
+    traffic: the contract says the governance key never signs normal traffic,
+    and this is the one place that can be checked.
     """
     validate_descriptor(descriptor, now)
     keys = validate_keyset(keyset)
@@ -387,6 +397,13 @@ def verify(descriptor, keyset, now=None):
     key_id = signature.get("keyId")
     if key_id not in keys:
         raise FederationError(f"no published Ed25519 key matches the signature's keyId {key_id!r}")
+    delegated = descriptor["operationalKeys"]
+    if key_id in delegated:
+        raise FederationError(
+            f"governance key {key_id!r} is also delegated for traffic; the two must differ")
+    missing = [k for k in delegated if k not in keys]
+    if missing:
+        raise FederationError(f"operationalKeys not in the JWKS: {', '.join(missing)}")
 
     try:
         Ed25519PublicKey.from_public_bytes(keys[key_id]).verify(
@@ -521,13 +538,16 @@ def projection_ttl(descriptor):
     return declared
 
 
-def published_keys(keyset):
-    """Every key the peer published.
+def operational_keys(descriptor, keyset):
+    """The keys a peer delegated for traffic, and only those.
 
-    A network publishes ONE key: it signs the descriptor and the network's
-    traffic, so it is also what the peer's requests are verified against.
+    Its governance key is published in the same JWKS but deliberately left out:
+    whatever is recorded here is what the peer's requests are verified against,
+    and the governance key must never pass that check. Which keys are delegated
+    comes from the SIGNED descriptor, so a JWKS edit alone cannot add one.
     """
-    return list(keyset.get("keys", []))
+    delegated = set(descriptor.get("operationalKeys") or [])
+    return [k for k in keyset.get("keys", []) if k.get("kid") in delegated]
 
 
 # What an entry is in relation to us.
@@ -600,7 +620,7 @@ def admit_record(current, fresh, keyset, federation_role=DEFAULT_FEDERATION_ROLE
                 "validFrom": admitted_at,
                 "status": "active",
             }
-            for k in published_keys(keyset)
+            for k in operational_keys(fresh, keyset)
         ],
         "revision": fresh.get("revision", 0),
         "projectionTtl": ttl,
@@ -788,10 +808,11 @@ def _registry_time(value):
 def registered_signing_keys(entry, now=None):
     """The entry's Ed25519 keys that are usable now or about to be.
 
-    The adapters sign traffic with these, and the registry holds them, plural,
-    for rotation overlap. A key not yet valid IS included -- a peer has to know
-    a key before it starts signing with it. A revoked or expired one is not:
-    signing with it would publish a key this network has already withdrawn.
+    These are the operational keys: the adapters sign traffic with them and the
+    registry already holds them, plural, for rotation overlap. A key not yet
+    valid IS included -- a peer has to know a key before it starts signing with
+    it. A revoked or expired one is not: publishing it would delegate a key this
+    network has already withdrawn.
     """
     now = now or datetime.now(timezone.utc)
     usable = []
@@ -813,7 +834,8 @@ def registered_signing_keys(entry, now=None):
             raise FederationError(f"registry key {name} is not base64") from err
         if len(raw) != 32:
             raise FederationError(f"registry key {name} is not a 32-byte Ed25519 key")
-        # The same key entered twice is still one key.
+        # The same key entered twice is still one key: delegating it twice would
+        # put a duplicate kid in the JWKS, which a peer must refuse.
         if raw not in usable:
             usable.append(raw)
     return usable
@@ -848,9 +870,14 @@ def cmd_publish(args):
     internally, by construction -- rather than two descriptions of one network
     that happen to agree on the day someone typed them.
 
-    ONE key, --key: it signs this descriptor and the network's traffic, so it
-    must be an active key in the registry entry -- otherwise peers would verify
-    the descriptor with one key and our traffic against another.
+    Two kinds of key, as the contract requires:
+
+      governance   signs the descriptor and nothing else. Its private half is
+                   --governance-key; it is NOT in the registry, so no peer can
+                   verify a request signed with it.
+      operational  sign traffic. Read from the registry entry; the descriptor
+                   delegates them by kid in operationalKeys, under the
+                   governance signature.
 
     Reading the registry needs no credentials: its search endpoint is public.
     """
@@ -870,18 +897,21 @@ def cmd_publish(args):
             f"{args.network_id} is not in this registry -- seed it first, "
             f"then publish from it")
 
-    registered = registered_signing_keys(entry)
-    if not registered:
+    operational = registered_signing_keys(entry)
+    if not operational:
         raise FederationError(
-            f"{args.network_id} has no active Ed25519 key in the registry to sign with")
+            f"{args.network_id} has no active Ed25519 key in the registry to delegate")
 
-    network_key = load_or_create_key(args.key)
-    if public_of(network_key) not in registered:
+    governance = load_or_create_key(args.governance_key)
+    if public_of(governance) in operational:
+        # The one configuration that silently breaks the contract: the key that
+        # vouches for the network would also be accepted on its traffic.
         raise FederationError(
-            f"{args.key} is not an active key registered for {args.network_id}; "
-            f"publishing it would sign the descriptor with one key and traffic with another")
+            f"{args.governance_key} is also a registered traffic key; the governance "
+            f"key must be separate -- use a new file")
 
-    network_jwk = jwk(public_of(network_key))
+    governance_jwk = jwk(public_of(governance))
+    operational_jwks = [jwk(raw) for raw in operational]
 
     descriptor = {
         "version": DESCRIPTOR_VERSION,
@@ -899,12 +929,14 @@ def cmd_publish(args):
         # field admission reads back out of a peer's descriptor, so what we
         # publish and what a peer stores about us are one string.
         "services": {"discovery": entry.get("baseUrl", "")},
+        # The delegation: which JWKS keys may sign traffic as this network.
+        "operationalKeys": [k["kid"] for k in operational_jwks],
     }
     if args.projection_ttl is not None:
         descriptor["projectionTtl"] = args.projection_ttl
 
-    signed = sign(descriptor, network_key)
-    keyset = {"keys": [network_jwk]}
+    signed = sign(descriptor, governance)
+    keyset = {"keys": [governance_jwk, *operational_jwks]}
     # Checked exactly as a peer will check it, before anything is written: a
     # document this network would itself refuse never goes out.
     verify(signed, keyset)
@@ -919,7 +951,8 @@ def cmd_publish(args):
     print(f"{args.network_id} now hosts its descriptor at revision {args.revision}")
     print(f"  descriptor  {descriptor_path}")
     print(f"  keys        {jwks_path}")
-    print(f"  key         {network_jwk['kid']}")
+    print(f"  governance  {governance_jwk['kid']}")
+    print(f"  operational {', '.join(descriptor['operationalKeys'])}")
     return 0
 
 
@@ -1038,9 +1071,9 @@ def main(argv=None):
     publish.add_argument("--projection-ttl", type=int, default=None,
                          help="seconds a peer may keep what it crawls; omit to let peers decide")
     publish.add_argument("--out", required=True, help="directory to write .well-known/ into")
-    publish.add_argument("--key", required=True,
-                         help="this network's private key file; it signs the descriptor "
-                              "AND cross-network traffic, so it must be a registered key. "
+    publish.add_argument("--governance-key", required=True,
+                         help="the governance private key file; it signs the descriptor and "
+                              "NEVER traffic, so it must not be a registered key. "
                               "Generated (mode 600) if absent")
     publish.set_defaults(run=cmd_publish)
 

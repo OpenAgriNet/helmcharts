@@ -8,8 +8,8 @@ current oanfed.py, fetches it over TLS through the network's front door exactly
 as a peer would, then tampers with the served files and checks each forgery is
 refused.
 
-It leaves the network as it found it: the served documents and the key file's
-mode are restored on exit, pass or fail. Nothing is written to either registry --
+It leaves the network as it found it: the served documents and the governance
+key are restored on exit, pass or fail. Nothing is written to either registry --
 admission is computed, not recorded.
 """
 
@@ -54,7 +54,7 @@ def search(registry_port, network):
 
 def main(network, peer):
     net_dir = STATE / network
-    well_known, key_file = net_dir / ".well-known", net_dir / "keys" / "network.key"
+    well_known, gov = net_dir / ".well-known", net_dir / "keys" / "governance.key"
     ca = str(STATE / "ca" / "ca.crt")
     ours, theirs = ports(network), ports(peer)
     door, registry = ours["FRONT_DOOR_PORT"], ours["REGISTRY_PORT"]
@@ -62,12 +62,12 @@ def main(network, peer):
     files = ("openagrinet", "jwks.json")
     original = {f: (well_known / f).read_bytes() if (well_known / f).exists() else None
                 for f in files}
-    key_mode = key_file.stat().st_mode & 0o777
+    gov_original = gov.read_bytes() if gov.exists() else None
 
-    def publish(revision, *extra, key=key_file, network_id=network, registry_url=None, out=net_dir):
+    def publish(revision, *extra, key=gov, network_id=network, registry_url=None, out=net_dir):
         return run("publish", "--network-id", network_id,
                    "--registry-url", registry_url or f"http://127.0.0.1:{registry}",
-                   "--key", str(key), "--revision", str(revision),
+                   "--governance-key", str(key), "--revision", str(revision),
                    "--out", str(out), *extra)
 
     def verify(target=network, *extra):
@@ -114,7 +114,7 @@ def main(network, peer):
         check("publish the next revision from the registry", code == 0, out.splitlines()[0])
         if code != 0:
             return
-        check("the network key is mode 600", key_mode == 0o600)
+        check("governance key is mode 600", (gov.stat().st_mode & 0o777) == 0o600)
         new = {f: (well_known / f).read_bytes() for f in files}
         check("the front door serves the new documents", settle())
 
@@ -141,10 +141,13 @@ def main(network, peer):
         entry = search(registry, network)
         traffic = base64.b64decode(entry["keys"][0]["key"].removeprefix("base64:"))
         identity = json.loads((net_dir / "keys/keys.json").read_text())["network"]
-        signer = d["signature"]["keyId"]
-        check("the one published key is the registry key and the adapter's signing key",
-              signer == o.jwk(traffic)["kid"] and [x["kid"] for x in k["keys"]] == [signer]
+        check("the delegated key is the registry key and the adapter's signing key",
+              d["operationalKeys"] == [o.jwk(traffic)["kid"]]
               and base64.b64decode(identity["signingPublic"]) == traffic)
+        gov_kid = d["signature"]["keyId"]
+        check("the governance key is published, not delegated, not in the registry",
+              gov_kid in {x["kid"] for x in k["keys"]} and gov_kid not in d["operationalKeys"]
+              and o.public_of(o.load_or_create_key(gov)) != traffic)
         check("Ed25519, version 1.0, every required field",
               d["signature"]["algorithm"] == "Ed25519" and d["version"] == "1.0"
               and all(f in d for f in ("networkId", "name", "operator", "revision", "status",
@@ -153,7 +156,7 @@ def main(network, peer):
         current = search(theirs["REGISTRY_PORT"], network)
         fetched_d, fetched_k = o.Fetcher(ca_file=ca, resolve=f"127.0.0.1:{door}").fetch(network)
         record = o.admit_record(current, fetched_d, fetched_k)
-        check(f"{peer} would store the published key at the new revision (not written)",
+        check(f"{peer} would store only the traffic key at the new revision (not written)",
               [x["key"] for x in record["keys"]] == [base64.b64encode(traffic).decode()]
               and record["revision"] == held + 1,
               f"{peer} holds revision {current.get('revision') if current else None}")
@@ -175,13 +178,15 @@ def main(network, peer):
         code, out = publish(held + 2, "--projection-ttl", "-5")
         check("publish refuses a negative projectionTtl, writes nothing",
               code != 0 and unchanged(), out)
-        os.chmod(key_file, 0o644)
+        os.chmod(gov, 0o644)
         code, out = publish(held + 2)
-        os.chmod(key_file, key_mode)
-        check("publish refuses a key file others can read", code != 0, out)
-        stranger = pathlib.Path(tempfile.mkdtemp()) / "stranger.key"
-        code, out = publish(held + 2, key=stranger)
-        check("publish refuses a key the registry does not hold", code != 0, out)
+        os.chmod(gov, 0o600)
+        check("publish refuses a governance key others can read", code != 0, out)
+        traffic_key = pathlib.Path(tempfile.mkdtemp()) / "traffic.key"
+        traffic_key.write_text(o.b64url(base64.b64decode(identity["signingPrivate"])) + "\n")
+        traffic_key.chmod(0o600)
+        code, out = publish(held + 2, key=traffic_key)
+        check("publish refuses the traffic key as the governance key", code != 0, out)
         code, out = publish(held + 2, network_id="nobody.example.org",
                             out=pathlib.Path(tempfile.mkdtemp()))
         check("publish refuses a network not in the registry", code != 0, out)
@@ -210,16 +215,20 @@ def main(network, peer):
                  lambda x: x["services"].update(discovery="https://evil.example/d"))
         tampered("revision bumped without re-signing", bad,
                  lambda x: x.update(revision=x["revision"] + 100))
+        tampered("governance key also delegated for traffic", "also delegated",
+                 lambda x: x["operationalKeys"].append(gov_kid))
         tampered("signature removed", "no signature", lambda x: x.pop("signature"))
         tampered("algorithm set to none", "unsupported",
                  lambda x: x["signature"].update(algorithm="none"))
-        tampered("signing key dropped from the JWKS", "no published",
-                 mutate_k=lambda x: x.update(keys=[]))
+        tampered("governance key dropped from the JWKS", "no published",
+                 mutate_k=lambda x: x.update(keys=[y for y in x["keys"] if y["kid"] != gov_kid]))
+        tampered("delegated key dropped from the JWKS", "not in the JWKS",
+                 mutate_k=lambda x: x.update(keys=[y for y in x["keys"] if y["kid"] == gov_kid]))
         tampered("duplicate kid in the JWKS", "two keys",
                  mutate_k=lambda x: x["keys"].append(dict(x["keys"][0])))
-        tampered("signing key swapped for an attacker's", bad,
+        tampered("governance key swapped for an attacker's", bad,
                  mutate_k=lambda x: x["keys"].__setitem__(0, {
-                     **o.jwk(o.public_of(Ed25519PrivateKey.generate())), "kid": signer}))
+                     **o.jwk(o.public_of(Ed25519PrivateKey.generate())), "kid": gov_kid}))
         tampered("descriptor names another network", "publishes a descriptor for",
                  lambda x: x.update(networkId=peer))
         tampered("unknown version", "version", lambda x: x.update(version="9.9"))
@@ -242,7 +251,11 @@ def main(network, peer):
                 (well_known / f).unlink(missing_ok=True)
             else:
                 (well_known / f).write_bytes(b)
-        key_file.chmod(key_mode)
+        if gov_original is None:
+            gov.unlink(missing_ok=True)
+        else:
+            gov.write_bytes(gov_original)
+            gov.chmod(0o600)
 
     restored = settle() and all(body(f) == b for f, b in original.items())
     check(f"{network} restored to what it served before", restored)

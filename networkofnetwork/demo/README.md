@@ -74,7 +74,8 @@ make host-descriptor NETWORK_ID=mahavistara.oan.local
 bharatvistar.oan.local now hosts its descriptor at revision 1
   descriptor  networks/bharatvistar.oan.local/.well-known/openagrinet
   keys        networks/bharatvistar.oan.local/.well-known/jwks.json
-  key         <kid>
+  governance  <kid>
+  operational <kid>
 ```
 
 Two signed documents per network, served over TLS at the network's own domain:
@@ -83,14 +84,20 @@ Two signed documents per network, served over TLS at the network's own domain:
 - **Signature:** Ed25519 (`"algorithm": "Ed25519"`, RFC 9864 name) over the
   RFC 8785 (JCS) form of the descriptor minus its `signature`. Floats are
   refused, so every implementation rebuilds the same bytes.
-- **One key:** `keys/network.key`, the registry entry's key the adapters sign
-  traffic with, also signs the descriptor. `oanfed publish` refuses a key the
-  registry does not hold as active, and a key file others can read.
-- **kid** is the key's RFC 7638 thumbprint, so a rotated key gets a new kid on
-  its own.
+- **Two kinds of key**, as the contract requires. The **governance** key
+  (`keys/governance.key`, generated on first run, mode 600) signs the descriptor
+  and never traffic. The **operational** keys are the registry entry's active
+  keys -- the ones the adapters sign traffic with. The descriptor delegates them
+  by kid in `operationalKeys`, under the governance signature.
+- **kid** is each key's RFC 7638 thumbprint, so a rotated key gets a new kid on
+  its own. To rotate an operational key, add it to the registry entry, re-run
+  `host-descriptor`, and revoke the old one once peers have refreshed.
 - **revision** must increase: re-running bumps it, and `oanfed publish` refuses
   one at or below what is already published. The JWKS is written before the
   descriptor, each in one atomic step.
+
+Peers store only the delegated operational keys on `admit`, so the governance
+key can never pass their traffic check.
 
 To check it end to end -- publish, fetch over TLS as the peer would, then
 tamper with the served files and confirm each forgery is refused:

@@ -42,7 +42,7 @@
   "item": [
     {
       "name": "Identity documents  (issue #74)",
-      "description": "Each network's two published documents, fetched from its front door exactly where a peer reads them.\n\n**Before running:** Postman → Settings → turn OFF *SSL certificate verification* (the stack uses a local CA), and run `make host-descriptor NETWORK_ID=...` for each network with this branch's code.\n\nRun each Descriptor request before its JWKS request: the JWKS checks use the kids the Descriptor named.\n\nPostman cannot verify an Ed25519 signature, so these check shape and keys. For the signature and the tampering cases run `make e2e-descriptor NETWORK_ID=... PEER=...`.",
+      "description": "Each network's two published documents, fetched from its front door exactly where a peer reads them.\n\n**Before running:** Postman → Settings → turn OFF *SSL certificate verification* (the stack uses a local CA), and run `make host-descriptor NETWORK_ID=...` for each network with this branch's code.\n\nRun each Descriptor request before its JWKS request: the JWKS checks use the kids the Descriptor named.\n\nPostman cannot verify an Ed25519 signature, so these check shape, keys and the governance/traffic key split. For the signature and the tampering cases run `make e2e-descriptor NETWORK_ID=... PEER=...`.",
       "item": [
         {
           "name": "1. Bharat — Network Descriptor",
@@ -72,7 +72,7 @@
                   "const d = pm.response.json();",
                   "pm.test('every required field of the Descriptor contract', () => {",
                   "  ['version','networkId','name','operator','revision','status','issuedAt',",
-                  "   'operatingProfile','schemaPacks','services','signature']",
+                  "   'operatingProfile','schemaPacks','services','operationalKeys','signature']",
                   "    .forEach(f => pm.expect(d, f).to.have.property(f));",
                   "  pm.expect(d.version).to.eql('1.0');",
                   "  pm.expect(d.operator.name).to.be.a('string').and.not.empty;",
@@ -88,12 +88,14 @@
                   "  pm.expect(d.services.discovery).to.match(/^https:\\/\\//);",
                   "  d.schemaPacks.forEach(u => pm.expect(u).to.match(/^https:\\/\\//));",
                   "});",
-                  "pm.test('signed with Ed25519, naming its key', () => {",
+                  "pm.test('signed with Ed25519 by a governance key that is NOT a traffic key', () => {",
                   "  pm.expect(d.signature.algorithm).to.eql('Ed25519');",
                   "  pm.expect(d.signature.value).to.match(/^[A-Za-z0-9_-]{86}$/);",
-                  "  pm.expect(d.signature.keyId).to.be.a('string').and.not.empty;",
+                  "  pm.expect(d.operationalKeys).to.be.an('array').that.is.not.empty;",
+                  "  pm.expect(d.operationalKeys).to.not.include(d.signature.keyId);",
                   "});",
-                  "pm.collectionVariables.set(prefix + '_signing_kid', d.signature.keyId);"
+                  "pm.collectionVariables.set(prefix + '_governance_kid', d.signature.keyId);",
+                  "pm.collectionVariables.set(prefix + '_operational_kids', JSON.stringify(d.operationalKeys));"
                 ]
               }
             }
@@ -116,7 +118,7 @@
                 "openagrinet"
               ]
             },
-            "description": "The signed ID card: who the network is, its status, revision, versions, schema packs, discovery URL and which key it signs with."
+            "description": "The signed ID card: who the network is, its status, revision, versions, schema packs, discovery URL and which keys may sign traffic."
           }
         },
         {
@@ -154,10 +156,13 @@
                   "    pm.expect(k.x).to.match(/^[A-Za-z0-9_-]{43}$/);",
                   "  });",
                   "});",
-                  "pm.test('publishes the key that signed the Descriptor', () => {",
-                  "  const signer = pm.collectionVariables.get(prefix + '_signing_kid');",
-                  "  pm.expect(signer, 'run the Descriptor request first').to.be.a('string');",
-                  "  pm.expect(keys.map(k => k.kid)).to.include(signer);",
+                  "pm.test('publishes the governance key and every delegated traffic key', () => {",
+                  "  const gov = pm.collectionVariables.get(prefix + '_governance_kid');",
+                  "  const ops = JSON.parse(pm.collectionVariables.get(prefix + '_operational_kids') || '[]');",
+                  "  pm.expect(gov, 'run the Descriptor request first').to.be.a('string');",
+                  "  const kids = keys.map(k => k.kid);",
+                  "  pm.expect(kids).to.include(gov);",
+                  "  ops.forEach(kid => pm.expect(kids).to.include(kid));",
                   "});"
                 ]
               }
@@ -181,7 +186,7 @@
                 "jwks.json"
               ]
             },
-            "description": "The public key that verifies the Descriptor, and that peers verify this network's traffic against."
+            "description": "The public keys that verify the Descriptor (governance) and the delegated traffic keys (operational)."
           }
         },
         {
@@ -212,7 +217,7 @@
                   "const d = pm.response.json();",
                   "pm.test('every required field of the Descriptor contract', () => {",
                   "  ['version','networkId','name','operator','revision','status','issuedAt',",
-                  "   'operatingProfile','schemaPacks','services','signature']",
+                  "   'operatingProfile','schemaPacks','services','operationalKeys','signature']",
                   "    .forEach(f => pm.expect(d, f).to.have.property(f));",
                   "  pm.expect(d.version).to.eql('1.0');",
                   "  pm.expect(d.operator.name).to.be.a('string').and.not.empty;",
@@ -228,12 +233,14 @@
                   "  pm.expect(d.services.discovery).to.match(/^https:\\/\\//);",
                   "  d.schemaPacks.forEach(u => pm.expect(u).to.match(/^https:\\/\\//));",
                   "});",
-                  "pm.test('signed with Ed25519, naming its key', () => {",
+                  "pm.test('signed with Ed25519 by a governance key that is NOT a traffic key', () => {",
                   "  pm.expect(d.signature.algorithm).to.eql('Ed25519');",
                   "  pm.expect(d.signature.value).to.match(/^[A-Za-z0-9_-]{86}$/);",
-                  "  pm.expect(d.signature.keyId).to.be.a('string').and.not.empty;",
+                  "  pm.expect(d.operationalKeys).to.be.an('array').that.is.not.empty;",
+                  "  pm.expect(d.operationalKeys).to.not.include(d.signature.keyId);",
                   "});",
-                  "pm.collectionVariables.set(prefix + '_signing_kid', d.signature.keyId);"
+                  "pm.collectionVariables.set(prefix + '_governance_kid', d.signature.keyId);",
+                  "pm.collectionVariables.set(prefix + '_operational_kids', JSON.stringify(d.operationalKeys));"
                 ]
               }
             }
@@ -294,10 +301,13 @@
                   "    pm.expect(k.x).to.match(/^[A-Za-z0-9_-]{43}$/);",
                   "  });",
                   "});",
-                  "pm.test('publishes the key that signed the Descriptor', () => {",
-                  "  const signer = pm.collectionVariables.get(prefix + '_signing_kid');",
-                  "  pm.expect(signer, 'run the Descriptor request first').to.be.a('string');",
-                  "  pm.expect(keys.map(k => k.kid)).to.include(signer);",
+                  "pm.test('publishes the governance key and every delegated traffic key', () => {",
+                  "  const gov = pm.collectionVariables.get(prefix + '_governance_kid');",
+                  "  const ops = JSON.parse(pm.collectionVariables.get(prefix + '_operational_kids') || '[]');",
+                  "  pm.expect(gov, 'run the Descriptor request first').to.be.a('string');",
+                  "  const kids = keys.map(k => k.kid);",
+                  "  pm.expect(kids).to.include(gov);",
+                  "  ops.forEach(kid => pm.expect(kids).to.include(kid));",
                   "});"
                 ]
               }
