@@ -6,10 +6,10 @@
 #   /_internal/network/<action>  verifies and forwards to discovery
 #   /_internal/provider/<action> answers from the upstream APIs (bpp)
 #
-# The public surface is flat: /discover, /publish, /<action> and /health. The
-# tiers are not part of it. /_internal/ is only ever called by this process's
-# own modules (http://localhost:9200/_internal/...), so the edge denies the
-# whole prefix with one rule.
+# The paths are flat: /discover, /publish, /<action> and /health. The tiers are
+# not part of them. /_internal/ is only ever called by this process's own
+# modules (http://localhost:9200/_internal/...); the chart's ingress never
+# routes it, and never routes /publish either.
 #
 # Each module is its tier's module from consumer-config.yaml, network-config.yaml
 # and provider-config.yaml. A change to one of those files that should also

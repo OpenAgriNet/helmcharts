@@ -6,6 +6,7 @@
 #     make up        the whole stack (Network Adapter), in order
 #     make up-core   the same minus the reverse proxy and hyperdx
 #     make up-multi  the whole stack with three adapters instead of one
+#     make up-core-multi  up-core with three adapters instead of one
 #     make down      stop everything, keep the data
 #     make help      the rest
 #

@@ -2,7 +2,7 @@
 {{ if include "adapter-service.isNetworkAdapterLayer" . }}
   topology   single (the default): the Network Adapter Layer
   role       network-adapter-layer (all three tiers in one adapter: / consumer bap, /publish bap, /_internal/network/ bpp, /_internal/provider/ bpp)
-  hops       between tiers inside the pod (http://localhost:{{ .Values.service.targetPort }}/<tier>)
+  hops       between tiers inside the pod (http://localhost:{{ .Values.service.targetPort }}/_internal/<tier>)
 {{- else }}
   topology   multi (optional): one release per tier; the default is role network-adapter-layer
   role       {{ include "adapter-service.role" . }} ({{ include "adapter-service.handlerRole" . }})

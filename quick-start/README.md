@@ -66,7 +66,7 @@ Other ways to pick the mode:
 | How | Single | Multi |
 |---|---|---|
 | make target | `make up-core` / `make up` | `make up-core-multi` / `make up-multi` |
-| `MODE` variable (works with `up`, `up-core`, `restart`) | `MODE=single make up-core` (the default) | `MODE=multi make up-core` |
+| `MODE` variable (works with `up` and `up-core`; `restart` follows the running mode) | `MODE=single make up-core` (the default) | `MODE=multi make up-core` |
 | plain compose | `docker compose --profile network up -d` | `docker compose --profile multi up -d` |
 | bare `docker compose up -d` | `COMPOSE_PROFILES=network` in `.env` (as in `.env.example`) | `COMPOSE_PROFILES=multi` in `.env` |
 
@@ -301,21 +301,24 @@ request. It is also the only option for a wildcard. Renewal reuses whichever
 method you chose, so a temporarily-correct DNS record or SG rule fails silently
 in sixty days.
 
-### `POST /publish` returns 403 on all three hosts
+### `POST /publish` and `/_internal` return 403 on every host
 
 Not optional hardening. The provider adapter's module at `/` verifies the
-sender's signature; `oanProviderPublish`, on the exact path `/publish`, has
+sender's signature; the publish module (`oanProviderPublish` in multi mode,
+`provider-publish` in single mode), on the exact path `/publish`, has
 **no signature check at all**, because its intended caller is the provider's
 own catalogue system inside the trust boundary. A proxy host pointed at
-`provider-adapter:9200` therefore exposes `<host>/publish` to anyone.
+`provider-adapter:9200` (multi) or `network-adapter:9200` (single) therefore
+exposes `<host>/publish` to anyone. In single mode the network and provider
+tiers also sit under `/_internal/`, which only the adapter itself calls.
 
 NPM's UI cannot route a host while withholding one path, so the block lives in
 `config/reverse-proxy/npm-custom/server_proxy.conf`, which NPM includes in
 **every** proxy host's server block — a mounted file, not a click, so not
-something to remember on one host out of three.
+something to remember on one host.
 
 To let a real catalogue system publish, give it a tunnel or put it in the VPC
-and let it reach `provider-adapter:9200` directly. Do not turn that `deny` into
+and let it reach the adapter on port 9200 directly. Do not turn that `deny` into
 an `allow`.
 
 ### Which nginx config loads itself, and which is a paste job
@@ -323,7 +326,7 @@ an `allow`.
 | File | How it applies |
 |---|---|
 | `npm-custom/http_top.conf` | **Automatic**, top of the `http` block. The `consumer` rate-limit zone and `limit_req_status 429`. |
-| `npm-custom/server_proxy.conf` | **Automatic**, every server block. The `/publish` deny. |
+| `npm-custom/server_proxy.conf` | **Automatic**, every server block. The `/publish` and `/_internal` denies. |
 | `npm-advanced/consumer.conf` | **Manual** — paste into the consumer host's Advanced tab. `limit_req` for that host only; a 10 r/s ceiling on signed peer traffic would throttle for no gain. |
 | `npm-advanced/hyperdx.conf` | **Manual** — paste into the HyperDX host's Advanced tab. 300s timeouts for ClickHouse scans, buffering off for live tail. Carries no credential; the Access List does. |
 
@@ -445,7 +448,7 @@ unedited.
 Those four strings are the hinge. The provider adapter builds the same key from
 each payload — the provider id and the capability `@type` it carries — and a
 step answers only when the key matches its own. `setup.py` renders those keys
-into `provider.yaml` from the same `.env` it seeds the registry from, which is
+into `provider.yaml` and `network-adapter.yaml` from the same `.env` it seeds the registry from, which is
 what stops the two drifting.
 
 **Looking at it** — from the VM or a tunnel. Search takes no token; writes do,
@@ -592,7 +595,7 @@ an id is a `.so` basename. If `ADAPTER_IMAGE` names a **new tag**, set it before
 nothing in `stack.sh` pulls, so the stack quietly comes back on the old image:
 
 ```sh
-docker compose pull provider-adapter network-adapter consumer-adapter
+docker compose pull network-adapter-layer provider-adapter network-adapter consumer-adapter
 ```
 
 Build from the adapter repo at the commit the config expects, and check the
@@ -613,6 +616,10 @@ publish reseeds first; `updateMode: MERGE` updates in place.
 **Then check, cheapest first:**
 
 ```sh
+# single mode (the default)
+docker logs network-adapter 2>&1 | grep 'Processor steps initialized'
+docker logs network-adapter 2>&1 | grep -iE '"level":"(error|fatal)"'
+# multi mode
 docker compose logs provider-adapter | grep 'Processor steps initialized'
 docker compose logs provider-adapter | grep -iE '"level":"(error|fatal)"'
 make ps
@@ -856,6 +863,8 @@ one minute of adapter cache plus about five of CDN.
 docker-compose.yml          the whole stack, in tiers -- the banner comments
                             are the structure
 .env.example                copy to .env
+SETUP.md                    install and run, local and VM, both modes
+CHANGELOG.md                what changed, by version
 Makefile                    the front door; every target delegates to stack.sh
 bin/
   bootstrap-ubuntu.sh       docker and python on a fresh Ubuntu VM
@@ -865,7 +874,7 @@ config/
   reverse-proxy/
     npm-custom/             mounted to /data/nginx/custom; NPM includes these
       http_top.conf           on its own -- rate-limit zone, and the /publish
-      server_proxy.conf       deny every proxy host gets
+      server_proxy.conf       and /_internal denies every proxy host gets
     npm-advanced/           NOT loaded. Paste into a host's Advanced tab; kept
       consumer.conf                here because a textarea in a database is not
       hyperdx.conf            reviewable. consumer = rate limit; hyperdx = ClickHouse
@@ -881,6 +890,9 @@ config/
     routing-consumer.yaml which action goes where: consumer sends discover
     routing-network.yaml    to the network layer and select to the provider;
     routing-provider.yaml   provider sends publish to the network layer
+    network-adapter.yaml.tmpl          single mode: all three tiers, one file
+    routing-network-adapter-consumer.yaml  single mode: consumer hops to
+    routing-network-adapter-publish.yaml   localhost:9200/_internal/...
   registry/
     schemas/                Participant, ProviderSchema, SchemaRegistry.
                             Read at startup -- a change needs a restart
@@ -922,7 +934,7 @@ that volume — and equally does not survive if you skip it.
 ```sh
 docker compose down -v
 rm -rf keys config/adapters/consumer.yaml config/adapters/network.yaml \
-       config/adapters/provider.yaml
+       config/adapters/provider.yaml config/adapters/network-adapter.yaml
 ```
 
 New keys mean new identities, so the provider rows must be created again and

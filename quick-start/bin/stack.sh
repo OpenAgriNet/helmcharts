@@ -4,6 +4,8 @@
 #
 #     bin/stack.sh up            the whole stack, in the order it has to start
 #     bin/stack.sh up-core       the same minus the gateway and hyperdx
+#     bin/stack.sh up-multi      as up, with the three tier adapters
+#     bin/stack.sh up-core-multi as up-core, with the three tier adapters
 #     bin/stack.sh down          stop everything, keep the data
 #     bin/stack.sh destroy       stop everything, DELETE the data
 #
@@ -81,10 +83,6 @@ step()  { printf '\n\033[1;36m==> [%s/%s] %s\033[0m\n' "$1" "$2" "$3"; }
 info()  { printf '    %s\n' "$1"; }
 warn()  { printf '\033[1;33mwarning: %s\033[0m\n' "$1" >&2; }
 die()   { printf '\033[1;31mstack: %s\033[0m\n' "$1" >&2; exit 1; }
-envv()  { # $1 key, $2 default -- value from .env, else the default
-    local v; v=$(grep -E "^$1=" .env 2>/dev/null | tail -1 | cut -d= -f2-)
-    echo "${v:-$2}"
-}
 
 # -------------------------------------------------------------- preflight
 
@@ -398,7 +396,8 @@ bin/stack.sh <command>
   up-core        steps 1-3 only. Nothing public, no ClickHouse.
   up-multi       as up, with the three adapters (provider, network, consumer)
   up-core-multi  as up-core, with the three adapters
-                 (MODE=multi also works with up, up-core and restart)
+                 (MODE=multi also works with up and up-core; restart
+                 follows the running mode)
   down           stop everything, keep the data
   destroy        stop everything and DELETE every volume
   setup          re-run bin/setup.py only

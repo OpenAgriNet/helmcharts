@@ -4,7 +4,7 @@ All notable changes to the quick-start stack are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.2.0] - 2026-10-13
+## [0.2.0] - 2026-10-14
 
 ### Added
 - **Single network adapter, now the default mode.** One adapter process runs

@@ -22,10 +22,11 @@ and where requests are routed.
     /publish  ──lo──▶ /_internal/network/publish
 ```
 
-The public surface is flat and the same in both topologies: `/discover`,
-`/publish`, `/<action>` and `/health`. The network and provider tiers sit under
-`/_internal/`, which only this process calls (over loopback), so the edge
-denies the whole prefix with one rule.
+The paths are flat and the same in both topologies: `/discover`, `/publish`,
+`/<action>` and `/health`. The network and provider tiers sit under
+`/_internal/`, which only this process calls (over loopback). The ingress may
+expose only single-segment `/<action>` paths: `/publish` stays in-cluster for
+the catalogue publisher, and `/_internal*` is never routed.
 
 Why flat: OAN is single-sided today -- our app calls out, and our own
 discovery and upstreams answer. If OAN later accepts inbound calls from

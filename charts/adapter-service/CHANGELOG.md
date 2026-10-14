@@ -23,12 +23,12 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   a tier file that should apply to both topologies is made in both. Its routing
   is generated at render time from `config/routing-*.yaml`
   (`routing-network-adapter-{consumer,publish}.yaml`), with tier hosts rewritten
-  to `http://localhost:<targetPort>`, so tier hops stay inside the pod. The render fails if `http.port` differs from `service.targetPort`.
+  to `http://localhost:<targetPort>/_internal/<tier>`, so tier hops stay inside the pod. The render fails if `http.port` differs from `service.targetPort`.
 - Three identities: each module signs as its own tier from
   `networkAdapterLayer.keys.{consumer,network,provider}.existingSecret`
   (`networkAdapterLayer.extraSubstitutions` for extra placeholders). A literal
   private key in the config, including a `config:` override, fails the render.
-- Flat public surface: `/discover`, `/publish`, `/<action>` and `/health`, the
+- Flat paths: `/discover`, `/publish`, `/<action>` and `/health`, the
   same URLs as the multi topology. The network and provider tiers are mounted
   under `/_internal/`, which only the process itself calls.
 - Ingress for the layer may expose only single-segment `/<action>`, as literal
@@ -36,7 +36,7 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   annotation; `/`, `/publish` and `/_internal*` are refused. `routing.config` fails the render for this
   role.
 - `examples/network-adapter.yaml` and `ci/network-adapter-values.yaml`
-  (HPA 3-10, PDB, spread, graceful shutdown).
+  (PDB, spread, graceful shutdown; HPA 3-10 opt-in, off by default).
 - `autoscaling.behavior`, `topologySpreadConstraints`,
   `terminationGracePeriodSeconds`, `preStopSleepSeconds`, `goMemLimit`; all off
   by default.
@@ -48,8 +48,8 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   (telemetry service `oan-network-adapter`); its namespace is
   `network-adapter-layer`. "layer" appears only in the namespace, the role,
   the values key and helper names, where it must differ from the multi
-  `network` tier. The `<role>-adapter` default for app name and telemetry
-  service name is special-cased for it. The separate namespace keeps the
+  `network` tier. The app name and telemetry service name are set in
+  `config/network-adapter-config.yaml`. The separate namespace keeps the
   consumer and provider keys, which openbao-secrets mirrors to the layer, out
   of the multi network tier's namespace, and lets both topologies run side by
   side during a switch-over.

@@ -276,8 +276,8 @@ otel:
   # OTLP/gRPC, e.g. "otel-collector.observability.svc.cluster.local:4317"
   endpoint: ""
   environment: dev
-  # Left empty, defaults to oan-<role>-adapter, matching OTEL_SERVICE_NAME in
-  # the compose stack so traces from either deployment line up.
+  # Not read by any template: each role's config file sets its telemetry
+  # service name (config/<role>-config.yaml, telemetry...serviceName).
   serviceName: ""
 
 logLevel: info
@@ -446,7 +446,7 @@ envFromSecrets: []
 # file: log level, timeouts, telemetry, extended schema and the outbound
 # connection pool are set there. The routing is generated at render time from
 # the tier routing files, with tier-to-tier hops pointed at this pod's own
-# listener (http://localhost:<service.targetPort>/<tier>): any adapter image
+# listener (http://localhost:<service.targetPort>/_internal/<tier>): any adapter image
 # works.
 #
 # Ignored by the provider, network and consumer roles.

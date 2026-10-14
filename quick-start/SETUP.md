@@ -62,8 +62,9 @@ If a port is already taken, change it in `.env` — that is the only edit a
 local run needs. The single adapter's host port is
 `NETWORK_ADAPTER_LAYER_PORT`; in multi mode the three are
 `PROVIDER_ADAPTER_PORT`, `NETWORK_ADAPTER_PORT` and `CONSUMER_ADAPTER_PORT`.
-Adapters reach each other by Compose service name, so a port change only
-changes what you type into Postman.
+Adapters reach each other inside the stack (by Compose service name in multi
+mode, on `localhost:9200` inside the one container in single mode), so a port
+change only changes what you type into Postman.
 
 ## Step 4 — Start it
 
@@ -114,9 +115,9 @@ all four capabilities.
 - Upstream credentials: `AGMARKNET_ACCESS_NAME` + `AGMARKNET_PASSWORD`, and
   `VISTAAR_CLIENT_ID` + `VISTAAR_CLIENT_SECRET`. POCRA needs none.
 
-**Only mausamgram is a mock now.** Mandi, knowledge and POCRA are real
-external hosts, so each needs its own base URL and path in `.env` — and the
-stack needs egress to all three. Mandi and knowledge each also need a token
+**All four capabilities call real upstreams.** Mausamgram, mandi, knowledge
+and POCRA are external hosts, so each needs its own base URL and path in
+`.env` — and the stack needs egress to all four. Mandi and knowledge each also need a token
 endpoint, since both issue short-lived tokens rather than taking a static
 credential.
 

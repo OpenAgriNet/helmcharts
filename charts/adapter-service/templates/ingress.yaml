@@ -11,7 +11,7 @@
        on ingress-nginx, and regex or rewrite annotations turn paths into
        patterns, so either could reach /_internal or /publish. */}}
 {{- $ann := merge (dict) (.Values.ingress.annotations | default dict) (.Values.commonAnnotations | default dict) }}
-{{- if eq (index $ann "nginx.ingress.kubernetes.io/use-regex" | default "" | toString) "true" }}
+{{- if eq (index $ann "nginx.ingress.kubernetes.io/use-regex" | default "" | toString | trim | lower) "true" }}
 {{- fail (printf "%s: ingress annotation nginx.ingress.kubernetes.io/use-regex is not allowed for the network-adapter-layer role. A regex path can match /_internal or /publish." .Chart.Name) }}
 {{- end }}
 {{- if hasKey $ann "nginx.ingress.kubernetes.io/rewrite-target" }}
