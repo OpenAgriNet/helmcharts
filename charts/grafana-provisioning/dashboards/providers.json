@@ -1,0 +1,829 @@
+{
+  "uid": "providers",
+  "title": "Providers — Publishing and Discovery",
+  "description": "Which providers publish their catalogues to the network, and how often their data is returned in discover results.",
+  "tags": [
+    "oan",
+    "providers",
+    "clickhouse",
+    "otel"
+  ],
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "graphTooltip": 1,
+  "editable": true,
+  "id": null,
+  "timezone": "browser",
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "provider",
+        "label": "Provider",
+        "description": "",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "clickhouse"
+        },
+        "query": {
+          "refId": "provider-variable",
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "sql",
+          "rawSql": "SELECT DISTINCT transform(JSONExtractString(c, 'provider', 'id'), ['bharat-vistaar', 'pocra'], ['Knowledge', 'PoCRA'], if(JSONExtractString(c, 'provider', 'descriptor', 'name') != '', JSONExtractString(c, 'provider', 'descriptor', 'name'), JSONExtractString(c, 'provider', 'id'))) AS provider\nFROM otel.otel_logs\nARRAY JOIN JSONExtractArrayRaw(LogAttributes['message'], 'catalogs') AS c\nWHERE $__timeFilter(Timestamp) AND LogAttributes['audit.direction'] IN ('request', 'response')\n  AND provider != ''\nORDER BY provider"
+        },
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "options": [],
+        "sort": 1,
+        "hide": 0,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        }
+      },
+      {
+        "name": "stale_after",
+        "label": "Stale after",
+        "type": "custom",
+        "hide": 0,
+        "description": "A provider is stale when it has not published a catalogue for longer than this.",
+        "query": "1 hour : 3600, 1 day : 86400, 7 days : 604800, 30 days : 2592000",
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "selected": true,
+          "text": "7 days",
+          "value": "604800"
+        },
+        "options": [
+          {
+            "selected": false,
+            "text": "1 hour",
+            "value": "3600"
+          },
+          {
+            "selected": false,
+            "text": "1 day",
+            "value": "86400"
+          },
+          {
+            "selected": true,
+            "text": "7 days",
+            "value": "604800"
+          },
+          {
+            "selected": false,
+            "text": "30 days",
+            "value": "2592000"
+          }
+        ]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 42,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "A **catalogue** is the list of data a provider offers. **Publishing** sends it to the network so it can be found by **discover**. A provider appears here once it publishes or is returned in a discover result; registrations are not shown yet."
+      },
+      "transparent": true
+    },
+    {
+      "id": 43,
+      "type": "row",
+      "title": "Overview",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 2,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 44,
+      "type": "stat",
+      "title": "Published providers",
+      "description": "Providers with at least one catalogue published.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 5,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT uniqExactIf(provider, accepted) AS providers FROM (\nSELECT\n  request, ts, failed_request,\n  JSONExtractString(cat, 'provider', 'id') AS provider_id,\n  transform(JSONExtractString(cat, 'provider', 'id'), ['bharat-vistaar', 'pocra'], ['Knowledge', 'PoCRA'], if(JSONExtractString(cat, 'provider', 'descriptor', 'name') != '', JSONExtractString(cat, 'provider', 'descriptor', 'name'), JSONExtractString(cat, 'provider', 'id'))) AS provider,\n  JSONExtractString(cat, 'id') AS catalog,\n  arrayFirst(r -> JSONExtractString(r, 'catalogId') = JSONExtractString(cat, 'id'),\n             JSONExtractArrayRaw(resp, 'results')) AS result,\n  JSONExtractUInt(result, 'stats', 'itemCount') AS items,\n  NOT failed_request AND JSONExtractString(result, 'status') = 'ACCEPTED' AS accepted\nFROM (\n  SELECT\n    LogAttributes['message_id'] AS request,\n    min(Timestamp) AS ts,\n    anyIf(LogAttributes['message'], LogAttributes['audit.direction'] = 'request') AS req,\n    anyIf(LogAttributes['message'], LogAttributes['audit.direction'] = 'response') AS resp,\n    max(toUInt16OrZero(LogAttributes['http.response.status_code'])) >= 400 AS failed_request\n  FROM otel.otel_logs\n  WHERE $__timeFilter(Timestamp)\n    AND LogAttributes['audit.direction'] IN ('request', 'response')\n    AND LogAttributes['message_id'] IN (\n    SELECT SpanAttributes['message_id']\n    FROM otel.otel_traces\n    WHERE $__timeFilter(Timestamp) AND SpanKind = 'Server' AND replaceRegexpOne(SpanName, '^/', '') = 'publish')\n  GROUP BY request\n)\nARRAY JOIN JSONExtractArrayRaw(req, 'catalogs') AS cat\nWHERE provider != '' AND $__conditionalAll(provider IN ($provider), $provider)\n)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#73BF69"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 45,
+      "type": "stat",
+      "title": "Providers in discover results",
+      "description": "Providers whose data was returned in at least one discover result.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 5,
+        "y": 3,
+        "w": 5,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT uniqExact(provider) AS providers FROM (\nSELECT request, ts, provider\nFROM (\n  SELECT\n    LogAttributes['message_id'] AS request,\n    min(Timestamp) AS ts,\n    arrayDistinct(arrayFlatten(groupArray(\n      arrayMap(c -> transform(JSONExtractString(c, 'provider', 'id'), ['bharat-vistaar', 'pocra'], ['Knowledge', 'PoCRA'], if(JSONExtractString(c, 'provider', 'descriptor', 'name') != '', JSONExtractString(c, 'provider', 'descriptor', 'name'), JSONExtractString(c, 'provider', 'id'))), JSONExtractArrayRaw(LogAttributes['message'], 'catalogs'))\n    ))) AS providers\n  FROM otel.otel_logs\n  WHERE $__timeFilter(Timestamp)\n    AND LogAttributes['audit.direction'] = 'response'\n    AND LogAttributes['message_id'] IN (\n    SELECT SpanAttributes['message_id']\n    FROM otel.otel_traces\n    WHERE $__timeFilter(Timestamp) AND SpanKind = 'Server' AND replaceRegexpOne(SpanName, '^/', '') = 'discover')\n  GROUP BY request\n)\nARRAY JOIN providers AS provider\nWHERE provider != '' AND $__conditionalAll(provider IN ($provider), $provider)\n)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#5794F2"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 46,
+      "type": "stat",
+      "title": "Stale providers",
+      "description": "Providers with no catalogue published within the Stale after period.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 10,
+        "y": 3,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT countIf(last_ok < now() - toIntervalSecond(${stale_after:raw})) AS stale\nFROM (SELECT provider, maxIf(ts, accepted) AS last_ok FROM (\nSELECT\n  request, ts, failed_request,\n  JSONExtractString(cat, 'provider', 'id') AS provider_id,\n  transform(JSONExtractString(cat, 'provider', 'id'), ['bharat-vistaar', 'pocra'], ['Knowledge', 'PoCRA'], if(JSONExtractString(cat, 'provider', 'descriptor', 'name') != '', JSONExtractString(cat, 'provider', 'descriptor', 'name'), JSONExtractString(cat, 'provider', 'id'))) AS provider,\n  JSONExtractString(cat, 'id') AS catalog,\n  arrayFirst(r -> JSONExtractString(r, 'catalogId') = JSONExtractString(cat, 'id'),\n             JSONExtractArrayRaw(resp, 'results')) AS result,\n  JSONExtractUInt(result, 'stats', 'itemCount') AS items,\n  NOT failed_request AND JSONExtractString(result, 'status') = 'ACCEPTED' AS accepted\nFROM (\n  SELECT\n    LogAttributes['message_id'] AS request,\n    min(Timestamp) AS ts,\n    anyIf(LogAttributes['message'], LogAttributes['audit.direction'] = 'request') AS req,\n    anyIf(LogAttributes['message'], LogAttributes['audit.direction'] = 'response') AS resp,\n    max(toUInt16OrZero(LogAttributes['http.response.status_code'])) >= 400 AS failed_request\n  FROM otel.otel_logs\n  WHERE $__timeFilter(Timestamp)\n    AND LogAttributes['audit.direction'] IN ('request', 'response')\n    AND LogAttributes['message_id'] IN (\n    SELECT SpanAttributes['message_id']\n    FROM otel.otel_traces\n    WHERE $__timeFilter(Timestamp) AND SpanKind = 'Server' AND replaceRegexpOne(SpanName, '^/', '') = 'publish')\n  GROUP BY request\n)\nARRAY JOIN JSONExtractArrayRaw(req, 'catalogs') AS cat\nWHERE provider != '' AND $__conditionalAll(provider IN ($provider), $provider)\n) GROUP BY provider HAVING countIf(accepted) > 0)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 47,
+      "type": "stat",
+      "title": "Catalogues published",
+      "description": "Catalogues the network accepted.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 3,
+        "w": 5,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT $__timeInterval(ts) AS time, countIf(accepted) AS \"Catalogues published\" FROM (\nSELECT\n  request, ts, failed_request,\n  JSONExtractString(cat, 'provider', 'id') AS provider_id,\n  transform(JSONExtractString(cat, 'provider', 'id'), ['bharat-vistaar', 'pocra'], ['Knowledge', 'PoCRA'], if(JSONExtractString(cat, 'provider', 'descriptor', 'name') != '', JSONExtractString(cat, 'provider', 'descriptor', 'name'), JSONExtractString(cat, 'provider', 'id'))) AS provider,\n  JSONExtractString(cat, 'id') AS catalog,\n  arrayFirst(r -> JSONExtractString(r, 'catalogId') = JSONExtractString(cat, 'id'),\n             JSONExtractArrayRaw(resp, 'results')) AS result,\n  JSONExtractUInt(result, 'stats', 'itemCount') AS items,\n  NOT failed_request AND JSONExtractString(result, 'status') = 'ACCEPTED' AS accepted\nFROM (\n  SELECT\n    LogAttributes['message_id'] AS request,\n    min(Timestamp) AS ts,\n    anyIf(LogAttributes['message'], LogAttributes['audit.direction'] = 'request') AS req,\n    anyIf(LogAttributes['message'], LogAttributes['audit.direction'] = 'response') AS resp,\n    max(toUInt16OrZero(LogAttributes['http.response.status_code'])) >= 400 AS failed_request\n  FROM otel.otel_logs\n  WHERE $__timeFilter(Timestamp)\n    AND LogAttributes['audit.direction'] IN ('request', 'response')\n    AND LogAttributes['message_id'] IN (\n    SELECT SpanAttributes['message_id']\n    FROM otel.otel_traces\n    WHERE $__timeFilter(Timestamp) AND SpanKind = 'Server' AND replaceRegexpOne(SpanName, '^/', '') = 'publish')\n  GROUP BY request\n)\nARRAY JOIN JSONExtractArrayRaw(req, 'catalogs') AS cat\nWHERE provider != '' AND $__conditionalAll(provider IN ($provider), $provider)\n) GROUP BY time ORDER BY time WITH FILL FROM toStartOfInterval($__fromTime, INTERVAL $__interval_s second) TO $__toTime STEP $__interval_s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#73BF69"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 48,
+      "type": "stat",
+      "title": "Catalogues rejected",
+      "description": "Catalogues the network did not accept, for example because of invalid data.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 19,
+        "y": 3,
+        "w": 5,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT $__timeInterval(ts) AS time, countIf(NOT accepted) AS \"Catalogues rejected\" FROM (\nSELECT\n  request, ts, failed_request,\n  JSONExtractString(cat, 'provider', 'id') AS provider_id,\n  transform(JSONExtractString(cat, 'provider', 'id'), ['bharat-vistaar', 'pocra'], ['Knowledge', 'PoCRA'], if(JSONExtractString(cat, 'provider', 'descriptor', 'name') != '', JSONExtractString(cat, 'provider', 'descriptor', 'name'), JSONExtractString(cat, 'provider', 'id'))) AS provider,\n  JSONExtractString(cat, 'id') AS catalog,\n  arrayFirst(r -> JSONExtractString(r, 'catalogId') = JSONExtractString(cat, 'id'),\n             JSONExtractArrayRaw(resp, 'results')) AS result,\n  JSONExtractUInt(result, 'stats', 'itemCount') AS items,\n  NOT failed_request AND JSONExtractString(result, 'status') = 'ACCEPTED' AS accepted\nFROM (\n  SELECT\n    LogAttributes['message_id'] AS request,\n    min(Timestamp) AS ts,\n    anyIf(LogAttributes['message'], LogAttributes['audit.direction'] = 'request') AS req,\n    anyIf(LogAttributes['message'], LogAttributes['audit.direction'] = 'response') AS resp,\n    max(toUInt16OrZero(LogAttributes['http.response.status_code'])) >= 400 AS failed_request\n  FROM otel.otel_logs\n  WHERE $__timeFilter(Timestamp)\n    AND LogAttributes['audit.direction'] IN ('request', 'response')\n    AND LogAttributes['message_id'] IN (\n    SELECT SpanAttributes['message_id']\n    FROM otel.otel_traces\n    WHERE $__timeFilter(Timestamp) AND SpanKind = 'Server' AND replaceRegexpOne(SpanName, '^/', '') = 'publish')\n  GROUP BY request\n)\nARRAY JOIN JSONExtractArrayRaw(req, 'catalogs') AS cat\nWHERE provider != '' AND $__conditionalAll(provider IN ($provider), $provider)\n) GROUP BY time ORDER BY time WITH FILL FROM toStartOfInterval($__fromTime, INTERVAL $__interval_s second) TO $__toTime STEP $__interval_s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#F2495C"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 49,
+      "type": "row",
+      "title": "Providers",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 50,
+      "type": "table",
+      "title": "Provider status",
+      "description": "Status of each provider. Active: last catalogue published within the Stale after period. Stale: nothing published within that period. Last publish failed: the latest catalogue was rejected. Publishing failed: every catalogue was rejected. Not published: seen only in discover results. Items in last publish: items in the last accepted catalogue.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT\n  provider AS \"Provider\",\n  multiIf(countIf(kind = 'publish') = 0, 'Not published',\n          countIf(kind = 'publish' AND accepted) = 0, 'Publishing failed',\n          NOT argMaxIf(accepted, ts, kind = 'publish'), 'Last publish failed',\n          maxIf(ts, kind = 'publish' AND accepted) < now() - toIntervalSecond(${stale_after:raw}), 'Stale',\n          'Active') AS \"Status\",\n  if(countIf(kind = 'publish' AND accepted) > 0, maxIf(ts, kind = 'publish' AND accepted), NULL) AS \"Last published\",\n  countIf(kind = 'publish' AND accepted) AS \"Catalogues published\",\n  countIf(kind = 'publish' AND NOT accepted) AS \"Catalogues rejected\",\n  arraySum(arrayMap(t -> t.3,\n    arrayFilter(t -> t.1 = argMaxIf(request, ts, kind = 'publish' AND accepted),\n                groupArrayIf((request, ts, items), kind = 'publish' AND accepted)))) AS \"Items in last publish\",\n  uniqExactIf(request, kind = 'answer') AS \"In discover results\"\nFROM (\n  SELECT 'publish' AS kind, request, ts, provider, provider_id, items, accepted FROM (\nSELECT\n  request, ts, failed_request,\n  JSONExtractString(cat, 'provider', 'id') AS provider_id,\n  transform(JSONExtractString(cat, 'provider', 'id'), ['bharat-vistaar', 'pocra'], ['Knowledge', 'PoCRA'], if(JSONExtractString(cat, 'provider', 'descriptor', 'name') != '', JSONExtractString(cat, 'provider', 'descriptor', 'name'), JSONExtractString(cat, 'provider', 'id'))) AS provider,\n  JSONExtractString(cat, 'id') AS catalog,\n  arrayFirst(r -> JSONExtractString(r, 'catalogId') = JSONExtractString(cat, 'id'),\n             JSONExtractArrayRaw(resp, 'results')) AS result,\n  JSONExtractUInt(result, 'stats', 'itemCount') AS items,\n  NOT failed_request AND JSONExtractString(result, 'status') = 'ACCEPTED' AS accepted\nFROM (\n  SELECT\n    LogAttributes['message_id'] AS request,\n    min(Timestamp) AS ts,\n    anyIf(LogAttributes['message'], LogAttributes['audit.direction'] = 'request') AS req,\n    anyIf(LogAttributes['message'], LogAttributes['audit.direction'] = 'response') AS resp,\n    max(toUInt16OrZero(LogAttributes['http.response.status_code'])) >= 400 AS failed_request\n  FROM otel.otel_logs\n  WHERE $__timeFilter(Timestamp)\n    AND LogAttributes['audit.direction'] IN ('request', 'response')\n    AND LogAttributes['message_id'] IN (\n    SELECT SpanAttributes['message_id']\n    FROM otel.otel_traces\n    WHERE $__timeFilter(Timestamp) AND SpanKind = 'Server' AND replaceRegexpOne(SpanName, '^/', '') = 'publish')\n  GROUP BY request\n)\nARRAY JOIN JSONExtractArrayRaw(req, 'catalogs') AS cat\nWHERE provider != '' AND $__conditionalAll(provider IN ($provider), $provider)\n)\n  UNION ALL\n  SELECT 'answer' AS kind, request, ts, provider, '' AS provider_id, 0 AS items, false AS accepted FROM (\nSELECT request, ts, provider\nFROM (\n  SELECT\n    LogAttributes['message_id'] AS request,\n    min(Timestamp) AS ts,\n    arrayDistinct(arrayFlatten(groupArray(\n      arrayMap(c -> transform(JSONExtractString(c, 'provider', 'id'), ['bharat-vistaar', 'pocra'], ['Knowledge', 'PoCRA'], if(JSONExtractString(c, 'provider', 'descriptor', 'name') != '', JSONExtractString(c, 'provider', 'descriptor', 'name'), JSONExtractString(c, 'provider', 'id'))), JSONExtractArrayRaw(LogAttributes['message'], 'catalogs'))\n    ))) AS providers\n  FROM otel.otel_logs\n  WHERE $__timeFilter(Timestamp)\n    AND LogAttributes['audit.direction'] = 'response'\n    AND LogAttributes['message_id'] IN (\n    SELECT SpanAttributes['message_id']\n    FROM otel.otel_traces\n    WHERE $__timeFilter(Timestamp) AND SpanKind = 'Server' AND replaceRegexpOne(SpanName, '^/', '') = 'discover')\n  GROUP BY request\n)\nARRAY JOIN providers AS provider\nWHERE provider != '' AND $__conditionalAll(provider IN ($provider), $provider)\n)\n)\nGROUP BY provider\nORDER BY provider"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Active": {
+                        "color": "green",
+                        "index": 0
+                      },
+                      "Stale": {
+                        "color": "orange",
+                        "index": 1
+                      },
+                      "Last publish failed": {
+                        "color": "red",
+                        "index": 2
+                      },
+                      "Publishing failed": {
+                        "color": "red",
+                        "index": 3
+                      },
+                      "Not published": {
+                        "color": "text",
+                        "index": 4
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last published"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "In discover results"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Catalogues rejected"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F2495C"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 51,
+      "type": "row",
+      "title": "Activity",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 52,
+      "type": "timeseries",
+      "title": "Catalogues published",
+      "description": "When a provider's bars stop, it has stopped publishing.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT $__timeInterval(ts) AS time, provider, count() AS catalogues\nFROM (\nSELECT\n  request, ts, failed_request,\n  JSONExtractString(cat, 'provider', 'id') AS provider_id,\n  transform(JSONExtractString(cat, 'provider', 'id'), ['bharat-vistaar', 'pocra'], ['Knowledge', 'PoCRA'], if(JSONExtractString(cat, 'provider', 'descriptor', 'name') != '', JSONExtractString(cat, 'provider', 'descriptor', 'name'), JSONExtractString(cat, 'provider', 'id'))) AS provider,\n  JSONExtractString(cat, 'id') AS catalog,\n  arrayFirst(r -> JSONExtractString(r, 'catalogId') = JSONExtractString(cat, 'id'),\n             JSONExtractArrayRaw(resp, 'results')) AS result,\n  JSONExtractUInt(result, 'stats', 'itemCount') AS items,\n  NOT failed_request AND JSONExtractString(result, 'status') = 'ACCEPTED' AS accepted\nFROM (\n  SELECT\n    LogAttributes['message_id'] AS request,\n    min(Timestamp) AS ts,\n    anyIf(LogAttributes['message'], LogAttributes['audit.direction'] = 'request') AS req,\n    anyIf(LogAttributes['message'], LogAttributes['audit.direction'] = 'response') AS resp,\n    max(toUInt16OrZero(LogAttributes['http.response.status_code'])) >= 400 AS failed_request\n  FROM otel.otel_logs\n  WHERE $__timeFilter(Timestamp)\n    AND LogAttributes['audit.direction'] IN ('request', 'response')\n    AND LogAttributes['message_id'] IN (\n    SELECT SpanAttributes['message_id']\n    FROM otel.otel_traces\n    WHERE $__timeFilter(Timestamp) AND SpanKind = 'Server' AND replaceRegexpOne(SpanName, '^/', '') = 'publish')\n  GROUP BY request\n)\nARRAY JOIN JSONExtractArrayRaw(req, 'catalogs') AS cat\nWHERE provider != '' AND $__conditionalAll(provider IN ($provider), $provider)\n)\nWHERE accepted\nGROUP BY time, provider\nORDER BY time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "fillOpacity": 90,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "pointSize": 6,
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "displayName": "${__field.labels.provider}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 53,
+      "type": "timeseries",
+      "title": "In discover results",
+      "description": "How many discover results included each provider's data.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT $__timeInterval(ts) AS time, provider, count() AS answers\nFROM (\nSELECT request, ts, provider\nFROM (\n  SELECT\n    LogAttributes['message_id'] AS request,\n    min(Timestamp) AS ts,\n    arrayDistinct(arrayFlatten(groupArray(\n      arrayMap(c -> transform(JSONExtractString(c, 'provider', 'id'), ['bharat-vistaar', 'pocra'], ['Knowledge', 'PoCRA'], if(JSONExtractString(c, 'provider', 'descriptor', 'name') != '', JSONExtractString(c, 'provider', 'descriptor', 'name'), JSONExtractString(c, 'provider', 'id'))), JSONExtractArrayRaw(LogAttributes['message'], 'catalogs'))\n    ))) AS providers\n  FROM otel.otel_logs\n  WHERE $__timeFilter(Timestamp)\n    AND LogAttributes['audit.direction'] = 'response'\n    AND LogAttributes['message_id'] IN (\n    SELECT SpanAttributes['message_id']\n    FROM otel.otel_traces\n    WHERE $__timeFilter(Timestamp) AND SpanKind = 'Server' AND replaceRegexpOne(SpanName, '^/', '') = 'discover')\n  GROUP BY request\n)\nARRAY JOIN providers AS provider\nWHERE provider != '' AND $__conditionalAll(provider IN ($provider), $provider)\n)\nGROUP BY time, provider\nORDER BY time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "fillOpacity": 90,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "pointSize": 6,
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "displayName": "${__field.labels.provider}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    }
+  ]
+}

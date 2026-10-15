@@ -1,0 +1,600 @@
+{
+  "uid": "infra-overview",
+  "title": "Infra — Resource Usage",
+  "description": "CPU, memory, disk and network usage of the OAN services.",
+  "tags": [
+    "oan",
+    "infra",
+    "clickhouse",
+    "otel"
+  ],
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "graphTooltip": 1,
+  "editable": true,
+  "id": null,
+  "timezone": "browser",
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "namespace",
+        "label": "Namespace",
+        "description": "",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "clickhouse"
+        },
+        "query": {
+          "refId": "namespace-variable",
+          "editorType": "sql",
+          "rawSql": "SELECT DISTINCT ResourceAttributes['k8s.namespace.name'] AS namespace\nFROM otel.otel_metrics_gauge\nWHERE $__timeFilter(TimeUnix)\n  AND MetricName = 'k8s.pod.cpu.usage'\nORDER BY namespace",
+          "format": 1,
+          "queryType": "sql"
+        },
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "options": [],
+        "sort": 1,
+        "hide": 0,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        }
+      },
+      {
+        "name": "service",
+        "label": "Service",
+        "description": "",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "clickhouse"
+        },
+        "query": {
+          "refId": "service-variable",
+          "editorType": "sql",
+          "rawSql": "SELECT DISTINCT multiIf(ServiceName != '', ServiceName, ResourceAttributes['k8s.deployment.name'] != '', ResourceAttributes['k8s.deployment.name'], ResourceAttributes['k8s.statefulset.name'] != '', ResourceAttributes['k8s.statefulset.name'], ResourceAttributes['k8s.daemonset.name'] != '', ResourceAttributes['k8s.daemonset.name'], ResourceAttributes['k8s.job.name'] != '', ResourceAttributes['k8s.job.name'], ResourceAttributes['k8s.pod.name']) AS service\nFROM otel.otel_metrics_gauge\nWHERE $__timeFilter(TimeUnix)\n  AND MetricName = 'k8s.pod.cpu.usage'\n  AND $__conditionalAll(ResourceAttributes['k8s.namespace.name'] IN ($namespace), $namespace)\nORDER BY service",
+          "format": 1,
+          "queryType": "sql"
+        },
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "options": [],
+        "sort": 1,
+        "hide": 0,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "CPU, memory, disk and network usage of the OAN services, collected every 20 seconds."
+      },
+      "transparent": true
+    },
+    {
+      "id": 4,
+      "type": "row",
+      "title": "CPU",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 2,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "CPU usage",
+      "description": "CPU used by each service. 100% equals one full CPU core.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT time, service, sum(v) AS value\nFROM (\n  SELECT\n    $__timeInterval(TimeUnix) AS time,\n    multiIf(ServiceName != '', ServiceName, ResourceAttributes['k8s.deployment.name'] != '', ResourceAttributes['k8s.deployment.name'], ResourceAttributes['k8s.statefulset.name'] != '', ResourceAttributes['k8s.statefulset.name'], ResourceAttributes['k8s.daemonset.name'] != '', ResourceAttributes['k8s.daemonset.name'], ResourceAttributes['k8s.job.name'] != '', ResourceAttributes['k8s.job.name'], ResourceAttributes['k8s.pod.name']) AS service,\n    ResourceAttributes['k8s.pod.uid'] AS pod,\n    avg(Value) * 100 AS v\n  FROM otel.otel_metrics_gauge\n  WHERE $__timeFilter(TimeUnix)\n    AND MetricName = 'k8s.pod.cpu.usage'\n    AND $__conditionalAll(ResourceAttributes['k8s.namespace.name'] IN ($namespace), $namespace)\n  AND $__conditionalAll(multiIf(ServiceName != '', ServiceName, ResourceAttributes['k8s.deployment.name'] != '', ResourceAttributes['k8s.deployment.name'], ResourceAttributes['k8s.statefulset.name'] != '', ResourceAttributes['k8s.statefulset.name'], ResourceAttributes['k8s.daemonset.name'] != '', ResourceAttributes['k8s.daemonset.name'], ResourceAttributes['k8s.job.name'] != '', ResourceAttributes['k8s.job.name'], ResourceAttributes['k8s.pod.name']) IN ($service), $service)\n  GROUP BY time, service, pod\n)\nGROUP BY time, service\nORDER BY time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "pointSize": 6,
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "displayName": "${__field.labels.service}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "row",
+      "title": "Memory",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Memory usage",
+      "description": "Memory used by each service (working set).",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT time, service, sum(v) AS value\nFROM (\n  SELECT\n    $__timeInterval(TimeUnix) AS time,\n    multiIf(ServiceName != '', ServiceName, ResourceAttributes['k8s.deployment.name'] != '', ResourceAttributes['k8s.deployment.name'], ResourceAttributes['k8s.statefulset.name'] != '', ResourceAttributes['k8s.statefulset.name'], ResourceAttributes['k8s.daemonset.name'] != '', ResourceAttributes['k8s.daemonset.name'], ResourceAttributes['k8s.job.name'] != '', ResourceAttributes['k8s.job.name'], ResourceAttributes['k8s.pod.name']) AS service,\n    ResourceAttributes['k8s.pod.uid'] AS pod,\n    avg(Value) AS v\n  FROM otel.otel_metrics_gauge\n  WHERE $__timeFilter(TimeUnix)\n    AND MetricName = 'k8s.pod.memory.working_set'\n    AND $__conditionalAll(ResourceAttributes['k8s.namespace.name'] IN ($namespace), $namespace)\n  AND $__conditionalAll(multiIf(ServiceName != '', ServiceName, ResourceAttributes['k8s.deployment.name'] != '', ResourceAttributes['k8s.deployment.name'], ResourceAttributes['k8s.statefulset.name'] != '', ResourceAttributes['k8s.statefulset.name'], ResourceAttributes['k8s.daemonset.name'] != '', ResourceAttributes['k8s.daemonset.name'], ResourceAttributes['k8s.job.name'] != '', ResourceAttributes['k8s.job.name'], ResourceAttributes['k8s.pod.name']) IN ($service), $service)\n  GROUP BY time, service, pod\n)\nGROUP BY time, service\nORDER BY time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "pointSize": 6,
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "displayName": "${__field.labels.service}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "sortBy": "Last *",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Disk",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Disk usage",
+      "description": "Disk space used by each service's containers, not counting volumes.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT time, service, sum(v) AS value\nFROM (\n  SELECT\n    $__timeInterval(TimeUnix) AS time,\n    multiIf(ServiceName != '', ServiceName, ResourceAttributes['k8s.deployment.name'] != '', ResourceAttributes['k8s.deployment.name'], ResourceAttributes['k8s.statefulset.name'] != '', ResourceAttributes['k8s.statefulset.name'], ResourceAttributes['k8s.daemonset.name'] != '', ResourceAttributes['k8s.daemonset.name'], ResourceAttributes['k8s.job.name'] != '', ResourceAttributes['k8s.job.name'], ResourceAttributes['k8s.pod.name']) AS service,\n    ResourceAttributes['k8s.pod.uid'] AS pod,\n    avg(Value) AS v\n  FROM otel.otel_metrics_gauge\n  WHERE $__timeFilter(TimeUnix)\n    AND MetricName = 'k8s.pod.filesystem.usage'\n    AND $__conditionalAll(ResourceAttributes['k8s.namespace.name'] IN ($namespace), $namespace)\n  AND $__conditionalAll(multiIf(ServiceName != '', ServiceName, ResourceAttributes['k8s.deployment.name'] != '', ResourceAttributes['k8s.deployment.name'], ResourceAttributes['k8s.statefulset.name'] != '', ResourceAttributes['k8s.statefulset.name'], ResourceAttributes['k8s.daemonset.name'] != '', ResourceAttributes['k8s.daemonset.name'], ResourceAttributes['k8s.job.name'] != '', ResourceAttributes['k8s.job.name'], ResourceAttributes['k8s.pod.name']) IN ($service), $service)\n  GROUP BY time, service, pod\n)\nGROUP BY time, service\nORDER BY time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "pointSize": 6,
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "displayName": "${__field.labels.service}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Volume usage",
+      "description": "Share of each persistent volume in use, such as the database volumes.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 21,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3",
+          "rawSql": "SELECT\n  $__timeInterval(TimeUnix) AS time,\n  ResourceAttributes['k8s.persistentvolumeclaim.name'] AS volume,\n  100 * (1 - avgIf(Value, MetricName = 'k8s.volume.available') / nullIf(avgIf(Value, MetricName = 'k8s.volume.capacity'), 0)) AS used\nFROM otel.otel_metrics_gauge\nWHERE $__timeFilter(TimeUnix)\n  AND MetricName IN ('k8s.volume.available', 'k8s.volume.capacity')\n  AND ResourceAttributes['k8s.persistentvolumeclaim.name'] != ''\n  AND $__conditionalAll(ResourceAttributes['k8s.namespace.name'] IN ($namespace), $namespace)\n  AND $__conditionalAll(multiIf(ServiceName != '', ServiceName, ResourceAttributes['k8s.deployment.name'] != '', ResourceAttributes['k8s.deployment.name'], ResourceAttributes['k8s.statefulset.name'] != '', ResourceAttributes['k8s.statefulset.name'], ResourceAttributes['k8s.daemonset.name'] != '', ResourceAttributes['k8s.daemonset.name'], ResourceAttributes['k8s.job.name'] != '', ResourceAttributes['k8s.job.name'], ResourceAttributes['k8s.pod.name']) IN ($service), $service)\nGROUP BY time, volume\nORDER BY time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "pointSize": 6,
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "displayName": "${__field.labels.volume}",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "row",
+      "title": "Network",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 11,
+          "type": "timeseries",
+          "title": "Network I/O",
+          "description": "Data received and sent over the network, per second.",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 30,
+            "w": 24,
+            "h": 8
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "grafana-clickhouse-datasource",
+                "uid": "clickhouse"
+              },
+              "editorType": "sql",
+              "format": 0,
+              "queryType": "sql",
+              "pluginVersion": "4.21.3",
+              "rawSql": "SELECT time, service, direction, sum(bps) AS value\nFROM (\n  SELECT\n    time, service, direction,\n    (v - lagInFrame(v) OVER w) / greatest(toUnixTimestamp(time) - toUnixTimestamp(lagInFrame(time) OVER w), 1) AS bps,\n    row_number() OVER w AS rn\n  FROM (\n    SELECT\n      $__timeInterval(TimeUnix) AS time,\n      multiIf(ServiceName != '', ServiceName, ResourceAttributes['k8s.deployment.name'] != '', ResourceAttributes['k8s.deployment.name'], ResourceAttributes['k8s.statefulset.name'] != '', ResourceAttributes['k8s.statefulset.name'], ResourceAttributes['k8s.daemonset.name'] != '', ResourceAttributes['k8s.daemonset.name'], ResourceAttributes['k8s.job.name'] != '', ResourceAttributes['k8s.job.name'], ResourceAttributes['k8s.pod.name']) AS service,\n      if(Attributes['direction'] = 'receive', 'in', 'out') AS direction,\n      concat(ResourceAttributes['k8s.pod.uid'], '/', Attributes['interface']) AS series,\n      max(Value) AS v\n    FROM otel.otel_metrics_sum\n    WHERE $__timeFilter(TimeUnix)\n      AND MetricName = 'k8s.pod.network.io'\n      AND $__conditionalAll(ResourceAttributes['k8s.namespace.name'] IN ($namespace), $namespace)\n  AND $__conditionalAll(multiIf(ServiceName != '', ServiceName, ResourceAttributes['k8s.deployment.name'] != '', ResourceAttributes['k8s.deployment.name'], ResourceAttributes['k8s.statefulset.name'] != '', ResourceAttributes['k8s.statefulset.name'], ResourceAttributes['k8s.daemonset.name'] != '', ResourceAttributes['k8s.daemonset.name'], ResourceAttributes['k8s.job.name'] != '', ResourceAttributes['k8s.job.name'], ResourceAttributes['k8s.pod.name']) IN ($service), $service)\n    GROUP BY time, service, direction, series\n  )\n  WINDOW w AS (PARTITION BY service, direction, series ORDER BY time ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)\n)\nWHERE rn > 1 AND bps >= 0\nGROUP BY time, service, direction\nORDER BY time"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "Bps",
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "fillOpacity": 12,
+                "gradientMode": "opacity",
+                "showPoints": "never",
+                "pointSize": 6,
+                "spanNulls": true,
+                "axisPlacement": "auto",
+                "axisSoftMin": 0,
+                "barAlignment": 0,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "displayName": "${__field.labels.service} ${__field.labels.direction}"
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

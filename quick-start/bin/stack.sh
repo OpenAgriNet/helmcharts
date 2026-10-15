@@ -3,7 +3,7 @@
 # Bring the stack up in the order it has to come up in, and take it back down.
 #
 #     bin/stack.sh up            the whole stack, in the order it has to start
-#     bin/stack.sh up-core       the same minus the gateway and hyperdx
+#     bin/stack.sh up-core       the same minus the gateway and observability
 #     bin/stack.sh down          stop everything, keep the data
 #     bin/stack.sh destroy       stop everything, DELETE the data
 #
@@ -32,8 +32,8 @@ cd "$ROOT"
 
 # Both optional profiles, named explicitly. This matters for `down`: compose
 # only acts on services whose profile is active, so a plain `docker compose
-# down` leaves the gateway and hyperdx containers running and then reports
-# success. Naming them on teardown is what makes "down" mean down.
+# down` leaves the gateway and observability containers running and then
+# reports success. Naming them on teardown is what makes "down" mean down.
 PROFILES=(--profile reverse-proxy --profile observability)
 
 # ------------------------------------------------------------------ output
@@ -67,9 +67,10 @@ preflight() {
 # ------------------------------------------------------------------- up
 
 # The full stack, in the order the compose file's own header documents. Five
-# steps rather than three: the gateway and hyperdx are behind profiles, which
-# means they are opt-in for compose, but "opt-in" and "not part of bringing the
-# stack up" are different claims and only the first one is true.
+# steps rather than three: the gateway and the observability profile are
+# behind profiles, which means they are opt-in for compose, but "opt-in" and
+# "not part of bringing the stack up" are different claims and only the first
+# one is true.
 #
 # `up-core` below is the same thing minus steps 4 and 5, for when you want
 # neither a public port nor ClickHouse's memory.
@@ -85,10 +86,11 @@ up() {
     step 4 5 "nginx-proxy-manager -- the public edge (80 and 443, all interfaces)"
     docker compose --profile reverse-proxy up -d nginx-proxy-manager
 
-    # ClickStack. Heaviest thing here by a wide margin: ClickHouse alone wants
-    # 2-4 GB, which is what takes this VM from 8 GB to 16 GB.
-    step 5 5 "hyperdx -- ClickStack (OTLP ingest, ClickHouse, UI)"
-    docker compose --profile observability up -d hyperdx
+    # ClickHouse, the collector, and Grafana. Heaviest thing here by a wide
+    # margin: ClickHouse alone wants 2-4 GB, which is what takes this VM from
+    # 8 GB to 16 GB.
+    step 5 5 "clickhouse, otel-collector, grafana -- OTLP ingest, storage, UI"
+    docker compose --profile observability up -d clickhouse otel-collector grafana
 
     done_banner
 }
@@ -192,7 +194,8 @@ This deletes every named volume in the project:
                    it up, the click-through starts over.
   sunbird-registry-postgres-data    the registry's Postgres: participants, keys, schemas.
   discovery-postgres-data   the discovery catalogue.
-  hyperdx-clickhouse-data     collected telemetry.
+  clickhouse-data     collected telemetry.
+  grafana-data        Grafana's own settings and dashboards (not telemetry).
 
 keys/keys.json is NOT deleted, and should not be -- it is what lets setup.py
 re-register the adapters under their existing identities on the next `up`.
@@ -211,7 +214,7 @@ WARN
 # ------------------------------------------------------- optional tiers
 
 # Separate targets rather than part of `up` because neither is needed to
-# exercise the stack, and hyperdx (ClickHouse) alone wants 2-4 GB.
+# exercise the stack, and ClickHouse alone wants 2-4 GB.
 reverse_proxy() {
     preflight
     step 1 1 "nginx-proxy-manager -- publishes 80 and 443 on ALL interfaces"
@@ -228,9 +231,9 @@ NEXT
 
 observability() {
     preflight
-    step 1 1 "hyperdx -- ClickStack (OTLP ingest, ClickHouse, UI)"
-    docker compose --profile observability up -d hyperdx
-    info "UI on 127.0.0.1:8085. There is no login in front of it -- keep it on loopback."
+    step 1 1 "clickhouse, otel-collector, grafana -- OTLP ingest, storage, UI"
+    docker compose --profile observability up -d clickhouse otel-collector grafana
+    info "UI on 127.0.0.1:8085. Grafana has its own login (GF_SECURITY_ADMIN_USER/PASSWORD) -- change it before exposing this, and keep it on loopback or behind an NPM Access List regardless."
 }
 
 # ------------------------------------------------------------------ pull
@@ -325,13 +328,13 @@ usage() {
 bin/stack.sh <command>
 
   up             the whole stack: registry+discovery -> setup.py -> adapters
-                 -> gateway (public, 80/443) -> hyperdx (wants 16 GB)
+                 -> gateway (public, 80/443) -> observability (wants 16 GB)
   up-core        steps 1-3 only. Nothing public, no ClickHouse.
   down           stop everything, keep the data
   destroy        stop everything and DELETE every volume
   setup          re-run bin/setup.py only
   reverse-proxy  start nginx-proxy-manager on its own (public, 80/443)
-  observability  start hyperdx on its own
+  observability  start clickhouse, otel-collector and grafana on their own
   pull           git pull, fixing the npm-custom ownership first
   restart        restart registry, discovery and the adapters only
   restart-edge   restart NPM after recreating an adapter (fixes a 502)
