@@ -37,7 +37,7 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   role.
 - `examples/network-adapter.yaml` and `ci/network-adapter-values.yaml`
   (PDB, spread, graceful shutdown; HPA 3-10 opt-in, off by default).
-- `autoscaling.behavior`, `topologySpreadConstraints`,
+- `topologySpreadConstraints`,
   `terminationGracePeriodSeconds`, `preStopSleepSeconds`, `goMemLimit`; all off
   by default.
 
@@ -68,7 +68,7 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   values never reached the pod and NOTES reported the opposite of what it ran.
   The example and CI values no longer set them.
 - The Ingress annotations merge tolerates `ingress.annotations: null`.
-  `ci/network-adapter-ingress-values.yaml` renders the path guard in CI.
+  `ci/network-adapter-values.yaml` turns the Ingress on, so CI renders the path guard.
 
 ### Removed
 - Unused helpers `adapter-service.name`, `.appName`, `.otelServiceName`,

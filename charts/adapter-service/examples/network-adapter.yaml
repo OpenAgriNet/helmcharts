@@ -83,19 +83,6 @@ autoscaling:
   minReplicas: 3          # one per node with the spread constraint below
   maxReplicas: 10
   targetCPUUtilizationPercentage: 70
-  behavior:
-    scaleUp:
-      stabilizationWindowSeconds: 0
-      policies:
-        - type: Percent
-          value: 100
-          periodSeconds: 30
-    scaleDown:
-      stabilizationWindowSeconds: 300
-      policies:
-        - type: Pods
-          value: 1
-          periodSeconds: 60
 
 podDisruptionBudget:
   enabled: true

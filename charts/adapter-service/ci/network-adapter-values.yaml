@@ -8,6 +8,11 @@
 # settings, so those templates are linted too. The HPA stays off, as in
 # examples/network-adapter.yaml: autoscaling is opt-in. Pinned image tag so the render
 # is reproducible.
+#
+# The Ingress is on so the path guard in templates/ingress.yaml runs in CI: the
+# allowed path shape (one-segment /<action>, Exact and Prefix) must render.
+# ingress.annotations is null on purpose, to cover the `| default dict` on the
+# annotations merge.
 role: network-adapter-layer
 fullnameOverride: network-adapter
 
@@ -55,19 +60,6 @@ autoscaling:
   minReplicas: 3
   maxReplicas: 10
   targetCPUUtilizationPercentage: 70
-  behavior:
-    scaleUp:
-      stabilizationWindowSeconds: 0
-      policies:
-        - type: Percent
-          value: 100
-          periodSeconds: 30
-    scaleDown:
-      stabilizationWindowSeconds: 300
-      policies:
-        - type: Pods
-          value: 1
-          periodSeconds: 60
 podDisruptionBudget:
   enabled: true
   minAvailable: 1
@@ -77,3 +69,17 @@ topologySpreadConstraints:
     whenUnsatisfiable: ScheduleAnyway
 terminationGracePeriodSeconds: 40
 preStopSleepSeconds: 10
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations: null
+  hosts:
+    - host: network-adapter.ci.example.com
+      paths:
+        - path: /discover
+          pathType: Exact
+        - path: /select
+          pathType: Prefix
+        - path: /status
+          pathType: Exact

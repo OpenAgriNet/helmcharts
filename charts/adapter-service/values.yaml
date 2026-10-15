@@ -380,8 +380,6 @@ autoscaling:
   maxReplicas: 6
   targetCPUUtilizationPercentage: 75
   targetMemoryUtilizationPercentage: ""
-  # Passed through to the HPA as spec.behavior. {} = Kubernetes defaults.
-  behavior: {}
 
 podDisruptionBudget:
   enabled: false

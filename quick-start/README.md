@@ -3,90 +3,15 @@
 The whole OAN stack in Docker Compose: a registry, a discovery service, the
 network adapter, and two mock upstreams standing in for real provider APIs.
 
-- **Install and run it:** [SETUP.md](SETUP.md)
-- **What changed, by version:** [CHANGELOG.md](CHANGELOG.md)
-- **TLS certificates for the VM edge:** [CERTIFICATES.md](CERTIFICATES.md)
+The adapter runs in one of two modes, from the same compose file, keys and
+registry. **Single is the default**: one container, `network-adapter`, runs the
+consumer, network and provider tiers on port 9200. **Multi is optional**: the
+three tiers as three containers. → [Two modes](#two-modes).
 
-## Quick start
-
-```sh
-cp .env.example .env
-make up-core      # single mode (default): registry, discovery, setup, the network adapter on 9200
-```
-
-Prerequisites, the VM path and the checks are in [SETUP.md](SETUP.md).
-
-## Modes
-
-The adapter has three tiers: **consumer** (the caller's entry), **network**
-(fronts discovery) and **provider** (calls the upstream). The quick-start runs
-them in one of two modes. Same `docker-compose.yml`, same image, same keys,
-same registry and data; a compose profile picks the adapters.
-
-**Single mode is the default. Multi mode is optional.**
-
-| | single (default) | multi (optional) |
-|---|---|---|
-| What runs | one container, `network-adapter`, with all three tiers as modules | three containers: `consumer-adapter`, `network-adapter`, `provider-adapter` |
-| Compose profile | `network` | `multi` |
-| Start, local | `make up-core` | `make up-core-multi` |
-| Start, VM (with edge and observability) | `make up` | `make up-multi` |
-| Ports | `127.0.0.1:9200` | 9200 provider, 9201 network, 9202 consumer |
-| App calls | `:9200/discover`, `:9200/select` | `:9202/discover`, `:9202/select` |
-| Catalogue publishes to | `:9200/publish` | `:9200/publish` |
-| Tier-to-tier hops | loopback HTTP inside the container | HTTP between containers |
-| Port setting in `.env` | `NETWORK_ADAPTER_LAYER_PORT` | `PROVIDER_ADAPTER_PORT`, `NETWORK_ADAPTER_PORT`, `CONSUMER_ADAPTER_PORT` |
-
-**When to use which.** Single is the everyday choice: one container, fewer
-hops, the same requests. Use multi to reproduce a deployment where the tiers
-run separately (different teams, separate scaling or rollouts), or to compare
-the two.
-
-Signing is off in every quick-start adapter config, in both modes, so the
-adapter ports stay on `127.0.0.1` (the compose file binds them there).
-
-## How to switch
-
-Only one mode runs at a time: both use port 9200, and both have a container
-called `network-adapter`. Switching is running the other mode's target; it
-removes the running mode's adapters first, and starts the other's.
-
-```sh
-make up-core-multi    # single  ->  multi
-make up-core          # multi   ->  single
-```
-
-On a VM use `make up-multi` / `make up`. If nginx-proxy-manager is running it
-is restarted so it re-resolves the adapter addresses: the public hosts drop
-connections for a few seconds. Repoint the proxy hosts (Appendix B) in the
-same window.
-
-Other ways to pick the mode:
-
-| How | Single | Multi |
-|---|---|---|
-| make target | `make up-core` / `make up` | `make up-core-multi` / `make up-multi` |
-| `MODE` variable (works with `up` and `up-core`; `restart` follows the running mode) | `MODE=single make up-core` (the default) | `MODE=multi make up-core` |
-| plain compose | `docker compose --profile network up -d` | `docker compose --profile multi up -d` |
-| bare `docker compose up -d` | `COMPOSE_PROFILES=network` in `.env` (as in `.env.example`) | `COMPOSE_PROFILES=multi` in `.env` |
-
-Without `COMPOSE_PROFILES` a bare `docker compose up -d` starts no adapter.
-`bin/stack.sh` (behind every make target) passes `--profile` itself and
-ignores `COMPOSE_PROFILES`.
-
-These follow whichever mode is running, with nothing to set: `make down`,
-`make ps`, `make logs`, `make restart`.
-
-Which mode is running:
-
-```sh
-docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' network-adapter
-# network-adapter-layer = single, network-adapter = multi
-```
-
-One API collection serves both modes; pick the environment for the running
-mode (SETUP.md Step 6): `OpenAgriNet.network-adapter.local-environment.json`
-for single, `OpenAgriNet.local-environment.json` for multi.
+Nothing is built here — the images are pulled. Locally that is about ten
+minutes, most of it waiting for Keycloak. Discovery is the one exception, and
+only if you ask for it: see [Appendix H](#appendix-h--telemetry), which is also
+where the reason lives.
 
 ## The stack in one picture
 
@@ -105,38 +30,319 @@ for single, `OpenAgriNet.local-environment.json` for multi.
 `publish` runs the other way: the provider adapter sends it to the network
 adapter, which files the catalogue in discovery.
 
-In single mode each adapter box above is a module of the one
-`network-adapter` container, and the arrows between them are calls inside
-that container. In multi mode each box is its own container.
-
-All three tiers read the registry — who signed this request, and where this
+All three adapters read the registry — who signed this request, and where this
 capability's provider lives.
 
 A `select` answers in the same HTTP round trip — there is no callback.
 
-That is the request order. **Startup order is the reverse**: registry and
-discovery first, then `setup.py`, then the adapters. → Appendix C.
+The picture shows the three tiers. In single mode (the default) they are
+modules of one container, and the arrows between them are calls inside it.
 
-## How single mode is wired
+That is the request order. **Startup order is the reverse**: in multi mode the
+consumer adapter depends on the other two, so Compose brings them up first. The steps
+below follow startup order, so they work top to bottom.
 
-`config/adapters/network-adapter.yaml.tmpl`, beside the three tier templates.
-`bin/setup.py` renders it into `config/adapters/network-adapter.yaml` like the
-others. Each module is its tier's module from the tier template, so a change
-to a tier template that should apply in both modes goes in this file too. On
-top: extended schema validation on every module, an outbound connection pool
-and log level info. Each module keeps its own tier identity. It is the same
-layout as the Helm chart's `config/network-adapter-config.yaml`.
+## Which path are you on?
 
-| Module | Path | From | Routing file | Routes |
-|---|---|---|---|---|
-| `consumer` | `/<action>` | `consumer.yaml.tmpl` | `routing-network-adapter-consumer.yaml` | discover to `localhost:9200/_internal/network`; select, init, confirm, status to `localhost:9200/_internal/provider` |
-| `network` | `/_internal/network/<action>` | `network.yaml.tmpl` | `routing-network.yaml` (the multi file, reused) | discover, publish to discovery |
-| `provider` | `/_internal/provider/<action>` | `provider.yaml.tmpl` (module 1) | none: answers itself | n/a |
-| `provider-publish` | `/publish` | `provider.yaml.tmpl` (module 2) | `routing-network-adapter-publish.yaml` | to `localhost:9200/_internal/network/publish` |
+|                      | Local                    | VM                          |
+|----------------------|--------------------------|-----------------------------|
+| Reached over         | `localhost`              | a public hostname, TLS      |
+| Public edge (Nginx)  | not started              | started, on 80 and 443      |
+| Observability        | not started              | optional, wants 2–4 GB      |
+| Credentials          | shipped defaults are ok  | **must all be changed**     |
+| Command              | `make up-core`           | `make up`                   |
+| Multi mode instead   | `make up-core-multi`     | `make up-multi`             |
 
-The hops between modules are HTTP calls to the same container; in multi mode
-only the hosts differ. 9200 is the container's own listener and must match
-`http.port` in `network-adapter.yaml.tmpl`.
+**Local** is Part 1. **VM** is Part 1, then Part 2 for the differences.
+
+---
+
+# Part 1 — Run it locally
+
+## Step 1 — Prerequisites
+
+- `git`
+- Docker with **Compose v2.20 or later** — `docker compose version` must work, not `docker-compose`; the compose file uses `depends_on: required: false`, which older v2 releases reject
+- `python3` with `cryptography` — `pip install cryptography`
+- `curl`
+
+## Step 2 — Get the repo
+
+```sh
+git clone -b development https://github.com/OpenAgriNet/helmcharts.git
+cd helmcharts/quick-start
+```
+
+**Every command below runs from `quick-start/`** — it is where the compose file
+and the Makefile live.
+
+## Step 3 — Configure
+
+```sh
+cp .env.example .env
+```
+
+Locally, nothing in it needs changing. It publishes these on `localhost`:
+
+```
+8081  registry        9200  network adapter (single) 9100  mock-imd
+8080  keycloak              or provider adapter (multi)  9101  mock-agmarknet
+9990  keycloak admin  9201  network adapter  (multi only)
+8090  discovery       9202  consumer adapter (multi only)
+```
+
+If one is already taken, change it here — that is the only edit a local run
+needs. The single adapter's port is `NETWORK_ADAPTER_LAYER_PORT`. Adapters reach each other by Compose service name, so it only changes
+what you type into Postman.
+
+## Step 4 — Start it
+
+```sh
+make up-core
+```
+
+Three tiers, in the only order that works: registry and discovery, then
+`bin/setup.py`, then the adapter (`network-adapter` on 9200; `make up-core-multi`
+starts the three adapters instead). Allow up to five minutes
+the first time — Keycloak on a cold volume.
+
+`setup.py` generates a keypair per adapter, registers seven participants and four
+capability bindings, and renders the adapter configs (the three tier configs and
+the single adapter's `network-adapter.yaml`). Nothing needs
+creating by hand. → Appendix C for why the order matters, Appendix D for what
+it wrote.
+
+```sh
+make ps
+```
+
+## Step 5 — Provider layer
+
+> Steps 5–7 describe the three tiers. In single mode they run in one container,
+> so check them with `docker logs network-adapter` instead of the
+> `docker compose logs <tier>-adapter` commands below.
+
+Answers `select`, and the only layer that calls an upstream. Serves all four
+capabilities from one adapter.
+
+`.env` keys: `PROVIDER_SUBSCRIBER_ID`, and the four pairs that become binding
+keys — `MAUSAMGRAM_PARTICIPANT_ID` + `MAUSAMGRAM_CAPABILITY`,
+`AGMARKNET_PARTICIPANT_ID` + `AGMARKNET_CAPABILITY`, `VISTAAR_PARTICIPANT_ID` +
+`VISTAAR_CAPABILITY`, `POCRA_PARTICIPANT_ID` + `POCRA_CAPABILITY`.
+
+Plus the credentials each upstream needs: `AGMARKNET_ACCESS_NAME` +
+`AGMARKNET_PASSWORD`, and `VISTAAR_CLIENT_ID` + `VISTAAR_CLIENT_SECRET`. POCRA
+needs none at all.
+
+**Only mausamgram is a mock now.** Mandi, knowledge and POCRA are real
+external hosts, so each needs its own base URL and path in `.env` — and the
+stack needs egress to all three. Mandi and knowledge each also need a token
+endpoint, since both issue short-lived tokens rather than taking a static
+credential.
+
+```sh
+docker compose logs provider-adapter | grep 'Processor steps initialized'
+```
+
+All four capability steps should be listed by name.
+
+## Step 6 — Network layer
+
+Fronts discovery: verifies the caller, passes `discover` and `publish` on, and
+re-signs as itself.
+
+`.env` keys: `NETWORK_SUBSCRIBER_ID`. `BECKN_NETWORK_ID` belongs to the discovery
+service behind it — a `discover` naming a different network finds nothing.
+
+```sh
+docker compose logs network-adapter | grep 'Server listening'
+```
+
+## Step 7 — Consumer layer
+
+The consumer's edge. Sends `discover` to the network layer and `select`
+straight to the provider layer, per `config/adapters/routing-consumer.yaml`.
+
+`.env` keys: `CONSUMER_SUBSCRIBER_ID`.
+
+```sh
+docker compose logs consumer-adapter | grep 'Server listening'
+```
+
+`setup.py` renders all the adapter configs from these keys. **Do not edit the
+rendered `config/adapters/*.yaml`** — they are regenerated and hold private
+keys. Change `.env`, re-run `make up`.
+
+## Step 8 — Verify end to end
+
+Import both files from `../api-collection/` into Postman —
+`OpenAgriNet.api-collection.json` and the environment for your mode:
+`OpenAgriNet.network-adapter.local-environment.json` (single, every adapter
+host on 9200) or `OpenAgriNet.local-environment.json` (multi). Select the
+environment, or every `{{...-host}}` resolves to nothing. Or:
+
+```sh
+newman run ../api-collection/OpenAgriNet.api-collection.json \
+  -e ../api-collection/OpenAgriNet.network-adapter.local-environment.json   # multi: OpenAgriNet.local-environment.json
+```
+
+**18 requests, 32 assertions**, one folder per capability plus a health folder.
+Each capability folder is publish, then discover, then select, in that order —
+so run publish first. Every request's `transactionId`, `messageId` and
+`timestamp` are filled fresh by the collection's pre-request script; the rest
+of each body comes from `capability-examples/`, unedited.
+
+Green means the registry is seeded, signatures verify both ways, all four
+mappings work and discovery is indexing.
+
+POCRA is the one folder whose empty answer is LOGGED rather than failed: it
+returns 200 with no providers both when nothing is nearby and when it is
+rate-limiting, and the two are indistinguishable. Knowledge is also the one folder that
+can fail on a missing credential rather than on wiring — it authenticates with
+OAuth2 client credentials that only the adapter reads, at call time.
+
+To point it at another deployment, edit the **environment** file, not the
+collection. → Appendix N.
+
+## Two modes
+
+|  | single (default) | multi (optional) |
+|---|---|---|
+| What runs | one container, `network-adapter` (compose service `network-adapter-layer`) | `consumer-adapter`, `network-adapter`, `provider-adapter` |
+| Compose profile | `network` | `multi` |
+| Start | `make up-core` / `make up` | `make up-core-multi` / `make up-multi` |
+| Ports | `127.0.0.1:9200` | 9200 provider, 9201 network, 9202 consumer |
+| App calls | `:9200/discover`, `:9200/select` | `:9202/discover`, `:9202/select` |
+| Catalogue publishes to | `:9200/publish` | `:9200/publish` |
+
+Single is the everyday choice: one container, the same requests. Use multi to
+reproduce a deployment where the tiers run separately.
+
+**Switching** is running the other target. It removes the running mode's
+adapters first (both use 9200, and both have a container named
+`network-adapter`), then starts the other's. `MODE=multi` also works with
+`make up` and `make up-core`; `make restart`, `make down`, `make ps` and
+`make logs` follow whichever mode is running. Plain compose:
+`docker compose --profile network up -d` (or `--profile multi`); a bare
+`docker compose up -d` follows `COMPOSE_PROFILES` in `.env` (`network` in
+`.env.example`).
+
+**How single mode is wired.** `config/adapters/network-adapter.yaml.tmpl`,
+rendered by `setup.py`, holds four modules, each its tier's module from the
+tier templates, each with its own tier identity:
+
+| Module | Path | Routes to |
+|---|---|---|
+| `consumer` | `/<action>` | discover to `localhost:9200/_internal/network`, select/init/confirm/status to `localhost:9200/_internal/provider` (`routing-network-adapter-consumer.yaml`) |
+| `network` | `/_internal/network/<action>` | discovery (`routing-network.yaml`, reused) |
+| `provider` | `/_internal/provider/<action>` | answers itself |
+| `provider-publish` | `/publish` | `localhost:9200/_internal/network/publish` (`routing-network-adapter-publish.yaml`) |
+
+`/_internal/` is called only by the adapter itself; `server_proxy.conf` denies
+it, and `/publish`, on every proxy host. Signing is off in every quick-start
+template, in both modes, so keep the adapter ports on `127.0.0.1`.
+
+---
+
+# Part 2 — Run it on a VM
+
+Four differences. **V1 comes before Part 1 Step 2**, because it installs `git`.
+
+## Step V1 — Prepare the VM
+
+Nothing is cloned yet, so fetch the script rather than running it from the repo:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/OpenAgriNet/helmcharts/feat/4-docker-compose/quick-start/bin/bootstrap-ubuntu.sh | bash
+```
+
+Installs `git`, `make`, `python3-cryptography` and Docker from Docker's own apt
+repo, then adds you to the `docker` group — **log out and back in** for that to
+take effect. Idempotent, and it deliberately does not clone, write `.env` or
+start anything.
+
+**8 GB** runs the stack; **16 GB** for the observability tier.
+
+Then Part 1 Steps 2 and 3 as written.
+
+## Step V2 — Change every credential
+
+`.env.example` ships working defaults, which means they are public:
+
+```
+POSTGRES_PASSWORD    KEYCLOAK_ADMIN_PASSWORD    KEYCLOAK_ADMIN_CLIENT_SECRET
+KEYCLOAK_DEFAULT_USER_PASSWORD
+```
+
+Change all four before the VM is reachable by anyone but you. Adapter keypairs
+are the exception — `setup.py` generates those and never writes them to `.env`.
+
+## Step V3 — Start it
+
+```sh
+make up
+```
+
+`make up`, not `make up-core`: two more tiers on top of Part 1's three —
+nginx-proxy-manager on 80 and 443, and HyperDX. **This is the step that makes
+the VM reachable from the internet.** `make up-multi` runs the three adapters
+instead; the mode decides what the proxy hosts in Appendix B forward to.
+Switching mode on a running VM restarts nginx-proxy-manager, so the public
+hosts drop connections for a few seconds.
+
+## Step V4 — Decide what is exposed
+
+Everything except the edge's 80 and 443 is bound to `127.0.0.1`, written
+literally in `docker-compose.yml` rather than taken from a variable. So the
+registry, Keycloak and the databases are not publicly reachable — deliberately.
+
+Proxy hosts, certificates, and the `/publish` deny every host gets →
+**Appendix B**. Read it before pointing DNS at the box.
+
+## Step V5 — Reach the loopback ports
+
+```sh
+ssh -L 9202:127.0.0.1:9202 -L 9200:127.0.0.1:9200 \
+    -L 8081:127.0.0.1:8081 -L 8080:127.0.0.1:8080 -N you@the-vm
+```
+
+The collection's defaults then work unchanged, since they already point at
+loopback. Single mode needs only 9200 for the adapter; 9202 is for multi.
+
+## Step V6 — Observability (optional)
+
+```sh
+make observability
+```
+
+HyperDX on `127.0.0.1:8085`, OTLP on 4317/4318 — and, once you add its proxy
+host, on a public hostname behind an NPM Access List, which is how you read it
+without a tunnel. Route + credential → **Appendix B**. → Appendix H, which is
+honest about how much actually arrives.
+
+Every container's stdout lands there too, next to the traces — so this is also
+what replaces keeping `docker compose logs -f` open. How that is wired, and the
+one gotcha, are in Appendix H.
+
+`docker compose restart nginx-proxy-manager` after this command, the first
+time: NPM only resolves `hyperdx` on reload.
+
+---
+
+## If something is wrong
+
+- **`unrecognized step: <name>`** — `ADAPTER_IMAGE` predates the config.
+  Appendix G.
+- **404 `NET_ENTITY_NOT_FOUND`** — no provider step claimed the payload; a
+  binding key disagrees with `.env`. Appendix F.
+- **404 naming a binding with no active record** — the step matched but the
+  registry has no `ProviderSchema` row for it. Appendix F.
+- **502 from a `select`** — the upstream answered non-2xx. Appendix F.
+- **NPM's default page, or a 502 that worked yesterday** — Appendix B.
+- **An adapter config is a directory** — something started before
+  `setup.py`. Appendix F.
+
+Full set, with what to run for each → **Appendix F**.
 
 ---
 
@@ -169,7 +375,7 @@ default, or three tier adapters with `make up-multi`; same image),
 **two mock upstreams** standing in for Mausamgram and Agmarknet. Behind
 profiles: **nginx-proxy-manager** (`reverse-proxy`, the only container on a
 routable interface) and **hyperdx** (`observability`, ClickStack — the
-heaviest thing here). What changed, and when: [CHANGELOG.md](CHANGELOG.md).
+heaviest thing here).
 
 Deliberately absent:
 
@@ -864,8 +1070,6 @@ one minute of adapter cache plus about five of CDN.
 docker-compose.yml          the whole stack, in tiers -- the banner comments
                             are the structure
 .env.example                copy to .env
-SETUP.md                    install and run, local and VM, both modes
-CHANGELOG.md                what changed, by version
 Makefile                    the front door; every target delegates to stack.sh
 bin/
   bootstrap-ubuntu.sh       docker and python on a fresh Ubuntu VM
