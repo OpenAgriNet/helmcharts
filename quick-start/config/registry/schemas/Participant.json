@@ -63,17 +63,16 @@
           ]
         },
         "federationRole": {
-          "description": "What this entry is in relation to us, and our decision -- never read from a peer's Descriptor, so a peer publishing a new one cannot widen its own admission. self is this network's own entry, the one its Descriptor is built from. source is a peer we consume from. requester is a peer that consumes from us. both is admission in each direction. Absent on a participant that is not part of federation.",
+          "description": "What this entry is in relation to us, and our decision -- never read from a peer's Descriptor, so a peer publishing a new one cannot widen its own admission. This network's own entry is identified from its configuration, not by a value here. source is a peer we consume from. requester is a peer that consumes from us. both is admission in each direction. Absent on a participant that is not part of federation.",
           "type": "string",
           "enum": [
-            "self",
             "source",
             "requester",
             "both"
           ]
         },
         "revision": {
-          "description": "The Descriptor revision this entry was built from. Only ever increases: a Descriptor at or below the stored revision is a replay and is refused. On the self entry, the revision this network last published.",
+          "description": "The Descriptor revision this entry was built from. Only ever increases: a Descriptor at or below the stored revision is a replay and is refused. On this network's own entry, the revision it last published.",
           "type": "integer",
           "minimum": 1
         },
