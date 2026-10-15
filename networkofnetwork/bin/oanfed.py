@@ -552,12 +552,11 @@ def operational_keys(descriptor, keyset):
 
 # What an entry is in relation to us.
 #
-# self      this deployment's own entry
 # source    a peer we consume from -- our crawler asks it for its catalogs
 # requester a peer that consumes from us -- it calls us and we verify its
 #           signatures, but we do not crawl it
 # both      a peer in both directions, which is what mutual admission produces
-FEDERATION_ROLES = ("self", "source", "requester", "both")
+FEDERATION_ROLES = ("source", "requester", "both")
 DEFAULT_FEDERATION_ROLE = "both"
 
 
@@ -1086,7 +1085,7 @@ def main(argv=None):
     admit.add_argument("--network-id", required=True,
                        help="the peer to admit, which is its domain")
     admit.add_argument("--federation-role", default=DEFAULT_FEDERATION_ROLE,
-                       choices=[r for r in FEDERATION_ROLES if r != "self"],
+                       choices=FEDERATION_ROLES,
                        help="what this peer is to us: source (we crawl it), "
                             "requester (it calls us), or both. Only set on first "
                             "admission -- a refresh keeps what was decided")

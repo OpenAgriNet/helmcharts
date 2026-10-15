@@ -321,7 +321,7 @@ def signing_key_block(public_key):
              "validFrom": "2026-01-01T00:00:00Z", "validUntil": "2030-01-01T00:00:00Z"}]
 
 
-def node(participant_id, name, role, base_url, public_key, federation_role=None):
+def node(participant_id, name, role, base_url, public_key):
     """A participant that speaks Beckn.
 
     One level, no wrapper object: type decides which fields apply. baseUrl must
@@ -338,8 +338,6 @@ def node(participant_id, name, role, base_url, public_key, federation_role=None)
     record = {"participantId": participant_id, "name": name, "type": "node",
               "status": "active", "baseUrl": base_url,
               "role": role, "keys": signing_key_block(public_key)}
-    if federation_role:
-        record["federationRole"] = federation_role
     return record
 
 
@@ -482,13 +480,7 @@ def seed(identities):
                             env("BECKN_NETWORK_NAME", identity["participantId"]),
                             list(ROLES),
                             env("NETWORK_BASE_URL"),
-                            identity["signingPublic"],
-                            # OURS. Stored rather than worked out: deciding
-                            # whether an entry is this deployment's own by
-                            # comparing ids against config has been got wrong
-                            # twice, once badly enough that the crawler tried to
-                            # crawl itself.
-                            federation_role="self"))
+                            identity["signingPublic"]))
 
     # All four upstreams are real external providers now -- no mock is in use
     # by any capability, so every base URL comes from .env and the stack needs
