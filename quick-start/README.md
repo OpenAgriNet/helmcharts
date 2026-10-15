@@ -253,7 +253,7 @@ Four differences. **V1 comes before Part 1 Step 2**, because it installs `git`.
 Nothing is cloned yet, so fetch the script rather than running it from the repo:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/OpenAgriNet/helmcharts/feat/4-docker-compose/quick-start/bin/bootstrap-ubuntu.sh | bash
+curl -fsSL https://raw.githubusercontent.com/OpenAgriNet/helmcharts/development/quick-start/bin/bootstrap-ubuntu.sh | bash
 ```
 
 Installs `git`, `make`, `python3-cryptography` and Docker from Docker's own apt

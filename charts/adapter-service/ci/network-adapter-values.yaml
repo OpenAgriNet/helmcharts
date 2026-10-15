@@ -58,7 +58,7 @@ topologySpreadConstraints:
     topologyKey: kubernetes.io/hostname
     whenUnsatisfiable: ScheduleAnyway
 terminationGracePeriodSeconds: 40
-preStopSleepSeconds: 10
+preStopSleepSeconds: 10   # needs Kubernetes 1.30+; 0 on older clusters
 
 ingress:
   enabled: true
