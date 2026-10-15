@@ -8,7 +8,7 @@
 #
 # The paths are flat: /discover, /publish, /<action> and /health. The tiers are
 # not part of them. /_internal/ is only ever called by this process's own
-# modules (http://localhost:9200/_internal/...); the chart's ingress never
+# modules (http://localhost:9201/_internal/...); the chart's ingress never
 # routes it, and never routes /publish either.
 #
 # Each module is its tier's module from consumer-config.yaml, network-config.yaml
@@ -16,7 +16,7 @@
 # apply here must be made in this file too.
 #
 # Differences from the three tier files:
-#   - one listener (9200) and one appName; tier hops call this same listener (see the routing-network-adapter-*.yaml files, which the chart
+#   - one listener (9201) and one appName; tier hops call this same listener (see the routing-network-adapter-*.yaml files, which the chart
 #     generates from routing-consumer.yaml and routing-provider.yaml);
 #   - extended schema validation on in every module;
 #   - an outbound connection pool (httpClientConfig) on every module;
@@ -38,7 +38,7 @@ log:
 http:
   # Also the port the generated routing uses: keep it equal to the
   # chart's service.targetPort.
-  port: 9200
+  port: 9201
   timeout:
     read: 30
     write: 30

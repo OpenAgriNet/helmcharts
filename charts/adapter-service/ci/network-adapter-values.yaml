@@ -5,8 +5,7 @@
 # Renders the single deployment mode, role network-adapter-layer (the Network Adapter
 # Layer): config/network-adapter-config.yaml, the generated routing,
 # the three tier identities, and the PDB / spread / graceful-shutdown
-# settings, so those templates are linted too. The HPA stays off, as in
-# examples/network-adapter.yaml: autoscaling is opt-in. Pinned image tag so the render
+# settings, so those templates are linted too. Pinned image tag so the render
 # is reproducible.
 #
 # The Ingress is on so the path guard in templates/ingress.yaml runs in CI: the
@@ -27,8 +26,8 @@ image:
 # log level are set there), so they are left out here. Edit that file instead.
 
 service:
-  port: 9200
-  targetPort: 9200
+  port: 9201
+  targetPort: 9201
 
 networkAdapterLayer:
   keys:
@@ -38,8 +37,7 @@ networkAdapterLayer:
       existingSecret: network-adapter-keys
     provider:
       existingSecret: provider-adapter-keys
-  extraSubstitutions:
-    __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl
+  extraSubstitutions: {}
 
 # Scale defaults for the Network Adapter Layer: roughly the three tiers'
 # requests in one pod, at least one replica per node.
@@ -51,15 +49,7 @@ resources:
     cpu: 1500m
     memory: 1Gi
 goMemLimit: 900MiB
-# Fixed replica count by default; the HPA is opt-in. Turning it on needs
-# metrics-server in the cluster -- without it the HPA reports
-# <unknown> CPU and never scales. With it off, replicaCount applies.
 replicaCount: 3
-autoscaling:
-  enabled: false
-  minReplicas: 3
-  maxReplicas: 10
-  targetCPUUtilizationPercentage: 70
 podDisruptionBudget:
   enabled: true
   minAvailable: 1

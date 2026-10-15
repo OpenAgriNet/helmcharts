@@ -545,14 +545,14 @@ services:
   #
   #   profile "network" (the single deployment mode, the default; `make up`)
   #     network-adapter-layer (container network-adapter): the consumer, network and provider tiers
-  #     as four modules of ONE process, one config, one port (127.0.0.1:9200).
+  #     as four modules of ONE process, one config, one port (127.0.0.1:9201, the multi network tier's port).
   #     Tier-to-tier hops stay inside the container.
   #
   #   profile "multi" (`make up-multi`)
   #     provider-adapter, network-adapter, consumer-adapter: one container per
   #     tier, tier-to-tier hops over the compose network.
   #
-  # Both publish 127.0.0.1:9200, so run one profile at a time (bin/stack.sh
+  # Both publish 127.0.0.1:9201, so run one profile at a time (bin/stack.sh
   # stops the other first). Both use the same keys and registry rows.
   #
   # Their configs are bind-mounted FILES that do not exist until bin/setup.py
@@ -619,7 +619,7 @@ services:
   # Each module carries its own tier identity (consumer, network, provider):
   # the same keys and registry rows as the multi-adapter services. Signing is
   # off, as in every quick-start template, so /_internal/ and /publish accept
-  # unsigned requests: keep :9200 on 127.0.0.1.
+  # unsigned requests: keep :9201 on 127.0.0.1.
   network-adapter-layer:
     <<: *adapter
     profiles: ["network"]
@@ -648,7 +648,7 @@ services:
       - ./config/adapters/routing-network.yaml:/app/config/routing-network.yaml:ro
       - ./config/adapters/routing-network-adapter-provider.yaml:/app/config/routing-network-adapter-provider.yaml:ro
     ports:
-      - "127.0.0.1:${NETWORK_ADAPTER_LAYER_PORT:-9200}:9200"
+      - "127.0.0.1:${NETWORK_ADAPTER_LAYER_PORT:-9201}:9201"
 
   # Verifies the caller, calls the upstream provider, answers synchronously.
   # It has no provider address of its own: it reads the ProviderSchema row,

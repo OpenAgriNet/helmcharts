@@ -42,7 +42,7 @@ PROFILES=(--profile reverse-proxy --profile observability --profile network --pr
 # Adapter deployment mode: "single" (default) runs the Network Adapter Layer (compose
 # service network-adapter-layer, container network-adapter), one process for
 # all three tiers; "multi" runs provider-, network- and consumer-adapter. Both
-# publish 127.0.0.1:9200, and the single container shares the multi network
+# publish 127.0.0.1:9201, and the single container shares the multi network
 # tier's name, so only one deployment mode exists at a time: the other is REMOVED
 # (not just stopped) before this one starts.
 # Validated only by the commands that use it (check_mode), so an unrelated
@@ -194,7 +194,7 @@ up_adapters() {
     check_mode
     local other f; other=$(other_mode "$MODE")
     step 3 "$1" "adapters, mode $MODE ($(adapters_for "$MODE"))"
-    # The other deployment mode also publishes 127.0.0.1:9200, and the single container
+    # The other deployment mode also publishes 127.0.0.1:9201, and the single container
     # shares the multi network tier's name: remove it (stopped is not enough).
     # shellcheck disable=SC2046
     docker compose --profile "$(profile_for "$other")" rm -sf $(adapters_for "$other") >/dev/null 2>&1 || true

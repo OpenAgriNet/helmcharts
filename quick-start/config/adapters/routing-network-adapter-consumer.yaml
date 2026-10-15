@@ -8,7 +8,7 @@
 # containers and only the host in these URLs changes.
 #
 # targetType "url" appends the action to the path, so the base here is the
-# module mount point and /discover or /select is added to it. localhost:9200 is
+# module mount point and /discover or /select is added to it. localhost:9201 is
 # the container's own listener and must match `http.port` in network-adapter.yaml.tmpl.
 routingRules:
   # Discovery is answered from this network's own discovery service, which the
@@ -16,7 +16,7 @@ routingRules:
   - version: "2.0.0"
     targetType: "url"
     target:
-      url: "http://localhost:9200/_internal/network"
+      url: "http://localhost:9201/_internal/network"
     endpoints:
       - discover
 
@@ -26,7 +26,7 @@ routingRules:
   - version: "2.0.0"
     targetType: "url"
     target:
-      url: "http://localhost:9200/_internal/provider"
+      url: "http://localhost:9201/_internal/provider"
     endpoints:
       - select
       - init

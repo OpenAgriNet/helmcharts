@@ -12,7 +12,7 @@ routingRules:
   - version: "2.0.0"
     targetType: "url"
     target:
-      url: "http://localhost:9200/_internal/network/publish"
+      url: "http://localhost:9201/_internal/network/publish"
       excludeAction: true
     endpoints:
       - ""
