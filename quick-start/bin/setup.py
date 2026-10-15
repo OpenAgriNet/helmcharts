@@ -565,17 +565,23 @@ def render(identities):
     vistaar_binding = (f"{env('VISTAAR_PARTICIPANT_ID')}"
                        f"|{env('VISTAAR_CAPABILITY')}")
     pocra_binding = f"{env('POCRA_PARTICIPANT_ID')}|{env('POCRA_CAPABILITY')}"
-    for role in ROLES:
-        identity = identities[role]
-        template = (ADAPTERS / f"{role}.yaml.tmpl").read_text()
-        prefix = role.upper()
+    # The three tier configs, then the Network Adapter Layer's
+    # (network-adapter.yaml.tmpl): its modules carry all three tiers'
+    # identities, so it gets every tier's keys.
+    for name in (*ROLES, "network-adapter"):
+        template = (ADAPTERS / f"{name}.yaml.tmpl").read_text()
+        for role in (ROLES if name == "network-adapter" else (name,)):
+            identity = identities[role]
+            prefix = role.upper()
+            for placeholder, value in (
+                    (f"__{prefix}_SUBSCRIBER_ID__", identity["participantId"]),
+                    (f"__{prefix}_KEY_ID__", identity["keyOsid"]),
+                    (f"__{prefix}_SIGNING_PRIVATE__", identity["signingPrivate"]),
+                    (f"__{prefix}_SIGNING_PUBLIC__", identity["signingPublic"]),
+                    (f"__{prefix}_ENCR_PRIVATE__", identity["encrPrivate"]),
+                    (f"__{prefix}_ENCR_PUBLIC__", identity["encrPublic"])):
+                template = template.replace(placeholder, value)
         for placeholder, value in (
-                (f"__{prefix}_SUBSCRIBER_ID__", identity["participantId"]),
-                (f"__{prefix}_KEY_ID__", identity["keyOsid"]),
-                (f"__{prefix}_SIGNING_PRIVATE__", identity["signingPrivate"]),
-                (f"__{prefix}_SIGNING_PUBLIC__", identity["signingPublic"]),
-                (f"__{prefix}_ENCR_PRIVATE__", identity["encrPrivate"]),
-                (f"__{prefix}_ENCR_PUBLIC__", identity["encrPublic"]),
                 ("__MAUSAMGRAM_BINDING_KEY__", mausamgram_binding),
                 ("__AGMARKNET_BINDING_KEY__", agmarknet_binding),
                 ("__VISTAAR_BINDING_KEY__", vistaar_binding),
@@ -601,8 +607,8 @@ def render(identities):
                 ("__OTEL_ENVIRONMENT__", env("OTEL_ENVIRONMENT", "dev"))):
             template = template.replace(placeholder, value)
         if "__" in template:
-            sys.exit(f"setup: {role}.yaml still has unrendered placeholders")
-        out = ADAPTERS / f"{role}.yaml"
+            sys.exit(f"setup: {name}.yaml still has unrendered placeholders")
+        out = ADAPTERS / f"{name}.yaml"
         # A bare `docker compose up -d` before this script runs starts the
         # adapters too, and Docker creates a DIRECTORY at a bind-mount source
         # that does not exist. Writing would then fail with a bare
@@ -617,7 +623,7 @@ def render(identities):
                 f"    make up")
         out.write_text(template)
         out.chmod(0o600)  # holds a private key
-        print(f"  config/adapters/{role}.yaml")
+        print(f"  config/adapters/{name}.yaml")
 
 
 if __name__ == "__main__":

@@ -3,6 +3,12 @@
 #
 # Every service name is <tier>-<role>, and every container_name matches it, so
 # what `docker ps` shows is what `docker logs` and the in-stack DNS name take.
+# One exception: the Network Adapter Layer is service `network-adapter-layer`
+# (profile network) with container `network-adapter`, the same container name
+# as the multi network tier's service `network-adapter`. Only one deployment mode runs
+# at a time, so `docker ps` / `docker logs network-adapter` mean whichever runs;
+# compose commands (`docker compose logs`, `make logs SVC=`) take the service
+# name, `network-adapter-layer` in the single deployment mode.
 # The sunbird-registry-* three are Sunbird RC's, not OAN's; the keycloak among
 # them authenticates nothing but that registry, and shares its postgres.
 #
@@ -11,7 +17,8 @@
 #   registry        sunbird-registry-postgres, sunbird-registry-keycloak,
 #                   sunbird-registry-service
 #   discovery       discovery-postgres, discovery-service
-#   adapters        provider, network, consumer
+#   adapters        network-adapter-layer (profile network, default) |
+#                   provider, network, consumer (profile multi)
 #   observability   hyperdx                      profile: observability
 #   edge            nginx-proxy-manager          profile: reverse-proxy
 #
@@ -24,9 +31,10 @@
 #                                         shipped defaults
 #   2. docker compose up -d sunbird-registry-service discovery-service
 #                                         everything EXCEPT the adapters
-#   3. python3 bin/setup.py               keys, the three adapter entries, and
-#                                         the adapter configs they mount
-#   4. docker compose up -d               now the adapters
+#   3. python3 bin/setup.py               keys, the three tier identities, and
+#                                         every adapter config they mount
+#   4. docker compose --profile network up -d     the Network Adapter
+#        (or --profile multi: provider-, network-, consumer-adapter)
 #   5. docker compose --profile reverse-proxy --profile observability up -d
 #                                         the edge and the telemetry stack
 #
@@ -533,7 +541,19 @@ services:
         condition: service_healthy
 
   # ==========================================================================
-  # adapters -- consumer, network and provider. Same image, three configs.
+  # adapters -- TWO deployment modes, chosen with a compose profile. Same image.
+  #
+  #   profile "network" (the single deployment mode, the default; `make up`)
+  #     network-adapter-layer (container network-adapter): the consumer, network and provider tiers
+  #     as four modules of ONE process, one config, one port (127.0.0.1:9201, the multi network tier's port).
+  #     Tier-to-tier hops stay inside the container.
+  #
+  #   profile "multi" (`make up-multi`)
+  #     provider-adapter, network-adapter, consumer-adapter: one container per
+  #     tier, tier-to-tier hops over the compose network.
+  #
+  # Both publish 127.0.0.1:9201, so run one profile at a time (bin/stack.sh
+  # stops the other first). Both use the same keys and registry rows.
   #
   # Their configs are bind-mounted FILES that do not exist until bin/setup.py
   # renders them from the .tmpl beside them, which is what the step ordering
@@ -586,12 +606,57 @@ services:
     ports:
       - "127.0.0.1:${MOCKAGMARKNET_PORT}:9101"
 
+  # The Network Adapter Layer: the consumer, network and provider tiers as
+  # modules of ONE adapter process, on ONE config rendered by bin/setup.py from
+  # config/adapters/network-adapter.yaml.tmpl, with one routing file per
+  # module.
+  #
+  #   /<action>              the consumer, the caller's entry (bap), takes unsigned requests
+  #   /publish               sends the provider's catalogue to /_internal/network/publish
+  #   /_internal/network/*   hands discover and publish on to discovery
+  #   /_internal/provider/*  calls the upstream, answers synchronously
+  #
+  # Each module carries its own tier identity (consumer, network, provider):
+  # the same keys and registry rows as the multi-adapter services. Signing is
+  # off, as in every quick-start template, so /_internal/ and /publish accept
+  # unsigned requests: keep :9201 on 127.0.0.1.
+  network-adapter-layer:
+    <<: *adapter
+    profiles: ["network"]
+    container_name: network-adapter
+    depends_on:
+      sunbird-registry-service:
+        condition: service_healthy
+      discovery-service:
+        condition: service_started
+    environment:
+      <<: *adapter-env
+      OTEL_SERVICE_NAME: network-adapter
+      # Upstream credentials, read at call time -- the same variables and
+      # reasons as provider-adapter below.
+      MAUSAMGRAM_AUTH: ${MAUSAMGRAM_AUTH}
+      AGMARKNET_ACCESS_NAME: ${AGMARKNET_ACCESS_NAME}
+      AGMARKNET_PASSWORD: ${AGMARKNET_PASSWORD}
+      MOCKAGMARKNET_TOKEN: ${MOCKAGMARKNET_TOKEN:-local-mandi-token}
+      VISTAAR_CLIENT_ID: ${VISTAAR_CLIENT_ID}
+      VISTAAR_CLIENT_SECRET: ${VISTAAR_CLIENT_SECRET}
+    volumes:
+      - ./config/adapters/network-adapter.yaml:/app/config/adapter.yaml:ro
+      # One routing file per module. The network module reuses the
+      # multi-adapter routing-network.yaml unchanged.
+      - ./config/adapters/routing-network-adapter-consumer.yaml:/app/config/routing-network-adapter-consumer.yaml:ro
+      - ./config/adapters/routing-network.yaml:/app/config/routing-network.yaml:ro
+      - ./config/adapters/routing-network-adapter-provider.yaml:/app/config/routing-network-adapter-provider.yaml:ro
+    ports:
+      - "127.0.0.1:${NETWORK_ADAPTER_PORT}:9201"
+
   # Verifies the caller, calls the upstream provider, answers synchronously.
   # It has no provider address of its own: it reads the ProviderSchema row,
   # so repointing it at a different upstream is a registry write, not a
   # change here or a restart.
   provider-adapter:
     <<: *adapter
+    profiles: ["multi"]
     container_name: provider-adapter
     # Registry only. The mocks are deliberately NOT dependencies: every
     # capability points at a real external upstream, and depends_on would start
@@ -637,6 +702,7 @@ services:
   # Verifies the caller, hands discovery on, re-signs as itself.
   network-adapter:
     <<: *adapter
+    profiles: ["multi"]
     container_name: network-adapter
     depends_on:
       sunbird-registry-service:
@@ -658,6 +724,7 @@ services:
   # is also why the edge rate-limits this host and nothing else.
   consumer-adapter:
     <<: *adapter
+    profiles: ["multi"]
     container_name: consumer-adapter
     depends_on:
       network-adapter:
@@ -938,12 +1005,21 @@ services:
       # whenever NPM does. That means the restart above is not optional after
       # `make observability` -- NPM was started before the name existed, so the
       # HyperDX host 502s until it re-resolves.
+      #
+      # required: false -- only one deployment mode's adapters exist at a time
+      # (profiles "network" / "multi"); NPM starts with whichever is running.
+      network-adapter-layer:
+        condition: service_started
+        required: false
       consumer-adapter:
         condition: service_started
+        required: false
       network-adapter:
         condition: service_started
+        required: false
       provider-adapter:
         condition: service_started
+        required: false
 
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:81/api/ || exit 1"]

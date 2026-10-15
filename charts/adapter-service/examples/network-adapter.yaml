@@ -1,0 +1,111 @@
+# ===========================================================================
+# network-adapter-layer role -- the Network Adapter Layer: the DEFAULT deployment mode
+# (single). The optional alternative is multi: examples/{consumer,network,provider}.yaml.
+#
+# The consumer, network and provider tiers as four modules of ONE adapter
+# process, on one Service:
+#
+#   /<action>                    the consumer (bap); the app posts here, unsigned
+#   /publish                     the catalogue system publishes here (internal)
+#   /_internal/network/<action>  internal: verifies and forwards to discovery
+#   /_internal/provider/<action> internal: answers from the upstream APIs (bpp)
+#
+# The alternative to installing the three multi-adapter releases
+# (examples/consumer.yaml, network.yaml, provider.yaml). Run one mode or the
+# other in an environment, not both.
+#
+#   helm install network-adapter . -n network-adapter-layer --create-namespace \
+#     -f examples/network-adapter.yaml
+#
+# The config is config/network-adapter-config.yaml; the routing is
+# generated from config/routing-*.yaml. Tier hops stay inside the pod, so any
+# adapter image works.
+# ===========================================================================
+role: network-adapter-layer
+
+# The Service name and DNS name callers use. The namespace is its own,
+# network-adapter-layer (not the multi network tier's network-adapter):
+# network-adapter.network-adapter-layer.svc.cluster.local:9201
+fullnameOverride: network-adapter
+
+image:
+  registry: ghcr.io
+  repository: openagrinet/network-adapter
+  tag: "latest"
+
+# registry.url, otel.*, appName, logLevel, http.timeout.*, routing.* and
+# handler.* are not used by this role: the adapter config is mounted from
+# config/network-adapter-config.yaml as is (registry URL, OTLP endpoint and
+# log level are set there), so they are left out here. Edit that file instead.
+
+# The same port the quick-start publishes. targetPort is also the port the
+# generated routing uses, and must equal http.port in
+# config/network-adapter-config.yaml (the render checks).
+service:
+  port: 9201
+  targetPort: 9201
+
+networkAdapterLayer:
+  # The three tier Secrets the multi-adapter releases use. openbao-secrets
+  # reflects them into this namespace.
+  keys:
+    consumer:
+      existingSecret: consumer-adapter-keys
+    network:
+      existingSecret: network-adapter-keys
+    provider:
+      existingSecret: provider-adapter-keys
+  # Set per environment: the config's __VISTAAR_TOKEN_URL__ placeholder needs
+  # an entry here (e.g. __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl), or
+  # the init container stops on the leftover placeholder.
+  extraSubstitutions: {}
+
+# The provider tier reads its upstream credentials (MAUSAMGRAM_AUTH,
+# AGMARKNET_*, VISTAAR_CLIENT_*) from the environment.
+envFromSecrets:
+  - provider-upstream
+
+resources:
+  requests:
+    cpu: 300m
+    memory: 384Mi
+  limits:
+    cpu: 1500m
+    memory: 1Gi
+goMemLimit: 900MiB
+
+replicaCount: 3
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+
+terminationGracePeriodSeconds: 40
+preStopSleepSeconds: 10   # needs Kubernetes 1.30+; 0 on older clusters
+
+# Off here. When on, only single-segment /<action> paths (the consumer) are
+# accepted: /, /publish and /_internal* fail the render.
+ingress:
+  enabled: false
+  className: ""
+  hosts:
+    - host: network-adapter.oan.example.com
+      paths:
+        - path: /discover
+          pathType: Exact
+        - path: /select
+          pathType: Exact
+        - path: /init
+          pathType: Exact
+        - path: /confirm
+          pathType: Exact
+        - path: /status
+          pathType: Exact
+
+waitFor:
+  enabled: false

@@ -5,6 +5,18 @@ All notable changes to the `openbao-secrets` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-10-09
+
+### Added
+- `network-adapter-layer` as a target namespace of `consumer-adapter-keys`,
+  `network-adapter-keys`, `provider-adapter-keys` and `provider-upstream`, for
+  `adapter-service` role `network-adapter-layer`: the Network Adapter Layer
+  (the default deployment mode) runs all three tiers, so it reads all three
+  identities. It has a namespace of its own rather than the multi network
+  tier's `network-adapter`, so multi environments do not get the consumer and
+  provider keys or the upstream credentials copied next to the network tier.
+  Inert where that namespace does not exist.
+
 ## [0.1.0] - 2026-09-27
 
 ### Added

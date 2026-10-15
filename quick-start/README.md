@@ -1,7 +1,12 @@
 # OAN quick-start
 
-The whole OAN stack in Docker Compose: a registry, a discovery service, three
-adapters, and two mock upstreams standing in for real provider APIs.
+The whole OAN stack in Docker Compose: a registry, a discovery service, the
+network adapter, and two mock upstreams standing in for real provider APIs.
+
+The adapter runs in one of two modes, from the same compose file, keys and
+registry. **Single is the default**: one container, `network-adapter`, runs the
+consumer, network and provider tiers on port 9201. **Multi is optional**: the
+three tiers as three containers. → [Two modes](#two-modes).
 
 Nothing is built here — the images are pulled. Locally that is about ten
 minutes, most of it waiting for Keycloak. Discovery is the one exception, and
@@ -30,8 +35,11 @@ capability's provider lives.
 
 A `select` answers in the same HTTP round trip — there is no callback.
 
-That is the request order. **Startup order is the reverse**: the consumer
-adapter depends on the other two, so Compose brings them up first. The steps
+The picture shows the three tiers. In single mode (the default) they are
+modules of one container, and the arrows between them are calls inside it.
+
+That is the request order. **Startup order is the reverse**: in multi mode the
+consumer adapter depends on the other two, so Compose brings them up first. The steps
 below follow startup order, so they work top to bottom.
 
 ## Which path are you on?
@@ -43,6 +51,7 @@ below follow startup order, so they work top to bottom.
 | Observability        | not started              | optional, wants 2–4 GB      |
 | Credentials          | shipped defaults are ok  | **must all be changed**     |
 | Command              | `make up-core`           | `make up`                   |
+| Multi mode instead   | `make up-core-multi`     | `make up-multi`             |
 
 **Local** is Part 1. **VM** is Part 1, then Part 2 for the differences.
 
@@ -53,14 +62,14 @@ below follow startup order, so they work top to bottom.
 ## Step 1 — Prerequisites
 
 - `git`
-- Docker with **Compose v2** — `docker compose version` must work, not `docker-compose`
+- Docker with **Compose v2.20 or later** — `docker compose version` must work, not `docker-compose`; the compose file uses `depends_on: required: false`, which older v2 releases reject
 - `python3` with `cryptography` — `pip install cryptography`
 - `curl`
 
 ## Step 2 — Get the repo
 
 ```sh
-git clone -b feat/4-docker-compose https://github.com/OpenAgriNet/helmcharts.git
+git clone -b development https://github.com/OpenAgriNet/helmcharts.git
 cd helmcharts/quick-start
 ```
 
@@ -76,14 +85,14 @@ cp .env.example .env
 Locally, nothing in it needs changing. It publishes these on `localhost`:
 
 ```
-8081  registry        9200  provider adapter     9100  mock-imd
-8080  keycloak        9201  network adapter      9101  mock-agmarknet
-9990  keycloak admin  9202  consumer adapter
+8081  registry        9201  network adapter (single; network tier in multi)  9100  mock-imd
+8080  keycloak        9200  provider adapter (multi only)                      9101  mock-agmarknet
+9990  keycloak admin  9202  consumer adapter (multi only)
 8090  discovery
 ```
 
 If one is already taken, change it here — that is the only edit a local run
-needs. Adapters reach each other by Compose service name, so it only changes
+needs. `NETWORK_ADAPTER_PORT` is the network adapter's port in both modes. Adapters reach each other by Compose service name, so it only changes
 what you type into Postman.
 
 ## Step 4 — Start it
@@ -93,11 +102,13 @@ make up-core
 ```
 
 Three tiers, in the only order that works: registry and discovery, then
-`bin/setup.py`, then the mocks and the three adapters. Allow up to five minutes
+`bin/setup.py`, then the adapter (`network-adapter` on 9201; `make up-core-multi`
+starts the three adapters instead). Allow up to five minutes
 the first time — Keycloak on a cold volume.
 
 `setup.py` generates a keypair per adapter, registers seven participants and four
-capability bindings, and renders the three adapter configs. Nothing needs
+capability bindings, and renders the adapter configs (the three tier configs and
+the single adapter's `network-adapter.yaml`). Nothing needs
 creating by hand. → Appendix C for why the order matters, Appendix D for what
 it wrote.
 
@@ -106,6 +117,10 @@ make ps
 ```
 
 ## Step 5 — Provider layer
+
+> Steps 5–7 describe the three tiers. In single mode they run in one container,
+> so check them with `docker logs network-adapter` instead of the
+> `docker compose logs <tier>-adapter` commands below.
 
 Answers `select`, and the only layer that calls an upstream. Serves all four
 capabilities from one adapter.
@@ -154,19 +169,21 @@ straight to the provider layer, per `config/adapters/routing-consumer.yaml`.
 docker compose logs consumer-adapter | grep 'Server listening'
 ```
 
-`setup.py` renders all three configs from these keys. **Do not edit the
+`setup.py` renders all the adapter configs from these keys. **Do not edit the
 rendered `config/adapters/*.yaml`** — they are regenerated and hold private
 keys. Change `.env`, re-run `make up`.
 
 ## Step 8 — Verify end to end
 
 Import both files from `../api-collection/` into Postman —
-`OpenAgriNet.api-collection.json` and `OpenAgriNet.local-environment.json`.
-Select the environment, or every `{{...-host}}` resolves to nothing. Or:
+`OpenAgriNet.api-collection.json` and the environment for your mode:
+`OpenAgriNet.network-adapter.local-environment.json` (single, every adapter
+host on 9201) or `OpenAgriNet.local-environment.json` (multi). Select the
+environment, or every `{{...-host}}` resolves to nothing. Or:
 
 ```sh
 newman run ../api-collection/OpenAgriNet.api-collection.json \
-  -e ../api-collection/OpenAgriNet.local-environment.json
+  -e ../api-collection/OpenAgriNet.network-adapter.local-environment.json   # multi: OpenAgriNet.local-environment.json
 ```
 
 **18 requests, 32 assertions**, one folder per capability plus a health folder.
@@ -187,6 +204,44 @@ OAuth2 client credentials that only the adapter reads, at call time.
 To point it at another deployment, edit the **environment** file, not the
 collection. → Appendix N.
 
+## Two modes
+
+|  | single (default) | multi (optional) |
+|---|---|---|
+| What runs | one container, `network-adapter` (compose service `network-adapter-layer`) | `consumer-adapter`, `network-adapter`, `provider-adapter` |
+| Compose profile | `network` | `multi` |
+| Start | `make up-core` / `make up` | `make up-core-multi` / `make up-multi` |
+| Ports | `127.0.0.1:9201` | 9200 provider, 9201 network, 9202 consumer |
+| App calls | `:9201/discover`, `:9201/select` | `:9202/discover`, `:9202/select` |
+| Catalogue publishes to | `:9201/publish` | `:9200/publish` |
+
+Single is the everyday choice: one container, the same requests. Use multi to
+reproduce a deployment where the tiers run separately.
+
+**Switching** is running the other target. It removes the running mode's
+adapters first (both use 9201, and both have a container named
+`network-adapter`), then starts the other's. `MODE=multi` also works with
+`make up` and `make up-core`; `make restart`, `make down`, `make ps` and
+`make logs` follow whichever mode is running. Plain compose:
+`docker compose --profile network up -d` (or `--profile multi`); a bare
+`docker compose up -d` follows `COMPOSE_PROFILES` in `.env` (`network` in
+`.env.example`).
+
+**How single mode is wired.** `config/adapters/network-adapter.yaml.tmpl`,
+rendered by `setup.py`, holds four modules, each its tier's module from the
+tier templates, each with its own tier identity:
+
+| Module | Path | Routes to |
+|---|---|---|
+| `consumer` | `/<action>` | discover to `localhost:9201/_internal/network`, select/init/confirm/status to `localhost:9201/_internal/provider` (`routing-network-adapter-consumer.yaml`) |
+| `network` | `/_internal/network/<action>` | discovery (`routing-network.yaml`, reused) |
+| `provider` | `/_internal/provider/<action>` | answers itself |
+| `provider-publish` | `/publish` | `localhost:9201/_internal/network/publish` (`routing-network-adapter-provider.yaml`) |
+
+`/_internal/` is called only by the adapter itself; `server_proxy.conf` denies
+it, and `/publish`, on every proxy host. Signing is off in every quick-start
+template, in both modes, so keep the adapter ports on `127.0.0.1`.
+
 ---
 
 # Part 2 — Run it on a VM
@@ -198,7 +253,7 @@ Four differences. **V1 comes before Part 1 Step 2**, because it installs `git`.
 Nothing is cloned yet, so fetch the script rather than running it from the repo:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/OpenAgriNet/helmcharts/feat/4-docker-compose/quick-start/bin/bootstrap-ubuntu.sh | bash
+curl -fsSL https://raw.githubusercontent.com/OpenAgriNet/helmcharts/development/quick-start/bin/bootstrap-ubuntu.sh | bash
 ```
 
 Installs `git`, `make`, `python3-cryptography` and Docker from Docker's own apt
@@ -230,7 +285,10 @@ make up
 
 `make up`, not `make up-core`: two more tiers on top of Part 1's three —
 nginx-proxy-manager on 80 and 443, and HyperDX. **This is the step that makes
-the VM reachable from the internet.**
+the VM reachable from the internet.** `make up-multi` runs the three adapters
+instead; the mode decides what the proxy hosts in Appendix B forward to.
+Switching mode on a running VM restarts nginx-proxy-manager, so the public
+hosts drop connections for a few seconds.
 
 ## Step V4 — Decide what is exposed
 
@@ -249,7 +307,7 @@ ssh -L 9202:127.0.0.1:9202 -L 9200:127.0.0.1:9200 \
 ```
 
 The collection's defaults then work unchanged, since they already point at
-loopback.
+loopback. Single mode needs only 9201 for the adapter; 9200 and 9202 are for multi.
 
 ## Step V6 — Observability (optional)
 
@@ -312,7 +370,8 @@ Reference, read on demand. Nothing here is a step.
 ## Appendix A — What is here, and what is not
 
 Running: **registry** (SunbirdRC + Postgres + Keycloak), **discovery**
-(catalogue search + Postgres), **three adapters** (same image, three configs),
+(catalogue search + Postgres), **the adapters** (one Network Adapter by
+default, or three tier adapters with `make up-multi`; same image),
 **two mock upstreams** standing in for Mausamgram and Agmarknet. Behind
 profiles: **nginx-proxy-manager** (`reverse-proxy`, the only container on a
 routable interface) and **hyperdx** (`observability`, ClickStack — the
@@ -360,6 +419,16 @@ inside `oan-edge`. Turn on **Block Common Exploits**; leave Websockets off.
 Three hosts rather than one with path prefixes, so a rate limit or a block
 attaches to a hostname instead of a regex in a textarea, and each gets its own
 certificate. An unknown `Host` gets NPM's default page, not an adapter.
+
+**Single mode (`make up`, the default).** The table above is for
+`make up-multi`. With the single adapter there is no `consumer-adapter`,
+`network-adapter` or `provider-adapter` to forward to: point the consumer host
+at `network-adapter`, port 9201, with the same Advanced paste. The
+app's paths (`/discover`, `/select`, …) do not change, and neither does
+`/publish`: both modes present the same URLs. `server_proxy.conf` denies
+`/publish` and `/_internal` on every host: `/_internal/` holds the network and
+provider tiers, `/publish` publishes as the provider without checking the
+caller, and signing is off in quick-start.
 
 **A fourth host for HyperDX**, if the `observability` profile is up — this is
 what replaces `ssh -L 8085` for reading telemetry:
@@ -439,21 +508,24 @@ request. It is also the only option for a wildcard. Renewal reuses whichever
 method you chose, so a temporarily-correct DNS record or SG rule fails silently
 in sixty days.
 
-### `POST /publish` returns 403 on all three hosts
+### `POST /publish` and `/_internal` return 403 on every host
 
 Not optional hardening. The provider adapter's module at `/` verifies the
-sender's signature; `oanProviderPublish`, on the exact path `/publish`, has
+sender's signature; the publish module (`oanProviderPublish` in multi mode,
+`provider-publish` in single mode), on the exact path `/publish`, has
 **no signature check at all**, because its intended caller is the provider's
 own catalogue system inside the trust boundary. A proxy host pointed at
-`provider-adapter:9200` therefore exposes `<host>/publish` to anyone.
+`provider-adapter:9200` (multi) or `network-adapter:9201` (single) therefore
+exposes `<host>/publish` to anyone. In single mode the network and provider
+tiers also sit under `/_internal/`, which only the adapter itself calls.
 
 NPM's UI cannot route a host while withholding one path, so the block lives in
 `config/reverse-proxy/npm-custom/server_proxy.conf`, which NPM includes in
 **every** proxy host's server block — a mounted file, not a click, so not
-something to remember on one host out of three.
+something to remember on one host.
 
 To let a real catalogue system publish, give it a tunnel or put it in the VPC
-and let it reach `provider-adapter:9200` directly. Do not turn that `deny` into
+and let it reach the adapter directly (9200 in multi, 9201 in single). Do not turn that `deny` into
 an `allow`.
 
 ### Which nginx config loads itself, and which is a paste job
@@ -461,7 +533,7 @@ an `allow`.
 | File | How it applies |
 |---|---|
 | `npm-custom/http_top.conf` | **Automatic**, top of the `http` block. The `consumer` rate-limit zone and `limit_req_status 429`. |
-| `npm-custom/server_proxy.conf` | **Automatic**, every server block. The `/publish` deny. |
+| `npm-custom/server_proxy.conf` | **Automatic**, every server block. The `/publish` and `/_internal` denies. |
 | `npm-advanced/consumer.conf` | **Manual** — paste into the consumer host's Advanced tab. `limit_req` for that host only; a 10 r/s ceiling on signed peer traffic would throttle for no gain. |
 | `npm-advanced/hyperdx.conf` | **Manual** — paste into the HyperDX host's Advanced tab. 300s timeouts for ClickHouse scans, buffering off for live tail. Carries no credential; the Access List does. |
 
@@ -513,8 +585,8 @@ loopback. A registry route would depend on that silently.
 
 ```
 1. registry and discovery        (also sunbird-registry-postgres, sunbird-registry-keycloak, discovery-postgres)
-2. bin/setup.py                  keys, seven participants, four bindings, three configs
-3. mock upstreams, then the three adapters
+2. bin/setup.py                  keys, seven participants, four bindings, four configs
+3. the adapters                  network-adapter (default), or the three with MODE=multi
 4. nginx-proxy-manager           the public edge — 80 and 443, all interfaces
 5. hyperdx                       ClickStack
 ```
@@ -583,7 +655,7 @@ unedited.
 Those four strings are the hinge. The provider adapter builds the same key from
 each payload — the provider id and the capability `@type` it carries — and a
 step answers only when the key matches its own. `setup.py` renders those keys
-into `provider.yaml` from the same `.env` it seeds the registry from, which is
+into `provider.yaml` and `network-adapter.yaml` from the same `.env` it seeds the registry from, which is
 what stops the two drifting.
 
 **Looking at it** — from the VM or a tunnel. Search takes no token; writes do,
@@ -730,7 +802,7 @@ an id is a `.so` basename. If `ADAPTER_IMAGE` names a **new tag**, set it before
 nothing in `stack.sh` pulls, so the stack quietly comes back on the old image:
 
 ```sh
-docker compose pull provider-adapter network-adapter consumer-adapter
+docker compose pull network-adapter-layer provider-adapter network-adapter consumer-adapter
 ```
 
 Build from the adapter repo at the commit the config expects, and check the
@@ -751,6 +823,10 @@ publish reseeds first; `updateMode: MERGE` updates in place.
 **Then check, cheapest first:**
 
 ```sh
+# single mode (the default)
+docker logs network-adapter 2>&1 | grep 'Processor steps initialized'
+docker logs network-adapter 2>&1 | grep -iE '"level":"(error|fatal)"'
+# multi mode
 docker compose logs provider-adapter | grep 'Processor steps initialized'
 docker compose logs provider-adapter | grep -iE '"level":"(error|fatal)"'
 make ps
@@ -1003,7 +1079,7 @@ config/
   reverse-proxy/
     npm-custom/             mounted to /data/nginx/custom; NPM includes these
       http_top.conf           on its own -- rate-limit zone, and the /publish
-      server_proxy.conf       deny every proxy host gets
+      server_proxy.conf       and /_internal denies every proxy host gets
     npm-advanced/           NOT loaded. Paste into a host's Advanced tab; kept
       consumer.conf                here because a textarea in a database is not
       hyperdx.conf            reviewable. consumer = rate limit; hyperdx = ClickHouse
@@ -1019,6 +1095,9 @@ config/
     routing-consumer.yaml which action goes where: consumer sends discover
     routing-network.yaml    to the network layer and select to the provider;
     routing-provider.yaml   provider sends publish to the network layer
+    network-adapter.yaml.tmpl          single mode: all three tiers, one file
+    routing-network-adapter-consumer.yaml  single mode: consumer hops to
+    routing-network-adapter-provider.yaml  localhost:9201/_internal/...
   registry/
     schemas/                Participant, ProviderSchema, SchemaRegistry.
                             Read at startup -- a change needs a restart
@@ -1060,7 +1139,7 @@ that volume — and equally does not survive if you skip it.
 ```sh
 docker compose down -v
 rm -rf keys config/adapters/consumer.yaml config/adapters/network.yaml \
-       config/adapters/provider.yaml
+       config/adapters/provider.yaml config/adapters/network-adapter.yaml
 ```
 
 New keys mean new identities, so the provider rows must be created again and
