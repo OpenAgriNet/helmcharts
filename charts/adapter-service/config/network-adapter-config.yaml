@@ -308,7 +308,7 @@ modules:
   # signed as the provider and routed to /_internal/network/publish. No
   # validateSign: never expose it on an Ingress. At top-level /publish, the
   # same path as the multi provider adapter's publish module, so both
-  # topologies present the same URL.
+  # deployment modes present the same URL.
   - name: provider-publish
     path: /publish
     handler:

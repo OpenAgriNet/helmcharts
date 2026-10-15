@@ -1,7 +1,7 @@
 # ===========================================================================
 # adapter-service
 #
-# One chart for the Beckn adapters, in two topologies. Same image and config
+# One chart for the Beckn adapters, in two deployment modes. Same image and config
 # format; `role` below decides the handler role, the step list and where
 # requests are routed.
 #
@@ -18,16 +18,16 @@
 #     helm install network-adapter  . -f examples/network.yaml
 #     helm install consumer-adapter . -f examples/consumer.yaml
 #
-# Run one topology per environment. The Network Adapter Layer is released as
+# Run one deployment mode per environment. The Network Adapter Layer is released as
 # `network-adapter` but in its own namespace, `network-adapter-layer`, so the
 # tier identities openbao-secrets mirrors into it never land in the multi
-# network tier's namespace, and the two topologies can coexist during a
+# network tier's namespace, and the two deployment modes can coexist during a
 # switch-over.
 #
 # The release name is what the Service is called, which is the DNS name the
 # other adapters address. In multi, rename a release and you must update
 # whatever routes to it -- consumer routes to the network adapter, provider is
-# routed to by network. The single topology has no such addresses: its tiers
+# routed to by network. The single deployment mode has no such addresses: its tiers
 # call each other inside the pod.
 #
 # Two things every role needs that this chart cannot give it:

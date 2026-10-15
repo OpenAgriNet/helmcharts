@@ -5,10 +5,10 @@
 # what `docker ps` shows is what `docker logs` and the in-stack DNS name take.
 # One exception: the Network Adapter Layer is service `network-adapter-layer`
 # (profile network) with container `network-adapter`, the same container name
-# as the multi network tier's service `network-adapter`. Only one topology runs
+# as the multi network tier's service `network-adapter`. Only one deployment mode runs
 # at a time, so `docker ps` / `docker logs network-adapter` mean whichever runs;
 # compose commands (`docker compose logs`, `make logs SVC=`) take the service
-# name, `network-adapter-layer` in the single topology.
+# name, `network-adapter-layer` in the single deployment mode.
 # The sunbird-registry-* three are Sunbird RC's, not OAN's; the keycloak among
 # them authenticates nothing but that registry, and shares its postgres.
 #
@@ -541,9 +541,9 @@ services:
         condition: service_healthy
 
   # ==========================================================================
-  # adapters -- TWO topologies, chosen with a compose profile. Same image.
+  # adapters -- TWO deployment modes, chosen with a compose profile. Same image.
   #
-  #   profile "network" (the single topology, the default; `make up`)
+  #   profile "network" (the single deployment mode, the default; `make up`)
   #     network-adapter-layer (container network-adapter): the consumer, network and provider tiers
   #     as four modules of ONE process, one config, one port (127.0.0.1:9200).
   #     Tier-to-tier hops stay inside the container.
@@ -1006,7 +1006,7 @@ services:
       # `make observability` -- NPM was started before the name existed, so the
       # HyperDX host 502s until it re-resolves.
       #
-      # required: false -- only one topology's adapters exist at a time
+      # required: false -- only one deployment mode's adapters exist at a time
       # (profiles "network" / "multi"); NPM starts with whichever is running.
       network-adapter-layer:
         condition: service_started

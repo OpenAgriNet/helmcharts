@@ -1,7 +1,7 @@
 apiVersion: v2
 name: adapter-service
 description: >-
-  One chart for the OAN Beckn adapters, in two topologies. single (the
+  One chart for the OAN Beckn adapters, in two deployment modes. single (the
   default): the Network Adapter Layer (role network-adapter-layer) runs the
   consumer, network and provider tiers as four modules of one process;
   tier-to-tier calls stay inside the pod and each module keeps its own tier

@@ -1,6 +1,6 @@
 # adapter-service
 
-One chart for the Beckn adapters, in two topologies. **single (the default):**
+One chart for the Beckn adapters, in two deployment modes. **single (the default):**
 the Network Adapter Layer, role `network-adapter-layer`, all three tiers in one
 adapter. **multi (optional):** three roles, `provider`, `network` and
 `consumer`, one release per tier. All roles are the same image and the same
@@ -22,7 +22,7 @@ and where requests are routed.
     /publish  ──lo──▶ /_internal/network/publish
 ```
 
-The paths are flat and the same in both topologies: `/discover`, `/publish`,
+The paths are flat and the same in both deployment modes: `/discover`, `/publish`,
 `/<action>` and `/health`. The network and provider tiers sit under
 `/_internal/`, which only this process calls (over loopback). The ingress may
 expose only single-segment `/<action>` paths: `/publish` stays in-cluster for
@@ -53,7 +53,7 @@ reads from the registry at request time.
 
 ## Install
 
-Pick **one** topology per environment (→ [Choosing a topology](#choosing-a-topology-single-default-or-multi-optional)).
+Pick **one** deployment mode per environment (→ [Choosing a deployment mode](#choosing-a-deployment-mode-single-default-or-multi-optional)).
 Install the Secrets first: the render fails without them.
 
 ```sh
@@ -165,9 +165,9 @@ the **public** half of the keypair. Missing, or carrying a different key, and
 every peer rejects what this adapter signs while the pod stays perfectly
 healthy.
 
-## Choosing a topology: single (default) or multi (optional)
+## Choosing a deployment mode: single (default) or multi (optional)
 
-| Topology | Releases → namespaces | Values | App calls | Catalogue publishes to |
+| Deployment mode | Releases → namespaces | Values | App calls | Catalogue publishes to |
 |---|---|---|---|---|
 | **single (default)**: Network Adapter Layer | `network-adapter` → `network-adapter-layer` | `examples/network-adapter.yaml` | `network-adapter.network-adapter-layer.svc:9200/<action>` | `network-adapter.network-adapter-layer.svc:9200/publish` |
 | multi (optional) | `consumer-adapter`, `network-adapter`, `provider-adapter` → one namespace each, same name | `examples/{consumer,network,provider}.yaml` | `consumer-adapter.consumer-adapter.svc:9202/<action>` | `provider-adapter.provider-adapter.svc:9200/publish` |
@@ -186,39 +186,39 @@ choice changes nothing in the registry.
 `role: network-adapter-layer` runs all three tiers in one adapter, as four
 modules of one process. Its config is `config/network-adapter-config.yaml`
 (each module is its tier's module from `config/<tier>-config.yaml`, so a change
-to a tier file that should apply to both topologies goes in both files). Its routing
+to a tier file that should apply to both deployment modes goes in both files). Its routing
 is **generated** at render time from `config/routing-*.yaml`, so routes stay in
 one place. Tier hops go to the pod's own listener, `localhost:<targetPort>` (any image). It signs as
 the same three identities, from the same three Secrets, so the registry is the
-same in both topologies. An environment's `config:` override for a multi role is NOT
+same in both deployment modes. An environment's `config:` override for a multi role is NOT
 seen by the Network Adapter Layer; give its release its own `config:` if
 needed (it replaces `network-adapter-config.yaml` whole).
 
-Pick the topology per environment with ONE value where releases are chosen,
-`networkAdapterTopology: single | multi` (a helmfile environment value; no chart
+Pick the deployment mode per environment with ONE value where releases are chosen,
+`networkAdapterDeploymentMode: single | multi` (a helmfile environment value; no chart
 reads it; **default `single`**). `single` installs one release, `network-adapter`
 in namespace `network-adapter-layer` (the Network Adapter Layer); `multi`
 installs the three tier releases. For a helmfile (adapt to
 infra-automation's layout):
 
 ```yaml
-# environments: values may carry   networkAdapterTopology: multi      # default: single
-{{- $topology := .Values.networkAdapterTopology | default "single" }}
-{{- if not (has $topology (list "single" "multi")) }}
-{{- fail (printf "networkAdapterTopology must be single or multi, not %q" $topology) }}
+# environments: values may carry   networkAdapterDeploymentMode: multi      # default: single
+{{- $mode := .Values.networkAdapterDeploymentMode | default "single" }}
+{{- if not (has $mode (list "single" "multi")) }}
+{{- fail (printf "networkAdapterDeploymentMode must be single or multi, not %q" $mode) }}
 {{- end }}
 releases:
 {{- range $tier := list "consumer" "network" "provider" }}
   - name: {{ $tier }}-adapter
     namespace: {{ $tier }}-adapter
     chart: ../helmcharts/charts/adapter-service
-    installed: {{ eq $topology "multi" }}
+    installed: {{ eq $mode "multi" }}
     values: [values/{{ $tier }}-adapter.yaml]
 {{- end }}
   - name: network-adapter
     namespace: network-adapter-layer
     chart: ../helmcharts/charts/adapter-service
-    installed: {{ eq $topology "single" }}
+    installed: {{ eq $mode "single" }}
     values: [values/network-adapter.yaml]
 ```
 
@@ -230,21 +230,21 @@ adapter as a whole, so its release, Service and app name are `network-adapter`,
 the same as the multi network tier's. Its **namespace** is its own,
 `network-adapter-layer`, for two reasons: openbao-secrets mirrors all three
 tier identities into it, which must not happen in the multi network tier's
-namespace `network-adapter`; and the two topologies can then run side by side
+namespace `network-adapter`; and the two deployment modes can then run side by side
 during a switch-over. In-cluster address of the layer:
 `network-adapter.network-adapter-layer.svc.cluster.local:9200`.
 
 To switch an environment: install the layer (namespace `network-adapter-layer`)
 next to the multi releases, repoint the app (`…:9200/<action>`) and the
 catalogue publisher (`…:9200/publish`), then remove the three multi
-releases. Both topologies sign with the same identities and the same registry
+releases. Both deployment modes sign with the same identities and the same registry
 rows, so nothing in the registry changes. Reverse the steps to switch back.
 
 ## Values
 
 See `values.yaml` — every field is commented with what it does and what breaks
 without it. `examples/{provider,network,consumer}.yaml` are working dev deployments for the
-multi topology, and `examples/network-adapter.yaml` for the single topology (the Network Adapter Layer, default);
+multi deployment mode, and `examples/network-adapter.yaml` for the single deployment mode (the Network Adapter Layer, default);
 `ci/` holds the files lint renders, including `ci/network-adapter-values.yaml`.
 
 ## Related

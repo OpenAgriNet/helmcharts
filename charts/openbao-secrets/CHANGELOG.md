@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `network-adapter-layer` as a target namespace of `consumer-adapter-keys`,
   `network-adapter-keys`, `provider-adapter-keys` and `provider-upstream`, for
   `adapter-service` role `network-adapter-layer`: the Network Adapter Layer
-  (the default topology) runs all three tiers, so it reads all three
+  (the default deployment mode) runs all three tiers, so it reads all three
   identities. It has a namespace of its own rather than the multi network
   tier's `network-adapter`, so multi environments do not get the consumer and
   provider keys or the upstream credentials copied next to the network tier.

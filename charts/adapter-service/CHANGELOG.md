@@ -8,19 +8,19 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 ## [0.6.0] - 2026-10-09
 
 ### Added
-- **Two topologies, with single as the default.** `role: network-adapter-layer`
+- **Two deployment modes, with single as the default.** `role: network-adapter-layer`
   is the Network Adapter Layer: the consumer, network and provider tiers as four
   modules of one process (`/` for the consumer, `/publish`,
   `/_internal/network/`, `/_internal/provider/`), one release called `network-adapter`. It is the default;
   the existing roles `provider`, `network` and `consumer` (one release per
-  tier) are the optional multi topology and are unchanged. The README's
-  "Choosing a topology" has the helmfile snippet with
-  `networkAdapterTopology: single | multi` (default `single`; a deploy-layer
+  tier) are the optional multi deployment mode and are unchanged. The README's
+  "Choosing a deployment mode" has the helmfile snippet with
+  `networkAdapterDeploymentMode: single | multi` (default `single`; a deploy-layer
   value, not a chart value).
 - `config/network-adapter-config.yaml`: the layer's adapter config, mounted
   like any role's file (extended schema, an outbound connection pool and log
   level info on every module). Each module is its tier's module, so a change to
-  a tier file that should apply to both topologies is made in both. Its routing
+  a tier file that should apply to both deployment modes is made in both. Its routing
   is generated at render time from `config/routing-*.yaml`
   (`routing-network-adapter-{consumer,publish}.yaml`), with tier hosts rewritten
   to `http://localhost:<targetPort>/_internal/<tier>`, so tier hops stay inside the pod. The render fails if `http.port` differs from `service.targetPort`.
@@ -29,7 +29,7 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   (`networkAdapterLayer.extraSubstitutions` for extra placeholders). A literal
   private key in the config, including a `config:` override, fails the render.
 - Flat paths: `/discover`, `/publish`, `/<action>` and `/health`, the
-  same URLs as the multi topology. The network and provider tiers are mounted
+  same URLs as the multi deployment mode. The network and provider tiers are mounted
   under `/_internal/`, which only the process itself calls.
 - Ingress for the layer may expose only single-segment `/<action>`, as literal
   paths with `pathType` Prefix or Exact and no `use-regex` / `rewrite-target`
@@ -43,7 +43,7 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Changed
 - Docs, `values.yaml` and the example headers say single is the default
-  topology and multi is optional.
+  deployment mode and multi is optional.
 - Naming: the layer's release, Service and app name are `network-adapter`
   (telemetry service `oan-network-adapter`); its namespace is
   `network-adapter-layer`. "layer" appears only in the namespace, the role,
@@ -51,7 +51,7 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   `network` tier. The app name and telemetry service name are set in
   `config/network-adapter-config.yaml`. The separate namespace keeps the
   consumer and provider keys, which openbao-secrets mirrors to the layer, out
-  of the multi network tier's namespace, and lets both topologies run side by
+  of the multi network tier's namespace, and lets both deployment modes run side by
   side during a switch-over.
 
 ### Fixed

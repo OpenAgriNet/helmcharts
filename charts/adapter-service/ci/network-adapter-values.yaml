@@ -2,7 +2,7 @@
 # CI only (scripts/lint-charts.sh lints and renders every ci/*-values.yaml).
 # Not for installs: use examples/network-adapter.yaml.
 #
-# Renders the single topology, role network-adapter-layer (the Network Adapter
+# Renders the single deployment mode, role network-adapter-layer (the Network Adapter
 # Layer): config/network-adapter-config.yaml, the generated routing,
 # the three tier identities, and the PDB / spread / graceful-shutdown
 # settings, so those templates are linted too. The HPA stays off, as in
