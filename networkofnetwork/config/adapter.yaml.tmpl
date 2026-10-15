@@ -1,0 +1,505 @@
+# ONE OAN adapter, serving every layer this network has.
+#
+# The quick-start runs three adapters -- consumer, network, provider -- as three
+# containers. That is a deployment choice, not what a network IS: a network is
+# one participant with one identity, and the three layers are modules of it.
+# This config is the consolidated shape, which is the one to reason about when
+# there are two whole networks on the machine already.
+#
+# Each layer is a module on its own path of one port:
+#
+#   /consumer/   what the experience layer posts to
+#   /network/    publish and discover, answered from this network's discovery
+#   /provider/   select, init, confirm, status -- answered by a capability, or
+#                routed to another network when the request is not ours
+#   /publish     this network's catalogue system publishing inward
+#   /crawl/      operator endpoints: trigger a crawl, read its status
+#
+# Every module shares one identity, one keypair and one registry -- see the
+# anchor below. Under one identity they are not three participants that happen
+# to agree; they are one participant, and the config says so once.
+appName: "__BECKN_NETWORK_ID__"
+
+log:
+  level: debug
+  destinations:
+    - type: stdout
+  contextKeys: [transaction_id, message_id, subscriber_id, module_id]
+
+http:
+  port: 9200
+  timeout:
+    read: 30
+    write: 30
+    idle: 30
+
+pluginManager:
+  root: ./plugins
+
+plugins:
+  # Ships metrics, traces and logs over OTLP/gRPC. All three flags false builds
+  # no exporter at all, which is the right setting for a stack with no collector.
+  otelsetup:
+    id: otelsetup
+    config:
+      serviceName: "__BECKN_NETWORK_ID__"
+      environment: "__OTEL_ENVIRONMENT__"
+      otlpEndpoint: "__OTLP_ENDPOINT__"
+      enableMetrics: "__OTEL_ENABLED__"
+      enableTracing: "__OTEL_ENABLED__"
+      enableLogs: "__OTEL_ENABLED__"
+
+  # The crawler's OWN registry, separate from the modules' below. It is key
+  # distribution for verifying what the crawl fetches, not request handling, and
+  # the crawler refuses to start without it.
+  registry:
+    id: sunbirdRegistry
+    config:
+      url: http://registry-service:8081/api/v1
+      entity: Participant
+      providerEntity: ProviderSchema
+      cacheTTL: 0
+      timeout: 2
+      retry_max: 1
+      retry_wait_min: 100ms
+      retry_wait_max: 500ms
+      maxResponseBytes: 1048576
+
+  # The crawler. One per deployment, app-level, because it is a background pass
+  # rather than something a request reaches.
+  crawler:
+    id: catalogcrawler
+    config:
+      dbDsn: "postgres://discovery:discovery@discovery-postgres:5432/catalogcrawler?sslmode=disable"
+      discoveryPushUrl: "http://discovery-service:8080/publish"
+      participantId: "__BECKN_NETWORK_ID__"
+      bppUri: "__NETWORK_BASE_URL__"
+
+      # The federated half. Present means this network crawls what it has
+      # admitted; EMPTY means it crawls only its own providers -- it still
+      # ANSWERS another network's crawl, because that is the network module's
+      # job and nothing to do with this block.
+      #
+      # Rendered empty when FEDERATION_CRAWL_PEERS=off, which is how a
+      # deployment opts out of crawling without having to un-admit anyone.
+      federationNetworkId: "__FEDERATION_NETWORK_ID__"
+      federationSigningKey: "__SIGNING_PRIVATE__"
+      federationKeyId: "__KEY_ID__"
+      federationRefreshSeconds: "__FEDERATION_REFRESH_SECONDS__"
+      federationPageSize: "__FEDERATION_PAGE_SIZE__"
+      federationUpdateMode: "__FEDERATION_UPDATE_MODE__"
+      # What breadth of another network's catalogue to mirror.
+      #
+      # REQUIRED IN PRACTICE, though the code defaults it to an empty intent.
+      # Discovery refuses one that narrows nothing -- "an intent needs at least
+      # one of spatial or filters" for an empty one, and "this expression
+      # narrows nothing the index can serve" for a filter built to match all --
+      # so a crawl with no intent configured silently mirrors zero catalogs.
+      # That is the whole of the long-standing "a published catalog never comes
+      # back from discover": the catalog was there, nothing ever asked for it.
+      #
+      # So a deployment must say what it wants. This asks for weather, which is
+      # what the mocks here publish; widen it per capability as more are
+      # published.
+      federationIntent: '__FEDERATION_INTENT__'
+      federationPublishRetrySeconds: "__FEDERATION_PUBLISH_RETRY_SECONDS__"
+
+modules:
+
+  # ---------------------------------------------------------------- consumer
+  #
+  # What the experience layer posts to, and the only address it knows. It
+  # decides nothing: discovery goes to the network layer, everything
+  # transactional to the provider layer, and context.bppUri travels onward in
+  # the body untouched.
+  - name: consumer
+    path: /consumer/
+    handler:
+      type: std
+      # bap because this module SENDS. role sets direction, not participant type.
+      role: bap
+      subscriberId: __BECKN_NETWORK_ID__
+      plugins:
+        registry:
+          id: sunbirdRegistry
+          config:
+            url: http://registry-service:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+            # 0 because no cache plugin is configured. A non-zero TTL here only warns
+            # at startup and caches nothing.
+            cacheTTL: 0
+            # Plain seconds, per attempt.
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            # A search response past this is refused, not truncated.
+            maxResponseBytes: 1048576
+
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: __BECKN_NETWORK_ID__
+            # The key's osid, not a friendly name: the registry indexes on it.
+            keyId: __KEY_ID__
+            signingPrivateKey: "__SIGNING_PRIVATE__"
+            signingPublicKey: "__SIGNING_PUBLIC__"
+            encrPrivateKey: "__ENCR_PRIVATE__"
+            encrPublicKey: "__ENCR_PUBLIC__"
+
+        signer:
+          id: signer
+        signValidator:
+          id: signvalidator
+
+        # The extended layer is off: it fetches a resource's own @context per payload,
+        # and nothing here needs it. The settings below only apply if it is on.
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            cacheTTL: "3600"
+            extendedSchema_enabled: "false"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
+        middleware:
+          - id: reqpreprocessor
+            config:
+              contextKeys: transaction_id,message_id
+              role: bap
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/routing-consumer.yaml
+      # No validateSign: the experience app is inside the trust boundary, so
+      # there is no network signature to check inbound.
+      steps:
+        - validateSchema
+        - addRoute
+
+  # ----------------------------------------------------------------- network
+  #
+  # publish and discover. Routes both to this network's discovery service and
+  # enforces no payload shape of its own.
+  - name: network
+    path: /network/
+    handler:
+      type: std
+      # bpp because this module RECEIVES.
+      role: bpp
+      subscriberId: __BECKN_NETWORK_ID__
+      plugins:
+        registry:
+          id: sunbirdRegistry
+          config:
+            url: http://registry-service:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+            # 0 because no cache plugin is configured. A non-zero TTL here only warns
+            # at startup and caches nothing.
+            cacheTTL: 0
+            # Plain seconds, per attempt.
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            # A search response past this is refused, not truncated.
+            maxResponseBytes: 1048576
+
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: __BECKN_NETWORK_ID__
+            # The key's osid, not a friendly name: the registry indexes on it.
+            keyId: __KEY_ID__
+            signingPrivateKey: "__SIGNING_PRIVATE__"
+            signingPublicKey: "__SIGNING_PUBLIC__"
+            encrPrivateKey: "__ENCR_PRIVATE__"
+            encrPublicKey: "__ENCR_PUBLIC__"
+
+        signer:
+          id: signer
+        signValidator:
+          id: signvalidator
+
+        # The extended layer is off: it fetches a resource's own @context per payload,
+        # and nothing here needs it. The settings below only apply if it is on.
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            cacheTTL: "3600"
+            extendedSchema_enabled: "false"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
+        middleware:
+          - id: reqpreprocessor
+            config:
+              contextKeys: transaction_id,message_id
+              role: bpp
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/routing-network.yaml
+      steps:
+        - addRoute
+
+  # ---------------------------------------------------------------- provider
+  #
+  # Where a select is answered -- or sent on, when it was addressed to another
+  # network.
+  - name: provider
+    path: /provider/
+    handler:
+      type: std
+      role: bpp
+      subscriberId: __BECKN_NETWORK_ID__
+      plugins:
+        registry:
+          id: sunbirdRegistry
+          config:
+            url: http://registry-service:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+            # 0 because no cache plugin is configured. A non-zero TTL here only warns
+            # at startup and caches nothing.
+            cacheTTL: 0
+            # Plain seconds, per attempt.
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            # A search response past this is refused, not truncated.
+            maxResponseBytes: 1048576
+
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: __BECKN_NETWORK_ID__
+            # The key's osid, not a friendly name: the registry indexes on it.
+            keyId: __KEY_ID__
+            signingPrivateKey: "__SIGNING_PRIVATE__"
+            signingPublicKey: "__SIGNING_PUBLIC__"
+            encrPrivateKey: "__ENCR_PRIVATE__"
+            encrPublicKey: "__ENCR_PUBLIC__"
+
+        signer:
+          id: signer
+        signValidator:
+          id: signvalidator
+
+        # The extended layer is off: it fetches a resource's own @context per payload,
+        # and nothing here needs it. The settings below only apply if it is on.
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            cacheTTL: "3600"
+            extendedSchema_enabled: "false"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
+        middleware:
+          - id: reqpreprocessor
+            config:
+              contextKeys: transaction_id,message_id
+              role: bpp
+
+        # Only this module has one: a capability step turns an upstream's answer
+        # back into Beckn through a mapping file, and no other module calls an
+        # upstream.
+        mapper:
+          id: jsonmapper
+          config:
+            fetchTimeout: "10s"
+            cacheTTL: "1m"
+            negativeTTL: "1m"
+            maxMappingBytes: 262144
+            maxCacheEntries: 200
+
+        providerSteps:
+          - id: WeatherObservation
+            config:
+              bindingKeys: "__MAUSAMGRAM_BINDING_KEY__"
+              # header, not basic: IMD issues one opaque token, and basic would
+              # build the header itself from a username and password pair.
+              __MAUSAMGRAM_PARTICIPANT_ID__:
+                authScheme: header
+                headerName: Authorization
+                headerValueEnv: MAUSAMGRAM_AUTH
+
+          - id: MandiPrice
+            config:
+              bindingKeys: "__AGMARKNET_BINDING_KEY__"
+              # Agmarknet issues short-lived tokens. The field names are this
+              # provider's spelling, not a standard. tokenTtl is an estimate --
+              # the response carries no expiry -- and a 401 drops the held token.
+              __AGMARKNET_PARTICIPANT_ID__:
+                authScheme: tokenQuery
+                tokenUrl: "__AGMARKNET_TOKEN_URL__"
+                tokenUserField: access_name
+                tokenUserEnv: AGMARKNET_ACCESS_NAME
+                tokenSecretField: password
+                tokenSecretEnv: AGMARKNET_PASSWORD
+                tokenResponseField: token
+                queryName: token
+                tokenTtl: 10m
+
+          - id: KnowledgeAdvisory
+            config:
+              bindingKeys: "__VISTAAR_BINDING_KEY__"
+              __VISTAAR_PARTICIPANT_ID__:
+                authScheme: oauth2
+                tokenUrl: "__VISTAAR_TOKEN_URL__"
+                clientIdEnv: VISTAAR_CLIENT_ID
+                clientSecretEnv: VISTAAR_CLIENT_SECRET
+              # A retrieval answer is larger than a price row: four passages
+              # measured 15.7 KB against the live corpus.
+              maxResponseBytes: 1048576
+
+          - id: AgricultureFacility
+            config:
+              bindingKeys: "__POCRA_BINDING_KEY__"
+              __POCRA_PARTICIPANT_ID__:
+                authScheme: none
+              # Must stay 1. POCRA answers 200 with an empty catalogue after
+              # roughly twenty calls in a few minutes. That is indistinguishable
+              # from a genuine "nothing nearby", so raising this risks telling a
+              # farmer there is no facility when there is.
+              searchConcurrency: 1
+
+      # Inbound signature validation is OFF: validateSign is absent, so this
+      # tier accepts unsigned traffic, and it answers unsigned because signAck
+      # is absent too.
+      #
+      # OUTBOUND signing is on: sign is listed, so a request forwarded to
+      # another network leaves with this network's signature.
+      steps:
+        - validateSchema
+        # There is no step here for "is this request ours to answer?". Each
+        # capability step asks it first, before its own binding check, so a
+        # deployment gets it by serving capabilities at all -- there is no list
+        # to leave it out of, and a fifth capability added below cannot miss it.
+        #
+        # Who we are comes from this module's subscriberId above; no step
+        # repeats it. A request for us is served exactly as before. One for
+        # anybody else is sent to its own context.bppUri, which the consumer
+        # copied from the catalog it chose.
+        #
+        - WeatherObservation
+        - MandiPrice
+        - KnowledgeAdvisory
+        - AgricultureFacility
+        # Signing is config, not code: a cross-network call leaves signed
+        # because the step is listed here.
+        #
+        # AFTER the capability steps, and that ordering matters. reqpreprocessor
+        # resolves this request's subscriber id FROM THE BODY, so on a request
+        # addressed to another network it resolves to THEM. The capability step
+        # above corrects it to us when it decides the request is not ours.
+        # Signing before that ran would look up the other network's keyset and
+        # fail with "failed to get signing key: keyset not found".
+        #
+        # It runs on every request, as every step does. On one that stays here
+        # that costs a signature nobody reads -- the header is set on the
+        # outbound request, and a request answered locally is never sent.
+        - sign
+
+  # --------------------------------------------------------- provider publish
+  #
+  # This network's catalogue system publishing inward. A module of its own, not
+  # another action above: the routing step fails any action missing from its
+  # config, and listing select there would proxy it to the network layer instead
+  # of answering it locally.
+  - name: publish
+    # A TRAILING SLASH, so the action survives. Routing takes the action from
+    # what is left of the URL after the mount path is stripped, so an exact
+    # /publish mount leaves nothing and addRoute fails with "endpoint '' is not
+    # supported". Published to as POST /publish/publish.
+    path: /publish/
+    handler:
+      type: std
+      # bap because this module SENDS.
+      role: bap
+      subscriberId: __BECKN_NETWORK_ID__
+      plugins:
+        registry:
+          id: sunbirdRegistry
+          config:
+            url: http://registry-service:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+            # 0 because no cache plugin is configured. A non-zero TTL here only warns
+            # at startup and caches nothing.
+            cacheTTL: 0
+            # Plain seconds, per attempt.
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            # A search response past this is refused, not truncated.
+            maxResponseBytes: 1048576
+
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: __BECKN_NETWORK_ID__
+            # The key's osid, not a friendly name: the registry indexes on it.
+            keyId: __KEY_ID__
+            signingPrivateKey: "__SIGNING_PRIVATE__"
+            signingPublicKey: "__SIGNING_PUBLIC__"
+            encrPrivateKey: "__ENCR_PRIVATE__"
+            encrPublicKey: "__ENCR_PUBLIC__"
+
+        signer:
+          id: signer
+        signValidator:
+          id: signvalidator
+
+        # The extended layer is off: it fetches a resource's own @context per payload,
+        # and nothing here needs it. The settings below only apply if it is on.
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            cacheTTL: "3600"
+            extendedSchema_enabled: "false"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
+        middleware:
+          - id: reqpreprocessor
+            config:
+              contextKeys: transaction_id,message_id
+              role: bap
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/routing-publish.yaml
+      steps:
+        - validateSchema
+        - addRoute
+
+  # ------------------------------------------------------------------- crawl
+  #
+  # Operator endpoints: /crawl/trigger, /crawl/peers, /crawl/status.
+  #
+  # Not published through the front door, which is what keeps them off the
+  # network -- the adapter has no signed-operator identity to check them against.
+  - name: crawl
+    path: /crawl/
+    handler:
+      type: catalogCrawl
+      authDisabled: true
+      basePath: /crawl

@@ -1,0 +1,570 @@
+{
+  "info": {
+    "_postman_id": "d90ecfa3-df76-4844-a51c-32d73de9a2f9",
+    "name": "OAN — Network of Networks",
+    "description": "Two OAN networks side by side, each with its own registry, discovery and adapter.\n\n**Identity documents (#74):** run the *Identity documents* folder first -- each network's signed Descriptor and JWKS.\n\n**The demo, in order:**\n1. Bharat 1 — publish mandi into A\n2. Bharat 2 — search A, returns mandi only\n3. Maha 1 — publish weather into B\n4. wait ~30s, no manual crawl\n5. Bharat 2 again — now returns mandi AND weather\n6. Bharat 3 — select mandi, answered locally\n7. Bharat 4 — select weather, crosses to B\n\nBring the stack up with `make network NETWORK_ID=...` in helmcharts/networkofnetwork. Full runbook in demo/README.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "bharat_adapter",
+      "value": "http://localhost:9300"
+    },
+    {
+      "key": "bharat_discovery",
+      "value": "http://localhost:9301"
+    },
+    {
+      "key": "maha_adapter",
+      "value": "http://localhost:9400"
+    },
+    {
+      "key": "maha_discovery",
+      "value": "http://localhost:9401"
+    },
+    {
+      "key": "bharat_front_door",
+      "value": "https://localhost:9306"
+    },
+    {
+      "key": "maha_front_door",
+      "value": "https://localhost:9406"
+    },
+    {
+      "key": "bharat_network_id",
+      "value": "bharatvistar.oan.local"
+    },
+    {
+      "key": "maha_network_id",
+      "value": "mahavistara.oan.local"
+    }
+  ],
+  "item": [
+    {
+      "name": "Identity documents  (issue #74)",
+      "description": "Each network's two published documents, fetched from its front door exactly where a peer reads them.\n\n**Before running:** Postman → Settings → turn OFF *SSL certificate verification* (the stack uses a local CA), and run `make host-descriptor NETWORK_ID=...` for each network with this branch's code.\n\nRun each Descriptor request before its JWKS request: the JWKS checks use the kids the Descriptor named.\n\nPostman cannot verify an Ed25519 signature, so these check shape, keys and the governance/traffic key split. For the signature and the tampering cases run `make e2e-descriptor NETWORK_ID=... PEER=...`.",
+      "item": [
+        {
+          "name": "1. Bharat — Network Descriptor",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('net', 'bharat');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const prefix = pm.variables.get('net');",
+                  "pm.test('200 and JSON', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "pm.test('not cached stale (Cache-Control: no-cache)', () => {",
+                  "  pm.expect(pm.response.headers.get('Cache-Control') || '').to.include('no-cache');",
+                  "});",
+                  "const d = pm.response.json();",
+                  "pm.test('every required field of the Descriptor contract', () => {",
+                  "  ['version','networkId','name','operator','revision','status','issuedAt',",
+                  "   'operatingProfile','schemaPacks','services','operationalKeys','signature']",
+                  "    .forEach(f => pm.expect(d, f).to.have.property(f));",
+                  "  pm.expect(d.version).to.eql('1.0');",
+                  "  pm.expect(d.operator.name).to.be.a('string').and.not.empty;",
+                  "  pm.expect(d.revision).to.be.a('number').and.above(0);",
+                  "  pm.expect(['Active','Suspended','Retired']).to.include(d.status);",
+                  "  pm.expect(d.issuedAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/);",
+                  "  pm.expect(d.operatingProfile).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "pm.test('networkId is the network this was fetched for', () => {",
+                  "  pm.expect(d.networkId).to.eql(pm.variables.get(prefix + '_network_id'));",
+                  "});",
+                  "pm.test('discovery URL and schema packs are https', () => {",
+                  "  pm.expect(d.services.discovery).to.match(/^https:\\/\\//);",
+                  "  d.schemaPacks.forEach(u => pm.expect(u).to.match(/^https:\\/\\//));",
+                  "});",
+                  "pm.test('signed with Ed25519 by a governance key that is NOT a traffic key', () => {",
+                  "  pm.expect(d.signature.algorithm).to.eql('Ed25519');",
+                  "  pm.expect(d.signature.value).to.match(/^[A-Za-z0-9_-]{86}$/);",
+                  "  pm.expect(d.operationalKeys).to.be.an('array').that.is.not.empty;",
+                  "  pm.expect(d.operationalKeys).to.not.include(d.signature.keyId);",
+                  "});",
+                  "pm.collectionVariables.set(prefix + '_governance_kid', d.signature.keyId);",
+                  "pm.collectionVariables.set(prefix + '_operational_kids', JSON.stringify(d.operationalKeys));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{bharat_front_door}}/.well-known/openagrinet",
+              "host": [
+                "{{bharat_front_door}}"
+              ],
+              "path": [
+                ".well-known",
+                "openagrinet"
+              ]
+            },
+            "description": "The signed ID card: who the network is, its status, revision, versions, schema packs, discovery URL and which keys may sign traffic."
+          }
+        },
+        {
+          "name": "2. Bharat — JWKS",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('net', 'bharat');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const prefix = pm.variables.get('net');",
+                  "pm.test('200 and JSON', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "const keys = pm.response.json().keys;",
+                  "pm.test('every key is a 32-byte Ed25519 signing key with a unique kid', () => {",
+                  "  pm.expect(keys).to.be.an('array').that.is.not.empty;",
+                  "  const kids = keys.map(k => k.kid);",
+                  "  pm.expect(new Set(kids).size).to.eql(kids.length);",
+                  "  keys.forEach(k => {",
+                  "    pm.expect(k.kty).to.eql('OKP');",
+                  "    pm.expect(k.crv).to.eql('Ed25519');",
+                  "    pm.expect(k.alg).to.eql('Ed25519');",
+                  "    pm.expect(k.use).to.eql('sig');",
+                  "    pm.expect(k.x).to.match(/^[A-Za-z0-9_-]{43}$/);",
+                  "  });",
+                  "});",
+                  "pm.test('publishes the governance key and every delegated traffic key', () => {",
+                  "  const gov = pm.collectionVariables.get(prefix + '_governance_kid');",
+                  "  const ops = JSON.parse(pm.collectionVariables.get(prefix + '_operational_kids') || '[]');",
+                  "  pm.expect(gov, 'run the Descriptor request first').to.be.a('string');",
+                  "  const kids = keys.map(k => k.kid);",
+                  "  pm.expect(kids).to.include(gov);",
+                  "  ops.forEach(kid => pm.expect(kids).to.include(kid));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{bharat_front_door}}/.well-known/jwks.json",
+              "host": [
+                "{{bharat_front_door}}"
+              ],
+              "path": [
+                ".well-known",
+                "jwks.json"
+              ]
+            },
+            "description": "The public keys that verify the Descriptor (governance) and the delegated traffic keys (operational)."
+          }
+        },
+        {
+          "name": "3. Maha — Network Descriptor",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('net', 'maha');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const prefix = pm.variables.get('net');",
+                  "pm.test('200 and JSON', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "pm.test('not cached stale (Cache-Control: no-cache)', () => {",
+                  "  pm.expect(pm.response.headers.get('Cache-Control') || '').to.include('no-cache');",
+                  "});",
+                  "const d = pm.response.json();",
+                  "pm.test('every required field of the Descriptor contract', () => {",
+                  "  ['version','networkId','name','operator','revision','status','issuedAt',",
+                  "   'operatingProfile','schemaPacks','services','operationalKeys','signature']",
+                  "    .forEach(f => pm.expect(d, f).to.have.property(f));",
+                  "  pm.expect(d.version).to.eql('1.0');",
+                  "  pm.expect(d.operator.name).to.be.a('string').and.not.empty;",
+                  "  pm.expect(d.revision).to.be.a('number').and.above(0);",
+                  "  pm.expect(['Active','Suspended','Retired']).to.include(d.status);",
+                  "  pm.expect(d.issuedAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/);",
+                  "  pm.expect(d.operatingProfile).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "pm.test('networkId is the network this was fetched for', () => {",
+                  "  pm.expect(d.networkId).to.eql(pm.variables.get(prefix + '_network_id'));",
+                  "});",
+                  "pm.test('discovery URL and schema packs are https', () => {",
+                  "  pm.expect(d.services.discovery).to.match(/^https:\\/\\//);",
+                  "  d.schemaPacks.forEach(u => pm.expect(u).to.match(/^https:\\/\\//));",
+                  "});",
+                  "pm.test('signed with Ed25519 by a governance key that is NOT a traffic key', () => {",
+                  "  pm.expect(d.signature.algorithm).to.eql('Ed25519');",
+                  "  pm.expect(d.signature.value).to.match(/^[A-Za-z0-9_-]{86}$/);",
+                  "  pm.expect(d.operationalKeys).to.be.an('array').that.is.not.empty;",
+                  "  pm.expect(d.operationalKeys).to.not.include(d.signature.keyId);",
+                  "});",
+                  "pm.collectionVariables.set(prefix + '_governance_kid', d.signature.keyId);",
+                  "pm.collectionVariables.set(prefix + '_operational_kids', JSON.stringify(d.operationalKeys));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{maha_front_door}}/.well-known/openagrinet",
+              "host": [
+                "{{maha_front_door}}"
+              ],
+              "path": [
+                ".well-known",
+                "openagrinet"
+              ]
+            },
+            "description": "Same as Bharat, for Maha Vistara."
+          }
+        },
+        {
+          "name": "4. Maha — JWKS",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('net', 'maha');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const prefix = pm.variables.get('net');",
+                  "pm.test('200 and JSON', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "const keys = pm.response.json().keys;",
+                  "pm.test('every key is a 32-byte Ed25519 signing key with a unique kid', () => {",
+                  "  pm.expect(keys).to.be.an('array').that.is.not.empty;",
+                  "  const kids = keys.map(k => k.kid);",
+                  "  pm.expect(new Set(kids).size).to.eql(kids.length);",
+                  "  keys.forEach(k => {",
+                  "    pm.expect(k.kty).to.eql('OKP');",
+                  "    pm.expect(k.crv).to.eql('Ed25519');",
+                  "    pm.expect(k.alg).to.eql('Ed25519');",
+                  "    pm.expect(k.use).to.eql('sig');",
+                  "    pm.expect(k.x).to.match(/^[A-Za-z0-9_-]{43}$/);",
+                  "  });",
+                  "});",
+                  "pm.test('publishes the governance key and every delegated traffic key', () => {",
+                  "  const gov = pm.collectionVariables.get(prefix + '_governance_kid');",
+                  "  const ops = JSON.parse(pm.collectionVariables.get(prefix + '_operational_kids') || '[]');",
+                  "  pm.expect(gov, 'run the Descriptor request first').to.be.a('string');",
+                  "  const kids = keys.map(k => k.kid);",
+                  "  pm.expect(kids).to.include(gov);",
+                  "  ops.forEach(kid => pm.expect(kids).to.include(kid));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{maha_front_door}}/.well-known/jwks.json",
+              "host": [
+                "{{maha_front_door}}"
+              ],
+              "path": [
+                ".well-known",
+                "jwks.json"
+              ]
+            },
+            "description": "Same as Bharat, for Maha Vistara."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bharat  (network A — has mandi)",
+      "description": "Network A. Publishes its OWN mandi catalogue, and crawls B every 30s so B's weather also answers here.\n\nPorts: adapter 9300, discovery 9301.",
+      "item": [
+        {
+          "name": "1. Publish mandi catalogue",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{bharat_adapter}}/publish/publish",
+              "host": [
+                "{{bharat_adapter}}/publish/publish"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context\": {\n    \"action\": \"catalog/publish\",\n    \"bppUri\": \"https://bharatvistar.oan.local/provider\",\n    \"messageId\": \"bd83dc21-38f3-48fe-9be5-b82d4a213666\",\n    \"transactionId\": \"794abc60-4d9b-463f-ba1d-926724ade7f8\",\n    \"timestamp\": \"2026-10-07T03:50:03Z\",\n    \"version\": \"2.0.0\",\n    \"schemaContext\": [\n      \"https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld\"\n    ],\n    \"senderId\": \"bharatvistar.oan.local\"\n  },\n  \"message\": {\n    \"catalogs\": [\n      {\n        \"id\": \"catalog:mandi-price:agmarknet.bharatvistar\",\n        \"descriptor\": {\n          \"code\": \"MANDI_PRICE_MH\",\n          \"name\": \"Bharatvistar mandi prices\",\n          \"shortDesc\": \"On-demand commodity prices for agricultural markets.\",\n          \"longDesc\": \"Each Resource is one commodity at one market. Consumers discover by location or commodity and invoke the Provider for current prices.\"\n        },\n        \"isActive\": true,\n        \"bppId\": \"bharatvistar.oan.local\",\n        \"bppUri\": \"https://bharatvistar.oan.local/provider\",\n        \"provider\": {\n          \"id\": \"agmarknet.bharatvistar\",\n          \"descriptor\": {\n            \"code\": \"AGMARKNET\",\n            \"name\": \"Agmarknet Vistaar\",\n            \"shortDesc\": \"Live agricultural market price information.\"\n          }\n        },\n        \"resources\": [\n          {\n            \"id\": \"res:agmarknet:nashik:onion\",\n            \"descriptor\": {\n              \"code\": \"MANDI_PRICE_NASHIK_ONION\",\n              \"name\": \"Onion prices at Nashik\",\n              \"shortDesc\": \"Current onion prices for Nashik, Maharashtra.\"\n            },\n            \"quantity\": {\n              \"count\": 1\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld\",\n              \"@type\": \"openagrinet:MandiPrice\",\n              \"subjectCategories\": [\n                \"Market\"\n              ],\n              \"informationMode\": \"OnDemand\",\n              \"location\": {\n                \"geo\": {\n                  \"type\": \"Point\",\n                  \"coordinates\": [\n                    73.7898,\n                    19.9975\n                  ]\n                }\n              },\n              \"validity\": {\n                \"startsAt\": \"2026-10-01T00:00:00+05:30\",\n                \"endsAt\": \"2026-12-31T23:59:59+05:30\"\n              }\n            }\n          }\n        ]\n      }\n    ],\n    \"publishDirectives\": [\n      {\n        \"catalogId\": \"catalog:mandi-price:agmarknet.bharatvistar\",\n        \"catalogType\": \"REGULAR\",\n        \"updateMode\": \"FULL\",\n        \"visibleTo\": [\n          \"bharatvistar.oan.local\"\n        ]\n      }\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "A's own catalogue. visibleTo names ONLY A: there is no reason for another network to mirror it, and leaving B out is what stops B crawling it back."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Discover  (the farmer's search)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{bharat_discovery}}/discover",
+              "host": [
+                "{{bharat_discovery}}/discover"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context\": {\n    \"action\": \"discover\",\n    \"domain\": \"agriculture\",\n    \"messageId\": \"5e511275-d9ed-442a-964c-b4f4cc574c1b\",\n    \"timestamp\": \"2026-10-07T03:23:01Z\",\n    \"transactionId\": \"df14c457-d091-48ad-8bbc-6214001f0578\",\n    \"version\": \"2.0.0\",\n    \"senderId\": \"bharatvistar.oan.local\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.resourceAttributes.subjectCategories[*] == \\\"Market\\\" || @.resourceAttributes.subjectCategories[*] == \\\"Weather\\\")\"\n      }\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "No context.networkId. An omitted audience means no audience filter at all, so this returns everything A holds -- its own mandi AND the weather it crawled from B. The farmer never names a network."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Select mandi  (answered locally)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{bharat_adapter}}/provider/select",
+              "host": [
+                "{{bharat_adapter}}/provider/select"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context\": {\n    \"version\": \"2.0.0\",\n    \"action\": \"select\",\n    \"networkId\": \"bharatvistar.oan.local\",\n    \"bppUri\": \"https://bharatvistar.oan.local/provider\",\n    \"transactionId\": \"9f2c1a8e-4b70-4d31-9c55-6f2e0b1d7a44\",\n    \"messageId\": \"7d41b9e0-52a6-4c18-8b73-1e9f0a4c6d23\",\n    \"timestamp\": \"2026-10-07T06:12:01.330Z\",\n    \"senderId\": \"seeker.bharatvistar.oan.local\",\n    \"receiverId\": \"bharatvistar.oan.local\",\n    \"senderUri\": \"https://seeker.bharatvistar.oan.local/beckn\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\",\n              \"name\": \"active\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"offer:agmarknet:open-data\",\n            \"provider\": {\n              \"id\": \"agmarknet.bharatvistar\",\n              \"descriptor\": {\n                \"code\": \"AGMARKNET\",\n                \"name\": \"Agmarknet Vistaar\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:agmarknet:nashik:onion\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:agmarknet:nashik:onion\",\n              \"quantity\": {\n                \"count\": 1\n              },\n              \"resourceAttributes\": {\n                \"@context\": \"https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld\",\n                \"@type\": \"openagrinet:MandiPrice\",\n                \"subjectCategories\": [\n                  \"Market\"\n                ],\n                \"informationMode\": \"OnDemand\",\n                \"location\": {\n                  \"geo\": {\n                    \"type\": \"Point\",\n                    \"coordinates\": [\n                      73.7898,\n                      19.9975\n                    ]\n                  }\n                },\n                \"validity\": {\n                  \"startsAt\": \"2026-10-01T00:00:00+05:30\",\n                  \"endsAt\": \"2026-12-31T23:59:59+05:30\"\n                },\n                \"supportedCommodities\": [\n                  {\n                    \"code\": \"149\",\n                    \"name\": \"Onion\"\n                  }\n                ],\n                \"market\": {\n                  \"district\": \"96\",\n                  \"state\": \"MH\",\n                  \"marketCode\": \"2056\",\n                  \"name\": \"Nashik\"\n                }\n              }\n            }\n          ]\n        }\n      ]\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "context.receiverId is A, so A answers it from its own provider. Returns on_select with real prices from the mock."
+          },
+          "response": []
+        },
+        {
+          "name": "4. Select weather  (crosses to B)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{bharat_adapter}}/provider/select",
+              "host": [
+                "{{bharat_adapter}}/provider/select"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context\": {\n    \"version\": \"2.0.0\",\n    \"action\": \"select\",\n    \"networkId\": \"bharatvistar.oan.local\",\n    \"transactionId\": \"9f2c1a8e-4b70-4d31-9c55-6f2e0b1d7a44\",\n    \"messageId\": \"7d41b9e0-52a6-4c18-8b73-1e9f0a4c6d22\",\n    \"timestamp\": \"2026-08-26T06:12:01.330Z\",\n    \"bppUri\": \"http://oan-mahavistara-oan-local-adapter:9200/provider\",\n    \"senderId\": \"seeker-network-vistaar.da.gov.in\",\n    \"receiverId\": \"mahavistara.oan.local\",\n    \"senderUri\": \"https://seeker-network-vistaar.da.gov.in/beckn\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\",\n              \"name\": \"active\"\n            }\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:mausamgram:point-forecast\",\n              \"resourceAttributes\": {\n                \"@context\": \"https://schemas.openagrinet.global/schema/WeatherObservation/v0.1/context.jsonld\",\n                \"@type\": \"openagrinet:WeatherObservation\",\n                \"subjectCategories\": [\n                  \"Weather\"\n                ],\n                \"location\": {\n                  \"geo\": {\n                    \"type\": \"Point\",\n                    \"coordinates\": [\n                      73.7898,\n                      19.9975\n                    ]\n                  }\n                },\n                \"validity\": {\n                  \"startsAt\": \"2026-08-26T00:00:00+05:30\",\n                  \"endsAt\": \"2026-08-30T23:59:59+05:30\"\n                }\n              },\n              \"quantity\": {\n                \"selected\": {\n                  \"measure\": {\n                    \"value\": \"1\",\n                    \"unit\": \"unit\"\n                  }\n                }\n              }\n            }\n          ],\n          \"offer\": {\n            \"id\": \"offer:mausamgram:open-data\",\n            \"resourceIds\": [\n              \"res:mausamgram:point-forecast\"\n            ],\n            \"provider\": {\n              \"id\": \"mausamgram.mahavistara\",\n              \"descriptor\": {\n                \"code\": \"IMD-NWP-01\",\n                \"name\": \"IMD Mausamgram NWP\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "SAME endpoint as 3. The only difference is context.receiverId, which the consumer copied out of the catalog: it names B, so A signs as itself and sends it to context.bppUri. The answer comes from B's provider."
+          },
+          "response": []
+        },
+        {
+          "name": "5. Crawl B now  (optional)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{bharat_adapter}}/crawl/peers",
+              "host": [
+                "{{bharat_adapter}}/crawl/peers"
+              ]
+            },
+            "description": "Not needed for the demo -- A crawls every 30s on its own. Use it only to skip the wait. Takes no body: the crawler reads who to crawl from its registry."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Maha  (network B — has weather)",
+      "description": "Network B. Publishes its OWN weather catalogue and shares it with A.\n\nB does NOT crawl: FEDERATION_CRAWL_PEERS=off. Otherwise each network mirrors the other and B ends up re-importing its own catalogue through A's copy of it.\n\nPorts: adapter 9400, discovery 9401.",
+      "item": [
+        {
+          "name": "1. Publish weather catalogue",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{maha_adapter}}/publish/publish",
+              "host": [
+                "{{maha_adapter}}/publish/publish"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context\": {\n    \"action\": \"catalog/publish\",\n    \"bppUri\": \"https://mahavistara.oan.local/provider\",\n    \"messageId\": \"faa5ae21-67ac-45c7-a2f7-92bea0a2587e\",\n    \"transactionId\": \"0292de98-363b-4b6b-b61a-98ed5d7a4af5\",\n    \"timestamp\": \"2026-10-07T03:19:08Z\",\n    \"version\": \"2.0.0\",\n    \"schemaContext\": [\n      \"https://openagrinet.github.io/network-specs/schema/WeatherObservation/v0.1/context.jsonld\"\n    ],\n    \"senderId\": \"mahavistara.oan.local\"\n  },\n  \"message\": {\n    \"catalogs\": [\n      {\n        \"id\": \"catalog:weather-observation:mausamgram.mahavistara\",\n        \"descriptor\": {\n          \"code\": \"MAUSAMGRAM_WX\",\n          \"name\": \"Mahavistara weather forecasts\",\n          \"shortDesc\": \"Daily weather forecasts for locations in Mahavistara.\",\n          \"longDesc\": \"Each Resource is a point forecast. Consumers discover by location and invoke the Provider for a three day forecast.\"\n        },\n        \"isActive\": true,\n        \"bppId\": \"mahavistara.oan.local\",\n        \"bppUri\": \"https://mahavistara.oan.local/provider\",\n        \"provider\": {\n          \"id\": \"mausamgram.mahavistara\",\n          \"descriptor\": {\n            \"code\": \"IMD-NWP-01\",\n            \"name\": \"IMD Mausamgram NWP\",\n            \"shortDesc\": \"Numerical weather prediction from IMD.\"\n          }\n        },\n        \"resources\": [\n          {\n            \"id\": \"res:mausamgram:point-forecast\",\n            \"descriptor\": {\n              \"code\": \"WX_POINT_FORECAST\",\n              \"name\": \"Point weather forecast\",\n              \"shortDesc\": \"Three day forecast for a point location.\"\n            },\n            \"quantity\": {\n              \"count\": 1\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"https://openagrinet.github.io/network-specs/schema/WeatherObservation/v0.1/context.jsonld\",\n              \"@type\": \"openagrinet:WeatherObservation\",\n              \"subjectCategories\": [\n                \"Weather\"\n              ],\n              \"location\": {\n                \"geo\": {\n                  \"type\": \"Point\",\n                  \"coordinates\": [\n                    73.7898,\n                    19.9975\n                  ]\n                }\n              },\n              \"validity\": {\n                \"startsAt\": \"2026-10-01T00:00:00+05:30\",\n                \"endsAt\": \"2026-12-31T23:59:59+05:30\"\n              }\n            }\n          }\n        ]\n      }\n    ],\n    \"publishDirectives\": [\n      {\n        \"catalogId\": \"catalog:weather-observation:mausamgram.mahavistara\",\n        \"catalogType\": \"REGULAR\",\n        \"updateMode\": \"FULL\",\n        \"visibleTo\": [\n          \"mahavistara.oan.local\",\n          \"bharatvistar.oan.local\"\n        ]\n      }\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "THE IMPORTANT FIELD IS visibleTo. It names A as well as B, which is the whole permission for A to mirror this. Drop A from it and A's crawl returns nothing -- no error, just nothing."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Discover  (what B holds)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{maha_discovery}}/discover",
+              "host": [
+                "{{maha_discovery}}/discover"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context\": {\n    \"action\": \"discover\",\n    \"domain\": \"agriculture\",\n    \"messageId\": \"5e511275-d9ed-442a-964c-b4f4cc574c1b\",\n    \"timestamp\": \"2026-10-07T03:23:01Z\",\n    \"transactionId\": \"df14c457-d091-48ad-8bbc-6214001f0578\",\n    \"version\": \"2.0.0\",\n    \"senderId\": \"mahavistara.oan.local\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.resourceAttributes.subjectCategories[*] == \\\"Market\\\" || @.resourceAttributes.subjectCategories[*] == \\\"Weather\\\")\"\n      }\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "B holds only its own weather. Run it after A has crawled to show B did NOT import A's mandi back."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Select weather  (direct, no crossing)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{maha_adapter}}/provider/select",
+              "host": [
+                "{{maha_adapter}}/provider/select"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context\": {\n    \"version\": \"2.0.0\",\n    \"action\": \"select\",\n    \"networkId\": \"bharatvistar.oan.local\",\n    \"transactionId\": \"9f2c1a8e-4b70-4d31-9c55-6f2e0b1d7a44\",\n    \"messageId\": \"7d41b9e0-52a6-4c18-8b73-1e9f0a4c6d22\",\n    \"timestamp\": \"2026-08-26T06:12:01.330Z\",\n    \"senderId\": \"mahavistara.oan.local\",\n    \"receiverId\": \"mahavistara.oan.local\",\n    \"senderUri\": \"https://seeker-network-vistaar.da.gov.in/beckn\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\",\n              \"name\": \"active\"\n            }\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:mausamgram:point-forecast\",\n              \"resourceAttributes\": {\n                \"@context\": \"https://schemas.openagrinet.global/schema/WeatherObservation/v0.1/context.jsonld\",\n                \"@type\": \"openagrinet:WeatherObservation\",\n                \"subjectCategories\": [\n                  \"Weather\"\n                ],\n                \"location\": {\n                  \"geo\": {\n                    \"type\": \"Point\",\n                    \"coordinates\": [\n                      73.7898,\n                      19.9975\n                    ]\n                  }\n                },\n                \"validity\": {\n                  \"startsAt\": \"2026-08-26T00:00:00+05:30\",\n                  \"endsAt\": \"2026-08-30T23:59:59+05:30\"\n                }\n              },\n              \"quantity\": {\n                \"selected\": {\n                  \"measure\": {\n                    \"value\": \"1\",\n                    \"unit\": \"unit\"\n                  }\n                }\n              }\n            }\n          ],\n          \"offer\": {\n            \"id\": \"offer:mausamgram:open-data\",\n            \"resourceIds\": [\n              \"res:mausamgram:point-forecast\"\n            ],\n            \"provider\": {\n              \"id\": \"mausamgram.mahavistara\",\n              \"descriptor\": {\n                \"code\": \"IMD-NWP-01\",\n                \"name\": \"IMD Mausamgram NWP\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "The same select as Bharat's #4, but sent straight to B. Same answer -- which is the point: A adds no special handling, it just forwards."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

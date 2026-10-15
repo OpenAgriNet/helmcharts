@@ -1,0 +1,37 @@
+# What the consumer layer does with each action.
+#
+# Both targets are THIS SAME adapter on another path. In the three-adapter
+# quick-start they were two other containers; consolidated, the hop is a loopback
+# call from one module to another. It stays a real HTTP hop rather than an
+# in-process call because that is what makes the two shapes the same config:
+# split these across containers and only the host in these URLs changes.
+#
+# targetType "url" appends the action to the path, so the base here is the module
+# mount point and /discover or /select is added to it.
+routingRules:
+  # Discovery is answered from this network's own discovery service, which the
+  # network module fronts. That includes catalogs crawled from other networks --
+  # they were mirrored in, so a local query returns both.
+  - version: "2.0.0"
+    targetType: "url"
+    target:
+      url: "http://localhost:9200/network"
+    endpoints:
+      - discover
+
+  # Everything transactional goes to the provider layer, and this layer decides
+  # nothing about where it ends up. Whether the request is ours to answer or
+  # belongs to another network is decided in ONE place -- routeByReceiver on the
+  # provider module, which is also where the capability steps that would
+  # otherwise wrongly answer it live.
+  #
+  # context.bppUri travels onward in the body untouched.
+  - version: "2.0.0"
+    targetType: "url"
+    target:
+      url: "http://localhost:9200/provider"
+    endpoints:
+      - select
+      - init
+      - confirm
+      - status

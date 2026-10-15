@@ -1,0 +1,8 @@
+# One directory per network, and all of it generated: .env, the keypair, TLS
+# material, the rendered adapter config and the signed documents.
+#
+# Ignored as a WHOLE rather than by pattern -- a rule naming .env and keys/
+# would not catch networks/<any-network>/tls/server.key, and the cost of
+# missing one is a private key in a public repository.
+networks/
+__pycache__/

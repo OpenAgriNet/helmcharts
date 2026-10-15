@@ -1,0 +1,10 @@
+# The network layer: publish and discover both go to this network's discovery
+# service, which is the only thing behind this module.
+routingRules:
+  - version: "2.0.0"
+    targetType: "url"
+    target:
+      url: "http://discovery-service:8080"
+    endpoints:
+      - discover
+      - publish

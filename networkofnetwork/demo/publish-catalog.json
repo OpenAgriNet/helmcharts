@@ -1,0 +1,82 @@
+{
+  "context": {
+    "action": "catalog/publish",
+    "bppUri": "https://mahavistara.oan.local/provider",
+    "messageId": "faa5ae21-67ac-45c7-a2f7-92bea0a2587e",
+    "transactionId": "0292de98-363b-4b6b-b61a-98ed5d7a4af5",
+    "timestamp": "2026-10-07T03:19:08Z",
+    "version": "2.0.0",
+    "schemaContext": [
+      "https://openagrinet.github.io/network-specs/schema/WeatherObservation/v0.1/context.jsonld"
+    ],
+    "senderId": "mahavistara.oan.local"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "id": "catalog:weather-observation:mausamgram.mahavistara",
+        "descriptor": {
+          "code": "MAUSAMGRAM_WX",
+          "name": "Mahavistara weather forecasts",
+          "shortDesc": "Daily weather forecasts for locations in Mahavistara.",
+          "longDesc": "Each Resource is a point forecast. Consumers discover by location and invoke the Provider for a three day forecast."
+        },
+        "isActive": true,
+        "bppId": "mahavistara.oan.local",
+        "bppUri": "https://mahavistara.oan.local/provider",
+        "provider": {
+          "id": "mausamgram.mahavistara",
+          "descriptor": {
+            "code": "IMD-NWP-01",
+            "name": "IMD Mausamgram NWP",
+            "shortDesc": "Numerical weather prediction from IMD."
+          }
+        },
+        "resources": [
+          {
+            "id": "res:mausamgram:point-forecast",
+            "descriptor": {
+              "code": "WX_POINT_FORECAST",
+              "name": "Point weather forecast",
+              "shortDesc": "Three day forecast for a point location."
+            },
+            "quantity": {
+              "count": 1
+            },
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/WeatherObservation/v0.1/context.jsonld",
+              "@type": "openagrinet:WeatherObservation",
+              "subjectCategories": [
+                "Weather"
+              ],
+              "location": {
+                "geo": {
+                  "type": "Point",
+                  "coordinates": [
+                    73.7898,
+                    19.9975
+                  ]
+                }
+              },
+              "validity": {
+                "startsAt": "2026-10-01T00:00:00+05:30",
+                "endsAt": "2026-12-31T23:59:59+05:30"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:weather-observation:mausamgram.mahavistara",
+        "catalogType": "REGULAR",
+        "updateMode": "FULL",
+        "visibleTo": [
+          "mahavistara.oan.local",
+          "bharatvistar.oan.local"
+        ]
+      }
+    ]
+  }
+}
