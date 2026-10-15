@@ -92,7 +92,7 @@ Locally, nothing in it needs changing. It publishes these on `localhost`:
 ```
 
 If one is already taken, change it here — that is the only edit a local run
-needs. The single adapter's port is `NETWORK_ADAPTER_LAYER_PORT`. Adapters reach each other by Compose service name, so it only changes
+needs. `NETWORK_ADAPTER_PORT` is the network adapter's port in both modes. Adapters reach each other by Compose service name, so it only changes
 what you type into Postman.
 
 ## Step 4 — Start it

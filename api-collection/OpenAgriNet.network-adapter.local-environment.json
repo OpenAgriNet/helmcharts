@@ -7,21 +7,21 @@
       "value": "http://127.0.0.1:9201",
       "enabled": true,
       "type": "default",
-      "description": "Where discover and select enter. Single mode: the one adapter, so all three adapter hosts are the same URL. NETWORK_ADAPTER_LAYER_PORT in .env."
+      "description": "Where discover and select enter. Single mode: the one adapter, so all three adapter hosts are the same URL. NETWORK_ADAPTER_PORT in .env."
     },
     {
       "key": "provider-adapter-host",
       "value": "http://127.0.0.1:9201",
       "enabled": true,
       "type": "default",
-      "description": "Where publish enters. Single mode: the same adapter as consumer-adapter-host. NETWORK_ADAPTER_LAYER_PORT in .env."
+      "description": "Where publish enters. Single mode: the same adapter as consumer-adapter-host. NETWORK_ADAPTER_PORT in .env."
     },
     {
       "key": "network-adapter-host",
       "value": "http://127.0.0.1:9201",
       "enabled": true,
       "type": "default",
-      "description": "Used only by the health check. Single mode: the same adapter; its network tier sits under /_internal/ and is not called from Postman. NETWORK_ADAPTER_LAYER_PORT in .env."
+      "description": "Used only by the health check. Single mode: the same adapter; its network tier sits under /_internal/ and is not called from Postman. NETWORK_ADAPTER_PORT in .env."
     },
     {
       "key": "discovery-host",
