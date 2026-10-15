@@ -2,8 +2,8 @@
 #
 #   helm install knowledge-provider-keycloak-db charts/postgresql-cnpg -n knowledge-provider \
 #     -f charts/postgresql-cnpg/examples/knowledge-provider-keycloak-db.dev.yaml
-#   helm install knowledge-provider-keycloak charts/knowledge-provider/knowledge-provider-keycloak -n knowledge-provider \
-#     -f charts/knowledge-provider/knowledge-provider-keycloak/examples/knowledge-provider-keycloak.dev.yaml
+#   helm install knowledge-provider-keycloak charts/knowledge-provider-keycloak -n knowledge-provider \
+#     -f charts/knowledge-provider-keycloak/examples/knowledge-provider-keycloak.dev.yaml
 #
 # Before installing, create:
 #   kubectl create secret generic knowledge-provider-keycloak-admin \

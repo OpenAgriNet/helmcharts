@@ -1,7 +1,7 @@
 # Example: knowledge-provider-api, dev environment.
 #
-#   helm install knowledge-provider-api charts/knowledge-provider/knowledge-provider-api \
-#     -n knowledge-provider -f charts/knowledge-provider/knowledge-provider-api/examples/knowledge-provider-api.dev.yaml
+#   helm install knowledge-provider-api charts/knowledge-provider-api \
+#     -n knowledge-provider -f charts/knowledge-provider-api/examples/knowledge-provider-api.dev.yaml
 #
 # Install order (see the chart's README.md):
 #   1. knowledge-provider-keycloak-db, knowledge-provider-temporal-db (postgresql-cnpg)

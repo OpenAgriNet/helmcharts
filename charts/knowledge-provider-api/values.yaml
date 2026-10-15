@@ -145,7 +145,7 @@ extraVolumeMounts: []
 # ---------------------------------------------------------------------------
 # In-cluster backing services this chart derives TEMPORAL_HOST / MINIO_ENDPOINT
 # / VECTOR_DB_URL from. Defaults assume the sibling knowledge-provider-temporal
-# chart (charts/knowledge-provider/knowledge-provider-temporal) and the shared
+# chart (charts/knowledge-provider-temporal) and the shared
 # minio / qdrant charts (top-level charts/minio, charts/qdrant) are installed
 # with their default release names in the same namespace - override the
 # host/port pairs if you named those releases differently.

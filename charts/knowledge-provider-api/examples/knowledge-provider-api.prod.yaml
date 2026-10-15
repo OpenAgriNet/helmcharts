@@ -1,7 +1,7 @@
 # Example: knowledge-provider-api, prod environment.
 #
-#   helm install knowledge-provider-api charts/knowledge-provider/knowledge-provider-api \
-#     -n knowledge-provider -f charts/knowledge-provider/knowledge-provider-api/examples/knowledge-provider-api.prod.yaml
+#   helm install knowledge-provider-api charts/knowledge-provider-api \
+#     -n knowledge-provider -f charts/knowledge-provider-api/examples/knowledge-provider-api.prod.yaml
 #
 # All secret values below are referenced by name only - create the Secrets
 # out-of-band before installing (see README.md, "Secrets"). Nothing here is a
