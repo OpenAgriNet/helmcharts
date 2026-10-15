@@ -26,8 +26,8 @@ image:
 # log level are set there), so they are left out here. Edit that file instead.
 
 service:
-  port: 9200
-  targetPort: 9200
+  port: 9201
+  targetPort: 9201
 
 networkAdapterLayer:
   keys:

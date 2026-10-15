@@ -5,7 +5,7 @@ network adapter, and two mock upstreams standing in for real provider APIs.
 
 The adapter runs in one of two modes, from the same compose file, keys and
 registry. **Single is the default**: one container, `network-adapter`, runs the
-consumer, network and provider tiers on port 9200. **Multi is optional**: the
+consumer, network and provider tiers on port 9201. **Multi is optional**: the
 three tiers as three containers. → [Two modes](#two-modes).
 
 Nothing is built here — the images are pulled. Locally that is about ten
@@ -85,10 +85,10 @@ cp .env.example .env
 Locally, nothing in it needs changing. It publishes these on `localhost`:
 
 ```
-8081  registry        9200  network adapter (single) 9100  mock-imd
-8080  keycloak              or provider adapter (multi)  9101  mock-agmarknet
-9990  keycloak admin  9201  network adapter  (multi only)
-8090  discovery       9202  consumer adapter (multi only)
+8081  registry        9201  network adapter (single; network tier in multi)  9100  mock-imd
+8080  keycloak        9200  provider adapter (multi only)                      9101  mock-agmarknet
+9990  keycloak admin  9202  consumer adapter (multi only)
+8090  discovery
 ```
 
 If one is already taken, change it here — that is the only edit a local run
@@ -102,7 +102,7 @@ make up-core
 ```
 
 Three tiers, in the only order that works: registry and discovery, then
-`bin/setup.py`, then the adapter (`network-adapter` on 9200; `make up-core-multi`
+`bin/setup.py`, then the adapter (`network-adapter` on 9201; `make up-core-multi`
 starts the three adapters instead). Allow up to five minutes
 the first time — Keycloak on a cold volume.
 
@@ -178,7 +178,7 @@ keys. Change `.env`, re-run `make up`.
 Import both files from `../api-collection/` into Postman —
 `OpenAgriNet.api-collection.json` and the environment for your mode:
 `OpenAgriNet.network-adapter.local-environment.json` (single, every adapter
-host on 9200) or `OpenAgriNet.local-environment.json` (multi). Select the
+host on 9201) or `OpenAgriNet.local-environment.json` (multi). Select the
 environment, or every `{{...-host}}` resolves to nothing. Or:
 
 ```sh
@@ -211,15 +211,15 @@ collection. → Appendix N.
 | What runs | one container, `network-adapter` (compose service `network-adapter-layer`) | `consumer-adapter`, `network-adapter`, `provider-adapter` |
 | Compose profile | `network` | `multi` |
 | Start | `make up-core` / `make up` | `make up-core-multi` / `make up-multi` |
-| Ports | `127.0.0.1:9200` | 9200 provider, 9201 network, 9202 consumer |
-| App calls | `:9200/discover`, `:9200/select` | `:9202/discover`, `:9202/select` |
-| Catalogue publishes to | `:9200/publish` | `:9200/publish` |
+| Ports | `127.0.0.1:9201` | 9200 provider, 9201 network, 9202 consumer |
+| App calls | `:9201/discover`, `:9201/select` | `:9202/discover`, `:9202/select` |
+| Catalogue publishes to | `:9201/publish` | `:9200/publish` |
 
 Single is the everyday choice: one container, the same requests. Use multi to
 reproduce a deployment where the tiers run separately.
 
 **Switching** is running the other target. It removes the running mode's
-adapters first (both use 9200, and both have a container named
+adapters first (both use 9201, and both have a container named
 `network-adapter`), then starts the other's. `MODE=multi` also works with
 `make up` and `make up-core`; `make restart`, `make down`, `make ps` and
 `make logs` follow whichever mode is running. Plain compose:
@@ -233,10 +233,10 @@ tier templates, each with its own tier identity:
 
 | Module | Path | Routes to |
 |---|---|---|
-| `consumer` | `/<action>` | discover to `localhost:9200/_internal/network`, select/init/confirm/status to `localhost:9200/_internal/provider` (`routing-network-adapter-consumer.yaml`) |
+| `consumer` | `/<action>` | discover to `localhost:9201/_internal/network`, select/init/confirm/status to `localhost:9201/_internal/provider` (`routing-network-adapter-consumer.yaml`) |
 | `network` | `/_internal/network/<action>` | discovery (`routing-network.yaml`, reused) |
 | `provider` | `/_internal/provider/<action>` | answers itself |
-| `provider-publish` | `/publish` | `localhost:9200/_internal/network/publish` (`routing-network-adapter-provider.yaml`) |
+| `provider-publish` | `/publish` | `localhost:9201/_internal/network/publish` (`routing-network-adapter-provider.yaml`) |
 
 `/_internal/` is called only by the adapter itself; `server_proxy.conf` denies
 it, and `/publish`, on every proxy host. Signing is off in every quick-start
@@ -307,7 +307,7 @@ ssh -L 9202:127.0.0.1:9202 -L 9200:127.0.0.1:9200 \
 ```
 
 The collection's defaults then work unchanged, since they already point at
-loopback. Single mode needs only 9200 for the adapter; 9202 is for multi.
+loopback. Single mode needs only 9201 for the adapter; 9200 and 9202 are for multi.
 
 ## Step V6 — Observability (optional)
 
@@ -423,7 +423,7 @@ certificate. An unknown `Host` gets NPM's default page, not an adapter.
 **Single mode (`make up`, the default).** The table above is for
 `make up-multi`. With the single adapter there is no `consumer-adapter`,
 `network-adapter` or `provider-adapter` to forward to: point the consumer host
-at `network-adapter`, port 9200, with the same Advanced paste. The
+at `network-adapter`, port 9201, with the same Advanced paste. The
 app's paths (`/discover`, `/select`, …) do not change, and neither does
 `/publish`: both modes present the same URLs. `server_proxy.conf` denies
 `/publish` and `/_internal` on every host: `/_internal/` holds the network and
@@ -515,7 +515,7 @@ sender's signature; the publish module (`oanProviderPublish` in multi mode,
 `provider-publish` in single mode), on the exact path `/publish`, has
 **no signature check at all**, because its intended caller is the provider's
 own catalogue system inside the trust boundary. A proxy host pointed at
-`provider-adapter:9200` (multi) or `network-adapter:9200` (single) therefore
+`provider-adapter:9200` (multi) or `network-adapter:9201` (single) therefore
 exposes `<host>/publish` to anyone. In single mode the network and provider
 tiers also sit under `/_internal/`, which only the adapter itself calls.
 
@@ -525,7 +525,7 @@ NPM's UI cannot route a host while withholding one path, so the block lives in
 something to remember on one host.
 
 To let a real catalogue system publish, give it a tunnel or put it in the VPC
-and let it reach the adapter on port 9200 directly. Do not turn that `deny` into
+and let it reach the adapter directly (9200 in multi, 9201 in single). Do not turn that `deny` into
 an `allow`.
 
 ### Which nginx config loads itself, and which is a paste job
@@ -1097,7 +1097,7 @@ config/
     routing-provider.yaml   provider sends publish to the network layer
     network-adapter.yaml.tmpl          single mode: all three tiers, one file
     routing-network-adapter-consumer.yaml  single mode: consumer hops to
-    routing-network-adapter-provider.yaml  localhost:9200/_internal/...
+    routing-network-adapter-provider.yaml  localhost:9201/_internal/...
   registry/
     schemas/                Participant, ProviderSchema, SchemaRegistry.
                             Read at startup -- a change needs a restart

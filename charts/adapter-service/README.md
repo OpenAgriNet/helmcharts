@@ -169,7 +169,7 @@ healthy.
 
 | Deployment mode | Releases → namespaces | Values | App calls | Catalogue publishes to |
 |---|---|---|---|---|
-| **single (default)**: Network Adapter Layer | `network-adapter` → `network-adapter-layer` | `examples/network-adapter.yaml` | `network-adapter.network-adapter-layer.svc:9200/<action>` | `network-adapter.network-adapter-layer.svc:9200/publish` |
+| **single (default)**: Network Adapter Layer | `network-adapter` → `network-adapter-layer` | `examples/network-adapter.yaml` | `network-adapter.network-adapter-layer.svc:9201/<action>` | `network-adapter.network-adapter-layer.svc:9201/publish` |
 | multi (optional) | `consumer-adapter`, `network-adapter`, `provider-adapter` → one namespace each, same name | `examples/{consumer,network,provider}.yaml` | `consumer-adapter.consumer-adapter.svc:9202/<action>` | `provider-adapter.provider-adapter.svc:9200/publish` |
 
 **When to use which**
@@ -232,11 +232,11 @@ the same as the multi network tier's. Its **namespace** is its own,
 tier identities into it, which must not happen in the multi network tier's
 namespace `network-adapter`; and the two deployment modes can then run side by side
 during a switch-over. In-cluster address of the layer:
-`network-adapter.network-adapter-layer.svc.cluster.local:9200`.
+`network-adapter.network-adapter-layer.svc.cluster.local:9201`.
 
 To switch an environment: install the layer (namespace `network-adapter-layer`)
-next to the multi releases, repoint the app (`…:9200/<action>`) and the
-catalogue publisher (`…:9200/publish`), then remove the three multi
+next to the multi releases, repoint the app (`…:9201/<action>`) and the
+catalogue publisher (`…:9201/publish`), then remove the three multi
 releases. Both deployment modes sign with the same identities and the same registry
 rows, so nothing in the registry changes. Reverse the steps to switch back.
 

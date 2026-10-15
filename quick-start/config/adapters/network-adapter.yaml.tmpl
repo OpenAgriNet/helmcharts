@@ -15,7 +15,7 @@
 # charts/adapter-service/config/network-adapter-config.yaml.
 #
 # Differences from the three tier templates:
-#   - one listener (9200) and one appName; tier hops call this same listener
+#   - one listener (9201) and one appName; tier hops call this same listener
 #     (routing-network-adapter-*.yaml beside this file);
 #   - extended schema validation on in every module;
 #   - an outbound connection pool (httpClientConfig) on every module;
@@ -23,7 +23,7 @@
 #
 # SIGNING IS OFF, as in the three quick-start tier templates: no module runs
 # sign or validateSign, so /_internal/ and /publish accept unsigned requests
-# from anyone who can reach :9200. Keep it on 127.0.0.1 (as the compose file
+# from anyone who can reach :9201. Keep it on 127.0.0.1 (as the compose file
 # does); server_proxy.conf denies /_internal and /publish at the edge. The
 # Helm chart's network-adapter-config.yaml has signing on.
 #
@@ -44,7 +44,7 @@ log:
     - module_id
 
 http:
-  port: 9200
+  port: 9201
   timeout:
     read: 30
     write: 30
