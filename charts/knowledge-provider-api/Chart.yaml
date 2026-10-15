@@ -1,10 +1,10 @@
 apiVersion: v2
-name: knowledge-provider-ui
+name: knowledge-provider-api
 description: >-
-  Bharat Vistaar Docs Pipeline UI - React/Vite operator console, served as a
-  static bundle via nginx.
+  Bharat Vistaar Docs Pipeline API - FastAPI service for review-driven
+  document ingestion (OCR, translation, chunking, vector indexing).
 type: application
-version: 0.1.1
+version: 0.2.0
 appVersion: "latest"
 maintainers:
   - name: OpenAgriNet Engineering Team
@@ -14,7 +14,6 @@ keywords:
   - openagrinet
   - knowledge-provider
   - docs-pipeline
-  - ui
 home: https://github.com/OpenAgriNet/helmcharts
 sources:
   - https://github.com/OpenAgriNet/helmcharts
@@ -22,4 +21,4 @@ sources:
 dependencies:
   - name: common
     version: "0.2.x"
-    repository: "file://../../common"
+    repository: "file://../common"

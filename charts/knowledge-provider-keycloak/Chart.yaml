@@ -1,9 +1,10 @@
 apiVersion: v2
-name: knowledge-provider-temporal
+name: knowledge-provider-keycloak
 description: >-
-  Temporal workflow engine (temporalio/auto-setup, single-binary) for the
-  Bharat Vistaar Docs Pipeline. Orchestration only - no content is stored
-  here, state lives in its own Postgres database.
+  Keycloak for the Bharat Vistaar Docs Pipeline, on a custom modern
+  (Quarkus-based) Keycloak image with a baked-in email-OTP 2FA provider and
+  realm import. Not the same Keycloak distribution as this repo's `keycloak`
+  chart - see README.md.
 type: application
 version: 0.1.0
 appVersion: "latest"
@@ -15,12 +16,13 @@ keywords:
   - openagrinet
   - knowledge-provider
   - docs-pipeline
-  - temporal
+  - keycloak
+  - authentication
 home: https://github.com/OpenAgriNet/helmcharts
 sources:
   - https://github.com/OpenAgriNet/helmcharts
-  - https://github.com/temporalio/docker-builds
+  - https://github.com/OpenAgriNet/knowledge-provider
 dependencies:
   - name: common
     version: "0.2.x"
-    repository: "file://../../common"
+    repository: "file://../common"

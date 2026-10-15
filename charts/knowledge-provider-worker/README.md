@@ -32,8 +32,8 @@ Install **after** `knowledge-provider-api` (which owns the shared PVCs) and
 after Temporal/MinIO/Qdrant:
 
 ```bash
-helm install knowledge-provider-worker charts/knowledge-provider/knowledge-provider-worker -n knowledge-provider \
-  -f charts/knowledge-provider/knowledge-provider-worker/examples/knowledge-provider-worker.dev.yaml
+helm install knowledge-provider-worker charts/knowledge-provider-worker -n knowledge-provider \
+  -f charts/knowledge-provider-worker/examples/knowledge-provider-worker.dev.yaml
 ```
 
 See `knowledge-provider-api`'s README for the full install order.
@@ -77,7 +77,7 @@ creating duplicates. See that chart's README, "Secrets".
 
 ```bash
 ../../../scripts/lint-charts.sh
-helm template knowledge-provider-worker charts/knowledge-provider/knowledge-provider-worker
+helm template knowledge-provider-worker charts/knowledge-provider-worker
 ```
 
 Render-time guardrails:

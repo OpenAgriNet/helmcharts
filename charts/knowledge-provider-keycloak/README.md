@@ -47,8 +47,8 @@ kubectl -n knowledge-provider create secret generic knowledge-provider-keycloak-
   --from-literal=password=<admin-password>
 
 # 2. Keycloak
-helm install knowledge-provider-keycloak charts/knowledge-provider/knowledge-provider-keycloak -n knowledge-provider \
-  -f charts/knowledge-provider/knowledge-provider-keycloak/examples/knowledge-provider-keycloak.dev.yaml
+helm install knowledge-provider-keycloak charts/knowledge-provider-keycloak -n knowledge-provider \
+  -f charts/knowledge-provider-keycloak/examples/knowledge-provider-keycloak.dev.yaml
 ```
 
 Starting before the database is up is not fatal — the `waitFor` init
@@ -103,8 +103,8 @@ survive a restart.
 
 ```bash
 ../../../scripts/lint-charts.sh
-helm template knowledge-provider-keycloak charts/knowledge-provider/knowledge-provider-keycloak \
-  -f charts/knowledge-provider/knowledge-provider-keycloak/ci/lint-values.yaml
+helm template knowledge-provider-keycloak charts/knowledge-provider-keycloak \
+  -f charts/knowledge-provider-keycloak/ci/lint-values.yaml
 ```
 
 Render-time guardrails, all of which name the value and the reason:

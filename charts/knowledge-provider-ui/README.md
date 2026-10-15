@@ -42,15 +42,15 @@ Install after `knowledge-provider-api` is reachable at the path this image's
 `VITE_API_BASE` expects:
 
 ```bash
-helm install knowledge-provider-ui charts/knowledge-provider/knowledge-provider-ui -n knowledge-provider \
-  -f charts/knowledge-provider/knowledge-provider-ui/examples/knowledge-provider-ui.dev.yaml
+helm install knowledge-provider-ui charts/knowledge-provider-ui -n knowledge-provider \
+  -f charts/knowledge-provider-ui/examples/knowledge-provider-ui.dev.yaml
 ```
 
 ## Validation
 
 ```bash
 ../../../scripts/lint-charts.sh
-helm template knowledge-provider-ui charts/knowledge-provider/knowledge-provider-ui
+helm template knowledge-provider-ui charts/knowledge-provider-ui
 ```
 
 Render-time guardrails:

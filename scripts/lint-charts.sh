@@ -2,7 +2,7 @@
 #
 # Lint and render every chart under charts/, at the top level (charts/<name>)
 # or grouped one directory deeper (charts/<group>/<name>, e.g.
-# charts/knowledge-provider/knowledge-provider-api) - anywhere a Chart.yaml is
+# charts/dss/model-gateway) - anywhere a Chart.yaml is
 # found up to two directories below charts/.
 #
 # A chart lives at charts/<chart>, or one level down at charts/<group>/<chart>
