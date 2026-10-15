@@ -55,10 +55,10 @@ networkAdapterLayer:
       existingSecret: network-adapter-keys
     provider:
       existingSecret: provider-adapter-keys
-  # The provider tier's token endpoint, from the provider Secret. Without it
+  # Set per environment: the config's __VISTAAR_TOKEN_URL__ placeholder needs
+  # an entry here (e.g. __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl), or
   # the init container stops on the leftover placeholder.
-  extraSubstitutions:
-    __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl
+  extraSubstitutions: {}
 
 # The provider tier reads its upstream credentials (MAUSAMGRAM_AUTH,
 # AGMARKNET_*, VISTAAR_CLIENT_*) from the environment.
@@ -74,15 +74,7 @@ resources:
     memory: 1Gi
 goMemLimit: 900MiB
 
-# Fixed replica count by default; the HPA is opt-in. Turning it on needs
-# metrics-server in the cluster -- without it the HPA reports
-# <unknown> CPU and never scales. With it off, replicaCount applies.
 replicaCount: 3
-autoscaling:
-  enabled: false
-  minReplicas: 3          # one per node with the spread constraint below
-  maxReplicas: 10
-  targetCPUUtilizationPercentage: 70
 
 podDisruptionBudget:
   enabled: true

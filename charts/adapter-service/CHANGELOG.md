@@ -36,7 +36,7 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   annotation; `/`, `/publish` and `/_internal*` are refused. `routing.config` fails the render for this
   role.
 - `examples/network-adapter.yaml` and `ci/network-adapter-values.yaml`
-  (PDB, spread, graceful shutdown; HPA 3-10 opt-in, off by default).
+  (3 replicas, PDB, spread, graceful shutdown).
 - `topologySpreadConstraints`,
   `terminationGracePeriodSeconds`, `preStopSleepSeconds`, `goMemLimit`; all off
   by default.
