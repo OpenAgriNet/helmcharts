@@ -55,7 +55,7 @@ modules across pods again changes only the hosts.
        namespace suffix and port) followed by nothing or a path is rewritten. */ -}}
 {{- $tierHost := "^https?://(consumer|network|provider)-adapter(\\.[a-z0-9.-]+)?(:[0-9]+)?(/.*)?$" -}}
 {{- $out := dict -}}
-{{- range $pair := list (list "routing-consumer.yaml" "routing-network-adapter-consumer.yaml") (list "routing-network.yaml" "routing-network.yaml") (list "routing-provider.yaml" "routing-network-adapter-publish.yaml") -}}
+{{- range $pair := list (list "routing-consumer.yaml" "routing-network-adapter-consumer.yaml") (list "routing-network.yaml" "routing-network.yaml") (list "routing-provider.yaml" "routing-network-adapter-provider.yaml") -}}
 {{- $src := index $pair 0 -}}
 {{- $doc := $ctx.Files.Get (printf "config/%s" $src) | fromYaml -}}
 {{- if not $doc.routingRules -}}

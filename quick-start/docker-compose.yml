@@ -646,7 +646,7 @@ services:
       # multi-adapter routing-network.yaml unchanged.
       - ./config/adapters/routing-network-adapter-consumer.yaml:/app/config/routing-network-adapter-consumer.yaml:ro
       - ./config/adapters/routing-network.yaml:/app/config/routing-network.yaml:ro
-      - ./config/adapters/routing-network-adapter-publish.yaml:/app/config/routing-network-adapter-publish.yaml:ro
+      - ./config/adapters/routing-network-adapter-provider.yaml:/app/config/routing-network-adapter-provider.yaml:ro
     ports:
       - "127.0.0.1:${NETWORK_ADAPTER_LAYER_PORT:-9200}:9200"
 

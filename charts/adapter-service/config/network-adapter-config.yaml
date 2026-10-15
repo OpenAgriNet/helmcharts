@@ -358,7 +358,7 @@ modules:
         router:
           id: router
           config:
-            routingConfig: /app/config/routing-network-adapter-publish.yaml
+            routingConfig: /app/config/routing-network-adapter-provider.yaml
         middleware:
           - id: reqpreprocessor
             config:

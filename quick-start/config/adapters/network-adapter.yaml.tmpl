@@ -295,7 +295,7 @@ modules:
   # ---------------------------------------------------------- provider-publish
   # From provider.yaml.tmpl, module 2. The catalogue publishes here, under the
   # provider identity (signing is off here); routed to /_internal/network/publish
-  # (routing-network-adapter-publish.yaml). Top-level /publish, the same path
+  # (routing-network-adapter-provider.yaml). Top-level /publish, the same path
   # as the multi provider adapter's.
   - name: provider-publish
     path: /publish
@@ -351,7 +351,7 @@ modules:
         router:
           id: router
           config:
-            routingConfig: /app/config/routing-network-adapter-publish.yaml
+            routingConfig: /app/config/routing-network-adapter-provider.yaml
       steps:
         - validateSchema
         - addRoute

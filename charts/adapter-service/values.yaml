@@ -454,7 +454,7 @@ envFromSecrets: []
 # config file). `config` replaces config/network-adapter-config.yaml
 # WHOLE: the private-key guard still runs on it, and it must point its routers
 # at /app/config/routing-network-adapter-consumer.yaml, routing-network.yaml and
-# routing-network-adapter-publish.yaml.
+# routing-network-adapter-provider.yaml.
 # ---------------------------------------------------------------------------
 networkAdapterLayer:
   # Three identities, one per tier: the same Secrets (six keys each, named as

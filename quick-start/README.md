@@ -236,7 +236,7 @@ tier templates, each with its own tier identity:
 | `consumer` | `/<action>` | discover to `localhost:9200/_internal/network`, select/init/confirm/status to `localhost:9200/_internal/provider` (`routing-network-adapter-consumer.yaml`) |
 | `network` | `/_internal/network/<action>` | discovery (`routing-network.yaml`, reused) |
 | `provider` | `/_internal/provider/<action>` | answers itself |
-| `provider-publish` | `/publish` | `localhost:9200/_internal/network/publish` (`routing-network-adapter-publish.yaml`) |
+| `provider-publish` | `/publish` | `localhost:9200/_internal/network/publish` (`routing-network-adapter-provider.yaml`) |
 
 `/_internal/` is called only by the adapter itself; `server_proxy.conf` denies
 it, and `/publish`, on every proxy host. Signing is off in every quick-start
@@ -1097,7 +1097,7 @@ config/
     routing-provider.yaml   provider sends publish to the network layer
     network-adapter.yaml.tmpl          single mode: all three tiers, one file
     routing-network-adapter-consumer.yaml  single mode: consumer hops to
-    routing-network-adapter-publish.yaml   localhost:9200/_internal/...
+    routing-network-adapter-provider.yaml  localhost:9200/_internal/...
   registry/
     schemas/                Participant, ProviderSchema, SchemaRegistry.
                             Read at startup -- a change needs a restart
