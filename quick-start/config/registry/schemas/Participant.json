@@ -68,29 +68,28 @@
           ]
         },
         "federationRole": {
-          "description": "What this entry is in relation to us, and our decision -- never read from a peer's Descriptor, so a peer publishing a new one cannot widen its own admission. This network's own entry is identified from its configuration, not by a value here. source is a peer we consume from. requester is a peer that consumes from us. both is admission in each direction. Absent on a participant that is not part of federation.",
-          "type": "string",
-          "enum": [
-            "source",
-            "requester",
-            "both"
-          ]
+          "description": "What this entry is in relation to us, and our decision -- never read from a peer's Descriptor, so a peer publishing a new one cannot widen its own admission. This network's own entry is identified from its configuration, not by a value here. source: a peer we consume from. requester: a peer that consumes from us. Both present is admission in each direction. Absent on a participant that is not part of federation. Strict, but declares the registry's system fields for the same reason PublicKey does: a nested object is merged with what the registry stamped on it before a PUT re-validates.",
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "source": {
+              "$ref": "#/definitions/FederationSource"
+            },
+            "requester": {
+              "$ref": "#/definitions/FederationRequester"
+            },
+            "osid": {},
+            "osCreatedAt": {},
+            "osUpdatedAt": {},
+            "osCreatedBy": {},
+            "osUpdatedBy": {}
+          }
         },
         "revision": {
           "description": "The Descriptor revision this entry was built from. Only ever increases: a Descriptor at or below the stored revision is a replay and is refused. On this network's own entry, the revision it last published.",
           "type": "integer",
           "minimum": 1
-        },
-        "schemaPacks": {
-          "description": "Complete published URLs of the OAN schema packs the network declares in its Descriptor, stored verbatim. Not SchemaRegistry rows: those hold raw.githubusercontent YAML URLs for our own capabilities, and a peer's pack URLs are its statement, not ours.",
-          "type": "array",
-          "maxItems": 64,
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "maxLength": 2000,
-            "pattern": "^https://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*/?$"
-          }
         },
         "projectionTtl": {
           "description": "Seconds this peer permits us to keep what we crawled from it. The owning network decides how stale a copy may get, not the network holding it. 0 prohibits retention and requires a live query; a positive value permits serving the copy only within that lifetime.",
@@ -182,35 +181,33 @@
         }
       ]
     },
-    "FederationAdmission": {
-      "description": "One admitted direction.",
+    "FederationSource": {
+      "description": "Admission to consume from this peer.",
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "schemaPacks",
         "descriptorRevision",
         "admittedAt"
       ],
       "properties": {
         "descriptorRevision": {
-          "description": "The Descriptor revision this direction was admitted against.",
+          "description": "The peer's Descriptor revision this direction was admitted against. Distinct from the top-level revision, which is the latest one verified: a newer Descriptor does not silently widen admission, so a top-level revision above this one means the peer has changed since the decision and is due for review.",
           "type": "integer",
           "minimum": 1
         },
         "admittedAt": {
-          "description": "When this direction was admitted.",
+          "description": "When this direction was admitted. Each direction is admitted on its own, so each keeps its own time, retained as admission evidence.",
           "type": "string",
           "format": "date-time"
         },
         "updatedAt": {
-          "description": "When this admission was last changed.",
+          "description": "When the admission decision for this direction last changed -- re-admitted against a newer revision, or its schema packs revised. Set by us on the decision, unlike osUpdatedAt, which the registry stamps on any write.",
           "type": "string",
           "format": "date-time"
         },
         "schemaPacks": {
-          "description": "Schema pack URLs admitted in this direction.",
+          "description": "The packs this peer declares in its Descriptor that we consume; a peer's pack URLs are its statement, not ours. Complete published URLs of OAN schema packs, stored verbatim. Not SchemaRegistry rows: those hold raw.githubusercontent YAML URLs for our own capabilities.",
           "type": "array",
-          "minItems": 1,
           "maxItems": 64,
           "uniqueItems": true,
           "items": {
@@ -219,55 +216,53 @@
             "pattern": "^https://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*/?$"
           }
         },
-        "status": {
-          "description": "suspended withdraws this direction and keeps its record.",
-          "type": "string",
-          "enum": [
-            "active",
-            "suspended"
-          ],
-          "default": "active"
+        "osid": {},
+        "osCreatedAt": {},
+        "osUpdatedAt": {},
+        "osCreatedBy": {},
+        "osUpdatedBy": {}
+      }
+    },
+    "FederationRequester": {
+      "description": "Admission for this peer to consume from us.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "descriptorRevision",
+        "admittedAt"
+      ],
+      "properties": {
+        "descriptorRevision": {
+          "description": "The peer's Descriptor revision this direction was admitted against. Distinct from the top-level revision, which is the latest one verified: a newer Descriptor does not silently widen admission, so a top-level revision above this one means the peer has changed since the decision and is due for review.",
+          "type": "integer",
+          "minimum": 1
         },
-        "suspendedAt": {
-          "description": "When this direction was last suspended.",
+        "admittedAt": {
+          "description": "When this direction was admitted. Each direction is admitted on its own, so each keeps its own time, retained as admission evidence.",
           "type": "string",
           "format": "date-time"
         },
-        "projectionTtl": {
-          "description": "Seconds the peer lets us keep its crawled data, as its Descriptor states. 0 means no retention: query live. A projectionTtl at the entry's root is legacy and ignored once readers move here (ADR-0002, #102).",
-          "type": "integer",
-          "minimum": 0
+        "updatedAt": {
+          "description": "When the admission decision for this direction last changed -- re-admitted against a newer revision, or its schema packs revised. Set by us on the decision, unlike osUpdatedAt, which the registry stamps on any write.",
+          "type": "string",
+          "format": "date-time"
         },
-        "osid": {
-          "type": "string"
-        },
-        "osCreatedAt": {
-          "type": "string"
-        },
-        "osUpdatedAt": {
-          "type": "string"
-        },
-        "osCreatedBy": {
-          "type": "string"
-        },
-        "osUpdatedBy": {
-          "type": "string"
-        }
-      },
-      "if": {
-        "properties": {
-          "status": {
-            "const": "suspended"
+        "schemaPacks": {
+          "description": "The packs of ours this peer may request. Complete published URLs of OAN schema packs, stored verbatim. Not SchemaRegistry rows: those hold raw.githubusercontent YAML URLs for our own capabilities.",
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 2000,
+            "pattern": "^https://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*/?$"
           }
         },
-        "required": [
-          "status"
-        ]
-      },
-      "then": {
-        "required": [
-          "suspendedAt"
-        ]
+        "osid": {},
+        "osCreatedAt": {},
+        "osUpdatedAt": {},
+        "osCreatedBy": {},
+        "osUpdatedBy": {}
       }
     },
     "PublicKey": {
@@ -355,8 +350,7 @@
     "indexFields": [
       "status",
       "type",
-      "baseUrl",
-      "federationRole"
+      "baseUrl"
     ],
     "privateFields": [],
     "roles": [
