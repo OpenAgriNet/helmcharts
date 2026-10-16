@@ -46,13 +46,50 @@
           "pattern": "^https?://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*$"
         },
         "role": {
-          "description": "What this party does on the network. consumer asks. provider answers. network exposes publish and discover, answering discover from published catalogs. Required on a node. Permitted on an upstream, where nothing reads it.",
-          "type": "string",
-          "enum": [
-            "consumer",
-            "provider",
-            "network"
+          "description": "What this party does on the network. consumer asks. provider answers. network exposes publish and discover, answering discover from published catalogs. A list when one participant serves several layers -- a network is one participant however many adapters it runs. A single string is still accepted: every row written before the list existed holds one, and a PUT re-validates the stored record, so refusing it would freeze those rows. Search with `contains`, which matches both shapes; `eq` misses a list. Required on a node. Permitted on an upstream, where nothing reads it.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Role"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 3,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/definitions/Role"
+              }
+            }
           ]
+        },
+        "federationRole": {
+          "description": "What this entry is in relation to us, and our decision -- never read from a peer's Descriptor, so a peer publishing a new one cannot widen its own admission. This network's own entry is identified from its configuration, not by a value here. source: a peer we consume from. requester: a peer that consumes from us. Both present is admission in each direction. Absent on a participant that is not part of federation. Strict, but declares the registry's system fields for the same reason PublicKey does: a nested object is merged with what the registry stamped on it before a PUT re-validates.",
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "source": {
+              "$ref": "#/definitions/FederationSource"
+            },
+            "requester": {
+              "$ref": "#/definitions/FederationRequester"
+            },
+            "osid": {},
+            "osCreatedAt": {},
+            "osUpdatedAt": {},
+            "osCreatedBy": {},
+            "osUpdatedBy": {}
+          }
+        },
+        "revision": {
+          "description": "The Descriptor revision this entry was built from. Only ever increases: a Descriptor at or below the stored revision is a replay and is refused. On this network's own entry, the revision it last published.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "projectionTtl": {
+          "description": "Seconds this peer permits us to keep what we crawled from it. The owning network decides how stale a copy may get, not the network holding it. 0 prohibits retention and requires a live query; a positive value permits serving the copy only within that lifetime.",
+          "type": "integer",
+          "minimum": 0
         },
         "keys": {
           "description": "Plural for rotation: an overlap where old and new are both valid. The sender names which it used by osid in the Authorization header. Required on a node, since a node's signatures are verified against them. Permitted on an upstream, which does not sign anything this stack verifies.",
@@ -96,8 +133,92 @@
         }
       ]
     },
+    "FederationSource": {
+      "description": "Admission to consume from this peer.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "descriptorRevision",
+        "admittedAt"
+      ],
+      "properties": {
+        "descriptorRevision": {
+          "description": "The peer's Descriptor revision this direction was admitted against. Distinct from the top-level revision, which is the latest one verified: a newer Descriptor does not silently widen admission, so a top-level revision above this one means the peer has changed since the decision and is due for review.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "admittedAt": {
+          "description": "When this direction was admitted. Each direction is admitted on its own, so each keeps its own time, retained as admission evidence.",
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "description": "When the admission decision for this direction last changed -- re-admitted against a newer revision, or its schema packs revised. Set by us on the decision, unlike osUpdatedAt, which the registry stamps on any write.",
+          "type": "string",
+          "format": "date-time"
+        },
+        "schemaPacks": {
+          "description": "The packs this peer declares in its Descriptor that we consume; a peer's pack URLs are its statement, not ours. Complete published URLs of OAN schema packs, stored verbatim. Not SchemaRegistry rows: those hold raw.githubusercontent YAML URLs for our own capabilities.",
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 2000,
+            "pattern": "^https://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*/?$"
+          }
+        },
+        "osid": {},
+        "osCreatedAt": {},
+        "osUpdatedAt": {},
+        "osCreatedBy": {},
+        "osUpdatedBy": {}
+      }
+    },
+    "FederationRequester": {
+      "description": "Admission for this peer to consume from us.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "descriptorRevision",
+        "admittedAt"
+      ],
+      "properties": {
+        "descriptorRevision": {
+          "description": "The peer's Descriptor revision this direction was admitted against. Distinct from the top-level revision, which is the latest one verified: a newer Descriptor does not silently widen admission, so a top-level revision above this one means the peer has changed since the decision and is due for review.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "admittedAt": {
+          "description": "When this direction was admitted. Each direction is admitted on its own, so each keeps its own time, retained as admission evidence.",
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "description": "When the admission decision for this direction last changed -- re-admitted against a newer revision, or its schema packs revised. Set by us on the decision, unlike osUpdatedAt, which the registry stamps on any write.",
+          "type": "string",
+          "format": "date-time"
+        },
+        "schemaPacks": {
+          "description": "The packs of ours this peer may request. Complete published URLs of OAN schema packs, stored verbatim. Not SchemaRegistry rows: those hold raw.githubusercontent YAML URLs for our own capabilities.",
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 2000,
+            "pattern": "^https://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*/?$"
+          }
+        },
+        "osid": {},
+        "osCreatedAt": {},
+        "osUpdatedAt": {},
+        "osCreatedBy": {},
+        "osUpdatedBy": {}
+      }
+    },
     "PublicKey": {
-      "description": "A public key, held as material: it is public, so there is nothing to protect. Identified by the osid the registry assigns on write -- which is what a sender names in the Authorization header, and so the only id a verifier can look up. alg carries the purpose: ed25519 signs, x25519 encrypts.",
+      "description": "A public key, held as material: it is public, so there is nothing to protect. Identified by the osid the registry assigns on write -- which is what a sender names in the Authorization header, and so the only id a verifier can look up. alg carries the purpose: ed25519 signs, x25519 encrypts. Strict, but declares the registry's own system fields: each key is a nested entity, so on a PUT the registry merges the stored key -- osid and the four os* audit fields it stamped on -- into the body before re-validating, and an undeclared one refuses every update of a node, including the revision bump that refreshes an admitted peer. Declared rather than opening additionalProperties, so a typo such as validUnitl is still refused instead of stored and ignored. The registry sets these; they carry no constraint of ours. osOwner is deliberately absent: the registry never sets it on a key, so declaring it would only let a client write one.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -136,7 +257,12 @@
             "active",
             "revoked"
           ]
-        }
+        },
+        "osid": {},
+        "osCreatedAt": {},
+        "osUpdatedAt": {},
+        "osCreatedBy": {},
+        "osUpdatedBy": {}
       }
     },
     "ParticipantId": {
@@ -158,6 +284,14 @@
       "enum": [
         "node",
         "upstream"
+      ]
+    },
+    "Role": {
+      "type": "string",
+      "enum": [
+        "consumer",
+        "provider",
+        "network"
       ]
     }
   },
