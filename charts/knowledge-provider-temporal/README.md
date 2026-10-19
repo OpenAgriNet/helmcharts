@@ -28,8 +28,8 @@ helm install knowledge-provider-temporal-db charts/postgresql-cnpg -n knowledge-
   -f charts/postgresql-cnpg/examples/knowledge-provider-temporal-db.dev.yaml
 
 # 2. Temporal
-helm install knowledge-provider-temporal charts/knowledge-provider/knowledge-provider-temporal -n knowledge-provider \
-  -f charts/knowledge-provider/knowledge-provider-temporal/examples/knowledge-provider-temporal.dev.yaml
+helm install knowledge-provider-temporal charts/knowledge-provider-temporal -n knowledge-provider \
+  -f charts/knowledge-provider-temporal/examples/knowledge-provider-temporal.dev.yaml
 ```
 
 ## The database
@@ -84,8 +84,8 @@ exact names against the image version in use).
 
 ```bash
 ../../../scripts/lint-charts.sh
-helm template knowledge-provider-temporal charts/knowledge-provider/knowledge-provider-temporal \
-  -f charts/knowledge-provider/knowledge-provider-temporal/ci/lint-values.yaml
+helm template knowledge-provider-temporal charts/knowledge-provider-temporal \
+  -f charts/knowledge-provider-temporal/ci/lint-values.yaml
 ```
 
 Render-time guardrails:

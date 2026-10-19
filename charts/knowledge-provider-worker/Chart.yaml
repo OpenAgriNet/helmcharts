@@ -1,8 +1,9 @@
 apiVersion: v2
-name: knowledge-provider-api
+name: knowledge-provider-worker
 description: >-
-  Bharat Vistaar Docs Pipeline API - FastAPI service for review-driven
-  document ingestion (OCR, translation, chunking, vector indexing).
+  Bharat Vistaar Docs Pipeline Temporal worker - runs the same application
+  image as knowledge-provider-api, registering workflows/activities on the
+  ocr-pipeline task queue instead of serving HTTP.
 type: application
 version: 0.2.0
 appVersion: "latest"
@@ -14,6 +15,7 @@ keywords:
   - openagrinet
   - knowledge-provider
   - docs-pipeline
+  - temporal-worker
 home: https://github.com/OpenAgriNet/helmcharts
 sources:
   - https://github.com/OpenAgriNet/helmcharts
@@ -21,4 +23,4 @@ sources:
 dependencies:
   - name: common
     version: "0.2.x"
-    repository: "file://../../common"
+    repository: "file://../common"

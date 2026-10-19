@@ -1,12 +1,10 @@
 apiVersion: v2
-name: knowledge-provider-keycloak
+name: knowledge-provider-ui
 description: >-
-  Keycloak for the Bharat Vistaar Docs Pipeline, on a custom modern
-  (Quarkus-based) Keycloak image with a baked-in email-OTP 2FA provider and
-  realm import. Not the same Keycloak distribution as this repo's `keycloak`
-  chart - see README.md.
+  Bharat Vistaar Docs Pipeline UI - React/Vite operator console, served as a
+  static bundle via nginx.
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "latest"
 maintainers:
   - name: OpenAgriNet Engineering Team
@@ -16,8 +14,7 @@ keywords:
   - openagrinet
   - knowledge-provider
   - docs-pipeline
-  - keycloak
-  - authentication
+  - ui
 home: https://github.com/OpenAgriNet/helmcharts
 sources:
   - https://github.com/OpenAgriNet/helmcharts
@@ -25,4 +22,4 @@ sources:
 dependencies:
   - name: common
     version: "0.2.x"
-    repository: "file://../../common"
+    repository: "file://../common"

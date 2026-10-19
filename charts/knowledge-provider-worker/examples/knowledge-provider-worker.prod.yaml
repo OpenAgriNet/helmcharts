@@ -1,7 +1,7 @@
 # Example: knowledge-provider-worker, prod environment.
 #
-#   helm install knowledge-provider-worker charts/knowledge-provider/knowledge-provider-worker \
-#     -n knowledge-provider -f charts/knowledge-provider/knowledge-provider-worker/examples/knowledge-provider-worker.prod.yaml
+#   helm install knowledge-provider-worker charts/knowledge-provider-worker \
+#     -n knowledge-provider -f charts/knowledge-provider-worker/examples/knowledge-provider-worker.prod.yaml
 #
 # All secret values below are referenced by name only - create the Secrets
 # out-of-band before installing (see knowledge-provider-api's README,

@@ -32,16 +32,16 @@ helm install knowledge-provider-keycloak-db charts/postgresql-cnpg -n knowledge-
 helm install knowledge-provider-temporal-db charts/postgresql-cnpg -n knowledge-provider -f ...
 
 # 2. Auth and workflow engine
-helm install knowledge-provider-keycloak charts/knowledge-provider/knowledge-provider-keycloak -n knowledge-provider -f ...
-helm install knowledge-provider-temporal charts/knowledge-provider/knowledge-provider-temporal -n knowledge-provider -f ...
+helm install knowledge-provider-keycloak charts/knowledge-provider-keycloak -n knowledge-provider -f ...
+helm install knowledge-provider-temporal charts/knowledge-provider-temporal -n knowledge-provider -f ...
 
 # 3. Object storage and DEV vector index (shared infra, top-level charts)
 helm install minio charts/minio -n knowledge-provider -f ...
 helm install qdrant charts/qdrant -n knowledge-provider -f ...
 
 # 4. This chart
-helm install knowledge-provider-api charts/knowledge-provider/knowledge-provider-api -n knowledge-provider \
-  -f charts/knowledge-provider/knowledge-provider-api/examples/knowledge-provider-api.dev.yaml
+helm install knowledge-provider-api charts/knowledge-provider-api -n knowledge-provider \
+  -f charts/knowledge-provider-api/examples/knowledge-provider-api.dev.yaml
 
 # 5. knowledge-provider-worker, then knowledge-provider-ui
 ```
@@ -129,7 +129,7 @@ Secret means rotating one is one edit, not two.
 
 ```bash
 ../../../scripts/lint-charts.sh
-helm template knowledge-provider-api charts/knowledge-provider/knowledge-provider-api
+helm template knowledge-provider-api charts/knowledge-provider-api
 ```
 
 Render-time guardrails, all of which name the value and the reason:

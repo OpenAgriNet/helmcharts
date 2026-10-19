@@ -1,7 +1,7 @@
 # Example: knowledge-provider-ui, prod environment.
 #
-#   helm install knowledge-provider-ui charts/knowledge-provider/knowledge-provider-ui \
-#     -n knowledge-provider -f charts/knowledge-provider/knowledge-provider-ui/examples/knowledge-provider-ui.prod.yaml
+#   helm install knowledge-provider-ui charts/knowledge-provider-ui \
+#     -n knowledge-provider -f charts/knowledge-provider-ui/examples/knowledge-provider-ui.prod.yaml
 #
 # Assumes an image built with prod --build-arg values (VITE_API_BASE,
 # VITE_KEYCLOAK_URL/REALM/CLIENT_ID, VITE_AUTH_ENABLED=true) baked in - see
