@@ -1,20 +1,20 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ClientPreference",
+  "title": "SenderPreference",
   "type": "object",
-  "required": ["ClientPreference"],
-  "properties": { "ClientPreference": { "$ref": "#/definitions/ClientPreference" } },
+  "required": ["SenderPreference"],
+  "properties": { "SenderPreference": { "$ref": "#/definitions/SenderPreference" } },
 
   "definitions": {
 
-    "ClientPreference": {
-      "description": "One row per calling client: which providers it wants, per topic, best first. clientId is the X-Client-Id value; the reserved id 'default' is the fallback ladder, and the per-topic merge is the DSS's job, not this registry's. additionalProperties stays true -- a PUT re-validates the merged document carrying the registry's own os* fields, and false would reject every update (the SchemaRegistry.json defect).",
+    "SenderPreference": {
+      "description": "One row per calling sender: which providers it wants, per topic, best first. senderId is the X-sender-Id value; the reserved id 'default' is the fallback ladder, and the per-topic merge is the DSS's job, not this registry's. additionalProperties stays true -- a PUT re-validates the merged document carrying the registry's own os* fields, and false would reject every update (the SchemaRegistry.json defect).",
       "type": "object",
       "additionalProperties": true,
-      "required": ["clientId", "status", "preferences"],
+      "required": ["senderId", "status", "preferences"],
       "properties": {
-        "clientId": {
-          "description": "The caller's name for itself, as sent in X-Client-Id. 'default' is reserved for the fallback ladder.",
+        "senderId": {
+          "description": "The caller's name for itself, as sent in X-sender-Id. 'default' is reserved for the fallback ladder.",
           "type": "string",
           "maxLength": 64,
           "pattern": "^[a-z0-9][a-z0-9._:-]{2,63}$"
@@ -67,7 +67,7 @@
   },
 
   "_osConfig": {
-    "uniqueIndexFields": ["clientId"],
+    "uniqueIndexFields": ["senderId"],
     "indexFields":       ["status"],
     "roles":             ["registryOperator"],
     "systemFields":      ["osCreatedAt", "osUpdatedAt", "osCreatedBy", "osUpdatedBy"]
