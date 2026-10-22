@@ -208,8 +208,9 @@ collection. → Appendix N.
 
 |  | single (default) | multi (optional) |
 |---|---|---|
-| What runs | one container, `network-adapter` (compose service `network-adapter-layer`) | `consumer-adapter`, `network-adapter`, `provider-adapter` |
-| Compose profile | `network` | `multi` |
+| What runs | one container, `network-adapter` | `consumer-adapter`, `network-adapter`, `provider-adapter` |
+| `NETWORK_ADAPTER_DEPLOYMENT_MODE` | `single` | `multi` |
+| `network-adapter` config | `config/adapters/network-adapter.yaml` | `config/adapters/network.yaml` |
 | Start | `make up-core` / `make up` | `make up-core-multi` / `make up-multi` |
 | Ports | `127.0.0.1:9201` | 9200 provider, 9201 network, 9202 consumer |
 | App calls | `:9201/discover`, `:9201/select` | `:9202/discover`, `:9202/select` |
@@ -218,22 +219,28 @@ collection. → Appendix N.
 Single is the everyday choice: one container, the same requests. Use multi to
 reproduce a deployment where the tiers run separately.
 
-**Switching** is running the other target. It removes the running mode's
-adapters first (both use 9201, and both have a container named
-`network-adapter`), then starts the other's. `MODE=multi` also works with
-`make up` and `make up-core`; `make restart`, `make down`, `make ps` and
-`make logs` follow whichever mode is running. Plain compose:
-`docker compose --profile network up -d` (or `--profile multi`); a bare
-`docker compose up -d` follows `COMPOSE_PROFILES` in `.env` (`network` in
-`.env.example`).
+**Switching** is running the other target: it recreates `network-adapter` with
+the other config, and starts (multi) or removes (single) `provider-adapter` and
+`consumer-adapter`. `MODE=multi` also works with `make up` and `make up-core`;
+`make restart`, `make down`, `make ps` and `make logs` follow whichever mode is
+running. The mode is read once, at startup, by `bin/stack.sh`, which passes
+compose the config to mount (`NETWORK_ADAPTER_CONFIG`). Plain compose mounts
+`network-adapter.yaml` unless told otherwise:
+`NETWORK_ADAPTER_CONFIG=network docker compose --profile multi up -d provider-adapter network-adapter consumer-adapter`.
 
-**Upgrading a multi stack.** `make up` now starts single mode: it removes the
-9200/9202 adapters, so repoint NPM proxy hosts at `network-adapter:9201`, or
-use `make up-multi`. An older `.env` without `COMPOSE_PROFILES` makes a bare
-`docker compose up -d` start no adapter; add `COMPOSE_PROFILES=network`.
+**Upgrading a stack.** The compose service `network-adapter-layer` and
+`COMPOSE_PROFILES=network` are gone: add `NETWORK_ADAPTER_DEPLOYMENT_MODE=single`
+to `.env` (optional; single is the default). `make up` starts single mode
+and removes the 9200/9202 adapters, so repoint NPM proxy hosts at
+`network-adapter:9201`, or use `make up-multi`.
+
+**Multi mode.** `make up-multi`, or `NETWORK_ADAPTER_DEPLOYMENT_MODE=multi` in
+`.env` and `make up`. Only `network.yaml` is mounted into `network-adapter`, so
+the network tier never holds the consumer or provider keys. The app calls
+`consumer-adapter:9202`, the catalogue publishes to `provider-adapter:9200`.
 
 **How single mode is wired.** `config/adapters/network-adapter.yaml.tmpl`,
-rendered by `setup.py`, holds four modules, each its tier's module from the
+rendered by `setup.py` to `network-adapter.yaml`, holds four modules, each its tier's module from the
 tier templates, each with its own tier identity:
 
 | Module | Path | Routes to |
@@ -807,7 +814,7 @@ an id is a `.so` basename. If `ADAPTER_IMAGE` names a **new tag**, set it before
 nothing in `stack.sh` pulls, so the stack quietly comes back on the old image:
 
 ```sh
-docker compose pull network-adapter-layer provider-adapter network-adapter consumer-adapter
+docker compose --profile multi pull provider-adapter network-adapter consumer-adapter
 ```
 
 Build from the adapter repo at the commit the config expects, and check the

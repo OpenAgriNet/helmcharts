@@ -37,35 +37,56 @@ cd "$ROOT"
 # down` leaves the gateway, hyperdx and the adapters (both deployment modes are
 # profiled) running and then reports success. Naming them on teardown is what
 # makes "down" mean down.
-PROFILES=(--profile reverse-proxy --profile observability --profile network --profile multi)
+PROFILES=(--profile reverse-proxy --profile observability --profile multi)
 
-# Adapter deployment mode: "single" (default) runs the Network Adapter Layer (compose
-# service network-adapter-layer, container network-adapter), one process for
-# all three tiers; "multi" runs provider-, network- and consumer-adapter. Both
-# publish 127.0.0.1:9201, and the single container shares the multi network
-# tier's name, so only one deployment mode exists at a time: the other is REMOVED
-# (not just stopped) before this one starts.
+# Adapter deployment mode: "single" (default) runs network-adapter as the
+# Network Adapter Layer, one process for all three tiers; "multi" runs
+# network-adapter as the network tier plus provider- and consumer-adapter
+# (profile multi). The mode decides, at startup, which config network-adapter
+# mounts (NETWORK_ADAPTER_CONFIG below).
+#
+# MODE is the mode `up` starts: the shell's MODE, else .env, else single.
+# Every other compose call exports the RUNNING mode, so a command that touches
+# network-adapter only through depends_on (reverse-proxy, observability) never
+# recreates it with the other config.
 # Validated only by the commands that use it (check_mode), so an unrelated
 # MODE in the shell never blocks `down`, `destroy` or `help`.
+
+# A key's value in .env: last occurrence, quotes, inline comment and CR
+# stripped, empty when absent (never an error under set -e).
+dotenv_get() {
+    local v
+    v=$(grep -E "^$1=" .env 2>/dev/null | tail -1 | cut -d= -f2-) || true
+    v=${v%%#*}
+    printf '%s' "$v" | tr -d '"'"'"' \t\r'
+}
+
+# The mode network-adapter is running in, from the config it mounts
+# (network.yaml is the network tier alone): single, multi, or empty when it is
+# not running.
+running_mode() {
+    [ "$(docker inspect -f '{{.State.Running}}' network-adapter 2>/dev/null)" = true ] || return 0
+    case "$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/app/config/adapter.yaml"}}{{.Source}}{{end}}{{end}}' network-adapter 2>/dev/null)" in
+        */network.yaml) echo multi ;;
+        *) echo single ;;
+    esac
+}
+
+MODE="${MODE:-$(dotenv_get NETWORK_ADAPTER_DEPLOYMENT_MODE)}"
 MODE="${MODE:-single}"
+RUNNING_MODE="$(running_mode)"
+
+# The config network-adapter mounts for a mode; compose reads it as
+# NETWORK_ADAPTER_CONFIG.
+network_config_for() { [ "$1" = multi ] && echo network || echo network-adapter; }
+export NETWORK_ADAPTER_CONFIG="$(network_config_for "${RUNNING_MODE:-$MODE}")"
 check_mode() {
     case "$MODE" in single|multi) ;; *) die "MODE must be single or multi, not '$MODE'" ;; esac
 }
 
-# The deployment mode whose adapters are running now: single, multi, or empty.
-# Both deployment modes have a container called network-adapter, so single is told
-# apart by its compose service label.
-running_mode() {
-    if [ "$(docker inspect -f '{{.State.Running}}' consumer-adapter 2>/dev/null)" = true ]; then echo multi
-    elif [ "$(docker inspect -f '{{.State.Running}}' network-adapter 2>/dev/null)" = true ] \
-      && [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' network-adapter 2>/dev/null)" = network-adapter-layer ]; then
-        echo single
-    fi
-}
-
 adapters_for() { # $1 mode
     case "$1" in
-        single) echo network-adapter-layer ;;
+        single) echo network-adapter ;;
         multi)  echo provider-adapter network-adapter consumer-adapter ;;
     esac
 }
@@ -76,11 +97,6 @@ configs_for() { # $1 mode
         multi)  echo provider network consumer ;;
     esac
 }
-other_mode() { [ "$1" = single ] && echo multi || echo single; }
-
-# The compose profile for a deployment mode: single runs under profile "network",
-# multi under profile "multi".
-profile_for() { [ "$1" = single ] && echo network || echo multi; }
 
 # ------------------------------------------------------------------ output
 
@@ -192,19 +208,27 @@ up_adapters() {
     # new participant id and base URL in .env plus a setup.py re-run, because
     # the registry cannot repoint an existing row.
     check_mode
-    local other f; other=$(other_mode "$MODE")
+    local f
+    # `up` starts the requested mode, not the running one.
+    NETWORK_ADAPTER_CONFIG="$(network_config_for "$MODE")"
     step 3 "$1" "adapters, mode $MODE ($(adapters_for "$MODE"))"
-    # The other deployment mode also publishes 127.0.0.1:9201, and the single container
-    # shares the multi network tier's name: remove it (stopped is not enough).
-    # shellcheck disable=SC2046
-    docker compose --profile "$(profile_for "$other")" rm -sf $(adapters_for "$other") >/dev/null 2>&1 || true
+    # A stack from before the merge has container network-adapter under the
+    # old service name network-adapter-layer, which compose no longer knows
+    # and would not remove: the name would clash.
+    if [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' network-adapter 2>/dev/null)" = network-adapter-layer ]; then
+        docker rm -f network-adapter >/dev/null
+    fi
+    # Single runs network-adapter alone: remove the multi-only adapters.
+    if [ "$MODE" = single ]; then
+        docker compose --profile multi rm -sf provider-adapter consumer-adapter >/dev/null 2>&1 || true
+    fi
     # Never let compose create a directory where a bind-mounted config belongs.
     for f in $(configs_for "$MODE"); do
         [ -f "config/adapters/$f.yaml" ] \
             || die "config/adapters/$f.yaml was not rendered (a directory there? rm -r it, then re-run)"
     done
     # shellcheck disable=SC2046
-    docker compose --profile "$(profile_for "$MODE")" up -d --force-recreate $(adapters_for "$MODE")
+    docker compose --profile multi up -d --force-recreate $(adapters_for "$MODE")
     # NPM resolves adapter names when nginx loads and caches the addresses, so
     # a recreated or switched adapter 502s through it until it restarts.
     if [ "$(docker inspect -f '{{.State.Running}}' nginx-proxy-manager 2>/dev/null)" = true ]; then
@@ -360,14 +384,13 @@ NEXT
 # up is a changed image or a changed environment, both of which need the
 # container recreated -- use `make up` for those.
 restart_app() {
-    local running; running=$(running_mode)
-    [ -n "$running" ] && MODE=$running
+    [ -n "$RUNNING_MODE" ] && MODE=$RUNNING_MODE
     check_mode
     step 1 1 "restarting registry, discovery and the $MODE-mode adapters"
     info "keycloak, both databases and the edge are left alone"
     # shellcheck disable=SC2046
-    docker compose --profile "$(profile_for "$MODE")" restart sunbird-registry-service discovery-service $(adapters_for "$MODE")
-    docker compose --profile "$(profile_for "$MODE")" ps --format 'table {{.Service}}\t{{.Status}}'
+    docker compose --profile multi restart sunbird-registry-service discovery-service $(adapters_for "$MODE")
+    docker compose --profile multi ps --format 'table {{.Service}}\t{{.Status}}'
 }
 
 # ----------------------------------------------------------------- misc
