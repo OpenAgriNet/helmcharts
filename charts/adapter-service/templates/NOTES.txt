@@ -1,4 +1,4 @@
-{{- $single := include "adapter-service.singleMode" . -}}
+{{- $single := eq (include "adapter-service.deploymentMode" .) "single" -}}
 {{ .Chart.Name }} {{ .Chart.Version }} — {{ include "adapter-service.fullname" . }}
 
 {{- if $single }}
@@ -33,7 +33,7 @@ TWO THINGS THIS CHART CANNOT CHECK FOR YOU
 
 {{ if $single -}}
 1. The Participant rows. Each tier signs from its own Secret
-   (networkAdapterLayer.keys); each registry row must carry that tier's public key.
+   (networkTierKeys); each registry row must carry that tier's public key.
 {{- else -}}
 1. The Participant row. This adapter signs as {{ .Values.keys.existingSecret.name }}'s
    subscriberId, and every peer verifies that signature against the public key

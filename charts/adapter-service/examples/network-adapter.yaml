@@ -20,18 +20,9 @@ service:
   port: 9201
   targetPort: 9201
 
-networkAdapterLayer:
-  # The three tier Secrets the multi-adapter releases use. openbao-secrets
-  # reflects them into this namespace.
-  keys:
-    consumer:
-      existingSecret: consumer-adapter-keys
-    network:
-      existingSecret: network-adapter-keys
-    provider:
-      existingSecret: provider-adapter-keys
-  # Set per environment, e.g. __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl,
-  # or the init container stops on the leftover placeholder.
+# Tier key Secrets default to consumer-, network- and provider-adapter-keys.
+# Set per environment, or the init container stops on the leftover placeholder.
+networkTierKeys:
   extraSubstitutions: {}
 
 # The provider tier reads its upstream credentials (MAUSAMGRAM_AUTH,

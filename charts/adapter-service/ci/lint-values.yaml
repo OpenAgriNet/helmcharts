@@ -3,8 +3,8 @@
 #
 # role is first among them: it has no default, because a default would hand one
 # adapter another one's handler role and step list.
-role: provider
-fullnameOverride: provider-adapter
+role: network
+fullnameOverride: network-adapter
 
 image:
   registry: ghcr.io
@@ -13,7 +13,7 @@ image:
 
 keys:
   existingSecret:
-    name: provider-adapter-keys
+    name: network-adapter-keys
 
 registry:
   url: http://registry:8081/api/v1

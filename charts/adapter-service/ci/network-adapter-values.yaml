@@ -15,16 +15,6 @@ service:
   port: 9201
   targetPort: 9201
 
-networkAdapterLayer:
-  keys:
-    consumer:
-      existingSecret: consumer-adapter-keys
-    network:
-      existingSecret: network-adapter-keys
-    provider:
-      existingSecret: provider-adapter-keys
-  extraSubstitutions: {}
-
 ingress:
   enabled: true
   className: nginx

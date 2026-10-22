@@ -410,19 +410,12 @@ extraVolumeMounts: []
 extraEnv: []
 envFromSecrets: []
 
-# Single mode only (role network): config is config/network-adapter-config.yaml,
-# routing is generated; routing.config and handler.* are not used.
-networkAdapterLayer:
-  # One Secret per tier (six keys each, as under keys.existingSecret), in this
-  # release's namespace; the same registry rows as the multi releases.
-  keys:
-    consumer:
-      existingSecret: ""
-    network:
-      existingSecret: ""
-    provider:
-      existingSecret: ""
-
-  # Extra placeholders, as "<tier>/<key in that tier's Secret>".
+# Single mode only: one key Secret per tier (six keys each, as under keys.existingSecret),
+# named as openbao-secrets creates them. routing.config and handler.* are unused.
+networkTierKeys:
+  consumer: consumer-adapter-keys
+  network: network-adapter-keys
+  provider: provider-adapter-keys
+  # Extra placeholders, as "<tier>/<key in that tier's Secret>", e.g.
   #   __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl
   extraSubstitutions: {}

@@ -1,5 +1,5 @@
 apiVersion: {{ include "common.deployment.apiVersion" . }}
-{{- $single := include "adapter-service.singleMode" . }}
+{{- $single := eq (include "adapter-service.deploymentMode" .) "single" }}
 kind: Deployment
 metadata:
   name: {{ include "adapter-service.fullname" . }}
@@ -121,7 +121,7 @@ spec:
               subst __{{ $T }}_ENCR_PRIVATE__ /keys/{{ $tier }}/{{ $k.encrPrivateKey }}
               subst __{{ $T }}_ENCR_PUBLIC__ /keys/{{ $tier }}/{{ $k.encrPublicKey }}
               {{- end }}
-              {{- range $ph, $path := .Values.networkAdapterLayer.extraSubstitutions }}
+              {{- range $ph, $path := .Values.networkTierKeys.extraSubstitutions }}
               subst {{ $ph }} /keys/{{ $path }}
               {{- end }}
               {{- else }}
@@ -221,7 +221,7 @@ spec:
         {{- range $tier := list "consumer" "network" "provider" }}
         - name: keys-{{ $tier }}
           secret:
-            secretName: {{ include "adapter-service.networkAdapterLayer.tierSecret" (dict "ctx" $ "tier" $tier) }}
+            secretName: {{ include "adapter-service.tierSecret" (dict "ctx" $ "tier" $tier) }}
             defaultMode: 0400
         {{- end }}
         {{- else }}
