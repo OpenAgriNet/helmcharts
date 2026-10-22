@@ -1,16 +1,8 @@
 {{- if .Values.ingress.enabled }}
 {{- $ann := merge (dict) (.Values.ingress.annotations | default dict) (.Values.commonAnnotations | default dict) }}
 {{- if include "adapter-service.isNetworkAdapterLayer" . }}
-{{- /* single mode: the public surface is flat -- /discover,
-       /<action> and /health, all served by the consumer module at /. Two
-       things must never be public: /_internal/ (the network and provider
-       tiers, called only by this process) and /publish (no validateSign,
-       signs as the provider). So a path is accepted only if it is one literal
-       segment and is neither of those; "/" is refused because a Prefix "/"
-       covers both.
-       Prefix and Exact only: ImplementationSpecific is a plain string prefix
-       on ingress-nginx, and regex or rewrite annotations turn paths into
-       patterns, so either could reach /_internal or /publish. */}}
+{{- /* Single mode: only literal one-segment /<action> paths (Prefix/Exact, no regex or
+       rewrite); never /, /publish or /_internal* (ADR-0001). */}}
 {{- if eq (index $ann "nginx.ingress.kubernetes.io/use-regex" | default "" | toString | trim | lower) "true" }}
 {{- fail (printf "%s: ingress annotation nginx.ingress.kubernetes.io/use-regex is not allowed in the single deployment mode. A regex path can match /_internal or /publish." .Chart.Name) }}
 {{- end }}

@@ -1,31 +1,5 @@
-# OAN Network Adapter Layer (role network, single deployment mode). The consumer, network
-# and provider tiers as four modules of ONE adapter process:
-#
-#   /<action>                    the consumer (bap); the app posts here, unsigned
-#   /publish                     the catalogue system publishes here
-#   /_internal/network/<action>  verifies and forwards to discovery
-#   /_internal/provider/<action> answers from the upstream APIs (bpp)
-#
-# The paths are flat: /discover, /publish, /<action> and /health. The tiers are
-# not part of them. /_internal/ is only ever called by this process's own
-# modules (http://localhost:9201/_internal/...); the chart's ingress never
-# routes it, and never routes /publish either.
-#
-# Each module is its tier's module from consumer-config.yaml, network-config.yaml
-# and provider-config.yaml. A change to one of those files that should also
-# apply here must be made in this file too.
-#
-# Differences from the three tier files:
-#   - one listener (9201) and one appName; tier hops call this same listener (see the routing-network-adapter-*.yaml files, which the chart
-#     generates from routing-consumer.yaml and routing-provider.yaml);
-#   - an outbound connection pool (httpClientConfig) on every module;
-#   - log level info.
-#
-# This file is mounted verbatim. Each module signs as its OWN tier: the
-# __CONSUMER_*__, __NETWORK_*__ and __PROVIDER_*__ placeholders are substituted
-# by the init container from that tier's Secret
-# (networkAdapterLayer.keys.<tier>.existingSecret) at pod start, so no key is in this
-# file, in the ConfigMap, or in git.
+# Single mode: consumer at /, /publish, /_internal/network/, /_internal/provider/ in one
+# process. Each module mirrors its tier file; keys are filled in at pod start (ADR-0001).
 appName: "network-adapter"
 
 log:
@@ -47,10 +21,8 @@ pluginManager:
   root: ./plugins
 
 plugins:
-  # Ships metrics, traces and logs over OTLP/gRPC. On because clickstack is
-  # deployed alongside. Turn all three off for a cluster without a collector:
-  # the exporter logs a connection failure every few seconds when nothing
-  # answers.
+  # OTLP/gRPC metrics, traces and logs. Turn all three off where no collector
+  # runs, or the exporter logs a failure every few seconds.
   otelsetup:
     id: otelsetup
     config:
@@ -62,27 +34,16 @@ plugins:
       enableLogs: "true"
 
 modules:
-  # ------------------------------------------------------------------ consumer
-  # From consumer-config.yaml. Accepts unsigned requests from the app, signs as
-  # the consumer, and routes discover to /_internal/network and transactions to
-  # /_internal/provider.
-  #
-  # Mounted at / on purpose: it is the one catch-all mount, and that is
-  # load-bearing, not accidental. /publish is an exact pattern, so it wins over
-  # this subtree, and /_internal/<tier>/ are longer subtrees, so they win too.
-  # Everything else lands here, and the routing config is in effect an action
-  # allow-list: addRoute runs before sign, so an action with no routing rule is
-  # an error, never a forwarded request.
+  # consumer: unsigned app calls at / (the catch-all mount, on purpose: see ADR-0001);
+  # discover to /_internal/network, transactions to /_internal/provider.
   - name: consumer
     path: /
     handler:
       type: std
       role: bap
       subscriberId: "__CONSUMER_SUBSCRIBER_ID__"
-      # Outbound pool. Go's default keeps 2 idle connections per host, so under
-      # load most calls would open a new connection. responseHeaderTimeout
-      # bounds the wait for an answer's headers, which on the consumer ->
-      # provider hop includes the upstream API call.
+      # Outbound connection pool; responseHeaderTimeout includes the upstream
+      # API call on the consumer -> provider hop.
       httpClientConfig:
         maxIdleConns: 512
         maxIdleConnsPerHost: 128
@@ -139,9 +100,8 @@ modules:
         - addRoute
         - sign
 
-  # ------------------------------------------------------------------- network
-  # From network-config.yaml. Verifies the caller's signature and forwards
-  # discover and publish to discovery. Internal: never expose it on an Ingress.
+  # network: verifies the caller, forwards discover and publish to discovery.
+  # Internal: never expose it on an Ingress.
   - name: network
     path: /_internal/network/
     handler:
@@ -175,9 +135,8 @@ modules:
             signingPublicKey: "__NETWORK_SIGNING_PUBLIC__"
             encrPrivateKey: "__NETWORK_ENCR_PRIVATE__"
             encrPublicKey: "__NETWORK_ENCR_PUBLIC__"
-        # The extended layer is off: it fetches a resource's own @context per
-        # payload, and nothing here needs it. The settings below only apply if
-        # it is turned on.
+        # Extended layer off: it fetches each resource's @context per payload.
+        # The extendedSchema_* settings apply only when it is on.
         schemaValidator:
           id: schemav2validator
           config:
@@ -208,10 +167,8 @@ modules:
         - validateSign
         - addRoute
 
-  # ------------------------------------------------------------------ provider
-  # From provider-config.yaml, module 1. Verifies the caller and answers from
-  # the upstream APIs itself, so it has no router. Upstream credentials come
-  # from the environment (envFromSecrets: provider-upstream).
+  # provider: verifies the caller and answers from the upstream APIs (no router);
+  # upstream credentials come from envFromSecrets: provider-upstream.
   - name: provider
     path: /_internal/provider/
     handler:
@@ -314,12 +271,8 @@ modules:
         - KnowledgeAdvisory
         - AgricultureFacility
 
-  # ---------------------------------------------------------- provider-publish
-  # From provider-config.yaml, module 2. The catalogue system publishes here;
-  # signed as the provider and routed to /_internal/network/publish. No
-  # validateSign: never expose it on an Ingress. At top-level /publish, the
-  # same path as the multi provider adapter's publish module, so both
-  # deployment modes present the same URL.
+  # provider-publish: the catalogue system publishes at /publish, signed as the
+  # provider. No validateSign: never expose it on an Ingress.
   - name: provider-publish
     path: /publish
     handler:

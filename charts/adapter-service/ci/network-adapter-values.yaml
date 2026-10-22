@@ -1,17 +1,5 @@
-# charts/adapter-service/ci/network-adapter-values.yaml
-# CI only (scripts/lint-charts.sh lints and renders every ci/*-values.yaml).
-# Not for installs: use examples/network-adapter.yaml.
-#
-# Renders the single deployment mode, role network (the Network Adapter
-# Layer): config/network-adapter-config.yaml, the generated routing,
-# the three tier identities, and the PDB / spread / graceful-shutdown
-# settings, so those templates are linted too. Pinned image tag so the render
-# is reproducible.
-#
-# The Ingress is on so the path guard in templates/ingress.yaml runs in CI: the
-# allowed path shape (one-segment /<action>, Exact and Prefix) must render.
-# ingress.annotations is null on purpose, to cover the `| default dict` on the
-# annotations merge.
+# CI only: renders single mode (generated routing, tier identities, PDB, spread,
+# shutdown) with ingress on and annotations null to exercise the path guard.
 role: network
 networkAdapterDeploymentMode: single
 fullnameOverride: network-adapter
@@ -21,10 +9,8 @@ image:
   repository: openagrinet/network-adapter
   tag: "v1.9.0"
 
-# registry.url, otel.*, appName, logLevel, http.timeout.*, routing.* and
-# handler.* are not used by this role: the adapter config is mounted from
-# config/network-adapter-config.yaml as is (registry URL, OTLP endpoint and
-# log level are set there), so they are left out here. Edit that file instead.
+# registry.url, otel.*, appName, logLevel, http.timeout.*, routing.* and handler.*
+# are unused in single mode: set them in config/network-adapter-config.yaml.
 
 service:
   port: 9201

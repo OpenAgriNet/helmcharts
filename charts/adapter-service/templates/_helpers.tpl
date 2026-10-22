@@ -5,11 +5,8 @@
 # Purpose: chart-local helpers delegating to common, plus the role,
 #          identity, upstream and config-rendering wiring an adapter needs.
 #
-# One chart, three roles: provider, network and consumer. Role network with
-# networkAdapterDeploymentMode single (the default) runs all three tiers in one
-# adapter; in multi it is the network tier and the three roles run one release
-# each. Same image and config format; the role decides the handler role, the step list and
-# where requests are routed. Install once per role, and keep the RELEASE name
+# One chart, three roles: provider, network and consumer (role network runs all
+# three tiers in single mode). The role decides handler role, steps and routing. Install once per role, and keep the RELEASE name
 # per-role -- the release name is what becomes the Service DNS name that the
 # other adapters address.
 # ============================================================================

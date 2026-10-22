@@ -10,9 +10,8 @@ Everything that differs between the provider, network and consumer adapters is a
 value: they are one image with one config format, and the role decides the
 identity, the handler role, the step list and where requests are routed.
 
-role network in single mode reads config/network-adapter-config.yaml; its routing
-files are generated from the tier routing files (_network-adapter.tpl), and it
-renders more than one routing file.
+Single mode reads config/network-adapter-config.yaml and renders the generated
+routing files (_network-adapter.tpl).
 */}}
 {{/*
 RAW CONFIG OVERRIDE.
@@ -31,9 +30,8 @@ in `helm get values` -- so the render refuses it.
 {{- $networkAdapterLayer := include "adapter-service.isNetworkAdapterLayer" . }}
 {{- $nlCfg := "" }}
 {{- if $networkAdapterLayer }}
-{{- /* single mode: the config is config/network-adapter-config.yaml,
-       unless `config` replaces it whole. Either way every private key must be a
-       tier placeholder; checked on the parsed config. */}}
+{{- /* Single mode: config/network-adapter-config.yaml unless `config` replaces it;
+       private keys must be tier placeholders either way. */}}
 {{- $nlCfg = .Values.config | default (.Files.Get "config/network-adapter-config.yaml") }}
 {{- if not $nlCfg }}
 {{- fail (printf "%s: role network in single mode reads config/network-adapter-config.yaml, which is missing from the chart." .Chart.Name) }}

@@ -125,8 +125,7 @@ spec:
               }
               {{- if include "adapter-service.isNetworkAdapterLayer" . }}
 
-              {{- /* Three identities: each tier's module signs as that tier, from
-                     that tier's Secret mounted at /keys/<tier>. */}}
+              {{- /* Each tier's module signs from its own Secret at /keys/<tier>. */}}
               {{- $k := .Values.keys.existingSecret }}
               {{- range $tier := list "consumer" "network" "provider" }}
               {{- $T := upper $tier }}

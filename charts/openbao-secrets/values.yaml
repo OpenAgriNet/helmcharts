@@ -58,11 +58,8 @@ secrets:
   #    resolve-key-ids.sh AFTER the registry has been seeded, so these entries
   #    change once per environment after the first bring-up.
   #
-  #  network-adapter runs the Network Adapter Layer in the single deployment
-  #  mode (the default), which runs all three tiers, so it reads all three
-  #  identities. In multi mode drop network-adapter from the consumer and
-  #  provider entries, so the network tier never holds their keys
-  #  (charts/adapter-service/README.md, "Multi mode").
+  #  network-adapter (single mode) reads all three identities and provider-upstream;
+  #  in multi mode drop it from the consumer and provider entries (ADR-0001).
   - name: consumer-adapter-keys
     namespaces: [consumer-adapter, network-adapter]
   - name: network-adapter-keys
@@ -71,8 +68,6 @@ secrets:
     namespaces: [provider-adapter, network-adapter]
 
   # The provider adapter's upstream credentials, named as environment variables
-  # by its config rather than substituted into it. The Network Adapter Layer
-  # (namespace network-adapter, single mode) runs the provider tier too, so it reads
-  # them as well.
+  # by its config rather than substituted into it.
   - name: provider-upstream
     namespaces: [provider-adapter, network-adapter]

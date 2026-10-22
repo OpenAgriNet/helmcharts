@@ -1,26 +1,5 @@
-# ===========================================================================
-# role network, single deployment mode -- the Network Adapter Layer, the DEFAULT
-# deployment mode. The optional alternative is multi: examples/{consumer,network,provider}.yaml.
-#
-# The consumer, network and provider tiers as four modules of ONE adapter
-# process, on one Service:
-#
-#   /<action>                    the consumer (bap); the app posts here, unsigned
-#   /publish                     the catalogue system publishes here (internal)
-#   /_internal/network/<action>  internal: verifies and forwards to discovery
-#   /_internal/provider/<action> internal: answers from the upstream APIs (bpp)
-#
-# The alternative to installing the three multi-adapter releases
-# (examples/consumer.yaml, network.yaml, provider.yaml). Run one mode or the
-# other in an environment, not both.
-#
-#   helm install network-adapter . -n network-adapter --create-namespace \
-#     -f examples/network-adapter.yaml
-#
-# The config is config/network-adapter-config.yaml; the routing is
-# generated from config/routing-*.yaml. Tier hops stay inside the pod, so any
-# adapter image works.
-# ===========================================================================
+# Single deployment mode (default): the consumer, network and provider tiers in
+# one release. Install: helm install network-adapter . -n network-adapter -f examples/network-adapter.yaml
 role: network
 networkAdapterDeploymentMode: single
 
@@ -33,14 +12,11 @@ image:
   repository: openagrinet/network-adapter
   tag: "latest"
 
-# registry.url, otel.*, appName, logLevel, http.timeout.*, routing.* and
-# handler.* are not used by this role: the adapter config is mounted from
-# config/network-adapter-config.yaml as is (registry URL, OTLP endpoint and
-# log level are set there), so they are left out here. Edit that file instead.
+# registry.url, otel.*, appName, logLevel, http.timeout.*, routing.* and handler.*
+# are unused in single mode: set them in config/network-adapter-config.yaml.
 
-# The same port the quick-start publishes. targetPort is also the port the
-# generated routing uses, and must equal http.port in
-# config/network-adapter-config.yaml (the render checks).
+# targetPort must equal http.port in config/network-adapter-config.yaml (the
+# render checks); the generated routing uses it.
 service:
   port: 9201
   targetPort: 9201
@@ -55,9 +31,8 @@ networkAdapterLayer:
       existingSecret: network-adapter-keys
     provider:
       existingSecret: provider-adapter-keys
-  # Set per environment: the config's __VISTAAR_TOKEN_URL__ placeholder needs
-  # an entry here (e.g. __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl), or
-  # the init container stops on the leftover placeholder.
+  # Set per environment, e.g. __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl,
+  # or the init container stops on the leftover placeholder.
   extraSubstitutions: {}
 
 # The provider tier reads its upstream credentials (MAUSAMGRAM_AUTH,

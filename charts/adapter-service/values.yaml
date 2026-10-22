@@ -1,33 +1,22 @@
 # ===========================================================================
 # adapter-service
 #
-# One chart for the Beckn adapters, in two deployment modes. Same image and config
-# format; `role` below decides the handler role, the step list and where
-# requests are routed.
+# One chart for all three Beckn adapters. provider, network and consumer are the
+# same image and the same config format; `role` below decides the handler
+# role, the step list and where requests are routed.
 #
-#   single (the DEFAULT): ONE release, the Network Adapter Layer, serving all
-#   three tiers as modules of one process (role network,
-#   networkAdapterDeploymentMode single):
+# INSTALL ONCE PER ROLE, and keep the RELEASE name per-role:
 #
-#     helm install network-adapter . -n network-adapter --create-namespace \
-#       -f examples/network-adapter.yaml
+#   helm install provider-adapter . -f examples/provider.yaml
+#   helm install network-adapter  . -f examples/network.yaml
+#   helm install consumer-adapter      . -f examples/consumer.yaml
 #
-#   multi (OPTIONAL): one release per tier, with networkAdapterDeploymentMode
-#   multi on the network release. INSTALL ONCE PER ROLE, and keep the RELEASE
-#   name per-role:
-#
-#     helm install provider-adapter . -f examples/provider.yaml
-#     helm install network-adapter  . -f examples/network.yaml
-#     helm install consumer-adapter . -f examples/consumer.yaml
-#
-# Run one deployment mode per environment. Both release `network-adapter` into
-# namespace `network-adapter`; switching modes upgrades that release in place.
+# Role network defaults to single mode, all three tiers in one release
+# (examples/network-adapter.yaml); see networkAdapterDeploymentMode.
 #
 # The release name is what the Service is called, which is the DNS name the
-# other adapters address. In multi, rename a release and you must update
-# whatever routes to it -- consumer routes to the network adapter, provider is
-# routed to by network. The single deployment mode has no such addresses: its tiers
-# call each other inside the pod.
+# other adapters address. Rename a release and you must update whatever routes
+# to it -- consumer routes to the network adapter, provider is routed to by network.
 #
 # Two things every role needs that this chart cannot give it:
 #
@@ -47,10 +36,8 @@
 # ---------------------------------------------------------------------------
 role: ""
 
-# single | multi. Read by role network only: single (the default) runs all
-# three tiers in one adapter (networkAdapterLayer below); multi is the network
-# tier alone. A multi network release MUST set multi, or an upgrade turns it
-# into single. provider and consumer ignore it.
+# single (default): role network runs all three tiers; multi: the network tier alone.
+# A multi network release must set multi. provider and consumer ignore it.
 networkAdapterDeploymentMode: single
 
 # Overrides for what the role implies. Leave empty to take the role's default.
@@ -347,11 +334,8 @@ resources:
 # Both hit /health, which the adapter serves from its own mux and which does
 # not touch the registry or discovery -- so a readiness failure here means
 # this process is unwell, not that something downstream is.
-# The startup probe holds liveness off until /health first answers. The
-# adapter fetches beckn.yaml from raw.githubusercontent.com at boot, so on
-# slow or proxied egress first boot can take well past liveness's ~70s budget
-# (10s + 3 x 20s). This bounds it at 180s without loosening steady-state
-# liveness.
+# The startup probe holds liveness off until /health answers; first boot fetches
+# beckn.yaml, so it gets up to 180s.
 startupProbe:
   enabled: true
   httpGet:
@@ -416,9 +400,8 @@ securityContext:
 # this release's selector labels when omitted.
 topologySpreadConstraints: []
 
-# Graceful shutdown. preStop sleeps so the endpoint leaves the Service before
-# the process stops accepting. preStop.sleep needs Kubernetes 1.30+; keep 0 on
-# older clusters. Empty grace period = the Kubernetes default (30s).
+# Graceful shutdown: preStop sleep (Kubernetes 1.30+, keep 0 on older clusters).
+# Empty grace period = the Kubernetes default (30s).
 terminationGracePeriodSeconds: ""
 preStopSleepSeconds: 0
 
@@ -440,32 +423,11 @@ extraVolumeMounts: []
 extraEnv: []
 envFromSecrets: []
 
-# ---------------------------------------------------------------------------
-# role network, networkAdapterDeploymentMode single -- the Network Adapter Layer.
-#
-# The consumer, network and provider tiers as four modules of ONE process
-# (/ for the consumer, /publish, /_internal/network/, /_internal/provider/). Its adapter config is
-# config/network-adapter-config.yaml, mounted verbatim like any role's
-# file: log level, timeouts, telemetry, extended schema and the outbound
-# connection pool are set there. The routing is generated at render time from
-# the tier routing files, with tier-to-tier hops pointed at this pod's own
-# listener (http://localhost:<service.targetPort>/_internal/<tier>): any adapter image
-# works.
-#
-# Ignored by provider, consumer and a multi network release.
-#
-# NOT USED in single mode: `routing.config` (setting it fails the render, because
-# the routing is generated) and `handler.*` (role, steps and path are in the
-# config file). `config` replaces config/network-adapter-config.yaml
-# WHOLE: the private-key guard still runs on it, and it must point its routers
-# at /app/config/routing-network-adapter-consumer.yaml, routing-network.yaml and
-# routing-network-adapter-provider.yaml.
-# ---------------------------------------------------------------------------
+# Single mode only (role network): config is config/network-adapter-config.yaml,
+# routing is generated; routing.config and handler.* are not used.
 networkAdapterLayer:
-  # Three identities, one per tier: the same Secrets (six keys each, named as
-  # under keys.existingSecret) and the same registry rows the multi-adapter
-  # releases use, so either mode runs against the same registry. They must
-  # exist in THIS release's namespace (openbao-secrets reflects them there).
+  # One Secret per tier (six keys each, as under keys.existingSecret), in this
+  # release's namespace; the same registry rows as the multi releases.
   keys:
     consumer:
       existingSecret: ""
