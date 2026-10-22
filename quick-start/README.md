@@ -118,9 +118,8 @@ make ps
 
 ## Step 5 — Provider layer
 
-> Steps 5–7 describe the three tiers. In single mode they run in one container,
-> so check them with `docker logs network-adapter` instead of the
-> `docker compose logs <tier>-adapter` commands below.
+> Steps 5–7 describe the three tiers. In single mode (the default) all three run
+> in `network-adapter`, so use `docker compose logs network-adapter` for each check.
 
 Answers `select`, and the only layer that calls an upstream. Serves all four
 capabilities from one adapter.
@@ -206,53 +205,44 @@ collection. → Appendix N.
 
 ## Two modes
 
-|  | single (default) | multi (optional) |
+The network adapter runs in one of two modes. **Single is the default.**
+
+|  | single (default) | multi |
 |---|---|---|
-| What runs | one container, `network-adapter` | `consumer-adapter`, `network-adapter`, `provider-adapter` |
-| `NETWORK_ADAPTER_DEPLOYMENT_MODE` | `single` | `multi` |
-| `network-adapter` config | `config/adapters/network-adapter.yaml` | `config/adapters/network.yaml` |
-| Start | `make up-core` / `make up` | `make up-core-multi` / `make up-multi` |
-| Ports | `127.0.0.1:9201` | 9200 provider, 9201 network, 9202 consumer |
-| App calls | `:9201/discover`, `:9201/select` | `:9202/discover`, `:9202/select` |
-| Catalogue publishes to | `:9201/publish` | `:9200/publish` |
+| Start | `make up` (or `make up-core`) | `make up-multi` (or `make up-core-multi`) |
+| Containers | `network-adapter` | `consumer-adapter`, `network-adapter`, `provider-adapter` |
+| App calls | `127.0.0.1:9201/<action>` | `127.0.0.1:9202/<action>` |
+| Catalogue publishes to | `127.0.0.1:9201/publish` | `127.0.0.1:9200/publish` |
+| Postman environment | `OpenAgriNet.network-adapter.local-environment.json` | `OpenAgriNet.local-environment.json` |
 
-Single is the everyday choice: one container, the same requests. Use multi to
-reproduce a deployment where the tiers run separately.
+Guidelines:
 
-**Switching** is running the other target: it recreates `network-adapter` with
-the other config, and starts (multi) or removes (single) `provider-adapter` and
-`consumer-adapter`. `MODE=multi` also works with `make up` and `make up-core`;
-`make restart`, `make down`, `make ps` and `make logs` follow whichever mode is
-running. The mode is read once, at startup, by `bin/stack.sh`, which passes
-compose the config to mount (`NETWORK_ADAPTER_CONFIG`). Plain compose mounts
-`network-adapter.yaml` unless told otherwise:
-`NETWORK_ADAPTER_CONFIG=network docker compose --profile multi up -d provider-adapter network-adapter consumer-adapter`.
+1. **Use `make`, not plain `docker compose`, to start adapters.** `make` reads
+   `NETWORK_ADAPTER_DEPLOYMENT_MODE` from `.env` (default `single`) and mounts the
+   right config. `MODE=multi make up` overrides it once.
+2. **To switch, run the other target.** `make up` after multi removes the
+   provider and consumer containers; `make up-multi` after single starts them.
+   `make restart`, `make down`, `make ps` and `make logs` follow the running mode.
+3. **Keep the adapter ports on `127.0.0.1`.** Signing is off in every quick-start
+   config, so `/_internal/` and `/publish` accept unsigned calls.
+   `server_proxy.conf` denies both on every proxy host.
+4. **After switching, re-point the proxy hosts** (Appendix B): single serves
+   everything from `network-adapter:9201`.
 
-**Upgrading a stack.** The compose service `network-adapter-layer` and
-`COMPOSE_PROFILES=network` are gone: add `NETWORK_ADAPTER_DEPLOYMENT_MODE=single`
-to `.env` (optional; single is the default). `make up` starts single mode
-and removes the 9200/9202 adapters, so repoint NPM proxy hosts at
-`network-adapter:9201`, or use `make up-multi`.
-
-**Multi mode.** `make up-multi`, or `NETWORK_ADAPTER_DEPLOYMENT_MODE=multi` in
-`.env` and `make up`. Only `network.yaml` is mounted into `network-adapter`, so
-the network tier never holds the consumer or provider keys. The app calls
-`consumer-adapter:9202`, the catalogue publishes to `provider-adapter:9200`.
-
-**How single mode is wired.** `config/adapters/network-adapter.yaml.tmpl`,
-rendered by `setup.py` to `network-adapter.yaml`, holds four modules, each its tier's module from the
-tier templates, each with its own tier identity:
+In single mode, `network-adapter` runs four modules from
+`config/adapters/network-adapter.yaml.tmpl`. Each is an exact copy of its tier
+template's module; only the module name, path and routing file differ:
 
 | Module | Path | Routes to |
 |---|---|---|
-| `consumer` | `/<action>` | discover to `localhost:9201/_internal/network`, select/init/confirm/status to `localhost:9201/_internal/provider` (`routing-network-adapter-consumer.yaml`) |
-| `network` | `/_internal/network/<action>` | discovery (`routing-network.yaml`, reused) |
-| `provider` | `/_internal/provider/<action>` | answers itself |
-| `provider-publish` | `/publish` | `localhost:9201/_internal/network/publish` (`routing-network-adapter-provider.yaml`) |
+| `consumer` | `/<action>` | discover to `/_internal/network`, transactions to `/_internal/provider` |
+| `network` | `/_internal/network/<action>` | discovery |
+| `provider` | `/_internal/provider/<action>` | answers itself from the upstream APIs |
+| `provider-publish` | `/publish` | `/_internal/network/publish` |
 
-`/_internal/` is called only by the adapter itself; `server_proxy.conf` denies
-it, and `/publish`, on every proxy host. Signing is off in every quick-start
-template, in both modes, so keep the adapter ports on `127.0.0.1`.
+**Upgrading an older stack:** the `network-adapter-layer` service and
+`COMPOSE_PROFILES=network` are gone. `make up` cleans up the old container
+itself; `NETWORK_ADAPTER_DEPLOYMENT_MODE=single` in `.env` is optional.
 
 ---
 
@@ -718,11 +708,12 @@ the routing config. The schema validator is the exception: it reads
 `context.action` from the body and ignores the path. Nothing reconciles the
 two, though a mismatch usually fails validation anyway.
 
-Publishing enters at the **provider** adapter, which signs and forwards:
+Publishing enters at the **provider** (port 9201 in single mode, 9200 in multi),
+which signs and forwards:
 
 ```sh
-curl -s -X POST http://127.0.0.1:9200/publish \
-  -H 'Content-Type: application/json' -d @your-catalog.json
+curl -s -X POST http://127.0.0.1:9201/publish \
+  -H 'Content-Type: application/json' -d @your-catalog.json   # multi: :9200
 ```
 
 Three things follow from that:

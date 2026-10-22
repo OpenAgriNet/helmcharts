@@ -83,7 +83,7 @@ A change complies with this decision if:
 Code comments stay at two lines or fewer; the reasoning behind them lives here.
 
 **Helm (`charts/adapter-service`, `charts/openbao-secrets`)**
-- **Mode:** `networkAdapterDeploymentMode` is set once, in `values.yaml` (default `single`), and read only by role `network`; multi installs pass `--set networkAdapterDeploymentMode=multi`. A `role: network` release without `multi` renders single, and fails until `networkAdapterLayer.keys` are set, so the switch is never silent.
+- **Mode:** `networkAdapterDeploymentMode` is set once, in `values.yaml` (default `single`), and read only by role `network`; multi installs pass `--set networkAdapterDeploymentMode=multi`. A `role: network` release without `multi` renders single; in a multi environment its pod then waits on the consumer and provider key Secrets (`networkTierKeys`), which are not mirrored there. Setup steps are in `charts/adapter-service/SETUP.md`.
 - **Consumer at `/`:** the consumer module is the one catch-all mount, on purpose. `/publish` is an exact pattern and `/_internal/<tier>/` are longer subtrees, so both win over it. Its routing file is in effect an action allow-list: `addRoute` runs before `sign`, so an action with no rule errors instead of being forwarded.
 - **Generated routing:**
   - `routing-network-adapter-{consumer,provider}.yaml` are generated from `routing-{consumer,provider}.yaml`. Every `http://<tier>-adapter[.<ns>][:port][/path]` target becomes `http://localhost:<targetPort>/_internal/<tier>[/path]`. Other targets, and rules with no target, are kept as they are. `routing-network.yaml` is reused unchanged.
@@ -107,6 +107,7 @@ Code comments stay at two lines or fewer; the reasoning behind them lives here.
 - **Secrets:** `openbao-secrets` mirrors `consumer-adapter-keys`, `provider-adapter-keys` and `provider-upstream` into `network-adapter` for single mode. A multi environment removes those targets and deletes the copies, so the network tier holds only its own key.
 
 **quick-start**
+- **Template:** each module in `network-adapter.yaml.tmpl` is an exact copy of its tier template's module. The only differences are the module `name`, the `path` (`/_internal/<tier>/` for network and provider) and `routingConfig` (`routing-network-adapter-*.yaml`). There is no extra connection pool, and the log level matches the tiers (`debug`).
 - **Mode:**
   - `bin/stack.sh` reads the mode at startup: the shell's `MODE`, else `NETWORK_ADAPTER_DEPLOYMENT_MODE` in `.env`, else `single`. It maps the mode to `NETWORK_ADAPTER_CONFIG`: `network-adapter` in single, `network` in multi. Only that one config is mounted, so in multi the network container never holds the consumer or provider keys.
   - `up` uses the requested mode. Every other command exports the running mode, read from the config `network-adapter` has mounted. A command that reaches `network-adapter` only through `depends_on` (reverse-proxy, observability) therefore never recreates it with the other config.

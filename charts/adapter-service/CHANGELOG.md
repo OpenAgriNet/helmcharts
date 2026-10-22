@@ -22,8 +22,9 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   (`routing-network-adapter-{consumer,provider}.yaml`), with tier hosts rewritten
   to `http://localhost:<targetPort>/_internal/<tier>`, so tier hops stay inside the pod. The render fails if `http.port` differs from `service.targetPort`.
 - Three identities: each module signs as its own tier from
-  `networkAdapterLayer.keys.{consumer,network,provider}.existingSecret`
-  (`networkAdapterLayer.extraSubstitutions` for extra placeholders). A literal
+  `networkTierKeys.{consumer,network,provider}`, defaulting to
+  `consumer-adapter-keys`, `network-adapter-keys` and `provider-adapter-keys`
+  (`networkTierKeys.extraSubstitutions` for extra placeholders). A literal
   private key in the config, including a `config:` override, fails the render.
 - Flat paths: `/discover`, `/publish`, `/<action>` and `/health`, the
   same URLs as the multi deployment mode. The network and provider tiers are mounted
@@ -34,15 +35,16 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   role.
 - `examples/network-adapter.yaml` and `ci/network-adapter-values.yaml`.
 - `networkAdapterDeploymentMode` is set only in `values.yaml` (default `single`);
-  examples and CI values do not set it. `ci/lint-values.yaml` renders role
-  `provider`, since role `network` now needs tier keys by default.
+  examples and CI values do not set it. `ci/lint-values.yaml` (role `network`)
+  therefore renders single mode.
+- `SETUP.md`: setup for both modes, including the openbao-secrets changes for multi.
 
 ### Changed
 - **Breaking:** `role: network` now defaults to the single deployment mode.
   An existing network-tier release must set `networkAdapterDeploymentMode:
   multi` (e.g. `--set networkAdapterDeploymentMode=multi`), or the upgrade turns it into the
-  Network Adapter Layer, which needs the three `networkAdapterLayer.keys`
-  Secrets.
+  Network Adapter Layer. That pod then waits on the consumer and provider key
+  Secrets, which a multi environment does not mirror into `network-adapter`.
 - Docs, `values.yaml` and the example headers say single is the default
   deployment mode and multi is optional.
 - Naming: in single mode the release, Service, app name and namespace are
