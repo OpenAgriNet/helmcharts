@@ -120,6 +120,12 @@ blockUnpricedModels: true
 # through the gateway's API, and removes anything the chart no longer declares.
 # Nothing restarts.
 reconcile:
+  # Deleting is opt-in. With false, models and credentials that are in the
+  # gateway but not in this chart are only logged ("would be removed"). Set true
+  # to delete them, e.g. to take a leaked key out of the gateway.
+  prune: false
+  # Hard limit on the Job. Keep it below the --timeout passed to helm.
+  activeDeadlineSeconds: 540
   image:
     repository: python
     tag: "3.13-alpine"

@@ -10,6 +10,11 @@ It runs on every sync, changed or not. Reconciling is cheap and idempotent, and
 a Job that only ran "when something changed" would need something to decide that,
 which is the part that goes wrong.
 
+Helm waits for this Job inside its own --timeout (5 minutes by default). The
+gateway may take up to 5 minutes to become ready, so install with a longer
+--timeout; see the README. activeDeadlineSeconds ends the Job with a clear
+failure before an outer timeout does.
+
 `before-hook-creation` matters: a Job's spec is immutable, so a second upgrade
 creating a Job of this name without deleting the first one fails the release.
 */}}
@@ -27,6 +32,7 @@ metadata:
     "argocd.argoproj.io/hook-delete-policy": BeforeHookCreation
 spec:
   backoffLimit: {{ .Values.reconcile.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.reconcile.activeDeadlineSeconds }}
   ttlSecondsAfterFinished: {{ .Values.reconcile.ttlSecondsAfterFinished }}
   template:
     metadata:
@@ -61,6 +67,8 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.masterKeySecret.name }}
                   key: {{ .Values.masterKeySecret.key }}
+            - name: PRUNE
+              value: {{ .Values.reconcile.prune | quote }}
             - name: BLOCK_UNPRICED_MODELS
               value: {{ .Values.blockUnpricedModels | quote }}
           volumeMounts:
