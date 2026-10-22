@@ -18,10 +18,6 @@
 # Differences from the three tier files:
 #   - one listener (9201) and one appName; tier hops call this same listener (see the routing-network-adapter-*.yaml files, which the chart
 #     generates from routing-consumer.yaml and routing-provider.yaml);
-#   - extended schema validation on in the modules that validate schema
-#     (consumer, provider, provider-publish); the network module keeps its
-#     tier's schemaValidator unchanged (extended off, and validateSchema is not
-#     one of its steps);
 #   - an outbound connection pool (httpClientConfig) on every module;
 #   - log level info.
 #

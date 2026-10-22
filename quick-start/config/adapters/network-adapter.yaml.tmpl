@@ -17,10 +17,6 @@
 # Differences from the three tier templates:
 #   - one listener (9201) and one appName; tier hops call this same listener
 #     (routing-network-adapter-*.yaml beside this file);
-#   - extended schema validation on in the modules that validate schema
-#     (consumer, provider, provider-publish); the network module keeps its
-#     tier's schemaValidator unchanged (extended off, and validateSchema is not
-#     one of its steps);
 #   - an outbound connection pool (httpClientConfig) on every module;
 #   - log level info.
 #
@@ -121,7 +117,7 @@ modules:
             type: url
             location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml
             cacheTTL: '3600'
-            extendedSchema_enabled: "true"
+            extendedSchema_enabled: "false"
             extendedSchema_cacheTTL: '86400'
             extendedSchema_maxCacheSize: '100'
             extendedSchema_downloadTimeout: '30'

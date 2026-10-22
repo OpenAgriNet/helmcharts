@@ -76,4 +76,4 @@ A change complies with this decision if:
 
 **Outside this repository:** `OpenAgriNet/network-adapter`'s own `install/` and `config/` still describe the per-role layout. Retiring them is the remaining part of network-adapter#55.
 
-**Verification:** the k3d and quick-start runs (publish, discover and select 200, and an unsigned call to the network tier refused with 401) predate the flat paths and port 9201. They must be repeated before this record is accepted.
+**Verification (2026-10-22, flat paths, port 9201):** quick-start single (11/11 assertions) and multi (10/10), and k3d single (12/12), all passing: publish, discover and select 200, tier hops on `localhost:9201/_internal/<tier>`, and on k3d an unsigned call to `/_internal/network/discover` refused with 401.

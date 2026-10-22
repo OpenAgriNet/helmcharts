@@ -227,6 +227,11 @@ adapters first (both use 9201, and both have a container named
 `docker compose up -d` follows `COMPOSE_PROFILES` in `.env` (`network` in
 `.env.example`).
 
+**Upgrading a multi stack.** `make up` now starts single mode: it removes the
+9200/9202 adapters, so repoint NPM proxy hosts at `network-adapter:9201`, or
+use `make up-multi`. An older `.env` without `COMPOSE_PROFILES` makes a bare
+`docker compose up -d` start no adapter; add `COMPOSE_PROFILES=network`.
+
 **How single mode is wired.** `config/adapters/network-adapter.yaml.tmpl`,
 rendered by `setup.py`, holds four modules, each its tier's module from the
 tier templates, each with its own tier identity:

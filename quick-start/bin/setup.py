@@ -665,9 +665,7 @@ nothing. The registry is not reachable from outside this stack, so that write
 happens from here.
 
 Next: `make up` continues to step 3 and starts the adapters. If you ran this
-on its own, the adapters need recreating to pick up the rendered configs:
-
-  docker compose up -d --force-recreate provider-adapter network-adapter consumer-adapter
+on its own, run `make up` (or `make up-multi`) to pick up the rendered configs.
 
 Then import ../api-collection/ -- both files, the collection and the
 environment -- and run it. Eighteen requests across the four capabilities,

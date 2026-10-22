@@ -18,8 +18,8 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   `networkAdapterDeploymentMode: single | multi` (default `single`; a deploy-layer
   value, not a chart value).
 - `config/network-adapter-config.yaml`: the layer's adapter config, mounted
-  like any role's file (extended schema, an outbound connection pool and log
-  level info on every module). Each module is its tier's module, so a change to
+  like any role's file (an outbound connection pool and log level info on
+  every module). Each module is its tier's module, so a change to
   a tier file that should apply to both deployment modes is made in both. Its routing
   is generated at render time from `config/routing-*.yaml`
   (`routing-network-adapter-{consumer,provider}.yaml`), with tier hosts rewritten

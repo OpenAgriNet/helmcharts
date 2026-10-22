@@ -276,8 +276,8 @@ otel:
   # OTLP/gRPC, e.g. "otel-collector.observability.svc.cluster.local:4317"
   endpoint: ""
   environment: dev
-  # Not read by any template: each role's config file sets its telemetry
-  # service name (config/<role>-config.yaml, telemetry...serviceName).
+  # Not read by any template: the role's config file sets it
+  # (plugins.otelsetup.config.serviceName).
   serviceName: ""
 
 logLevel: info
