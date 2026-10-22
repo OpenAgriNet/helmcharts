@@ -1,8 +1,12 @@
 # adapter-service
 
-One chart for all three Beckn adapters. `provider`, `network` and `consumer`
-are the same image and the same config format, so `role` selects the handler
-role, the step list and where requests are routed.
+One chart for the Beckn adapters, in two deployment modes. **single (the default):**
+the Network Adapter Layer: role `network` runs all three tiers in one adapter.
+**multi (optional):** roles `provider`, `network` and `consumer`, one release
+per tier. `networkAdapterDeploymentMode: single | multi` (default `single`)
+picks the mode; only role `network` reads it. All roles are the same image and the same
+config format, so `role` selects the handler role, the step list
+and where requests are routed.
 
 ```
   consumer ──unsigned──▶ network ──▶ discovery
@@ -12,11 +16,33 @@ role, the step list and where requests are routed.
         └──▶ mandi / agmarknet upstreams
 ```
 
+```
+  role network, single mode (one adapter, one pod):
+    /<action> ──lo──▶ /_internal/network/ ──▶ discovery
+        └──────lo────▶ /_internal/provider/ ──▶ upstream APIs
+    /publish  ──lo──▶ /_internal/network/publish
+```
+
+The paths are flat and the same in both deployment modes: `/discover`, `/publish`,
+`/<action>` and `/health`. The network and provider tiers sit under
+`/_internal/`, which only this process calls (over loopback). The ingress may
+expose only single-segment `/<action>` paths: `/publish` stays in-cluster for
+the catalogue publisher, and `/_internal*` is never routed.
+
+Why flat: OAN is single-sided today -- our app calls out, and our own
+discovery and upstreams answer. If OAN later accepts inbound calls from
+external Beckn peers, a peer's `select` and our app's `select` are both
+`POST /select`, and path alone cannot tell them apart. The distinguisher exists
+(peer calls carry an `Authorization` signature, app calls do not), but ONIX
+dispatches on path, so that would mean routing on signature presence at the
+edge or giving inbound its own hostname. Neither changes these public paths.
+
 | Role | Handler | Steps | Routes to |
 |---|---|---|---|
 | `provider` | `bpp` | `validateSign → addRoute → sign` | upstream APIs (several) |
-| `network` | `bpp` | `validateSign → addRoute → sign` | discovery |
+| `network` (multi) | `bpp` | `validateSign → addRoute → sign` | discovery |
 | `consumer` | `bap` | `addRoute → sign` | network |
+| `network` (single, default) | `bap` + `bpp` (four modules) | each module runs its own tier's steps | discovery and the upstream APIs; tier hops stay inside the pod |
 
 `consumer` is the only one that accepts **unsigned** requests: the consumer
 app is inside the trust boundary, so there is no network signature to check.
@@ -28,26 +54,46 @@ reads from the registry at request time.
 
 ## Install
 
-Once per role. **Keep the release name per-role** — it is what the Service is
-called, which is the DNS name the other adapters address.
+Pick **one** deployment mode per environment (→ [Choosing a deployment mode](#choosing-a-deployment-mode-single-default-or-multi-optional)).
+Install the Secrets first: the render fails without them.
 
 ```sh
 helm dependency build charts/adapter-service
-
-helm upgrade --install provider-adapter charts/adapter-service -n oan \
-  -f charts/adapter-service/examples/provider.yaml
-helm upgrade --install network-adapter charts/adapter-service -n oan \
-  -f charts/adapter-service/examples/network.yaml
-helm upgrade --install consumer-adapter charts/adapter-service -n oan \
-  -f charts/adapter-service/examples/consumer.yaml
 ```
 
-Each example sets `fullnameOverride` to `<role>-adapter`. Without it the Service
-would be named `<release>-adapter-service`, and nothing routing by name would
-resolve. Rename a release and you must update whatever routes to it — `consumer`
-points at the network adapter, `network` points at discovery.
+**single (default): one release, the Network Adapter Layer**
 
-The Secret comes first — the render fails without it.
+```sh
+helm upgrade --install network-adapter charts/adapter-service \
+  -n network-adapter --create-namespace \
+  -f charts/adapter-service/examples/network-adapter.yaml
+```
+
+It needs `consumer-adapter-keys`, `network-adapter-keys`,
+`provider-adapter-keys` and `provider-upstream` in `network-adapter`
+(openbao-secrets mirrors them there).
+
+**multi (optional): one release per tier, each in its own namespace** (see
+[Multi mode](#multi-mode)). **Keep
+the release and namespace names**: they make the Service DNS name the other
+adapters address (the consumer routes to
+`network-adapter.network-adapter.svc` and `provider-adapter.provider-adapter.svc`).
+
+```sh
+helm upgrade --install provider-adapter charts/adapter-service \
+  -n provider-adapter --create-namespace -f charts/adapter-service/examples/provider.yaml
+helm upgrade --install network-adapter charts/adapter-service \
+  -n network-adapter --create-namespace -f charts/adapter-service/examples/network.yaml
+helm upgrade --install consumer-adapter charts/adapter-service \
+  -n consumer-adapter --create-namespace -f charts/adapter-service/examples/consumer.yaml
+```
+
+Each example sets `fullnameOverride` to `<role>-adapter` (`network-adapter` for the layer). Without it the Service
+would be named `<release>-adapter-service`, and nothing routing by name would
+resolve. In multi, rename a release and you must update whatever routes to it —
+`consumer` points at the network adapter, `network` points at discovery. In
+single nothing routes to another release: the tiers call each other inside the
+pod.
 
 ## What you must decide
 
@@ -58,7 +104,7 @@ render error rather than a default:
 | Value | Why there is no default |
 |---|---|
 | `image.repository` | An empty one renders `ghcr.io/:tag`, which Helm and the API server both accept and which surfaces later as `ImagePullBackOff` |
-| `keys.existingSecret.name` | Without an identity the pod starts, serves `/health`, reports Ready, and fails every signature it makes — in a peer's logs |
+| `keys.existingSecret.name` | Without an identity the pod starts, serves `/health`, reports Ready, and fails every signature it makes — in a peer's logs. Role `network` in single mode uses `networkAdapterLayer.keys.{consumer,network,provider}.existingSecret` instead (three identities) |
 | `registry.url` | The adapter verifies every caller against the registry, so with none it can verify nobody |
 | `role` | It decides the handler role, the step list and the routing target. A default would give one adapter another one's behaviour |
 | `routing.rules` | An adapter with no route accepts requests and has nowhere to send them |
@@ -121,12 +167,73 @@ the **public** half of the keypair. Missing, or carrying a different key, and
 every peer rejects what this adapter signs while the pod stays perfectly
 healthy.
 
+## Choosing a deployment mode: single (default) or multi (optional)
+
+| Deployment mode | Releases → namespaces | Values | App calls | Catalogue publishes to |
+|---|---|---|---|---|
+| **single (default)**: Network Adapter Layer | `network-adapter` → `network-adapter` | `examples/network-adapter.yaml` | `network-adapter.network-adapter.svc:9201/<action>` | `network-adapter.network-adapter.svc:9201/publish` |
+| multi (optional) | `consumer-adapter`, `network-adapter`, `provider-adapter` → one namespace each, same name | `examples/{consumer,network,provider}.yaml` | `consumer-adapter.consumer-adapter.svc:9202/<action>` | `provider-adapter.provider-adapter.svc:9200/publish` |
+
+**When to use which**
+
+| Use **single** (default) when | Use **multi** when |
+|---|---|
+| One team runs all three tiers in one cluster | The tiers are run by different parties or in different trust zones |
+| You want fewer hops and fewer objects (one Deployment, Service, PDB, and an opt-in HPA) | A tier needs its own scaling or resource profile (e.g. a provider with heavy upstream calls) |
+| | You need to roll out or roll back one tier without the others |
+
+Both sign as the same three identities from the same registry rows, so the
+choice changes nothing in the registry.
+
+Role `network` in single mode runs all three tiers in one adapter, as four
+modules of one process. Its config is `config/network-adapter-config.yaml`
+(each module is its tier's module from `config/<tier>-config.yaml`, so a change
+to a tier file that should apply to both deployment modes goes in both files). Its routing
+is **generated** at render time from `config/routing-*.yaml`, so routes stay in
+one place. Tier hops go to the pod's own listener, `localhost:<targetPort>` (any image). It signs as
+the same three identities, from the same three Secrets, so the registry is the
+same in both deployment modes. An environment's `config:` override for a multi role is NOT
+seen by the Network Adapter Layer; give its release its own `config:` if
+needed (it replaces `network-adapter-config.yaml` whole).
+
+Pick the deployment mode with ONE value, `networkAdapterDeploymentMode: single |
+multi` (**default `single`**), on the `network-adapter` release. `single`: that
+release is the Network Adapter Layer and nothing else is installed. `multi`: it
+is the network tier, and `consumer-adapter` and `provider-adapter` are
+installed beside it. `provider` and `consumer` ignore the value. Any other
+value fails the render.
+
+Both modes release `network-adapter` into namespace `network-adapter`, so
+switching modes is `helm upgrade` of that release with the other example,
+plus installing or removing the other two releases.
+
+### Multi mode
+
+1. Set `networkAdapterDeploymentMode: multi` on the network release
+   (`examples/network.yaml` does). **An existing `role: network` release
+   without it becomes single on upgrade.**
+2. Install the three releases as above.
+3. In openbao-secrets, remove `network-adapter` from the namespaces of
+   `consumer-adapter-keys`, `provider-adapter-keys` and `provider-upstream`, so
+   the network tier holds only its own key. Then delete any copies already in
+   the namespace:
+
+   ```sh
+   kubectl -n network-adapter delete secret consumer-adapter-keys \
+     provider-adapter-keys provider-upstream --ignore-not-found
+   ```
+4. Point the app at `consumer-adapter.consumer-adapter.svc:9202/<action>` and
+   the catalogue publisher at `provider-adapter.provider-adapter.svc:9200/publish`.
+
+To return to single, reverse the steps: put the namespaces back, upgrade
+`network-adapter` with `examples/network-adapter.yaml`, uninstall the other two.
+
 ## Values
 
 See `values.yaml` — every field is commented with what it does and what breaks
-without it. `examples/{provider,network,consumer}.yaml` are working dev deployments;
-`ci/` holds the two files lint renders, one minimal and one with every switch
-turned on.
+without it. `examples/{provider,network,consumer}.yaml` are working dev deployments for the
+multi deployment mode, and `examples/network-adapter.yaml` for the single deployment mode (the Network Adapter Layer, default);
+`ci/` holds the files lint renders, including `ci/network-adapter-values.yaml`.
 
 ## Related
 
