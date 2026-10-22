@@ -1,15 +1,17 @@
 # ===========================================================================
-# network role -- the network layer of the Beckn network.
+# network role, multi deployment mode -- the network tier alone.
 #
 # Verifies that the caller's signature checks out against the key the registry
 # publishes for them, hands discover and publish to the discovery service, and
 # signs on the way out. It answers neither action itself.
 #
-#   helm install network-adapter . -f examples/network.yaml
+#   helm install network-adapter . -n network-adapter -f examples/network.yaml
 #
 # Keep the release name `network-adapter`: consumer routes to this Service by name.
 # ===========================================================================
 role: network
+# Required for the network tier: the default, single, runs all three tiers.
+networkAdapterDeploymentMode: multi
 
 # The Service name, and therefore the in-cluster DNS name other adapters use.
 # Set explicitly because fullname is otherwise "<release>-<chart>" -- release

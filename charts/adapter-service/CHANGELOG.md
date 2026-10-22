@@ -5,6 +5,83 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-10-09
+
+### Added
+- **Two deployment modes, with single as the default.**
+  `networkAdapterDeploymentMode: single | multi` (default `single`), read by
+  role `network` only. In single, role `network` is the Network Adapter Layer: the consumer, network and provider tiers as four
+  modules of one process (`/` for the consumer, `/publish`,
+  `/_internal/network/`, `/_internal/provider/`), one release called `network-adapter`. In multi,
+  `provider`, `network` and `consumer` run one release per tier, unchanged.
+- `config/network-adapter-config.yaml`: the layer's adapter config, mounted
+  like any role's file (an outbound connection pool and log level info on
+  every module). Each module is its tier's module, so a change to
+  a tier file that should apply to both deployment modes is made in both. Its routing
+  is generated at render time from `config/routing-*.yaml`
+  (`routing-network-adapter-{consumer,provider}.yaml`), with tier hosts rewritten
+  to `http://localhost:<targetPort>/_internal/<tier>`, so tier hops stay inside the pod. The render fails if `http.port` differs from `service.targetPort`.
+- Three identities: each module signs as its own tier from
+  `networkAdapterLayer.keys.{consumer,network,provider}.existingSecret`
+  (`networkAdapterLayer.extraSubstitutions` for extra placeholders). A literal
+  private key in the config, including a `config:` override, fails the render.
+- Flat paths: `/discover`, `/publish`, `/<action>` and `/health`, the
+  same URLs as the multi deployment mode. The network and provider tiers are mounted
+  under `/_internal/`, which only the process itself calls.
+- Ingress for the layer may expose only single-segment `/<action>`, as literal
+  paths with `pathType` Prefix or Exact and no `use-regex` / `rewrite-target`
+  annotation; `/`, `/publish` and `/_internal*` are refused. `routing.config` fails the render for this
+  role.
+- `examples/network-adapter.yaml` and `ci/network-adapter-values.yaml`
+  (3 replicas, PDB, spread, graceful shutdown).
+- `topologySpreadConstraints`,
+  `terminationGracePeriodSeconds`, `preStopSleepSeconds`, `goMemLimit`; all off
+  by default.
+
+### Changed
+- **Breaking:** `role: network` now defaults to the single deployment mode.
+  An existing network-tier release must set `networkAdapterDeploymentMode:
+  multi` (as `examples/network.yaml` does), or the upgrade turns it into the
+  Network Adapter Layer, which needs the three `networkAdapterLayer.keys`
+  Secrets.
+- Docs, `values.yaml` and the example headers say single is the default
+  deployment mode and multi is optional.
+- Naming: in single mode the release, Service, app name and namespace are
+  `network-adapter`, the same as the multi network tier's (telemetry service
+  `oan-network-adapter`, set in `config/network-adapter-config.yaml`).
+  Switching modes upgrades that release in place.
+
+### Fixed
+- Liveness and readiness probes now render. Values used `probes.liveness` /
+  `probes.readiness`, which `common.probes` never read, so no adapter pod had a
+  readiness probe. Upgrading rolls every adapter pod once.
+- The startup probe bounds first boot at 180s (`periodSeconds: 5` x
+  `failureThreshold: 36`) and holds off liveness until `/health` answers.
+  Pods that had no probe before now get a liveness probe, and the adapter
+  fetches `beckn.yaml` at boot, so without this a slow or proxied egress
+  would get a cold start killed after about 70s.
+- NOTES.txt in single mode no longer prints `registry.url` and
+  `otel.*`: that role mounts `config/network-adapter-config.yaml` as is, so those
+  values never reached the pod and NOTES reported the opposite of what it ran.
+  The example and CI values no longer set them.
+- The Ingress annotations merge tolerates `ingress.annotations: null`.
+  `ci/network-adapter-values.yaml` turns the Ingress on, so CI renders the path guard.
+
+### Removed
+- Unused helpers `adapter-service.name`, `.appName`, `.otelServiceName`,
+  `.registryUrl` and `.otlpEndpoint` (nothing included them).
+- **Breaking:** the `probes.liveness` and `probes.readiness` values keys, renamed to
+  `livenessProbe` / `readinessProbe`, plus a new `startupProbe`, on by
+  default. The liveness and readiness timings are unchanged. An environment
+  that overrides `probes.*` must rename those keys; the old keys never took
+  effect and are now silently ignored, which is why this is a minor bump
+  rather than a patch.
+
+### Unchanged
+- Roles `provider`, `network`, `consumer`: same config, routing and manifests
+  apart from the probes (the chart version label and the config checksum
+  annotation also change with the version).
+
 ## [0.5.2] - 2026-09-29
 
 ### Changed
