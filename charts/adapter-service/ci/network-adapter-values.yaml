@@ -1,7 +1,6 @@
-# CI only: renders single mode (generated routing, tier identities, PDB, spread,
-# shutdown) with ingress on and annotations null to exercise the path guard.
+# CI only: renders single mode (generated routing, tier identities)
+# with ingress on and annotations null to exercise the path guard.
 role: network
-networkAdapterDeploymentMode: single
 fullnameOverride: network-adapter
 
 image:
@@ -25,27 +24,6 @@ networkAdapterLayer:
     provider:
       existingSecret: provider-adapter-keys
   extraSubstitutions: {}
-
-# Scale defaults for the Network Adapter Layer: roughly the three tiers'
-# requests in one pod, at least one replica per node.
-resources:
-  requests:
-    cpu: 300m
-    memory: 384Mi
-  limits:
-    cpu: 1500m
-    memory: 1Gi
-goMemLimit: 900MiB
-replicaCount: 3
-podDisruptionBudget:
-  enabled: true
-  minAvailable: 1
-topologySpreadConstraints:
-  - maxSkew: 1
-    topologyKey: kubernetes.io/hostname
-    whenUnsatisfiable: ScheduleAnyway
-terminationGracePeriodSeconds: 40
-preStopSleepSeconds: 10   # needs Kubernetes 1.30+; 0 on older clusters
 
 ingress:
   enabled: true

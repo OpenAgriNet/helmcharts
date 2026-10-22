@@ -1,7 +1,6 @@
 # Single deployment mode (default): the consumer, network and provider tiers in
 # one release. Install: helm install network-adapter . -n network-adapter -f examples/network-adapter.yaml
 role: network
-networkAdapterDeploymentMode: single
 
 # The Service name and DNS name callers use:
 # network-adapter.network-adapter.svc.cluster.local:9201
@@ -39,29 +38,6 @@ networkAdapterLayer:
 # AGMARKNET_*, VISTAAR_CLIENT_*) from the environment.
 envFromSecrets:
   - provider-upstream
-
-resources:
-  requests:
-    cpu: 300m
-    memory: 384Mi
-  limits:
-    cpu: 1500m
-    memory: 1Gi
-goMemLimit: 900MiB
-
-replicaCount: 3
-
-podDisruptionBudget:
-  enabled: true
-  minAvailable: 1
-
-topologySpreadConstraints:
-  - maxSkew: 1
-    topologyKey: kubernetes.io/hostname
-    whenUnsatisfiable: ScheduleAnyway
-
-terminationGracePeriodSeconds: 40
-preStopSleepSeconds: 10   # needs Kubernetes 1.30+; 0 on older clusters
 
 # Off here. When on, only single-segment /<action> paths (the consumer) are
 # accepted: /, /publish and /_internal* fail the render.

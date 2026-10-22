@@ -1,6 +1,7 @@
 {{- if .Values.ingress.enabled }}
 {{- $ann := merge (dict) (.Values.ingress.annotations | default dict) (.Values.commonAnnotations | default dict) }}
-{{- if include "adapter-service.isNetworkAdapterLayer" . }}
+{{- $single := include "adapter-service.singleMode" . }}
+{{- if $single }}
 {{- /* Single mode: only literal one-segment /<action> paths (Prefix/Exact, no regex or
        rewrite); never /, /publish or /_internal* (ADR-0001). */}}
 {{- if eq (index $ann "nginx.ingress.kubernetes.io/use-regex" | default "" | toString | trim | lower) "true" }}

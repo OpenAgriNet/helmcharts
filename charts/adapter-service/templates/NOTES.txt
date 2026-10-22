@@ -1,34 +1,25 @@
-{{- $nal := include "adapter-service.isNetworkAdapterLayer" . -}}
+{{- $single := include "adapter-service.singleMode" . -}}
 {{ .Chart.Name }} {{ .Chart.Version }} — {{ include "adapter-service.fullname" . }}
-{{ if $nal }}
-  mode       single (the default): the Network Adapter Layer
-  role       network, all three tiers in one adapter (/ consumer bap, /publish bap, /_internal/network/ bpp, /_internal/provider/ bpp)
-  hops       between tiers inside the pod (http://localhost:{{ .Values.service.targetPort }}/_internal/<tier>)
+
+{{- if $single }}
+
+  mode       single: consumer, network and provider in one adapter (/, /publish, /_internal/*)
 {{- else }}
-  mode       multi: one release per tier
+
   role       {{ include "adapter-service.role" . }} ({{ include "adapter-service.handlerRole" . }})
   steps      {{ include "adapter-service.steps" . | fromYamlArray | join " -> " }}
 {{- end }}
   image      {{ include "adapter-service.image" . }}
   service    {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}
-{{- if $nal }}
-  registry   set in config/network-adapter-config.yaml (registry.url is not used by this role)
-  routes     generated from config/routing-{consumer,network,provider}.yaml
-  telemetry  set in config/network-adapter-config.yaml (otel.* is not used by this role)
-{{- else }}
+{{- if not $single }}
   registry   {{ .Values.registry.url }}
   routes     from config/routing-{{ include "adapter-service.role" . }}.yaml
   telemetry  {{ if .Values.otel.enabled }}{{ .Values.otel.endpoint }}{{ else }}off{{ end }}
 {{- end }}
 
-This Service is reachable in-cluster as {{ include "adapter-service.fullname" . }}.{{ include "common.namespace" . }}.svc:{{ .Values.service.port }}.
-{{- if $nal }}
-The app and the catalogue publisher call it there; its tiers call each other
-inside the pod, so no other adapter routes to it.
-{{- else }}
+This Service is reachable in-cluster as {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}.
 That name comes from the RELEASE name — whatever routes here must use it, so
 renaming this release means updating the adapter that points at it.
-{{- end }}
 
 Check it is serving:
 
@@ -40,35 +31,22 @@ chart's appVersion.
 
 TWO THINGS THIS CHART CANNOT CHECK FOR YOU
 
-{{ if $nal -}}
-1. The Participant rows. This adapter signs as three identities -- consumer,
-   network and provider -- from Secrets {{ include "adapter-service.networkAdapterLayer.tierSecret" (dict "ctx" . "tier" "consumer") }},
-   {{ include "adapter-service.networkAdapterLayer.tierSecret" (dict "ctx" . "tier" "network") }} and {{ include "adapter-service.networkAdapterLayer.tierSecret" (dict "ctx" . "tier" "provider") }}: the same rows the
-   multi-adapter releases use. Each must carry its tier's public key.
-
-2. Key rotation. Changing any of those Secrets restarts nothing:
-
-     kubectl -n {{ include "common.namespace" . }} rollout restart deploy/{{ include "adapter-service.fullname" . }}
-
-Callers address the tiers by path on this one Service:
-  app (discover, select, ...)   {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}/<action>
-  catalogue publisher           {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}/publish
-  /_internal/ is the network and provider tiers: never route to it from outside.
+{{ if $single -}}
+1. The Participant rows. Each tier signs from its own Secret
+   (networkAdapterLayer.keys); each registry row must carry that tier's public key.
 {{- else -}}
 1. The Participant row. This adapter signs as {{ .Values.keys.existingSecret.name }}'s
    subscriberId, and every peer verifies that signature against the public key
    the registry publishes for it. If the row is missing, or carries a different
    key, this pod runs and reports Ready while every peer rejects what it signs
    — and the error appears in their logs, not yours.
-
-2. Key rotation. The keys live in Secret/{{ include "adapter-service.keysSecretName" . }},
-   which this chart does not render and therefore cannot include in the config
-   checksum. Changing that Secret does not restart anything:
-
-     kubectl -n {{ include "common.namespace" . }} rollout restart deploy/{{ include "adapter-service.fullname" . }}
 {{- end }}
 
-{{- if and (not .Values.otel.enabled) (not $nal) }}
+2. Key rotation. Changing a keys Secret does not restart anything:
+
+     kubectl -n {{ include "common.namespace" . }} rollout restart deploy/{{ include "adapter-service.fullname" . }}
+
+{{- if and (not .Values.otel.enabled) (not $single) }}
 
 Telemetry is off, which is the right setting until a collector exists: with it
 on and nothing listening the exporter logs a failure every interval.
@@ -76,13 +54,8 @@ on and nothing listening the exporter logs a failure every interval.
 {{- if .Values.ingress.enabled }}
 
 Ingress is ON.
-{{- if $nal }}
-This is the single deployment mode. /<action> (the consumer) accepts UNSIGNED requests: the consumer tier is
-inside the trust boundary and has no validateSign step, so an Ingress on it exposes an
-unauthenticated entry point to the network. Rate-limit this host.
-Rule: only single-segment /<action> paths may be exposed (the render refuses other paths),
-never /_internal* or /publish: /_internal/ holds the network and provider tiers, and /publish
-has no validateSign and signs as the provider.
+{{- if $single }}
+/<action> is the unsigned consumer: rate-limit this host. /publish and /_internal* are never exposed.
 {{- else if eq (include "adapter-service.role" .) "consumer" }}
 This is the consumer role, which accepts UNSIGNED requests — it is inside the trust
 boundary and has no validateSign step. An Ingress therefore exposes an

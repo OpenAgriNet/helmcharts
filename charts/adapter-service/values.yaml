@@ -396,19 +396,6 @@ securityContext:
     drop:
       - ALL
 
-# Spread replicas so one node loss is not an outage. labelSelector defaults to
-# this release's selector labels when omitted.
-topologySpreadConstraints: []
-
-# Graceful shutdown: preStop sleep (Kubernetes 1.30+, keep 0 on older clusters).
-# Empty grace period = the Kubernetes default (30s).
-terminationGracePeriodSeconds: ""
-preStopSleepSeconds: 0
-
-# Soft memory limit for the Go runtime (e.g. 900MiB under a 1Gi limit), so GC
-# works harder before the container is OOM-killed. Empty = unset.
-goMemLimit: ""
-
 nodeSelector: {}
 tolerations: []
 affinity: {}

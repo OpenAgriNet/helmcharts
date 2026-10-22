@@ -27,9 +27,9 @@ at pod start, which is why no rendered config ever holds a key. A raw config
 with a literal private key in it would put that key in git, in a ConfigMap, and
 in `helm get values` -- so the render refuses it.
 */}}
-{{- $networkAdapterLayer := include "adapter-service.isNetworkAdapterLayer" . }}
+{{- $single := include "adapter-service.singleMode" . }}
 {{- $nlCfg := "" }}
-{{- if $networkAdapterLayer }}
+{{- if $single }}
 {{- /* Single mode: config/network-adapter-config.yaml unless `config` replaces it;
        private keys must be tier placeholders either way. */}}
 {{- $nlCfg = .Values.config | default (.Files.Get "config/network-adapter-config.yaml") }}
@@ -66,7 +66,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 data:
-  {{- if $networkAdapterLayer }}
+  {{- if $single }}
   adapter.yaml: |
     {{- $nlCfg | nindent 4 }}
   {{- if .Values.routing.config }}

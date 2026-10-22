@@ -11,7 +11,7 @@ config/network-adapter-config.yaml, routing generated below (ADR-0001). */}}
 {{- end }}
 
 {{/* "true" for role network in single mode, else empty. */}}
-{{- define "adapter-service.isNetworkAdapterLayer" -}}
+{{- define "adapter-service.singleMode" -}}
 {{- if and (eq (include "adapter-service.role" .) "network") (eq (include "adapter-service.deploymentMode" .) "single") -}}true{{- end -}}
 {{- end }}
 
