@@ -3,7 +3,7 @@
 appName: network-adapter
 
 log:
-  level: info
+  level: debug
   destinations:
     - type: stdout
   contextKeys:
@@ -42,11 +42,6 @@ modules:
       type: std
       role: bap
       subscriberId: "__CONSUMER_SUBSCRIBER_ID__"
-      httpClientConfig:
-        maxIdleConns: 512
-        maxIdleConnsPerHost: 128
-        idleConnTimeout: 90s
-        responseHeaderTimeout: 30s
       plugins:
         registry:
           id: sunbirdRegistry
@@ -104,11 +99,6 @@ modules:
       type: std
       role: bpp
       subscriberId: "__NETWORK_SUBSCRIBER_ID__"
-      httpClientConfig:
-        maxIdleConns: 512
-        maxIdleConnsPerHost: 128
-        idleConnTimeout: 90s
-        responseHeaderTimeout: 30s
       plugins:
         registry:
           id: sunbirdRegistry
@@ -167,11 +157,6 @@ modules:
       type: std
       role: bpp
       subscriberId: "__PROVIDER_SUBSCRIBER_ID__"
-      httpClientConfig:
-        maxIdleConns: 512
-        maxIdleConnsPerHost: 128
-        idleConnTimeout: 90s
-        responseHeaderTimeout: 30s
       plugins:
         registry:
           id: sunbirdRegistry
@@ -273,11 +258,6 @@ modules:
       type: std
       role: bap
       subscriberId: "__PROVIDER_SUBSCRIBER_ID__"
-      httpClientConfig:
-        maxIdleConns: 512
-        maxIdleConnsPerHost: 128
-        idleConnTimeout: 90s
-        responseHeaderTimeout: 30s
       plugins:
         registry:
           id: sunbirdRegistry
