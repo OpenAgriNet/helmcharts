@@ -37,13 +37,13 @@ In `single`, one Beckn OAN network adapter process listens on **9201** (the mult
 A change complies with this decision if:
 - **Paths:** the paths callers see stay `/discover`, `/publish`, `/<action>` and `/health`, the same as multi. Tier-to-tier paths stay under `/_internal/`, called only by the process itself.
 - **Routing:** each routing module keeps its own routing file (`routing-network-adapter-consumer.yaml`, `routing-network-adapter-provider.yaml`; network reuses `routing-network.yaml`). A module's routing file is its list of allowed actions: `addRoute` runs before `sign`, so an action with no rule errors instead of being forwarded.
-- **Helm:** the role is `network-adapter-layer`, released once as `network-adapter` in its own namespace, `network-adapter-layer`. Routing is generated at render time from the existing `config/routing-*.yaml`, with hosts rewritten to `localhost`. The render fails on:
+- **Helm:** no new role. Role `network` with `networkAdapterDeploymentMode: single` (the default) is the single adapter; with `multi` it is the network tier. `provider` and `consumer` ignore the value. Both modes release `network-adapter` into namespace `network-adapter`. Routing is generated at render time from the existing `config/routing-*.yaml`, with hosts rewritten to `localhost`. The render fails on:
   - a literal private key;
   - `http.port` ≠ `service.targetPort`;
   - an unset tier Secret name;
   - an Ingress path other than single-segment `/<action>`.
-- **Secrets:** `openbao-secrets` reflects the three tier key Secrets and `provider-upstream` into `network-adapter-layer` only. The multi network tier's namespace never receives the consumer or provider keys.
-- **Choosing the mode:** a helmfile value `networkAdapterDeploymentMode: single | multi` selects which releases are installed. In quick-start, compose profiles `network` (single) and `multi`, via `make up` and `make up-multi`.
+- **Secrets:** `openbao-secrets` reflects the consumer and provider key Secrets and `provider-upstream` into `network-adapter` for single mode. A multi environment removes those targets and deletes the copies, so the network tier holds only its own key.
+- **Choosing the mode:** the chart value `networkAdapterDeploymentMode: single | multi` on the `network-adapter` release; multi also installs `consumer-adapter` and `provider-adapter`. In quick-start, `NETWORK_ADAPTER_DEPLOYMENT_MODE` picks `network-adapter`'s config, and profile `multi` adds the other two adapters, via `make up` and `make up-multi`.
 
 ## Alternatives considered
 

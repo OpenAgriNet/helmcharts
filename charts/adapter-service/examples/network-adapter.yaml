@@ -1,6 +1,6 @@
 # ===========================================================================
-# network-adapter-layer role -- the Network Adapter Layer: the DEFAULT deployment mode
-# (single). The optional alternative is multi: examples/{consumer,network,provider}.yaml.
+# role network, single deployment mode -- the Network Adapter Layer, the DEFAULT
+# deployment mode. The optional alternative is multi: examples/{consumer,network,provider}.yaml.
 #
 # The consumer, network and provider tiers as four modules of ONE adapter
 # process, on one Service:
@@ -14,18 +14,18 @@
 # (examples/consumer.yaml, network.yaml, provider.yaml). Run one mode or the
 # other in an environment, not both.
 #
-#   helm install network-adapter . -n network-adapter-layer --create-namespace \
+#   helm install network-adapter . -n network-adapter --create-namespace \
 #     -f examples/network-adapter.yaml
 #
 # The config is config/network-adapter-config.yaml; the routing is
 # generated from config/routing-*.yaml. Tier hops stay inside the pod, so any
 # adapter image works.
 # ===========================================================================
-role: network-adapter-layer
+role: network
+networkAdapterDeploymentMode: single
 
-# The Service name and DNS name callers use. The namespace is its own,
-# network-adapter-layer (not the multi network tier's network-adapter):
-# network-adapter.network-adapter-layer.svc.cluster.local:9201
+# The Service name and DNS name callers use:
+# network-adapter.network-adapter.svc.cluster.local:9201
 fullnameOverride: network-adapter
 
 image:

@@ -87,7 +87,7 @@ spec:
             - |
               set -eu
               {{- if include "adapter-service.isNetworkAdapterLayer" . }}
-              # network-adapter-layer: adapter.yaml plus one routing file per routed module.
+              # single mode: adapter.yaml plus one routing file per routed module.
               cp /config-template/*.yaml /rendered/
               {{- else }}
               cp /config-template/adapter.yaml /rendered/adapter.yaml

@@ -1,4 +1,4 @@
-# OAN Network Adapter Layer (role network-adapter-layer). The consumer, network
+# OAN Network Adapter Layer (role network, single deployment mode). The consumer, network
 # and provider tiers as four modules of ONE adapter process:
 #
 #   /<action>                    the consumer (bap); the app posts here, unsigned

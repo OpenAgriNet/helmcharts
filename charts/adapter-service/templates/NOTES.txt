@@ -2,10 +2,10 @@
 {{ .Chart.Name }} {{ .Chart.Version }} — {{ include "adapter-service.fullname" . }}
 {{ if $nal }}
   mode       single (the default): the Network Adapter Layer
-  role       network-adapter-layer (all three tiers in one adapter: / consumer bap, /publish bap, /_internal/network/ bpp, /_internal/provider/ bpp)
+  role       network, all three tiers in one adapter (/ consumer bap, /publish bap, /_internal/network/ bpp, /_internal/provider/ bpp)
   hops       between tiers inside the pod (http://localhost:{{ .Values.service.targetPort }}/_internal/<tier>)
 {{- else }}
-  mode       multi (optional): one release per tier; the default is role network-adapter-layer
+  mode       multi: one release per tier
   role       {{ include "adapter-service.role" . }} ({{ include "adapter-service.handlerRole" . }})
   steps      {{ include "adapter-service.steps" . | fromYamlArray | join " -> " }}
 {{- end }}
@@ -77,7 +77,7 @@ on and nothing listening the exporter logs a failure every interval.
 
 Ingress is ON.
 {{- if $nal }}
-This is the network-adapter-layer role. /<action> (the consumer) accepts UNSIGNED requests: the consumer tier is
+This is the single deployment mode. /<action> (the consumer) accepts UNSIGNED requests: the consumer tier is
 inside the trust boundary and has no validateSign step, so an Ingress on it exposes an
 unauthenticated entry point to the network. Rate-limit this host.
 Rule: only single-segment /<action> paths may be exposed (the render refuses other paths),

@@ -10,7 +10,7 @@ Everything that differs between the provider, network and consumer adapters is a
 value: they are one image with one config format, and the role decides the
 identity, the handler role, the step list and where requests are routed.
 
-role network-adapter-layer reads config/network-adapter-config.yaml; its routing
+role network in single mode reads config/network-adapter-config.yaml; its routing
 files are generated from the tier routing files (_network-adapter.tpl), and it
 renders more than one routing file.
 */}}
@@ -31,20 +31,20 @@ in `helm get values` -- so the render refuses it.
 {{- $networkAdapterLayer := include "adapter-service.isNetworkAdapterLayer" . }}
 {{- $nlCfg := "" }}
 {{- if $networkAdapterLayer }}
-{{- /* role network-adapter-layer: the config is config/network-adapter-config.yaml,
+{{- /* single mode: the config is config/network-adapter-config.yaml,
        unless `config` replaces it whole. Either way every private key must be a
        tier placeholder; checked on the parsed config. */}}
 {{- $nlCfg = .Values.config | default (.Files.Get "config/network-adapter-config.yaml") }}
 {{- if not $nlCfg }}
-{{- fail (printf "%s: role network-adapter-layer reads config/network-adapter-config.yaml, which is missing from the chart." .Chart.Name) }}
+{{- fail (printf "%s: role network in single mode reads config/network-adapter-config.yaml, which is missing from the chart." .Chart.Name) }}
 {{- end }}
 {{- $nlParsed := $nlCfg | fromYaml }}
 {{- if or (not $nlParsed) (hasKey $nlParsed "Error") }}
-{{- fail (printf "%s: the network-adapter-layer adapter config (`config` override or config/network-adapter-config.yaml) does not parse as YAML, so its private keys cannot be checked." .Chart.Name) }}
+{{- fail (printf "%s: the single-mode adapter config (`config` override or config/network-adapter-config.yaml) does not parse as YAML, so its private keys cannot be checked." .Chart.Name) }}
 {{- end }}
 {{- include "adapter-service.networkAdapterLayer.checkKeys" (dict "ctx" . "cfg" $nlParsed) }}
 {{- if ne (toString (dig "http" "port" "" $nlParsed)) (toString .Values.service.targetPort) }}
-{{- fail (printf "%s: the network-adapter-layer config listens on http.port %v but service.targetPort is %v. The generated routing sends tier hops to localhost:<targetPort>, so the two must match." .Chart.Name (dig "http" "port" "unset" $nlParsed) .Values.service.targetPort) }}
+{{- fail (printf "%s: the single-mode config listens on http.port %v but service.targetPort is %v. The generated routing sends tier hops to localhost:<targetPort>, so the two must match." .Chart.Name (dig "http" "port" "unset" $nlParsed) .Values.service.targetPort) }}
 {{- end }}
 {{- else }}
 {{- $cfgFile := printf "config/%s-config.yaml" (include "adapter-service.role" .) }}
@@ -72,7 +72,7 @@ data:
   adapter.yaml: |
     {{- $nlCfg | nindent 4 }}
   {{- if .Values.routing.config }}
-  {{- fail (printf "%s: routing.config is not used by the network-adapter-layer role. Its routing files are generated from config/routing-{consumer,network,provider}.yaml. To change a route edit those files; to replace the whole adapter config set `config`." .Chart.Name) }}
+  {{- fail (printf "%s: routing.config is not used in the single deployment mode. Its routing files are generated from config/routing-{consumer,network,provider}.yaml. To change a route edit those files; to replace the whole adapter config set `config`." .Chart.Name) }}
   {{- end }}
   {{- range $file, $doc := include "adapter-service.networkAdapterLayer.routing" . | fromYaml }}
   {{ $file }}: |

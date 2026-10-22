@@ -58,23 +58,21 @@ secrets:
   #    resolve-key-ids.sh AFTER the registry has been seeded, so these entries
   #    change once per environment after the first bring-up.
   #
-  #  network-adapter-layer is the namespace of the Network Adapter Layer (the
-  #  single deployment mode, role network-adapter-layer): it runs all three tiers, so
-  #  it reads all three identities. It is a namespace of its own, NOT the multi
-  #  network tier's `network-adapter`, so a multi environment never gets the
-  #  consumer and provider keys copied next to the network tier. Reflector
-  #  mirrors only into namespaces that exist, so this is inert where the layer
-  #  is not installed.
+  #  network-adapter runs the Network Adapter Layer in the single deployment
+  #  mode (the default), which runs all three tiers, so it reads all three
+  #  identities. In multi mode drop network-adapter from the consumer and
+  #  provider entries, so the network tier never holds their keys
+  #  (charts/adapter-service/README.md, "Multi mode").
   - name: consumer-adapter-keys
-    namespaces: [consumer-adapter, network-adapter-layer]
+    namespaces: [consumer-adapter, network-adapter]
   - name: network-adapter-keys
-    namespaces: [network-adapter, network-adapter-layer]
+    namespaces: [network-adapter]
   - name: provider-adapter-keys
-    namespaces: [provider-adapter, network-adapter-layer]
+    namespaces: [provider-adapter, network-adapter]
 
   # The provider adapter's upstream credentials, named as environment variables
   # by its config rather than substituted into it. The Network Adapter Layer
-  # (namespace network-adapter-layer) runs the provider tier too, so it reads
+  # (namespace network-adapter, single mode) runs the provider tier too, so it reads
   # them as well.
   - name: provider-upstream
-    namespaces: [provider-adapter, network-adapter-layer]
+    namespaces: [provider-adapter, network-adapter]

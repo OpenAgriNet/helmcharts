@@ -1,6 +1,6 @@
 {{/*
 # ============================================================================
-# role: network-adapter-layer -- the Network Adapter Layer.
+# role network, networkAdapterDeploymentMode single -- the Network Adapter Layer.
 #
 # The consumer, network and provider tiers as four modules of ONE adapter
 # process. The adapter config is config/network-adapter-config.yaml
@@ -11,14 +11,27 @@
 */}}
 
 {{/*
-"true" when this release runs the Network Adapter Layer, else empty.
+networkAdapterDeploymentMode: single (default) | multi. Only role network
+reads it; provider and consumer ignore it.
 */}}
-{{- define "adapter-service.isNetworkAdapterLayer" -}}
-{{- if eq (include "adapter-service.role" .) "network-adapter-layer" -}}true{{- end -}}
+{{- define "adapter-service.deploymentMode" -}}
+{{- $mode := .Values.networkAdapterDeploymentMode | default "single" -}}
+{{- if not (has $mode (list "single" "multi")) -}}
+{{- fail (printf "%s: networkAdapterDeploymentMode must be single or multi (got %q)." .Chart.Name $mode) -}}
+{{- end -}}
+{{- $mode -}}
 {{- end }}
 
 {{/*
-Fails unless every private-key VALUE in a network-adapter-layer config is one of the
+"true" when this release runs the Network Adapter Layer (role network, mode
+single), else empty.
+*/}}
+{{- define "adapter-service.isNetworkAdapterLayer" -}}
+{{- if and (eq (include "adapter-service.role" .) "network") (eq (include "adapter-service.deploymentMode" .) "single") -}}true{{- end -}}
+{{- end }}
+
+{{/*
+Fails unless every private-key VALUE in a single-mode config is one of the
 tier placeholders. Parsed, not grepped: it reads each module's keyManager.
 Usage: include "adapter-service.networkAdapterLayer.checkKeys" (dict "ctx" $ "cfg" $parsedConfig)
 */}}
@@ -28,7 +41,7 @@ Usage: include "adapter-service.networkAdapterLayer.checkKeys" (dict "ctx" $ "cf
 {{- range $field := list "signingPrivateKey" "encrPrivateKey" -}}
 {{- $v := index $km $field | default "" | toString -}}
 {{- if and $v (not (regexMatch "^__(CONSUMER|NETWORK|PROVIDER)_(SIGNING|ENCR)_PRIVATE__$" $v)) -}}
-{{- fail (printf "%s: network-adapter-layer module %s sets %s to a value that is not a tier placeholder. A private key written into config reaches git, the ConfigMap and `helm get values`; use __<TIER>_%s__ and the init container fills it from that tier's Secret." $.ctx.Chart.Name $m.name $field (ternary "SIGNING_PRIVATE" "ENCR_PRIVATE" (eq $field "signingPrivateKey"))) -}}
+{{- fail (printf "%s: single-mode module %s sets %s to a value that is not a tier placeholder. A private key written into config reaches git, the ConfigMap and `helm get values`; use __<TIER>_%s__ and the init container fills it from that tier's Secret." $.ctx.Chart.Name $m.name $field (ternary "SIGNING_PRIVATE" "ENCR_PRIVATE" (eq $field "signingPrivateKey"))) -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}
@@ -59,14 +72,14 @@ modules across pods again changes only the hosts.
 {{- $src := index $pair 0 -}}
 {{- $doc := $ctx.Files.Get (printf "config/%s" $src) | fromYaml -}}
 {{- if not $doc.routingRules -}}
-{{- fail (printf "%s: config/%s parsed to no routingRules; the network-adapter-layer routing is generated from it." $ctx.Chart.Name $src) -}}
+{{- fail (printf "%s: config/%s parsed to no routingRules; the single-mode routing is generated from it." $ctx.Chart.Name $src) -}}
 {{- end -}}
 {{- range $i, $rule := $doc.routingRules -}}
 {{- if $rule.target -}}
 {{- $url := $rule.target.url | default "" -}}
 {{- $url = regexReplaceAll $tierHost $url $ownListener -}}
 {{- if hasSuffix "/" $url -}}
-{{- fail (printf "%s: network-adapter-layer routing from config/%s routingRules[%d] ends in a slash (%q). The router appends the action, so that produces //discover." $ctx.Chart.Name $src $i $url) -}}
+{{- fail (printf "%s: single-mode routing from config/%s routingRules[%d] ends in a slash (%q). The router appends the action, so that produces //discover." $ctx.Chart.Name $src $i $url) -}}
 {{- end -}}
 {{- $_ := set $rule.target "url" $url -}}
 {{- end -}}

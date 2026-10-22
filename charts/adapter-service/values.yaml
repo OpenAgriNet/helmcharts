@@ -6,23 +6,22 @@
 # requests are routed.
 #
 #   single (the DEFAULT): ONE release, the Network Adapter Layer, serving all
-#   three tiers as modules of one process (role network-adapter-layer):
+#   three tiers as modules of one process (role network,
+#   networkAdapterDeploymentMode single):
 #
-#     helm install network-adapter . -n network-adapter-layer --create-namespace \
+#     helm install network-adapter . -n network-adapter --create-namespace \
 #       -f examples/network-adapter.yaml
 #
-#   multi (OPTIONAL): one release per tier. INSTALL ONCE PER ROLE, and keep the
-#   RELEASE name per-role:
+#   multi (OPTIONAL): one release per tier, with networkAdapterDeploymentMode
+#   multi on the network release. INSTALL ONCE PER ROLE, and keep the RELEASE
+#   name per-role:
 #
 #     helm install provider-adapter . -f examples/provider.yaml
 #     helm install network-adapter  . -f examples/network.yaml
 #     helm install consumer-adapter . -f examples/consumer.yaml
 #
-# Run one deployment mode per environment. The Network Adapter Layer is released as
-# `network-adapter` but in its own namespace, `network-adapter-layer`, so the
-# tier identities openbao-secrets mirrors into it never land in the multi
-# network tier's namespace, and the two deployment modes can coexist during a
-# switch-over.
+# Run one deployment mode per environment. Both release `network-adapter` into
+# namespace `network-adapter`; switching modes upgrades that release in place.
 #
 # The release name is what the Service is called, which is the DNS name the
 # other adapters address. In multi, rename a release and you must update
@@ -40,13 +39,19 @@
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
-# Role: provider | network | consumer | network-adapter-layer
+# Role: provider | network | consumer
 #
 # Required, with no default. A default would hand one role's handler role and
 # step list to a different adapter, which renders, starts, reports Ready and
 # then mis-handles every request. See examples/ for a values file per role.
 # ---------------------------------------------------------------------------
 role: ""
+
+# single | multi. Read by role network only: single (the default) runs all
+# three tiers in one adapter (networkAdapterLayer below); multi is the network
+# tier alone. A multi network release MUST set multi, or an upgrade turns it
+# into single. provider and consumer ignore it.
+networkAdapterDeploymentMode: single
 
 # Overrides for what the role implies. Leave empty to take the role's default.
 appName: ""
@@ -436,7 +441,7 @@ extraEnv: []
 envFromSecrets: []
 
 # ---------------------------------------------------------------------------
-# role: network-adapter-layer -- the Network Adapter Layer.
+# role network, networkAdapterDeploymentMode single -- the Network Adapter Layer.
 #
 # The consumer, network and provider tiers as four modules of ONE process
 # (/ for the consumer, /publish, /_internal/network/, /_internal/provider/). Its adapter config is
@@ -447,9 +452,9 @@ envFromSecrets: []
 # listener (http://localhost:<service.targetPort>/_internal/<tier>): any adapter image
 # works.
 #
-# Ignored by the provider, network and consumer roles.
+# Ignored by provider, consumer and a multi network release.
 #
-# NOT USED by this role: `routing.config` (setting it fails the render, because
+# NOT USED in single mode: `routing.config` (setting it fails the render, because
 # the routing is generated) and `handler.*` (role, steps and path are in the
 # config file). `config` replaces config/network-adapter-config.yaml
 # WHOLE: the private-key guard still runs on it, and it must point its routers

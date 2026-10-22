@@ -2,7 +2,7 @@
 # CI only (scripts/lint-charts.sh lints and renders every ci/*-values.yaml).
 # Not for installs: use examples/network-adapter.yaml.
 #
-# Renders the single deployment mode, role network-adapter-layer (the Network Adapter
+# Renders the single deployment mode, role network (the Network Adapter
 # Layer): config/network-adapter-config.yaml, the generated routing,
 # the three tier identities, and the PDB / spread / graceful-shutdown
 # settings, so those templates are linted too. Pinned image tag so the render
@@ -12,7 +12,8 @@
 # allowed path shape (one-segment /<action>, Exact and Prefix) must render.
 # ingress.annotations is null on purpose, to cover the `| default dict` on the
 # annotations merge.
-role: network-adapter-layer
+role: network
+networkAdapterDeploymentMode: single
 fullnameOverride: network-adapter
 
 image:

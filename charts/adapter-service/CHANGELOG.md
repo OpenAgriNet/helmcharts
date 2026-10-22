@@ -8,15 +8,12 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 ## [0.6.0] - 2026-10-09
 
 ### Added
-- **Two deployment modes, with single as the default.** `role: network-adapter-layer`
-  is the Network Adapter Layer: the consumer, network and provider tiers as four
+- **Two deployment modes, with single as the default.**
+  `networkAdapterDeploymentMode: single | multi` (default `single`), read by
+  role `network` only. In single, role `network` is the Network Adapter Layer: the consumer, network and provider tiers as four
   modules of one process (`/` for the consumer, `/publish`,
-  `/_internal/network/`, `/_internal/provider/`), one release called `network-adapter`. It is the default;
-  the existing roles `provider`, `network` and `consumer` (one release per
-  tier) are the optional multi deployment mode and are unchanged. The README's
-  "Choosing a deployment mode" has the helmfile snippet with
-  `networkAdapterDeploymentMode: single | multi` (default `single`; a deploy-layer
-  value, not a chart value).
+  `/_internal/network/`, `/_internal/provider/`), one release called `network-adapter`. In multi,
+  `provider`, `network` and `consumer` run one release per tier, unchanged.
 - `config/network-adapter-config.yaml`: the layer's adapter config, mounted
   like any role's file (an outbound connection pool and log level info on
   every module). Each module is its tier's module, so a change to
@@ -42,17 +39,17 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   by default.
 
 ### Changed
+- **Breaking:** `role: network` now defaults to the single deployment mode.
+  An existing network-tier release must set `networkAdapterDeploymentMode:
+  multi` (as `examples/network.yaml` does), or the upgrade turns it into the
+  Network Adapter Layer, which needs the three `networkAdapterLayer.keys`
+  Secrets.
 - Docs, `values.yaml` and the example headers say single is the default
   deployment mode and multi is optional.
-- Naming: the layer's release, Service and app name are `network-adapter`
-  (telemetry service `oan-network-adapter`); its namespace is
-  `network-adapter-layer`. "layer" appears only in the namespace, the role,
-  the values key and helper names, where it must differ from the multi
-  `network` tier. The app name and telemetry service name are set in
-  `config/network-adapter-config.yaml`. The separate namespace keeps the
-  consumer and provider keys, which openbao-secrets mirrors to the layer, out
-  of the multi network tier's namespace, and lets both deployment modes run side by
-  side during a switch-over.
+- Naming: in single mode the release, Service, app name and namespace are
+  `network-adapter`, the same as the multi network tier's (telemetry service
+  `oan-network-adapter`, set in `config/network-adapter-config.yaml`).
+  Switching modes upgrades that release in place.
 
 ### Fixed
 - Liveness and readiness probes now render. Values used `probes.liveness` /
@@ -63,7 +60,7 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   Pods that had no probe before now get a liveness probe, and the adapter
   fetches `beckn.yaml` at boot, so without this a slow or proxied egress
   would get a cold start killed after about 70s.
-- NOTES.txt for role `network-adapter-layer` no longer prints `registry.url` and
+- NOTES.txt in single mode no longer prints `registry.url` and
   `otel.*`: that role mounts `config/network-adapter-config.yaml` as is, so those
   values never reached the pod and NOTES reported the opposite of what it ran.
   The example and CI values no longer set them.
