@@ -57,14 +57,14 @@ A change complies with this decision if:
 ## Consequences
 
 **Gains:**
-- One Deployment, Service, ConfigMap and PDB per environment.
+- One Deployment, Service and ConfigMap per environment.
 - No hop between pods.
 - No registry, identity or image change.
 - Reversible: install the multi releases next to the single one, repoint the app, remove the single release.
 
 **Costs:**
 - **Scaling is per adapter, not per tier.** An environment that needs a tier scaled on its own uses `multi`.
-- **One crash takes all three tiers down.** Replicas (3 in the example), the PDB and the spread constraint limit the blast radius.
+- **One crash takes all three tiers down.** Raise `replicaCount` and enable the optional PDB to limit the blast radius.
 - **Tier configs exist twice.** Each module in `network-adapter-config.yaml` mirrors its tier file, so a change meant for both modes is made in both.
 - **The catalogue publisher's port differs by mode:** `:9201/publish` in single, `:9200/publish` in multi.
 
@@ -83,7 +83,7 @@ A change complies with this decision if:
 Code comments stay at two lines or fewer; the reasoning behind them lives here.
 
 **Helm (`charts/adapter-service`, `charts/openbao-secrets`)**
-- **Mode:** `networkAdapterDeploymentMode` is read only by role `network`. A `role: network` release without `multi` renders single, and fails until `networkAdapterLayer.keys` are set, so the switch is never silent.
+- **Mode:** `networkAdapterDeploymentMode` is set once, in `values.yaml` (default `single`), and read only by role `network`; multi installs pass `--set networkAdapterDeploymentMode=multi`. A `role: network` release without `multi` renders single, and fails until `networkAdapterLayer.keys` are set, so the switch is never silent.
 - **Consumer at `/`:** the consumer module is the one catch-all mount, on purpose. `/publish` is an exact pattern and `/_internal/<tier>/` are longer subtrees, so both win over it. Its routing file is in effect an action allow-list: `addRoute` runs before `sign`, so an action with no rule errors instead of being forwarded.
 - **Generated routing:**
   - `routing-network-adapter-{consumer,provider}.yaml` are generated from `routing-{consumer,provider}.yaml`. Every `http://<tier>-adapter[.<ns>][:port][/path]` target becomes `http://localhost:<targetPort>/_internal/<tier>[/path]`. Other targets, and rules with no target, are kept as they are. `routing-network.yaml` is reused unchanged.
@@ -99,7 +99,6 @@ Code comments stay at two lines or fewer; the reasoning behind them lives here.
   - `/` is refused because a Prefix `/` covers `/publish` and `/_internal`.
   - `ImplementationSpecific` is a plain string prefix on ingress-nginx, and `use-regex` / `rewrite-target` turn paths into patterns. Either could reach `/_internal` or `/publish`, so all three are refused.
 - **Probes:** the adapter fetches `beckn.yaml` at boot, which on slow or proxied egress can outlast liveness's ~70s budget (10s + 3 × 20s). The startup probe holds liveness off for up to 180s (5s × 36).
-- **Shutdown:** `preStop.sleep` needs Kubernetes 1.30+, so keep `preStopSleepSeconds: 0` on older clusters.
 - **Adapter config:**
   - Go keeps 2 idle connections per host by default, so every module sets an outbound pool (`httpClientConfig`).
   - On the consumer → provider hop, `responseHeaderTimeout` includes the upstream API call.

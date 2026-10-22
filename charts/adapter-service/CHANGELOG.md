@@ -32,16 +32,15 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   paths with `pathType` Prefix or Exact and no `use-regex` / `rewrite-target`
   annotation; `/`, `/publish` and `/_internal*` are refused. `routing.config` fails the render for this
   role.
-- `examples/network-adapter.yaml` and `ci/network-adapter-values.yaml`
-  (3 replicas, PDB, spread, graceful shutdown).
-- `topologySpreadConstraints`,
-  `terminationGracePeriodSeconds`, `preStopSleepSeconds`, `goMemLimit`; all off
-  by default.
+- `examples/network-adapter.yaml` and `ci/network-adapter-values.yaml`.
+- `networkAdapterDeploymentMode` is set only in `values.yaml` (default `single`);
+  examples and CI values do not set it. `ci/lint-values.yaml` renders role
+  `provider`, since role `network` now needs tier keys by default.
 
 ### Changed
 - **Breaking:** `role: network` now defaults to the single deployment mode.
   An existing network-tier release must set `networkAdapterDeploymentMode:
-  multi` (as `examples/network.yaml` does), or the upgrade turns it into the
+  multi` (e.g. `--set networkAdapterDeploymentMode=multi`), or the upgrade turns it into the
   Network Adapter Layer, which needs the three `networkAdapterLayer.keys`
   Secrets.
 - Docs, `values.yaml` and the example headers say single is the default
@@ -68,8 +67,6 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   `ci/network-adapter-values.yaml` turns the Ingress on, so CI renders the path guard.
 
 ### Removed
-- Unused helpers `adapter-service.name`, `.appName`, `.otelServiceName`,
-  `.registryUrl` and `.otlpEndpoint` (nothing included them).
 - **Breaking:** the `probes.liveness` and `probes.readiness` values keys, renamed to
   `livenessProbe` / `readinessProbe`, plus a new `startupProbe`, on by
   default. The liveness and readiness timings are unchanged. An environment

@@ -83,7 +83,8 @@ adapters address (the consumer routes to
 helm upgrade --install provider-adapter charts/adapter-service \
   -n provider-adapter --create-namespace -f charts/adapter-service/examples/provider.yaml
 helm upgrade --install network-adapter charts/adapter-service \
-  -n network-adapter --create-namespace -f charts/adapter-service/examples/network.yaml
+  -n network-adapter --create-namespace -f charts/adapter-service/examples/network.yaml \
+  --set networkAdapterDeploymentMode=multi
 helm upgrade --install consumer-adapter charts/adapter-service \
   -n consumer-adapter --create-namespace -f charts/adapter-service/examples/consumer.yaml
 ```
@@ -179,7 +180,7 @@ healthy.
 | Use **single** (default) when | Use **multi** when |
 |---|---|
 | One team runs all three tiers in one cluster | The tiers are run by different parties or in different trust zones |
-| You want fewer hops and fewer objects (one Deployment, Service, PDB, and an opt-in HPA) | A tier needs its own scaling or resource profile (e.g. a provider with heavy upstream calls) |
+| You want fewer hops and fewer objects (one Deployment and Service, an opt-in PDB and HPA) | A tier needs its own scaling or resource profile (e.g. a provider with heavy upstream calls) |
 | | You need to roll out or roll back one tier without the others |
 
 Both sign as the same three identities from the same registry rows, so the
@@ -209,8 +210,8 @@ plus installing or removing the other two releases.
 
 ### Multi mode
 
-1. Set `networkAdapterDeploymentMode: multi` on the network release
-   (`examples/network.yaml` does). **An existing `role: network` release
+1. Set `networkAdapterDeploymentMode=multi` on the network release (the
+   install command above passes it). **An existing `role: network` release
    without it becomes single on upgrade.**
 2. Install the three releases as above.
 3. In openbao-secrets, remove `network-adapter` from the namespaces of
