@@ -221,7 +221,7 @@ spec:
         {{- range $tier := list "consumer" "network" "provider" }}
         - name: keys-{{ $tier }}
           secret:
-            secretName: {{ include "adapter-service.tierSecret" (dict "ctx" $ "tier" $tier) }}
+            secretName: {{ include "adapter-service.networkTierSecret" (dict "ctx" $ "tier" $tier) }}
             defaultMode: 0400
         {{- end }}
         {{- else }}

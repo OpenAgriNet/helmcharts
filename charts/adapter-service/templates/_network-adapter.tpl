@@ -11,8 +11,8 @@ config/network-adapter-config.yaml, routing generated below (ADR-0001). */}}
 {{- end }}
 
 {{/* Fails unless every module's private keys are tier placeholders.
-Usage: include "adapter-service.checkTierKeys" (dict "ctx" $ "cfg" $parsedConfig) */}}
-{{- define "adapter-service.checkTierKeys" -}}
+Usage: include "adapter-service.networkCheckTierKeys" (dict "ctx" $ "cfg" $parsedConfig) */}}
+{{- define "adapter-service.networkCheckTierKeys" -}}
 {{- range $m := .cfg.modules -}}
 {{- $km := dig "handler" "plugins" "keyManager" "config" dict $m -}}
 {{- range $field := list "signingPrivateKey" "encrPrivateKey" -}}
@@ -26,7 +26,7 @@ Usage: include "adapter-service.checkTierKeys" (dict "ctx" $ "cfg" $parsedConfig
 
 {{/* Single-mode routing as {<file>: <doc>}: tier hosts in routing-{consumer,provider}.yaml
 become http://localhost:<targetPort>/_internal/<tier> (ADR-0001); routing-network.yaml as is. */}}
-{{- define "adapter-service.singleRouting" -}}
+{{- define "adapter-service.networkSingleRouting" -}}
 {{- $ctx := . -}}
 {{- $ownListener := printf "http://localhost:%v/_internal/${1}${4}" .Values.service.targetPort -}}
 {{- /* Anchored: only a tier host (optional namespace and port) plus optional path. */ -}}
@@ -54,8 +54,8 @@ become http://localhost:<targetPort>/_internal/<tier> (ADR-0001); routing-networ
 {{- end }}
 
 {{/* One tier's key Secret; fails naming the tier when unset.
-Usage: include "adapter-service.tierSecret" (dict "ctx" $ "tier" "network") */}}
-{{- define "adapter-service.tierSecret" -}}
+Usage: include "adapter-service.networkTierSecret" (dict "ctx" $ "tier" "network") */}}
+{{- define "adapter-service.networkTierSecret" -}}
 {{- $name := index .ctx.Values.networkTierKeys .tier | default "" -}}
 {{- if not $name -}}
 {{- fail (printf "%s: networkTierKeys.%s is required -- the %s tier signs as its own identity, from its own Secret (the six keys under keys.existingSecret)." .ctx.Chart.Name .tier .tier) -}}
