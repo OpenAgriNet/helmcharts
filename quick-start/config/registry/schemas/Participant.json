@@ -46,7 +46,7 @@
           "pattern": "^https?://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*$"
         },
         "role": {
-          "description": "What this party does on the network. consumer asks. provider answers. network exposes publish and discover, answering discover from published catalogs. A list when one participant serves several layers -- a network is one participant however many adapters it runs. A single string is still accepted: every row written before the list existed holds one, and a PUT re-validates the stored record, so refusing it would freeze those rows. Search with `contains`, which matches both shapes; `eq` misses a list. Required on a node. Permitted on an upstream, where nothing reads it.",
+          "description": "What this party does on the network. consumer asks. provider answers. network exposes publish and discover, answering discover from published catalogs. A list when one participant serves several layers; a single string stays valid for older rows. Search with `contains`, which matches both shapes. Required on a node. Permitted on an upstream, where nothing reads it.",
           "oneOf": [
             {
               "$ref": "#/definitions/Role"
@@ -63,7 +63,7 @@
           ]
         },
         "federationRole": {
-          "description": "What this entry is in relation to us, and our decision -- never read from a peer's Descriptor, so a peer publishing a new one cannot widen its own admission. This network's own entry is identified from its configuration, not by a value here. source: a peer we consume from. requester: a peer that consumes from us. Both present is admission in each direction. Absent on a participant that is not part of federation. Strict, but declares the registry's system fields for the same reason PublicKey does: a nested object is merged with what the registry stamped on it before a PUT re-validates.",
+          "description": "Our admission decision for this peer, never read from its Descriptor. source: we consume from it. requester: it consumes from us. Absent on a participant outside federation. Declares the registry's system fields, as PublicKey does.",
           "type": "object",
           "additionalProperties": false,
           "minProperties": 1,
@@ -82,12 +82,12 @@
           }
         },
         "revision": {
-          "description": "The Descriptor revision this entry was built from. Only ever increases: a Descriptor at or below the stored revision is a replay and is refused. On this network's own entry, the revision it last published.",
+          "description": "The latest Descriptor revision verified. Only increases: a lower or equal revision is a replay and is refused.",
           "type": "integer",
           "minimum": 1
         },
         "projectionTtl": {
-          "description": "Seconds this peer permits us to keep what we crawled from it. The owning network decides how stale a copy may get, not the network holding it. 0 prohibits retention and requires a live query; a positive value permits serving the copy only within that lifetime.",
+          "description": "Seconds the peer lets us keep its crawled data. 0 means no retention: query live.",
           "type": "integer",
           "minimum": 0
         },
@@ -143,22 +143,22 @@
       ],
       "properties": {
         "descriptorRevision": {
-          "description": "The peer's Descriptor revision this direction was admitted against. Distinct from the top-level revision, which is the latest one verified: a newer Descriptor does not silently widen admission, so a top-level revision above this one means the peer has changed since the decision and is due for review.",
+          "description": "The Descriptor revision this direction was admitted against. A higher top-level revision means the peer is due for review.",
           "type": "integer",
           "minimum": 1
         },
         "admittedAt": {
-          "description": "When this direction was admitted. Each direction is admitted on its own, so each keeps its own time, retained as admission evidence.",
+          "description": "When this direction was admitted.",
           "type": "string",
           "format": "date-time"
         },
         "updatedAt": {
-          "description": "When the admission decision for this direction last changed -- re-admitted against a newer revision, or its schema packs revised. Set by us on the decision, unlike osUpdatedAt, which the registry stamps on any write.",
+          "description": "When we last changed this admission decision. Unlike osUpdatedAt, not set on every write.",
           "type": "string",
           "format": "date-time"
         },
         "schemaPacks": {
-          "description": "The packs this peer declares in its Descriptor that we consume; a peer's pack URLs are its statement, not ours. Complete published URLs of OAN schema packs, stored verbatim. Not SchemaRegistry rows: those hold raw.githubusercontent YAML URLs for our own capabilities.",
+          "description": "The peer's schema pack URLs we consume, as declared in its Descriptor.",
           "type": "array",
           "maxItems": 64,
           "uniqueItems": true,
@@ -185,22 +185,22 @@
       ],
       "properties": {
         "descriptorRevision": {
-          "description": "The peer's Descriptor revision this direction was admitted against. Distinct from the top-level revision, which is the latest one verified: a newer Descriptor does not silently widen admission, so a top-level revision above this one means the peer has changed since the decision and is due for review.",
+          "description": "The Descriptor revision this direction was admitted against. A higher top-level revision means the peer is due for review.",
           "type": "integer",
           "minimum": 1
         },
         "admittedAt": {
-          "description": "When this direction was admitted. Each direction is admitted on its own, so each keeps its own time, retained as admission evidence.",
+          "description": "When this direction was admitted.",
           "type": "string",
           "format": "date-time"
         },
         "updatedAt": {
-          "description": "When the admission decision for this direction last changed -- re-admitted against a newer revision, or its schema packs revised. Set by us on the decision, unlike osUpdatedAt, which the registry stamps on any write.",
+          "description": "When we last changed this admission decision. Unlike osUpdatedAt, not set on every write.",
           "type": "string",
           "format": "date-time"
         },
         "schemaPacks": {
-          "description": "The packs of ours this peer may request. Complete published URLs of OAN schema packs, stored verbatim. Not SchemaRegistry rows: those hold raw.githubusercontent YAML URLs for our own capabilities.",
+          "description": "Our schema pack URLs this peer may request.",
           "type": "array",
           "maxItems": 64,
           "uniqueItems": true,
@@ -218,7 +218,7 @@
       }
     },
     "PublicKey": {
-      "description": "A public key, held as material: it is public, so there is nothing to protect. Identified by the osid the registry assigns on write -- which is what a sender names in the Authorization header, and so the only id a verifier can look up. alg carries the purpose: ed25519 signs, x25519 encrypts. Strict, but declares the registry's own system fields: each key is a nested entity, so on a PUT the registry merges the stored key -- osid and the four os* audit fields it stamped on -- into the body before re-validating, and an undeclared one refuses every update of a node, including the revision bump that refreshes an admitted peer. Declared rather than opening additionalProperties, so a typo such as validUnitl is still refused instead of stored and ignored. The registry sets these; they carry no constraint of ours. osOwner is deliberately absent: the registry never sets it on a key, so declaring it would only let a client write one.",
+      "description": "A public key, held as material: it is public, so there is nothing to protect. Identified by the osid the registry assigns on write -- which is what a sender names in the Authorization header, and so the only id a verifier can look up. alg carries the purpose: ed25519 signs, x25519 encrypts. Declares the system fields the registry stamps on each key, since a PUT re-validates them; additionalProperties stays false so typos are still refused.",
       "type": "object",
       "additionalProperties": false,
       "required": [
