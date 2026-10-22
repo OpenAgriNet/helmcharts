@@ -131,11 +131,6 @@ x-adapter: &adapter
   networks: [oan-internal, oan-edge]
   logging: *logging
 
-# The multi-only adapters (provider, consumer): started by `make up-multi`.
-x-multi-adapter: &multi-adapter
-  <<: *adapter
-  profiles: ["multi"]
-
 x-adapter-env: &adapter-env
   CONFIG_FILE: /app/config/adapter.yaml
   # OpenTelemetry. These ARE read: the otelsetup plugin builds gRPC exporters
@@ -598,7 +593,8 @@ services:
   # so repointing it at a different upstream is a registry write, not a
   # change here or a restart.
   provider-adapter:
-    <<: *multi-adapter
+    <<: *adapter
+    profiles: ["multi"]
     container_name: provider-adapter
     # Registry only. The mocks are deliberately NOT dependencies: every
     # capability points at a real external upstream, and depends_on would start
@@ -675,7 +671,8 @@ services:
   # check. This is what makes the stack testable with a plain curl -- and it
   # is also why the edge rate-limits this host and nothing else.
   consumer-adapter:
-    <<: *multi-adapter
+    <<: *adapter
+    profiles: ["multi"]
     container_name: consumer-adapter
     depends_on:
       network-adapter:
