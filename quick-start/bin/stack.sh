@@ -4,6 +4,8 @@
 #
 #     bin/stack.sh up            the whole stack, in the order it has to start
 #     bin/stack.sh up-core       the same minus the gateway and hyperdx
+#     bin/stack.sh up-multi      as up, with the three tier adapters
+#     bin/stack.sh up-core-multi as up-core, with the three tier adapters
 #     bin/stack.sh down          stop everything, keep the data
 #     bin/stack.sh destroy       stop everything, DELETE the data
 #
@@ -30,11 +32,71 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-# Both optional profiles, named explicitly. This matters for `down`: compose
+# Every optional profile, named explicitly. This matters for `down`: compose
 # only acts on services whose profile is active, so a plain `docker compose
-# down` leaves the gateway and hyperdx containers running and then reports
-# success. Naming them on teardown is what makes "down" mean down.
-PROFILES=(--profile reverse-proxy --profile observability)
+# down` leaves the gateway, hyperdx and the adapters (both deployment modes are
+# profiled) running and then reports success. Naming them on teardown is what
+# makes "down" mean down.
+PROFILES=(--profile reverse-proxy --profile observability --profile multi)
+
+# Adapter deployment mode: "single" (default) runs network-adapter as the
+# Network Adapter Layer, one process for all three tiers; "multi" runs
+# network-adapter as the network tier plus provider- and consumer-adapter
+# (profile multi). The mode decides, at startup, which config network-adapter
+# mounts (NETWORK_ADAPTER_CONFIG below).
+#
+# MODE is the mode `up` starts: the shell's MODE, else .env, else single.
+# Every other compose call exports the RUNNING mode, so a command that touches
+# network-adapter only through depends_on (reverse-proxy, observability) never
+# recreates it with the other config.
+# Validated only by the commands that use it (check_mode), so an unrelated
+# MODE in the shell never blocks `down`, `destroy` or `help`.
+
+# A key's value in .env: last occurrence, quotes, inline comment and CR
+# stripped, empty when absent (never an error under set -e).
+dotenv_get() {
+    local v
+    v=$(grep -E "^$1=" .env 2>/dev/null | tail -1 | cut -d= -f2-) || true
+    v=${v%%#*}
+    printf '%s' "$v" | tr -d '"'"'"' \t\r'
+}
+
+# The mode network-adapter is running in, from the config it mounts
+# (network.yaml is the network tier alone): single, multi, or empty when it is
+# not running.
+running_mode() {
+    [ "$(docker inspect -f '{{.State.Running}}' network-adapter 2>/dev/null)" = true ] || return 0
+    case "$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/app/config/adapter.yaml"}}{{.Source}}{{end}}{{end}}' network-adapter 2>/dev/null)" in
+        */network.yaml) echo multi ;;
+        *) echo single ;;
+    esac
+}
+
+MODE="${MODE:-$(dotenv_get NETWORK_ADAPTER_DEPLOYMENT_MODE)}"
+MODE="${MODE:-single}"
+RUNNING_MODE="$(running_mode)"
+
+# The config network-adapter mounts for a mode; compose reads it as
+# NETWORK_ADAPTER_CONFIG.
+network_config_for() { [ "$1" = multi ] && echo network || echo network-adapter; }
+export NETWORK_ADAPTER_CONFIG="$(network_config_for "${RUNNING_MODE:-$MODE}")"
+check_mode() {
+    case "$MODE" in single|multi) ;; *) die "MODE must be single or multi, not '$MODE'" ;; esac
+}
+
+adapters_for() { # $1 mode
+    case "$1" in
+        single) echo network-adapter ;;
+        multi)  echo provider-adapter network-adapter consumer-adapter ;;
+    esac
+}
+# The rendered config files (config/adapters/<name>.yaml) a deployment mode mounts.
+configs_for() { # $1 mode
+    case "$1" in
+        single) echo network-adapter ;;
+        multi)  echo provider network consumer ;;
+    esac
+}
 
 # ------------------------------------------------------------------ output
 
@@ -74,6 +136,7 @@ preflight() {
 # `up-core` below is the same thing minus steps 4 and 5, for when you want
 # neither a public port nor ClickHouse's memory.
 up() {
+    check_mode
     preflight
     up_registry_tier 5
     up_setup         5
@@ -97,6 +160,7 @@ up() {
 # 16 GB -- this is the stack you can actually exercise, which is the reason the
 # profiles exist in the first place.
 up_core() {
+    check_mode
     preflight
     up_registry_tier 3
     up_setup         3
@@ -125,9 +189,10 @@ up_registry_tier() {
 }
 
 # Generates the adapter keypairs, registers the three adapter identities, and
-# renders config/adapters/{provider,network,consumer}.yaml from the .tmpl files
-# beside them. Safe to re-run: keys come from keys/keys.json once it exists,
-# and participants already registered are left alone.
+# renders every adapter config (provider, network, consumer and the
+# Network Adapter Layer's network-adapter.yaml) from the .tmpl files beside them. Safe to re-run:
+# keys come from keys/keys.json once it exists, and participants already
+# registered are left alone.
 up_setup() {
     step 2 "$1" "bin/setup.py -- keys, seven registry participants, adapter configs"
     python3 bin/setup.py
@@ -142,8 +207,34 @@ up_adapters() {
     # debugging a mapping without the real credentials -- but that also needs a
     # new participant id and base URL in .env plus a setup.py re-run, because
     # the registry cannot repoint an existing row.
-    step 3 "$1" "adapters (provider, network, consumer)"
-    docker compose up -d provider-adapter network-adapter consumer-adapter
+    check_mode
+    local f
+    # `up` starts the requested mode, not the running one.
+    NETWORK_ADAPTER_CONFIG="$(network_config_for "$MODE")"
+    step 3 "$1" "adapters, mode $MODE ($(adapters_for "$MODE"))"
+    # A stack from before the merge has container network-adapter under the
+    # old service name network-adapter-layer, which compose no longer knows
+    # and would not remove: the name would clash.
+    if [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' network-adapter 2>/dev/null)" = network-adapter-layer ]; then
+        docker rm -f network-adapter >/dev/null
+    fi
+    # Single runs network-adapter alone: remove the multi-only adapters.
+    if [ "$MODE" = single ]; then
+        docker compose --profile multi rm -sf provider-adapter consumer-adapter >/dev/null 2>&1 || true
+    fi
+    # Never let compose create a directory where a bind-mounted config belongs.
+    for f in $(configs_for "$MODE"); do
+        [ -f "config/adapters/$f.yaml" ] \
+            || die "config/adapters/$f.yaml was not rendered (a directory there? rm -r it, then re-run)"
+    done
+    # shellcheck disable=SC2046
+    docker compose --profile multi up -d --force-recreate $(adapters_for "$MODE")
+    # NPM resolves adapter names when nginx loads and caches the addresses, so
+    # a recreated or switched adapter 502s through it until it restarts.
+    if [ "$(docker inspect -f '{{.State.Running}}' nginx-proxy-manager 2>/dev/null)" = true ]; then
+        info "restarting nginx-proxy-manager so it re-resolves the adapter addresses"
+        docker compose --profile reverse-proxy restart nginx-proxy-manager >/dev/null
+    fi
 }
 
 done_banner() {
@@ -282,7 +373,6 @@ NEXT
 # It also excludes nginx-proxy-manager, whose routing table lives in a SQLite
 # database rather than in anything a restart would re-read. `restart-edge` is
 # the separate target for the one case that does need it.
-APP_SERVICES=(registry discovery provider-adapter network-adapter consumer-adapter)
 
 # `restart`, not `up -d --force-recreate`. A restart keeps the container and
 # therefore its address, so NPM's cached proxy_pass targets stay valid -- a
@@ -294,10 +384,13 @@ APP_SERVICES=(registry discovery provider-adapter network-adapter consumer-adapt
 # up is a changed image or a changed environment, both of which need the
 # container recreated -- use `make up` for those.
 restart_app() {
-    step 1 1 "restarting registry, discovery and the three adapters"
+    [ -n "$RUNNING_MODE" ] && MODE=$RUNNING_MODE
+    check_mode
+    step 1 1 "restarting registry, discovery and the $MODE-mode adapters"
     info "keycloak, both databases and the edge are left alone"
-    docker compose restart "${APP_SERVICES[@]}"
-    docker compose ps --format 'table {{.Service}}\t{{.Status}}'
+    # shellcheck disable=SC2046
+    docker compose --profile multi restart sunbird-registry-service discovery-service $(adapters_for "$MODE")
+    docker compose --profile multi ps --format 'table {{.Service}}\t{{.Status}}'
 }
 
 # ----------------------------------------------------------------- misc
@@ -324,9 +417,14 @@ usage() {
     cat <<'USAGE'
 bin/stack.sh <command>
 
-  up             the whole stack: registry+discovery -> setup.py -> adapters
+  up             the whole stack, Network Adapter Layer (default):
+                 registry+discovery -> setup.py -> network-adapter (Network Adapter Layer)
                  -> gateway (public, 80/443) -> hyperdx (wants 16 GB)
   up-core        steps 1-3 only. Nothing public, no ClickHouse.
+  up-multi       as up, with the three adapters (provider, network, consumer)
+  up-core-multi  as up-core, with the three adapters
+                 (MODE=multi also works with up and up-core; restart
+                 follows the running mode)
   down           stop everything, keep the data
   destroy        stop everything and DELETE every volume
   setup          re-run bin/setup.py only
@@ -344,6 +442,8 @@ USAGE
 case "${1:-}" in
     up)             up ;;
     up-core)        up_core ;;
+    up-multi)       MODE=multi; up ;;
+    up-core-multi)  MODE=multi; up_core ;;
     down)           down ;;
     destroy)        destroy ;;
     setup)          setup ;;

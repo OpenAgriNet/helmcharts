@@ -110,7 +110,7 @@ cat <<'NEXT'
 
   Then:
 
-      git clone -b feat/4-docker-compose https://github.com/OpenAgriNet/helmcharts.git
+      git clone -b development https://github.com/OpenAgriNet/helmcharts.git
       cd helmcharts/quick-start
       cp .env.example .env && nano .env      # change every credential
       make up

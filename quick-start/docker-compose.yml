@@ -11,7 +11,8 @@
 #   registry        sunbird-registry-postgres, sunbird-registry-keycloak,
 #                   sunbird-registry-service
 #   discovery       discovery-postgres, discovery-service
-#   adapters        provider, network, consumer
+#   adapters        network-adapter (all three tiers by default) +
+#                   provider, consumer (profile multi)
 #   observability   hyperdx                      profile: observability
 #   edge            nginx-proxy-manager          profile: reverse-proxy
 #
@@ -24,9 +25,11 @@
 #                                         shipped defaults
 #   2. docker compose up -d sunbird-registry-service discovery-service
 #                                         everything EXCEPT the adapters
-#   3. python3 bin/setup.py               keys, the three adapter entries, and
-#                                         the adapter configs they mount
-#   4. docker compose up -d               now the adapters
+#   3. python3 bin/setup.py               keys, the three tier identities, and
+#                                         every adapter config they mount
+#   4. docker compose up -d network-adapter       the Network Adapter
+#        (multi: NETWORK_ADAPTER_CONFIG=network docker compose --profile multi
+#         up -d provider-adapter network-adapter consumer-adapter)
 #   5. docker compose --profile reverse-proxy --profile observability up -d
 #                                         the edge and the telemetry stack
 #
@@ -533,7 +536,22 @@ services:
         condition: service_healthy
 
   # ==========================================================================
-  # adapters -- consumer, network and provider. Same image, three configs.
+  # adapters -- TWO deployment modes, chosen at startup by
+  # NETWORK_ADAPTER_DEPLOYMENT_MODE in .env (or MODE): bin/stack.sh turns it
+  # into NETWORK_ADAPTER_CONFIG, the config network-adapter mounts. Same image.
+  #
+  #   single (the default; `make up`)
+  #     network-adapter mounts config/adapters/network-adapter.yaml: the
+  #     consumer, network and provider tiers as four modules of ONE process on
+  #     127.0.0.1:9201. Tier-to-tier hops stay inside the container.
+  #
+  #   multi (`make up-multi`)
+  #     network-adapter mounts config/adapters/network.yaml (the network tier
+  #     alone), and provider-adapter and consumer-adapter (profile multi) run
+  #     beside it. Only the network tier's config is mounted, so the network
+  #     container never holds the consumer or provider keys.
+  #
+  # Both use the same keys and registry rows.
   #
   # Their configs are bind-mounted FILES that do not exist until bin/setup.py
   # renders them from the .tmpl beside them, which is what the step ordering
@@ -592,6 +610,7 @@ services:
   # change here or a restart.
   provider-adapter:
     <<: *adapter
+    profiles: ["multi"]
     container_name: provider-adapter
     # Registry only. The mocks are deliberately NOT dependencies: every
     # capability points at a real external upstream, and depends_on would start
@@ -635,6 +654,19 @@ services:
       - "127.0.0.1:${PROVIDER_ADAPTER_PORT}:9200"
 
   # Verifies the caller, hands discovery on, re-signs as itself.
+  #
+  # In single mode (the default) it is the Network Adapter Layer instead: the
+  # consumer, network and provider tiers as modules of one process.
+  #
+  #   /<action>              the consumer, the caller's entry (bap), takes unsigned requests
+  #   /publish               sends the provider's catalogue to /_internal/network/publish
+  #   /_internal/network/*   hands discover and publish on to discovery
+  #   /_internal/provider/*  calls the upstream, answers synchronously
+  #
+  # Signing is off, as in every quick-start template, so /_internal/ and
+  # /publish accept unsigned requests: keep :9201 on 127.0.0.1. Every routing
+  # file and the upstream credentials are mounted in both modes; the multi
+  # config does not read them.
   network-adapter:
     <<: *adapter
     container_name: network-adapter
@@ -646,9 +678,19 @@ services:
     environment:
       <<: *adapter-env
       OTEL_SERVICE_NAME: network-adapter
+      # Upstream credentials for the single-mode provider module, read at call
+      # time -- the same variables and reasons as provider-adapter.
+      MAUSAMGRAM_AUTH: ${MAUSAMGRAM_AUTH}
+      AGMARKNET_ACCESS_NAME: ${AGMARKNET_ACCESS_NAME}
+      AGMARKNET_PASSWORD: ${AGMARKNET_PASSWORD}
+      MOCKAGMARKNET_TOKEN: ${MOCKAGMARKNET_TOKEN:-local-mandi-token}
+      VISTAAR_CLIENT_ID: ${VISTAAR_CLIENT_ID}
+      VISTAAR_CLIENT_SECRET: ${VISTAAR_CLIENT_SECRET}
     volumes:
-      - ./config/adapters/network.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/${NETWORK_ADAPTER_CONFIG:-network-adapter}.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/routing-network.yaml:/app/config/routing-network.yaml:ro
+      - ./config/adapters/routing-network-adapter-consumer.yaml:/app/config/routing-network-adapter-consumer.yaml:ro
+      - ./config/adapters/routing-network-adapter-provider.yaml:/app/config/routing-network-adapter-provider.yaml:ro
     ports:
       - "127.0.0.1:${NETWORK_ADAPTER_PORT}:9201"
 
@@ -658,6 +700,7 @@ services:
   # is also why the edge rate-limits this host and nothing else.
   consumer-adapter:
     <<: *adapter
+    profiles: ["multi"]
     container_name: consumer-adapter
     depends_on:
       network-adapter:
@@ -938,12 +981,18 @@ services:
       # whenever NPM does. That means the restart above is not optional after
       # `make observability` -- NPM was started before the name existed, so the
       # HyperDX host 502s until it re-resolves.
+      #
+      # required: false -- consumer- and provider-adapter exist only in multi
+      # mode (profile "multi"); NPM starts with whichever is running.
       consumer-adapter:
         condition: service_started
+        required: false
       network-adapter:
         condition: service_started
+        required: false
       provider-adapter:
         condition: service_started
+        required: false
 
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:81/api/ || exit 1"]
