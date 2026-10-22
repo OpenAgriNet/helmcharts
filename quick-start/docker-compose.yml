@@ -25,11 +25,9 @@
 #                                         shipped defaults
 #   2. docker compose up -d sunbird-registry-service discovery-service
 #                                         everything EXCEPT the adapters
-#   3. python3 bin/setup.py               keys, the three tier identities, and
-#                                         every adapter config they mount
-#   4. docker compose up -d network-adapter       the Network Adapter
-#        (multi: NETWORK_ADAPTER_CONFIG=network docker compose --profile multi
-#         up -d provider-adapter network-adapter consumer-adapter)
+#   3. python3 bin/setup.py               keys, the three adapter entries, and
+#                                         the adapter configs they mount
+#   4. docker compose up -d network-adapter       now the adapter (multi: make up-multi)
 #   5. docker compose --profile reverse-proxy --profile observability up -d
 #                                         the edge and the telemetry stack
 #
@@ -536,22 +534,8 @@ services:
         condition: service_healthy
 
   # ==========================================================================
-  # adapters -- TWO deployment modes, chosen at startup by
-  # NETWORK_ADAPTER_DEPLOYMENT_MODE in .env (or MODE): bin/stack.sh turns it
-  # into NETWORK_ADAPTER_CONFIG, the config network-adapter mounts. Same image.
-  #
-  #   single (the default; `make up`)
-  #     network-adapter mounts config/adapters/network-adapter.yaml: the
-  #     consumer, network and provider tiers as four modules of ONE process on
-  #     127.0.0.1:9201. Tier-to-tier hops stay inside the container.
-  #
-  #   multi (`make up-multi`)
-  #     network-adapter mounts config/adapters/network.yaml (the network tier
-  #     alone), and provider-adapter and consumer-adapter (profile multi) run
-  #     beside it. Only the network tier's config is mounted, so the network
-  #     container never holds the consumer or provider keys.
-  #
-  # Both use the same keys and registry rows.
+  # adapters -- single (default): network-adapter runs all three tiers; multi: plus
+  # provider- and consumer-adapter (profile multi). bin/stack.sh picks the config.
   #
   # Their configs are bind-mounted FILES that do not exist until bin/setup.py
   # renders them from the .tmpl beside them, which is what the step ordering
@@ -654,19 +638,7 @@ services:
       - "127.0.0.1:${PROVIDER_ADAPTER_PORT}:9200"
 
   # Verifies the caller, hands discovery on, re-signs as itself.
-  #
-  # In single mode (the default) it is the Network Adapter Layer instead: the
-  # consumer, network and provider tiers as modules of one process.
-  #
-  #   /<action>              the consumer, the caller's entry (bap), takes unsigned requests
-  #   /publish               sends the provider's catalogue to /_internal/network/publish
-  #   /_internal/network/*   hands discover and publish on to discovery
-  #   /_internal/provider/*  calls the upstream, answers synchronously
-  #
-  # Signing is off, as in every quick-start template, so /_internal/ and
-  # /publish accept unsigned requests: keep :9201 on 127.0.0.1. Every routing
-  # file and the upstream credentials are mounted in both modes; the multi
-  # config does not read them.
+  # Single mode: all three tiers in one process (/, /publish, /_internal/*); keep :9201 local.
   network-adapter:
     <<: *adapter
     container_name: network-adapter

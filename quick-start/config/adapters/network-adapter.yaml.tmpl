@@ -1,35 +1,5 @@
-# Network Adapter: the consumer, network and provider tiers as
-# four modules of ONE adapter process (docker-compose.yml service network-adapter, single mode).
-#
-#   /<action>                    the consumer (bap); the app posts here, unsigned
-#   /publish                     the catalogue publishes here
-#   /_internal/network/<action>  verifies and forwards to discovery
-#   /_internal/provider/<action> answers from the upstream APIs (bpp)
-#
-# The public paths are the same as the multi adapters'. /_internal/ is only
-# called by this process's own modules over loopback.
-#
-# Each module is its tier's module from consumer.yaml.tmpl, network.yaml.tmpl
-# and provider.yaml.tmpl. A change to one of those templates that should also
-# apply here must be made in this file too. The same layout as the Helm chart's
-# charts/adapter-service/config/network-adapter-config.yaml.
-#
-# Differences from the three tier templates:
-#   - one listener (9201) and one appName; tier hops call this same listener
-#     (routing-network-adapter-*.yaml beside this file);
-#   - an outbound connection pool (httpClientConfig) on every module;
-#   - log level info.
-#
-# SIGNING IS OFF, as in the three quick-start tier templates: no module runs
-# sign or validateSign, so /_internal/ and /publish accept unsigned requests
-# from anyone who can reach :9201. Keep it on 127.0.0.1 (as the compose file
-# does); server_proxy.conf denies /_internal and /publish at the edge. The
-# Helm chart's network-adapter-config.yaml has signing on.
-#
-# bin/setup.py fills the placeholders -- each module's own tier identity
-# (the CONSUMER_, NETWORK_ and PROVIDER_ ones) and the shared ones -- and
-# writes config/adapters/network-adapter.yaml (mode 600, gitignored: it
-# holds private keys).
+# Single mode: consumer at /, /publish, /_internal/network/, /_internal/provider/ in one
+# process. Signing is off: keep :9201 on 127.0.0.1. setup.py renders it (ADR-0001).
 appName: network-adapter
 
 log:
@@ -64,11 +34,8 @@ plugins:
       enableLogs: "__OTEL_ENABLED__"
 
 modules:
-  # ------------------------------------------------------------------ consumer
-  # From consumer.yaml.tmpl. Mounted at /, so the app calls /discover, /select,
-  # ... as on the multi-adapter consumer-adapter. Accepts unsigned requests
-  # under the consumer identity (signing is off here), routes discover to /_internal/network and
-  # transactions to /_internal/provider (routing-network-adapter-consumer.yaml).
+  # consumer: the app calls /<action>; discover to /_internal/network, transactions
+  # to /_internal/provider (routing-network-adapter-consumer.yaml).
   - name: consumer
     path: /
     handler:
@@ -130,9 +97,7 @@ modules:
         - validateSchema
         - addRoute
 
-  # ------------------------------------------------------------------- network
-  # From network.yaml.tmpl. Forwards discover and
-  # publish to discovery (routing-network.yaml, the multi-adapter file).
+  # network: forwards discover and publish to discovery (routing-network.yaml).
   - name: network
     path: /_internal/network/
     handler:
@@ -175,9 +140,8 @@ modules:
             config:
               contextKeys: transaction_id,message_id
               role: bpp
-        # The extended layer is off: it fetches a resource's own @context per
-        # payload, and nothing here needs it. The settings below only apply if
-        # it is turned on.
+        # Extended layer off: it fetches each resource's @context per payload.
+        # The extendedSchema_* settings apply only when it is on.
         schemaValidator:
           id: schemav2validator
           config:
@@ -196,9 +160,7 @@ modules:
       steps:
         - addRoute
 
-  # ------------------------------------------------------------------ provider
-  # From provider.yaml.tmpl, module 1. Answers from the
-  # upstream APIs itself: no router.
+  # provider: answers from the upstream APIs itself (no router).
   - name: provider
     path: /_internal/provider/
     handler:
@@ -303,11 +265,8 @@ modules:
         - KnowledgeAdvisory
         - AgricultureFacility
 
-  # ---------------------------------------------------------- provider-publish
-  # From provider.yaml.tmpl, module 2. The catalogue publishes here, under the
-  # provider identity (signing is off here); routed to /_internal/network/publish
-  # (routing-network-adapter-provider.yaml). Top-level /publish, the same path
-  # as the multi provider adapter's.
+  # provider-publish: the catalogue publishes at /publish; routed to
+  # /_internal/network/publish (routing-network-adapter-provider.yaml).
   - name: provider-publish
     path: /publish
     handler:

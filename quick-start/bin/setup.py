@@ -565,9 +565,8 @@ def render(identities):
     vistaar_binding = (f"{env('VISTAAR_PARTICIPANT_ID')}"
                        f"|{env('VISTAAR_CAPABILITY')}")
     pocra_binding = f"{env('POCRA_PARTICIPANT_ID')}|{env('POCRA_CAPABILITY')}"
-    # The three tier configs, then the Network Adapter Layer's
-    # (network-adapter.yaml.tmpl): its modules carry all three tiers'
-    # identities, so it gets every tier's keys.
+    # The three tier configs, then network-adapter.yaml.tmpl, which carries all
+    # three tiers' identities.
     for name in (*ROLES, "network-adapter"):
         template = (ADAPTERS / f"{name}.yaml.tmpl").read_text()
         for role in (ROLES if name == "network-adapter" else (name,)):

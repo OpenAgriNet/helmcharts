@@ -32,28 +32,14 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-# Every optional profile, named explicitly. This matters for `down`: compose
-# only acts on services whose profile is active, so a plain `docker compose
-# down` leaves the gateway, hyperdx and the adapters (both deployment modes are
-# profiled) running and then reports success. Naming them on teardown is what
-# makes "down" mean down.
+# Every optional profile, named so `down` also stops profiled services
+# (the gateway, hyperdx, provider- and consumer-adapter).
 PROFILES=(--profile reverse-proxy --profile observability --profile multi)
 
-# Adapter deployment mode: "single" (default) runs network-adapter as the
-# Network Adapter Layer, one process for all three tiers; "multi" runs
-# network-adapter as the network tier plus provider- and consumer-adapter
-# (profile multi). The mode decides, at startup, which config network-adapter
-# mounts (NETWORK_ADAPTER_CONFIG below).
-#
-# MODE is the mode `up` starts: the shell's MODE, else .env, else single.
-# Every other compose call exports the RUNNING mode, so a command that touches
-# network-adapter only through depends_on (reverse-proxy, observability) never
-# recreates it with the other config.
-# Validated only by the commands that use it (check_mode), so an unrelated
-# MODE in the shell never blocks `down`, `destroy` or `help`.
+# Deployment mode for `up`: the shell's MODE, else .env, else single (ADR-0001).
+# Other commands keep the running mode so depends_on never swaps network-adapter's config.
 
-# A key's value in .env: last occurrence, quotes, inline comment and CR
-# stripped, empty when absent (never an error under set -e).
+# A key's value in .env (quotes, inline comment and CR stripped); empty if absent.
 dotenv_get() {
     local v
     v=$(grep -E "^$1=" .env 2>/dev/null | tail -1 | cut -d= -f2-) || true
@@ -61,9 +47,7 @@ dotenv_get() {
     printf '%s' "$v" | tr -d '"'"'"' \t\r'
 }
 
-# The mode network-adapter is running in, from the config it mounts
-# (network.yaml is the network tier alone): single, multi, or empty when it is
-# not running.
+# Running mode, from the config network-adapter mounts; empty if not running.
 running_mode() {
     [ "$(docker inspect -f '{{.State.Running}}' network-adapter 2>/dev/null)" = true ] || return 0
     case "$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/app/config/adapter.yaml"}}{{.Source}}{{end}}{{end}}' network-adapter 2>/dev/null)" in
@@ -76,8 +60,7 @@ MODE="${MODE:-$(dotenv_get NETWORK_ADAPTER_DEPLOYMENT_MODE)}"
 MODE="${MODE:-single}"
 RUNNING_MODE="$(running_mode)"
 
-# The config network-adapter mounts for a mode; compose reads it as
-# NETWORK_ADAPTER_CONFIG.
+# The config network-adapter mounts for a mode (compose: NETWORK_ADAPTER_CONFIG).
 network_config_for() { [ "$1" = multi ] && echo network || echo network-adapter; }
 export NETWORK_ADAPTER_CONFIG="$(network_config_for "${RUNNING_MODE:-$MODE}")"
 check_mode() {
@@ -189,10 +172,9 @@ up_registry_tier() {
 }
 
 # Generates the adapter keypairs, registers the three adapter identities, and
-# renders every adapter config (provider, network, consumer and the
-# Network Adapter Layer's network-adapter.yaml) from the .tmpl files beside them. Safe to re-run:
-# keys come from keys/keys.json once it exists, and participants already
-# registered are left alone.
+# renders config/adapters/{provider,network,consumer,network-adapter}.yaml from the .tmpl files
+# beside them. Safe to re-run: keys come from keys/keys.json once it exists,
+# and participants already registered are left alone.
 up_setup() {
     step 2 "$1" "bin/setup.py -- keys, seven registry participants, adapter configs"
     python3 bin/setup.py
@@ -212,9 +194,8 @@ up_adapters() {
     # `up` starts the requested mode, not the running one.
     NETWORK_ADAPTER_CONFIG="$(network_config_for "$MODE")"
     step 3 "$1" "adapters, mode $MODE ($(adapters_for "$MODE"))"
-    # A stack from before the merge has container network-adapter under the
-    # old service name network-adapter-layer, which compose no longer knows
-    # and would not remove: the name would clash.
+    # A pre-merge stack's network-adapter container (service network-adapter-layer)
+    # is unknown to compose and would clash by name.
     if [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' network-adapter 2>/dev/null)" = network-adapter-layer ]; then
         docker rm -f network-adapter >/dev/null
     fi
