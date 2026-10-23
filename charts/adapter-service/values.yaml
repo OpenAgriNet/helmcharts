@@ -7,12 +7,12 @@
 #
 # INSTALL ONCE PER ROLE, and keep the RELEASE name per-role:
 #
-#   helm install provider-adapter . -f examples/provider.yaml
-#   helm install network-adapter  . -f examples/network.yaml
-#   helm install consumer-adapter      . -f examples/consumer.yaml
+#   helm install provider-adapter . -f examples/provider-adapter.yaml
+#   helm install network-adapter  . -f examples/network-adapter.yaml
+#   helm install consumer-adapter      . -f examples/consumer-adapter.yaml
 #
 # Role network-adapter defaults to single-adapter mode, all three tiers in one release
-# (examples/network.yaml); see deploymentMode.
+# (examples/network-adapter.yaml); see deploymentMode.
 #
 # The release name is what the Service is called, which is the DNS name the
 # other adapters address. Rename a release and you must update whatever routes

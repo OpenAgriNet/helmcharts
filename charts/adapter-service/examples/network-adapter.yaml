@@ -6,7 +6,7 @@
 # publishes for them, hands discover and publish to the discovery service, and
 # signs on the way out. It answers neither action itself.
 #
-#   helm install network-adapter . -n network-adapter -f examples/network.yaml \
+#   helm install network-adapter . -n network-adapter -f examples/network-adapter.yaml \
 #     --set deploymentMode=single-adapter   # or multi-adapter
 #
 # Keep the release name `network-adapter`: consumer routes to this Service by name.

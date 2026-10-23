@@ -8,7 +8,7 @@
 #
 # It is also why the edge should rate-limit this host and nothing else.
 #
-#   helm install consumer-adapter . -f examples/consumer.yaml
+#   helm install consumer-adapter . -f examples/consumer-adapter.yaml
 #
 # routing.rules points at the network adapter by RELEASE name. Rename that
 # release and this must change with it.

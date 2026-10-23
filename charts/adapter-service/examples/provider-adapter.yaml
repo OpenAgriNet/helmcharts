@@ -5,7 +5,7 @@
 # the upstream APIs that actually answer it. Unlike the other two roles it has
 # more than one target, which is why routing.rules is a list.
 #
-#   helm install provider-adapter . -f examples/provider.yaml
+#   helm install provider-adapter . -f examples/provider-adapter.yaml
 #
 # MANDI_TOKEN is the mandi upstream's credential. It is named here and read at
 # call time, so it never lands in a config file or in the registry -- put it in
