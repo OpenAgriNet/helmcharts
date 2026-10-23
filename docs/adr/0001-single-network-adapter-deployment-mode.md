@@ -43,7 +43,7 @@ A change complies with this decision if:
   - an unset tier Secret name;
   - an Ingress path other than single-segment `/<action>`.
 - **Secrets:** `openbao-secrets` reflects the consumer and provider key Secrets and `provider-upstream` into `network-adapter` for single mode. A multi environment removes those targets and deletes the copies, so the network tier holds only its own key.
-- **Choosing the mode:** the chart value `deploymentMode: single-adapter | multi-adapter` on the `network-adapter` release; multi also installs `consumer-adapter` and `provider-adapter`. In quick-start, `NETWORK_ADAPTER_DEPLOYMENT_MODE` picks `network-adapter`'s config, and profile `multi-adapter` adds the other two adapters, via `make up` and `MODE=multi-adapter make up`.
+- **Choosing the mode:** the chart value `deploymentMode: single-adapter | multi-adapter` on the `network-adapter` release; multi also installs `consumer-adapter` and `provider-adapter`. In quick-start, `NETWORK_ADAPTER_DEPLOYMENT_MODE` picks `network-adapter`'s config, and profile `multi-adapter` adds the other two adapters, via `make up` and `NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter make up`.
 
 ## Alternatives considered
 

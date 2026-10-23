@@ -51,7 +51,7 @@ below follow startup order, so they work top to bottom.
 | Observability        | not started              | optional, wants 2–4 GB      |
 | Credentials          | shipped defaults are ok  | **must all be changed**     |
 | Command              | `make up-core`           | `make up`                   |
-| Multi mode instead   | `MODE=multi-adapter make up-core` | `MODE=multi-adapter make up`       |
+| Multi mode instead   | `NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter make up-core` | `NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter make up`       |
 
 **Local** is Part 1. **VM** is Part 1, then Part 2 for the differences.
 
@@ -102,7 +102,7 @@ make up-core
 ```
 
 Three tiers, in the only order that works: registry and discovery, then
-`bin/setup.py`, then the adapter (`network-adapter` on 9201; `MODE=multi-adapter make up-core`
+`bin/setup.py`, then the adapter (`network-adapter` on 9201; `NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter make up-core`
 starts the three adapters instead). Allow up to five minutes
 the first time — Keycloak on a cold volume.
 
@@ -209,7 +209,7 @@ The network adapter runs in one of two modes. **Single is the default.**
 
 |  | single (default) | multi |
 |---|---|---|
-| Start | `make up` | `MODE=multi-adapter make up` |
+| Start | `make up` | `NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter make up` |
 | Containers | `network-adapter` | `consumer-adapter`, `network-adapter`, `provider-adapter` |
 | App calls | `127.0.0.1:9201/<action>` | `127.0.0.1:9202/<action>` |
 | Catalogue publishes to | `127.0.0.1:9201/publish` | `127.0.0.1:9200/publish` |
@@ -219,10 +219,10 @@ Guidelines:
 
 1. **Set the mode once in `.env`.** `NETWORK_ADAPTER_DEPLOYMENT_MODE` (default
    `single-adapter`) picks the config and, through `COMPOSE_PROFILES`, which adapters
-   start, for `make up` and plain `docker compose up -d` alike. `MODE=multi-adapter make up`
+   start, for `make up` and plain `docker compose up -d` alike. `NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter make up`
    overrides it once.
 2. **To switch, run the other target.** `make up` after multi removes the
-   provider and consumer containers; `MODE=multi-adapter make up` after single starts them.
+   provider and consumer containers; `NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter make up` after single starts them.
    `make restart`, `make down`, `make ps` and `make logs` follow the running mode.
 3. **Keep the adapter ports on `127.0.0.1`.** Signing is off in every quick-start
    config, so `/_internal/` and `/publish` accept unsigned calls.
@@ -288,7 +288,7 @@ make up
 
 `make up`, not `make up-core`: two more tiers on top of Part 1's three —
 nginx-proxy-manager on 80 and 443, and HyperDX. **This is the step that makes
-the VM reachable from the internet.** `MODE=multi-adapter make up` runs the three adapters
+the VM reachable from the internet.** `NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter make up` runs the three adapters
 instead; the mode decides what the proxy hosts in Appendix B forward to.
 Switching mode on a running VM restarts nginx-proxy-manager, so the public
 hosts drop connections for a few seconds.
@@ -374,7 +374,7 @@ Reference, read on demand. Nothing here is a step.
 
 Running: **registry** (SunbirdRC + Postgres + Keycloak), **discovery**
 (catalogue search + Postgres), **the adapters** (one Network Adapter by
-default, or three tier adapters with `MODE=multi-adapter make up`; same image),
+default, or three tier adapters with `NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter make up`; same image),
 **two mock upstreams** standing in for Mausamgram and Agmarknet. Behind
 profiles: **nginx-proxy-manager** (`reverse-proxy`, the only container on a
 routable interface) and **hyperdx** (`observability`, ClickStack — the
@@ -424,7 +424,7 @@ attaches to a hostname instead of a regex in a textarea, and each gets its own
 certificate. An unknown `Host` gets NPM's default page, not an adapter.
 
 **Single mode (`make up`, the default).** The table above is for
-`MODE=multi-adapter make up`. With the single adapter there is no `consumer-adapter`,
+`NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter make up`. With the single adapter there is no `consumer-adapter`,
 `network-adapter` or `provider-adapter` to forward to: point the consumer host
 at `network-adapter`, port 9201, with the same Advanced paste. The
 app's paths (`/discover`, `/select`, …) do not change, and neither does
@@ -589,7 +589,7 @@ loopback. A registry route would depend on that silently.
 ```
 1. registry and discovery        (also sunbird-registry-postgres, sunbird-registry-keycloak, discovery-postgres)
 2. bin/setup.py                  keys, seven participants, four bindings, four configs
-3. the adapters                  network-adapter (default), or the three with MODE=multi-adapter
+3. the adapters                  network-adapter (default), or the three with NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter
 4. nginx-proxy-manager           the public edge — 80 and 443, all interfaces
 5. hyperdx                       ClickStack
 ```
