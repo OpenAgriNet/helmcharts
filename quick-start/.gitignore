@@ -17,6 +17,8 @@ config/adapters/exp.yaml
 config/adapters/network.yaml
 config/adapters/provider.yaml
 config/adapters/network-adapter.yaml
+config/adapters/single-adapter/*.yaml
+config/adapters/multi-adapter/*.yaml
 
 # A local override for the discovery service, if you make one.
 config/discovery/instance.yaml

@@ -4,8 +4,7 @@
 #
 #     bin/stack.sh up            the whole stack, in the order it has to start
 #     bin/stack.sh up-core       the same minus the gateway and hyperdx
-#     bin/stack.sh up-multi      as up, with the three tier adapters
-#     bin/stack.sh up-core-multi as up-core, with the three tier adapters
+#     bin/stack.sh up --single-adapter | --multi-adapter    (also with up-core)
 #     bin/stack.sh down          stop everything, keep the data
 #     bin/stack.sh destroy       stop everything, DELETE the data
 #
@@ -61,7 +60,7 @@ MODE="${MODE:-single}"
 RUNNING_MODE="$(running_mode)"
 
 # The config network-adapter mounts for a mode (compose: NETWORK_ADAPTER_CONFIG).
-network_config_for() { [ "$1" = multi ] && echo network || echo network-adapter; }
+network_config_for() { [ "$1" = multi ] && echo multi-adapter/network || echo single-adapter/network-adapter; }
 export NETWORK_ADAPTER_CONFIG="$(network_config_for "${RUNNING_MODE:-$MODE}")"
 check_mode() {
     case "$MODE" in single|multi) ;; *) die "MODE must be single or multi, not '$MODE'" ;; esac
@@ -73,11 +72,21 @@ adapters_for() { # $1 mode
         multi)  echo provider-adapter network-adapter consumer-adapter ;;
     esac
 }
-# The rendered config files (config/adapters/<name>.yaml) a deployment mode mounts.
+# The rendered config files (config/adapters/<path>.yaml) a deployment mode mounts.
 configs_for() { # $1 mode
     case "$1" in
-        single) echo network-adapter ;;
-        multi)  echo provider network consumer ;;
+        single) echo single-adapter/network-adapter ;;
+        multi)  echo multi-adapter/provider multi-adapter/network multi-adapter/consumer ;;
+    esac
+}
+
+# --single-adapter / --multi-adapter after up or up-core set the mode.
+mode_flag() {
+    case "${1:-}" in
+        "") ;;
+        --single-adapter) MODE=single ;;
+        --multi-adapter)  MODE=multi ;;
+        *) usage; die "unknown option: $1" ;;
     esac
 }
 
@@ -172,7 +181,7 @@ up_registry_tier() {
 }
 
 # Generates the adapter keypairs, registers the three adapter identities, and
-# renders config/adapters/{provider,network,consumer,network-adapter}.yaml from the .tmpl files
+# renders config/adapters/{multi-adapter,single-adapter}/*.yaml from the .tmpl files
 # beside them. Safe to re-run: keys come from keys/keys.json once it exists,
 # and participants already registered are left alone.
 up_setup() {
@@ -402,10 +411,12 @@ bin/stack.sh <command>
                  registry+discovery -> setup.py -> network-adapter (Network Adapter Layer)
                  -> gateway (public, 80/443) -> hyperdx (wants 16 GB)
   up-core        steps 1-3 only. Nothing public, no ClickHouse.
-  up-multi       as up, with the three adapters (provider, network, consumer)
-  up-core-multi  as up-core, with the three adapters
-                 (MODE=multi also works with up and up-core; restart
-                 follows the running mode)
+  up --single-adapter       as up, one network-adapter running all three tiers
+  up --multi-adapter        as up, with the three adapters (provider, network, consumer)
+  up-core --single-adapter  as up-core, in single mode
+  up-core --multi-adapter   as up-core, in multi mode
+                 (without a flag: MODE, else NETWORK_ADAPTER_DEPLOYMENT_MODE in
+                 .env, else single; restart follows the running mode)
   down           stop everything, keep the data
   destroy        stop everything and DELETE every volume
   setup          re-run bin/setup.py only
@@ -421,10 +432,8 @@ USAGE
 }
 
 case "${1:-}" in
-    up)             up ;;
-    up-core)        up_core ;;
-    up-multi)       MODE=multi; up ;;
-    up-core-multi)  MODE=multi; up_core ;;
+    up)             mode_flag "${2:-}"; up ;;
+    up-core)        mode_flag "${2:-}"; up_core ;;
     down)           down ;;
     destroy)        destroy ;;
     setup)          setup ;;

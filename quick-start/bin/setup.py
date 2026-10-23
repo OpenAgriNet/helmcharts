@@ -565,10 +565,11 @@ def render(identities):
     vistaar_binding = (f"{env('VISTAAR_PARTICIPANT_ID')}"
                        f"|{env('VISTAAR_CAPABILITY')}")
     pocra_binding = f"{env('POCRA_PARTICIPANT_ID')}|{env('POCRA_CAPABILITY')}"
-    # The three tier configs, then network-adapter.yaml.tmpl, which carries all
-    # three tiers' identities.
+    # The three tier configs (multi-adapter/), then single-adapter/network-adapter,
+    # which carries all three tiers' identities.
     for name in (*ROLES, "network-adapter"):
-        template = (ADAPTERS / f"{name}.yaml.tmpl").read_text()
+        folder = "single-adapter" if name == "network-adapter" else "multi-adapter"
+        template = (ADAPTERS / folder / f"{name}.yaml.tmpl").read_text()
         for role in (ROLES if name == "network-adapter" else (name,)):
             identity = identities[role]
             prefix = role.upper()
@@ -607,7 +608,7 @@ def render(identities):
             template = template.replace(placeholder, value)
         if "__" in template:
             sys.exit(f"setup: {name}.yaml still has unrendered placeholders")
-        out = ADAPTERS / f"{name}.yaml"
+        out = ADAPTERS / folder / f"{name}.yaml"
         # A bare `docker compose up -d` before this script runs starts the
         # adapters too, and Docker creates a DIRECTORY at a bind-mount source
         # that does not exist. Writing would then fail with a bare
@@ -618,11 +619,11 @@ def render(identities):
                 f"  Docker created it, which means the adapters were started before this\n"
                 f"  script ran. Bring them down, remove the empty directories and retry:\n"
                 f"    docker compose down\n"
-                f"    rmdir config/adapters/*.yaml\n"
+                f"    rmdir config/adapters/*/*.yaml\n"
                 f"    make up")
         out.write_text(template)
         out.chmod(0o600)  # holds a private key
-        print(f"  config/adapters/{name}.yaml")
+        print(f"  config/adapters/{folder}/{name}.yaml")
 
 
 if __name__ == "__main__":
@@ -664,7 +665,7 @@ nothing. The registry is not reachable from outside this stack, so that write
 happens from here.
 
 Next: `make up` continues to step 3 and starts the adapters. If you ran this
-on its own, run `make up` (or `make up-multi`) to pick up the rendered configs.
+on its own, run `make up` (or `MODE=multi make up`) to pick up the rendered configs.
 
 Then import ../api-collection/ -- both files, the collection and the
 environment -- and run it. Eighteen requests across the four capabilities,

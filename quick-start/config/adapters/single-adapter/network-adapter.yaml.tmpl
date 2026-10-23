@@ -1,5 +1,5 @@
-# Single mode: consumer at /, /publish, /_internal/network/, /_internal/provider/ in one
-# process. Signing is off: keep :9201 on 127.0.0.1. setup.py renders it (ADR-0001).
+# Single mode only: consumer at /, /publish, /_internal/network/, /_internal/provider/
+# in one process. Signing is off: keep :9201 on 127.0.0.1. setup.py renders it (ADR-0001).
 appName: network-adapter
 
 log:
@@ -34,9 +34,9 @@ plugins:
       enableLogs: "__OTEL_ENABLED__"
 
 modules:
-  # consumer: the app calls /<action>; discover to /_internal/network, transactions
+  # consumer-adapter: the app calls /<action>; discover to /_internal/network, transactions
   # to /_internal/provider (routing-network-adapter-consumer.yaml).
-  - name: consumer
+  - name: consumer-adapter
     path: /
     handler:
       type: std
@@ -92,8 +92,8 @@ modules:
         - validateSchema
         - addRoute
 
-  # network: forwards discover and publish to discovery (routing-network.yaml).
-  - name: network
+  # network-adapter: forwards discover and publish to discovery (routing-network.yaml).
+  - name: network-adapter
     path: /_internal/network/
     handler:
       type: std
@@ -150,8 +150,8 @@ modules:
       steps:
         - addRoute
 
-  # provider: answers from the upstream APIs itself (no router).
-  - name: provider
+  # oanProvider: answers from the upstream APIs itself (no router).
+  - name: oanProvider
     path: /_internal/provider/
     handler:
       type: std
@@ -250,9 +250,9 @@ modules:
         - KnowledgeAdvisory
         - AgricultureFacility
 
-  # provider-publish: the catalogue publishes at /publish; routed to
+  # oanProviderPublish: the catalogue publishes at /publish; routed to
   # /_internal/network/publish (routing-network-adapter-provider.yaml).
-  - name: provider-publish
+  - name: oanProviderPublish
     path: /publish
     handler:
       type: std
