@@ -3,7 +3,7 @@
 # startup order matters, and a good place to make the right order the shortest
 # thing to type.
 #
-#     make up        the whole stack, in the order it has to start
+#     make up        the whole stack (Network Adapter), in order
 #     make up-core   the same minus the reverse proxy and hyperdx
 #     make down      stop everything, keep the data
 #     make help      the rest
