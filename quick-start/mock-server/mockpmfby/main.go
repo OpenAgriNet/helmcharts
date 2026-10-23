@@ -107,16 +107,14 @@ func main() {
 		return envelope{ResponseCode: "1", ResponseMessage: "Ticket Raised Successfully", ResponseDynamic: ticketRef(t)}
 	})
 
-	// Matched on the phone alone: the demo ignores the ticket number unless it
-	// is absent, and with no phone answers its first record.
+	// A ticket is read only with its own number and the phone it was lodged from.
 	handle("GetGrievenceTicketsStatus", *token, func(body map[string]any) envelope {
-		phone, hasPhone := body["requestorMobileNo"]
-		_, hasTicket := body["GrievenceSupportTicketNo"]
+		phone, ticketNo := fmt.Sprint(body["requestorMobileNo"]), fmt.Sprint(body["GrievenceSupportTicketNo"])
 		mu.Lock()
 		defer mu.Unlock()
 		for _, app := range applications {
 			t, raised := tickets[app.no]
-			if raised && (!hasPhone || (hasTicket && fmt.Sprint(phone) == app.phone)) {
+			if raised && phone == app.phone && ticketNo == t["GrievenceSupportTicketNo"] {
 				// A successful read is the one answer whose responseCode is a number.
 				return envelope{ResponseCode: 1, ResponseMessage: "Fetched successfully", ResponseDynamic: t}
 			}

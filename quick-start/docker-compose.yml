@@ -587,10 +587,11 @@ services:
       - "127.0.0.1:${MOCKAGMARKNET_PORT}:9101"
 
   # PMFBY grievance (KRPH FGMS), copying the demo portal. Accepts the
-  # PMFBY_ACCESS_* login from .env. Built locally:
-  #   docker build -t oan-mockpmfby:local mock-server/mockpmfby
+  # PMFBY_ACCESS_* login from .env. Built from mock-server/mockpmfby when the
+  # image is not already present. `make up` starts it.
   mock-pmfby:
     image: ${MOCKPMFBY_IMAGE}
+    build: ./mock-server/mockpmfby
     pull_policy: missing
     container_name: mock-pmfby
     restart: unless-stopped
