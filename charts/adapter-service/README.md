@@ -87,8 +87,8 @@ Any other values change rolls the pods on its own.
 ## Values and examples
 
 - `values.yaml`: every field, with a comment on what it does.
-- `examples/network.yaml`: role `network-adapter` in either mode (`--set deploymentMode=single-adapter|multi-adapter`).
-- `examples/{provider,consumer}.yaml`: the other two releases in multi mode.
+- `examples/network-adapter.yaml`: role `network-adapter` in either mode (`--set deploymentMode=single-adapter|multi-adapter`).
+- `examples/{provider,consumer}-adapter.yaml`: the other two releases in multi mode.
 - `ci/*-values.yaml`: what CI lints and renders.
 
 ## Related

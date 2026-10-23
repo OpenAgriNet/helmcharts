@@ -32,7 +32,7 @@ The network release, in either mode:
 ```sh
 helm upgrade --install network-adapter charts/adapter-service \
   -n network-adapter --create-namespace \
-  -f charts/adapter-service/examples/network.yaml \
+  -f charts/adapter-service/examples/network-adapter.yaml \
   --set deploymentMode=single-adapter   # or multi-adapter
 ```
 
@@ -59,7 +59,7 @@ and each tier's public key must be in its registry row.
 helm dependency build charts/adapter-service
 helm upgrade --install network-adapter charts/adapter-service \
   -n network-adapter --create-namespace \
-  -f charts/adapter-service/examples/network.yaml \
+  -f charts/adapter-service/examples/network-adapter.yaml \
   --set deploymentMode=single-adapter
 ```
 
@@ -108,7 +108,7 @@ kubectl -n network-adapter delete secret consumer-adapter-keys \
   provider-adapter-keys provider-upstream --ignore-not-found
 ```
 
-`examples/provider.yaml` reads its upstream credentials from a Secret named
+`examples/provider-adapter.yaml` reads its upstream credentials from a Secret named
 `provider-adapter-upstream`. Create it in `provider-adapter`, or change
 `envFromSecrets` in your provider values to `provider-upstream`.
 
@@ -116,12 +116,12 @@ kubectl -n network-adapter delete secret consumer-adapter-keys \
 
 ```sh
 helm upgrade --install provider-adapter charts/adapter-service \
-  -n provider-adapter --create-namespace -f charts/adapter-service/examples/provider.yaml
+  -n provider-adapter --create-namespace -f charts/adapter-service/examples/provider-adapter.yaml
 helm upgrade --install network-adapter charts/adapter-service \
-  -n network-adapter --create-namespace -f charts/adapter-service/examples/network.yaml \
+  -n network-adapter --create-namespace -f charts/adapter-service/examples/network-adapter.yaml \
   --set deploymentMode=multi-adapter
 helm upgrade --install consumer-adapter charts/adapter-service \
-  -n consumer-adapter --create-namespace -f charts/adapter-service/examples/consumer.yaml
+  -n consumer-adapter --create-namespace -f charts/adapter-service/examples/consumer-adapter.yaml
 ```
 
 The network release is the same command as in single mode, with `multi-adapter`.
@@ -146,7 +146,7 @@ same keys and registry rows, so the registry does not change.
 2. Run the network release command with `single`:
    ```sh
    helm upgrade --install network-adapter charts/adapter-service \
-     -n network-adapter -f charts/adapter-service/examples/network.yaml \
+     -n network-adapter -f charts/adapter-service/examples/network-adapter.yaml \
      --set deploymentMode=single-adapter
    ```
 3. Point the app and the publisher at `network-adapter.network-adapter.svc:9201`.

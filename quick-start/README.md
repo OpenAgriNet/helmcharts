@@ -160,7 +160,7 @@ docker compose logs network-adapter | grep 'Server listening'
 ## Step 7 — Consumer layer
 
 The consumer's edge. Sends `discover` to the network layer and `select`
-straight to the provider layer, per `config/adapters/routing-consumer.yaml`.
+straight to the provider layer, per `config/adapters/multi-adapter/routing-consumer.yaml`.
 
 `.env` keys: `CONSUMER_SUBSCRIBER_ID`.
 
@@ -1092,15 +1092,14 @@ config/
                             remote config. Reads every container's json log and
                             names the service from the compose label
   adapters/
-    multi-adapter/          multi mode templates (consumer, network,
-      *.yaml.tmpl           provider). setup.py renders each to .yaml beside
+    multi-adapter/          multi mode: consumer, network and provider
+      *.yaml.tmpl           templates. setup.py renders each to .yaml beside
                             it; rendered files hold private keys, gitignored
-    routing-consumer.yaml which action goes where: consumer sends discover
-    routing-network.yaml    to the network layer and select to the provider;
-    routing-provider.yaml   provider sends publish to the network layer
-    single-adapter/network-adapter.yaml.tmpl  single mode: all three tiers
-    routing-network-adapter-consumer.yaml  single mode: consumer hops to
-    routing-network-adapter-provider.yaml  localhost:9201/_internal/...
+      routing-*.yaml        which action goes where (consumer, network, provider)
+    single-adapter/         single mode: all three tiers in one adapter
+      network-adapter.yaml.tmpl
+      routing-network-adapter-*.yaml  tier hops to localhost:9201/_internal/...
+                            (the network module reuses multi-adapter/routing-network.yaml)
   registry/
     schemas/                Participant, ProviderSchema, SchemaRegistry.
                             Read at startup -- a change needs a restart

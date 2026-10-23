@@ -33,7 +33,7 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   paths with `pathType` Prefix or Exact and no `use-regex` / `rewrite-target`
   annotation; `/`, `/publish` and `/_internal*` are refused. `routing.config` fails the render for this
   role.
-- `examples/network.yaml` serves both modes: in single mode the chart adds
+- `examples/network-adapter.yaml` serves both modes: in single mode the chart adds
   `adapterKeys.upstreamSecret` (default `provider-upstream`) to `envFrom`,
   so only `--set deploymentMode` changes. `ci/network-adapter-values.yaml`
   renders single mode in CI.
