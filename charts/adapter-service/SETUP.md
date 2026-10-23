@@ -171,6 +171,6 @@ The same two modes run locally with `make`; see `quick-start/README.md`.
 
 | | single (default) | multi |
 |---|---|---|
-| Start | `make up` | `MODE=multi make up` |
+| Start | `make up` | `MODE=multi-adapter make up` |
 | App calls | `127.0.0.1:9201/<action>` | `127.0.0.1:9202/<action>` |
 | Publisher | `127.0.0.1:9201/publish` | `127.0.0.1:9200/publish` |
