@@ -1,9 +1,42 @@
 {{- if .Values.ingress.enabled }}
+{{- $ann := merge (dict) (.Values.ingress.annotations | default dict) (.Values.commonAnnotations | default dict) }}
+{{- if include "adapter-service.isNetworkAdapterLayer" . }}
+{{- /* single mode: the public surface is flat -- /discover,
+       /<action> and /health, all served by the consumer module at /. Two
+       things must never be public: /_internal/ (the network and provider
+       tiers, called only by this process) and /publish (no validateSign,
+       signs as the provider). So a path is accepted only if it is one literal
+       segment and is neither of those; "/" is refused because a Prefix "/"
+       covers both.
+       Prefix and Exact only: ImplementationSpecific is a plain string prefix
+       on ingress-nginx, and regex or rewrite annotations turn paths into
+       patterns, so either could reach /_internal or /publish. */}}
+{{- if eq (index $ann "nginx.ingress.kubernetes.io/use-regex" | default "" | toString | trim | lower) "true" }}
+{{- fail (printf "%s: ingress annotation nginx.ingress.kubernetes.io/use-regex is not allowed in the single deployment mode. A regex path can match /_internal or /publish." .Chart.Name) }}
+{{- end }}
+{{- if hasKey $ann "nginx.ingress.kubernetes.io/rewrite-target" }}
+{{- fail (printf "%s: ingress annotation nginx.ingress.kubernetes.io/rewrite-target is not allowed in the single deployment mode. It turns paths into regexes and can rewrite a request onto /_internal or /publish." .Chart.Name) }}
+{{- end }}
+{{- range .Values.ingress.hosts }}
+{{- range .paths }}
+{{- $p := .path | default "" }}
+{{- $pt := .pathType | default "Prefix" }}
+{{- if not (has $pt (list "Prefix" "Exact")) }}
+{{- fail (printf "%s: ingress path %q has pathType %s, which is not allowed in the single deployment mode. Use Prefix or Exact." $.Chart.Name $p $pt) }}
+{{- end }}
+{{- if or (not (regexMatch "^/[A-Za-z0-9_.-]+$" $p)) (hasPrefix "/_internal" $p) (eq $p "/publish") }}
+{{- fail (printf "%s: ingress path %q is not allowed in the single deployment mode. Allowed: one literal segment, /<action> (e.g. /discover, /select). /, /publish and /_internal* are never public." $.Chart.Name $p) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{/*
 Off by default, and worth a thought before turning on.
 
-This adapter takes SIGNED requests -- validateSign is its first step -- so
-publishing it is not the same risk as publishing an adapter that does not. But
+The provider and network roles take SIGNED requests -- validateSign is their
+first step -- so publishing them is not the same risk as publishing an adapter
+that does not. The consumer role, and the single-mode consumer module
+at /, take UNSIGNED requests (NOTES says so when ingress is on). Either way
 it is still a Beckn peer endpoint, and the thing that makes it safe is that
 every caller must hold a key the registry publishes. That is a property of the
 registry's contents, not of this Ingress.
@@ -14,7 +47,7 @@ metadata:
   name: {{ include "adapter-service.fullname" . }}
   labels:
     {{- include "adapter-service.labels" . | nindent 4 }}
-  {{- with (merge (dict) .Values.ingress.annotations (.Values.commonAnnotations | default dict)) }}
+  {{- with $ann }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}

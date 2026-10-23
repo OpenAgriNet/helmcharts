@@ -5,8 +5,10 @@
 # Purpose: chart-local helpers delegating to common, plus the role,
 #          identity, upstream and config-rendering wiring an adapter needs.
 #
-# One chart, three roles. provider, network and consumer are the same image and the
-# same config format; the role decides the handler role, the step list and
+# One chart, three roles: provider, network and consumer. Role network with
+# networkAdapterDeploymentMode single (the default) runs all three tiers in one
+# adapter; in multi it is the network tier and the three roles run one release
+# each. Same image and config format; the role decides the handler role, the step list and
 # where requests are routed. Install once per role, and keep the RELEASE name
 # per-role -- the release name is what becomes the Service DNS name that the
 # other adapters address.
@@ -23,28 +25,12 @@ and then mis-handles every request, at the far end, in a peer's logs.
 {{- define "adapter-service.role" -}}
 {{- $role := .Values.role | default "" -}}
 {{- if not $role -}}
-{{- fail (printf "%s: role is required -- one of provider, network, consumer. It decides the handler role, the step list and the routing target, so there is no safe default. See examples/ for a values file per role." .Chart.Name) -}}
+{{- fail (printf "%s: role is required -- one of provider, network, consumer (role network runs all three tiers when networkAdapterDeploymentMode is single). It decides the handler role, the step list and the routing target, so there is no safe default. See examples/ for a values file per role." .Chart.Name) -}}
 {{- end -}}
 {{- if not (has $role (list "provider" "network" "consumer")) -}}
 {{- fail (printf "%s: role must be one of provider, network, consumer (got %q)." .Chart.Name $role) -}}
 {{- end -}}
 {{- $role -}}
-{{- end }}
-
-{{/*
-The name the adapter calls itself in its config, its logs and its module.
-Defaults to <role>-adapter, matching the compose stack's service names.
-*/}}
-{{- define "adapter-service.appName" -}}
-{{- .Values.appName | default (printf "%s-adapter" (include "adapter-service.role" .)) -}}
-{{- end }}
-
-{{/*
-OTEL service name. Defaults to oan-<role>-adapter, matching OTEL_SERVICE_NAME
-in the compose stack so traces from either deployment line up.
-*/}}
-{{- define "adapter-service.otelServiceName" -}}
-{{- .Values.otel.serviceName | default (printf "oan-%s-adapter" (include "adapter-service.role" .)) -}}
 {{- end }}
 
 {{/*
@@ -87,11 +73,6 @@ self-describing when you exec into a pod.
 routing-{{ include "adapter-service.role" . }}.yaml
 {{- end }}
 
-
-{{- define "adapter-service.name" -}}
-{{- include "common.name" . -}}
-{{- end }}
-
 {{- define "adapter-service.fullname" -}}
 {{- include "common.fullname" . -}}
 {{- end }}
@@ -127,34 +108,6 @@ why.
 {{- fail (printf "%s: keys.existingSecret.name is required. This adapter's identity is a keypair, this chart renders no Secrets, and a pod without one starts and reports Ready while failing every signature it makes. See values.yaml for the six keys it must hold." .Chart.Name) -}}
 {{- end -}}
 {{- $name -}}
-{{- end }}
-
-{{/*
-The registry API base. Required for the same reason as the keys: absent, the
-adapter builds a plugin pointed at nothing and every signature verification
-fails on a lookup rather than on the signature.
-*/}}
-{{- define "adapter-service.registryUrl" -}}
-{{- $url := .Values.registry.url | default "" -}}
-{{- if not $url -}}
-{{- fail (printf "%s: registry.url is required -- e.g. http://registry:8081/api/v1. The adapter verifies every caller against the key the registry publishes for them, so with no registry it can verify nobody." .Chart.Name) -}}
-{{- end -}}
-{{- $url -}}
-{{- end }}
-
-{{/*
-OTLP endpoint, required only when telemetry is on. An enabled exporter with
-no endpoint dials nothing and logs a failure per export interval, which is
-the noise the three enable flags exist to avoid.
-*/}}
-{{- define "adapter-service.otlpEndpoint" -}}
-{{- if .Values.otel.enabled -}}
-{{- $ep := .Values.otel.endpoint | default "" -}}
-{{- if not $ep -}}
-{{- fail (printf "%s: otel.endpoint is required when otel.enabled is true -- e.g. otel-collector.observability.svc.cluster.local:4317. An enabled exporter with nowhere to send logs a failure every export interval." .Chart.Name) -}}
-{{- end -}}
-{{- $ep -}}
-{{- end -}}
 {{- end }}
 
 {{/*
