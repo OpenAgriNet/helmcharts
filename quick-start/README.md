@@ -217,9 +217,10 @@ The network adapter runs in one of two modes. **Single is the default.**
 
 Guidelines:
 
-1. **Use `make`, not plain `docker compose`, to start adapters.** `make` reads
-   `NETWORK_ADAPTER_DEPLOYMENT_MODE` from `.env` (default `single`) and mounts the
-   right config. `MODE=multi-adapter make up` overrides it once.
+1. **Set the mode once in `.env`.** `NETWORK_ADAPTER_DEPLOYMENT_MODE` (default
+   `single-adapter`) picks the config and, through `COMPOSE_PROFILES`, which adapters
+   start, for `make up` and plain `docker compose up -d` alike. `MODE=multi-adapter make up`
+   overrides it once.
 2. **To switch, run the other target.** `make up` after multi removes the
    provider and consumer containers; `MODE=multi-adapter make up` after single starts them.
    `make restart`, `make down`, `make ps` and `make logs` follow the running mode.
@@ -1140,7 +1141,7 @@ that volume — and equally does not survive if you skip it.
 
 ```sh
 docker compose down -v
-rm -rf keys config/adapters/multi-adapter/{consumer,network,provider}.yaml \
+rm -rf keys config/adapters/multi-adapter/{consumer,network,provider}-adapter.yaml \
        config/adapters/single-adapter/network-adapter.yaml
 ```
 
