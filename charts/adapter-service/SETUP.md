@@ -11,8 +11,8 @@ Why there are two modes is in
 2. **Run one mode per environment.** Both modes use release `network-adapter` in
    namespace `network-adapter`.
 3. **Switch with one value.** The `network-adapter` release always uses the same
-   command; only `--set networkAdapterDeploymentMode=single|multi` changes
-   (default `single`). `provider` and `consumer` ignore it.
+   command; only `--set deploymentMode=single-adapter|multi-adapter` changes
+   (default `single-adapter`). `provider` and `consumer` ignore it.
 4. **Keep the release and namespace names.** Adapters find each other by
    Service name, so `consumer-adapter`, `network-adapter` and `provider-adapter`
    must not be renamed.
@@ -33,7 +33,7 @@ The network release, in either mode:
 helm upgrade --install network-adapter charts/adapter-service \
   -n network-adapter --create-namespace \
   -f charts/adapter-service/examples/network.yaml \
-  --set networkAdapterDeploymentMode=single   # or multi
+  --set deploymentMode=single-adapter   # or multi-adapter
 ```
 
 ## Single mode (default)
@@ -48,7 +48,7 @@ The default openbao-secrets values already mirror all four there.
 | `consumer-adapter-keys` | consumer tier keys |
 | `network-adapter-keys` | network tier keys |
 | `provider-adapter-keys` | provider tier keys |
-| `provider-upstream` | provider upstream credentials (`networkTierKeys.upstreamSecret`) |
+| `provider-upstream` | provider upstream credentials (`adapterKeys.upstreamSecret`) |
 
 Each keys Secret has the six keys described in [README.md](README.md#the-identity-secret),
 and each tier's public key must be in its registry row.
@@ -60,14 +60,14 @@ helm dependency build charts/adapter-service
 helm upgrade --install network-adapter charts/adapter-service \
   -n network-adapter --create-namespace \
   -f charts/adapter-service/examples/network.yaml \
-  --set networkAdapterDeploymentMode=single
+  --set deploymentMode=single-adapter
 ```
 
 If the config needs extra values from a tier's Secret, list them per
 environment. Otherwise the init container stops on the unfilled placeholder.
 
 ```yaml
-networkTierKeys:
+adapterKeys:
   extraSubstitutions:
     __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl   # <tier>/<key in that tier's Secret>
 ```
@@ -119,12 +119,12 @@ helm upgrade --install provider-adapter charts/adapter-service \
   -n provider-adapter --create-namespace -f charts/adapter-service/examples/provider.yaml
 helm upgrade --install network-adapter charts/adapter-service \
   -n network-adapter --create-namespace -f charts/adapter-service/examples/network.yaml \
-  --set networkAdapterDeploymentMode=multi
+  --set deploymentMode=multi-adapter
 helm upgrade --install consumer-adapter charts/adapter-service \
   -n consumer-adapter --create-namespace -f charts/adapter-service/examples/consumer.yaml
 ```
 
-The network release is the same command as in single mode, with `multi`.
+The network release is the same command as in single mode, with `multi-adapter`.
 Without `--set` it would install as single and wait for keys it should not have.
 
 ### 3. Point callers at the new addresses
@@ -147,7 +147,7 @@ same keys and registry rows, so the registry does not change.
    ```sh
    helm upgrade --install network-adapter charts/adapter-service \
      -n network-adapter -f charts/adapter-service/examples/network.yaml \
-     --set networkAdapterDeploymentMode=single
+     --set deploymentMode=single-adapter
    ```
 3. Point the app and the publisher at `network-adapter.network-adapter.svc:9201`.
 4. Remove the other two releases:
@@ -163,7 +163,7 @@ same keys and registry rows, so the registry does not change.
 | Pod stuck in `ContainerCreating` | A Secret it mounts is missing from the namespace. |
 | Init container `render-config` exits | A placeholder has no value; add it to `extraSubstitutions`. |
 | `401` or `400` on `/_internal/...` from outside the pod | Expected: those paths only accept the adapter's own signed calls. |
-| `helm` fails with `networkAdapterDeploymentMode must be single or multi` | The value is misspelt. |
+| `helm` fails with `deploymentMode must be single-adapter or multi-adapter` | The value is misspelt. |
 
 ## quick-start (docker compose)
 
@@ -171,6 +171,6 @@ The same two modes run locally with `make`; see `quick-start/README.md`.
 
 | | single (default) | multi |
 |---|---|---|
-| Start | `MODE=single make up` (or `make up`) | `MODE=multi make up` (or `make up-multi`) |
+| Start | `make up` | `MODE=multi make up` |
 | App calls | `127.0.0.1:9201/<action>` | `127.0.0.1:9202/<action>` |
 | Publisher | `127.0.0.1:9201/publish` | `127.0.0.1:9200/publish` |

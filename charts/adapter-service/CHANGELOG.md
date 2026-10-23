@@ -9,22 +9,22 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Added
 - **Two deployment modes, with single as the default.**
-  `networkAdapterDeploymentMode: single | multi` (default `single`), read by
-  role `network` only. In single, role `network` is the Network Adapter Layer: the consumer, network and provider tiers as four
+  `deploymentMode: single-adapter | multi-adapter` (default `single-adapter`), read by
+  role `network-adapter` only. In single, role `network-adapter` is the Network Adapter Layer: the consumer, network and provider tiers as four
   modules of one process (`/` for the consumer, `/publish`,
   `/_internal/network/`, `/_internal/provider/`), one release called `network-adapter`. In multi,
   `provider`, `network` and `consumer` run one release per tier, unchanged.
-- `config/network-adapter-config.yaml`: the layer's adapter config, mounted
+- `config/single-adapter/network-adapter-config.yaml`: the layer's adapter config, mounted
   like any role's file (an outbound connection pool and log level info on
   every module). Each module is its tier's module, so a change to
   a tier file that should apply to both deployment modes is made in both. Its routing
-  is generated at render time from `config/routing-*.yaml`
+  is generated at render time from `config/multi-adapter/routing-*.yaml`
   (`routing-network-adapter-{consumer,provider}.yaml`), with tier hosts rewritten
   to `http://localhost:<targetPort>/_internal/<tier>`, so tier hops stay inside the pod. The render fails if `http.port` differs from `service.targetPort`.
 - Three identities: each module signs as its own tier from
-  `networkTierKeys.{consumer,network,provider}`, defaulting to
+  `adapterKeys.{consumer-adapter,network-adapter,provider-adapter}`, defaulting to
   `consumer-adapter-keys`, `network-adapter-keys` and `provider-adapter-keys`
-  (`networkTierKeys.extraSubstitutions` for extra placeholders). A literal
+  (`adapterKeys.extraSubstitutions` for extra placeholders). A literal
   private key in the config, including a `config:` override, fails the render.
 - Flat paths: `/discover`, `/publish`, `/<action>` and `/health`, the
   same URLs as the multi deployment mode. The network and provider tiers are mounted
@@ -34,25 +34,25 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   annotation; `/`, `/publish` and `/_internal*` are refused. `routing.config` fails the render for this
   role.
 - `examples/network.yaml` serves both modes: in single mode the chart adds
-  `networkTierKeys.upstreamSecret` (default `provider-upstream`) to `envFrom`,
-  so only `--set networkAdapterDeploymentMode` changes. `ci/network-adapter-values.yaml`
+  `adapterKeys.upstreamSecret` (default `provider-upstream`) to `envFrom`,
+  so only `--set deploymentMode` changes. `ci/network-adapter-values.yaml`
   renders single mode in CI.
-- `networkAdapterDeploymentMode` is set only in `values.yaml` (default `single`);
-  examples and CI values do not set it. `ci/lint-values.yaml` (role `network`)
+- `deploymentMode` is set only in `values.yaml` (default `single-adapter`);
+  examples and CI values do not set it. `ci/lint-values.yaml` (role `network-adapter`)
   therefore renders single mode.
 - `SETUP.md`: setup for both modes, including the openbao-secrets changes for multi.
 
 ### Changed
 - **Breaking:** `role: network` now defaults to the single deployment mode.
-  An existing network-tier release must set `networkAdapterDeploymentMode:
-  multi` (e.g. `--set networkAdapterDeploymentMode=multi`), or the upgrade turns it into the
+  An existing network-tier release must set `deploymentMode:
+  multi-adapter` (e.g. `--set deploymentMode=multi-adapter`), or the upgrade turns it into the
   Network Adapter Layer. That pod then waits on the consumer and provider key
   Secrets, which a multi environment does not mirror into `network-adapter`.
 - Docs, `values.yaml` and the example headers say single is the default
   deployment mode and multi is optional.
 - Naming: in single mode the release, Service, app name and namespace are
   `network-adapter`, the same as the multi network tier's (telemetry service
-  `oan-network-adapter`, set in `config/network-adapter-config.yaml`).
+  `oan-network-adapter`, set in `config/single-adapter/network-adapter-config.yaml`).
   Switching modes upgrades that release in place.
 
 ### Fixed
@@ -65,7 +65,7 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   fetches `beckn.yaml` at boot, so without this a slow or proxied egress
   would get a cold start killed after about 70s.
 - NOTES.txt in single mode no longer prints `registry.url` and
-  `otel.*`: that role mounts `config/network-adapter-config.yaml` as is, so those
+  `otel.*`: that role mounts `config/single-adapter/network-adapter-config.yaml` as is, so those
   values never reached the pod and NOTES reported the opposite of what it ran.
   The example and CI values no longer set them.
 - The Ingress annotations merge tolerates `ingress.annotations: null`.

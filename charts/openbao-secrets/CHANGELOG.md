@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `network-adapter` as a target namespace of `consumer-adapter-keys`,
   `provider-adapter-keys` and `provider-upstream`: in the single deployment
-  mode (the default) `adapter-service` role `network` runs all three tiers
+  mode (the default) `adapter-service` role `network-adapter` runs all three tiers
   there. In multi mode, remove `network-adapter` from those three entries.
 
 ## [0.1.0] - 2026-09-27

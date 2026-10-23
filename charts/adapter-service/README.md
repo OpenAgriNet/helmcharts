@@ -1,16 +1,16 @@
 # adapter-service
 
-One chart for the OAN Beckn adapters. `role` picks the adapter (`provider`,
-`network` or `consumer`); all three use the same image and config format.
+One chart for the OAN Beckn adapters. `role` picks the adapter (`provider-adapter`,
+`network-adapter` or `consumer-adapter`; the old names `provider`, `network`, `consumer` still work); all three use the same image and config format.
 
-Role `network` has two deployment modes, set by `networkAdapterDeploymentMode`:
+Role `network` has two deployment modes, set by `deploymentMode`:
 
 - **single (default):** one release runs the consumer, network and provider
   tiers as modules of one adapter. Tier-to-tier calls stay inside the pod.
 - **multi:** one release per tier (`consumer-adapter`, `network-adapter`,
-  `provider-adapter`). The network release sets `networkAdapterDeploymentMode=multi`.
+  `provider-adapter`). The network release sets `deploymentMode=multi-adapter`.
 
-`provider` and `consumer` releases are always multi and ignore the value.
+`provider-adapter` and `consumer-adapter` releases are always multi-adapter and ignore the value.
 
 **To install, follow [SETUP.md](SETUP.md).** Why single is the default is in
 [ADR-0001](../../docs/adr/0001-single-network-adapter-deployment-mode.md).
@@ -30,10 +30,10 @@ Role `network` has two deployment modes, set by `networkAdapterDeploymentMode`:
 
 | Role | Handler | Steps | Routes to |
 |---|---|---|---|
-| `provider` | `bpp` | `validateSign → addRoute → sign` | upstream APIs |
-| `network` (multi) | `bpp` | `validateSign → addRoute → sign` | discovery |
-| `consumer` | `bap` | `addRoute → sign` | network |
-| `network` (single, default) | `bap` + `bpp`, four modules | each module runs its tier's steps | discovery and upstream APIs |
+| `provider-adapter` | `bpp` | `validateSign → addRoute → sign` | upstream APIs |
+| `network-adapter` (multi-adapter) | `bpp` | `validateSign → addRoute → sign` | discovery |
+| `consumer-adapter` | `bap` | `addRoute → sign` | network |
+| `network-adapter` (single-adapter, default) | `bap` + `bpp`, four modules | each module runs its tier's steps | discovery and upstream APIs |
 
 The consumer accepts **unsigned** requests: the app is inside the trust
 boundary. An Ingress on it is an unauthenticated entry point, so rate-limit it.
@@ -50,7 +50,7 @@ The render fails without these:
 |---|---|
 | `role` | Decides the handler role, the steps and where requests go. |
 | `image.repository` | An empty one renders an image name that fails only at pull time. |
-| `keys.existingSecret.name` | The adapter's identity (multi roles). Single mode uses `networkTierKeys`, which defaults to the Secret names openbao-secrets creates. |
+| `keys.existingSecret.name` | The adapter's identity (multi roles). Single mode uses `adapterKeys`, which defaults to the Secret names openbao-secrets creates. |
 
 ## The identity Secret
 
@@ -87,7 +87,7 @@ Any other values change rolls the pods on its own.
 ## Values and examples
 
 - `values.yaml`: every field, with a comment on what it does.
-- `examples/network.yaml`: role `network` in either mode (`--set networkAdapterDeploymentMode=single|multi`).
+- `examples/network.yaml`: role `network-adapter` in either mode (`--set deploymentMode=single-adapter|multi-adapter`).
 - `examples/{provider,consumer}.yaml`: the other two releases in multi mode.
 - `ci/*-values.yaml`: what CI lints and renders.
 
