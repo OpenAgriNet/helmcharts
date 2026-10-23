@@ -194,7 +194,11 @@ spec:
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-          {{- with .Values.envFromSecrets }}
+          {{- $envFrom := .Values.envFromSecrets | default list }}
+          {{- if and $single .Values.networkTierKeys.upstreamSecret }}
+          {{- $envFrom = append $envFrom .Values.networkTierKeys.upstreamSecret }}
+          {{- end }}
+          {{- with $envFrom }}
           envFrom:
             {{- range . }}
             - secretRef:

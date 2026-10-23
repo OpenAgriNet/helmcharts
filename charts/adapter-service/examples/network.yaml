@@ -1,12 +1,13 @@
 # ===========================================================================
-# network role, multi deployment mode -- the network tier alone.
+# network role. networkAdapterDeploymentMode decides: single (default) runs all
+# three tiers; multi runs the network tier alone.
 #
 # Verifies that the caller's signature checks out against the key the registry
 # publishes for them, hands discover and publish to the discovery service, and
 # signs on the way out. It answers neither action itself.
 #
 #   helm install network-adapter . -n network-adapter -f examples/network.yaml \
-#     --set networkAdapterDeploymentMode=multi
+#     --set networkAdapterDeploymentMode=single   # or multi
 #
 # Keep the release name `network-adapter`: consumer routes to this Service by name.
 # ===========================================================================

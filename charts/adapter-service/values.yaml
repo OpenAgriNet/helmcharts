@@ -12,7 +12,7 @@
 #   helm install consumer-adapter      . -f examples/consumer.yaml
 #
 # Role network defaults to single mode, all three tiers in one release
-# (examples/network-adapter.yaml); see networkAdapterDeploymentMode.
+# (examples/network.yaml); see networkAdapterDeploymentMode.
 #
 # The release name is what the Service is called, which is the DNS name the
 # other adapters address. Rename a release and you must update whatever routes
@@ -416,6 +416,8 @@ networkTierKeys:
   consumer: consumer-adapter-keys
   network: network-adapter-keys
   provider: provider-adapter-keys
+  # The provider tier's upstream credentials, loaded as env vars in single mode.
+  upstreamSecret: provider-upstream
   # Extra placeholders, as "<tier>/<key in that tier's Secret>", e.g.
   #   __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl
   extraSubstitutions: {}
