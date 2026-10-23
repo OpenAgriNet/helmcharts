@@ -1140,8 +1140,8 @@ that volume — and equally does not survive if you skip it.
 
 ```sh
 docker compose down -v
-rm -rf keys config/adapters/multi-adapter/*.yaml \
-       config/adapters/single-adapter/*.yaml
+rm -rf keys config/adapters/multi-adapter/{consumer,network,provider}.yaml \
+       config/adapters/single-adapter/network-adapter.yaml
 ```
 
 New keys mean new identities, so the provider rows must be created again and
