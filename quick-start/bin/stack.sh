@@ -32,9 +32,9 @@ cd "$ROOT"
 
 # Every optional profile, named so `down` also stops profiled services
 # (the gateway, hyperdx, provider- and consumer-adapter).
-PROFILES=(--profile reverse-proxy --profile observability --profile multi)
+PROFILES=(--profile reverse-proxy --profile observability --profile multi-adapter)
 
-# Deployment mode for `up`: the shell's MODE, else .env, else single (ADR-0001).
+# Deployment mode for `up`: the shell's MODE, else .env, else single-adapter (ADR-0001).
 # Other commands keep the running mode so depends_on never swaps network-adapter's config.
 
 # A key's value in .env (quotes, inline comment and CR stripped); empty if absent.
@@ -49,33 +49,34 @@ dotenv_get() {
 running_mode() {
     [ "$(docker inspect -f '{{.State.Running}}' network-adapter 2>/dev/null)" = true ] || return 0
     case "$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/app/config/adapter.yaml"}}{{.Source}}{{end}}{{end}}' network-adapter 2>/dev/null)" in
-        */network.yaml) echo multi ;;
-        *) echo single ;;
+        */network.yaml) echo multi-adapter ;;
+        *) echo single-adapter ;;
     esac
 }
 
 MODE="${MODE:-$(dotenv_get NETWORK_ADAPTER_DEPLOYMENT_MODE)}"
-MODE="${MODE:-single}"
+MODE="${MODE:-single-adapter}"
+case "$MODE" in single|multi) MODE="$MODE-adapter" ;; esac   # old values still accepted
 RUNNING_MODE="$(running_mode)"
 
 # The config network-adapter mounts for a mode (compose: NETWORK_ADAPTER_CONFIG).
-network_config_for() { [ "$1" = multi ] && echo multi-adapter/network || echo single-adapter/network-adapter; }
+network_config_for() { [ "$1" = multi-adapter ] && echo multi-adapter/network || echo single-adapter/network-adapter; }
 export NETWORK_ADAPTER_CONFIG="$(network_config_for "${RUNNING_MODE:-$MODE}")"
 check_mode() {
-    case "$MODE" in single|multi) ;; *) die "MODE must be single or multi, not '$MODE'" ;; esac
+    case "$MODE" in single-adapter|multi-adapter) ;; *) die "MODE must be single-adapter or multi-adapter, not '$MODE'" ;; esac
 }
 
 adapters_for() { # $1 mode
     case "$1" in
-        single) echo network-adapter ;;
-        multi)  echo provider-adapter network-adapter consumer-adapter ;;
+        single-adapter) echo network-adapter ;;
+        multi-adapter)  echo provider-adapter network-adapter consumer-adapter ;;
     esac
 }
 # The rendered config files (config/adapters/<path>.yaml) a deployment mode mounts.
 configs_for() { # $1 mode
     case "$1" in
-        single) echo single-adapter/network-adapter ;;
-        multi)  echo multi-adapter/provider multi-adapter/network multi-adapter/consumer ;;
+        single-adapter) echo single-adapter/network-adapter ;;
+        multi-adapter)  echo multi-adapter/provider multi-adapter/network multi-adapter/consumer ;;
     esac
 }
 
@@ -198,8 +199,8 @@ up_adapters() {
         docker rm -f network-adapter >/dev/null
     fi
     # Single runs network-adapter alone: remove the multi-only adapters.
-    if [ "$MODE" = single ]; then
-        docker compose --profile multi rm -sf provider-adapter consumer-adapter >/dev/null 2>&1 || true
+    if [ "$MODE" = single-adapter ]; then
+        docker compose --profile multi-adapter rm -sf provider-adapter consumer-adapter >/dev/null 2>&1 || true
     fi
     # Never let compose create a directory where a bind-mounted config belongs.
     for f in $(configs_for "$MODE"); do
@@ -207,7 +208,7 @@ up_adapters() {
             || die "config/adapters/$f.yaml was not rendered (a directory there? rm -r it, then re-run)"
     done
     # shellcheck disable=SC2046
-    docker compose --profile multi up -d --force-recreate $(adapters_for "$MODE")
+    docker compose --profile multi-adapter up -d --force-recreate $(adapters_for "$MODE")
     # NPM resolves adapter names when nginx loads and caches the addresses, so
     # a recreated or switched adapter 502s through it until it restarts.
     if [ "$(docker inspect -f '{{.State.Running}}' nginx-proxy-manager 2>/dev/null)" = true ]; then
@@ -368,8 +369,8 @@ restart_app() {
     step 1 1 "restarting registry, discovery and the $MODE-mode adapters"
     info "keycloak, both databases and the edge are left alone"
     # shellcheck disable=SC2046
-    docker compose --profile multi restart sunbird-registry-service discovery-service $(adapters_for "$MODE")
-    docker compose --profile multi ps --format 'table {{.Service}}\t{{.Status}}'
+    docker compose --profile multi-adapter restart sunbird-registry-service discovery-service $(adapters_for "$MODE")
+    docker compose --profile multi-adapter ps --format 'table {{.Service}}\t{{.Status}}'
 }
 
 # ----------------------------------------------------------------- misc
@@ -401,7 +402,7 @@ bin/stack.sh <command>
                  -> gateway (public, 80/443) -> hyperdx (wants 16 GB)
   up-core        steps 1-3 only. Nothing public, no ClickHouse.
                  (without a flag: MODE, else NETWORK_ADAPTER_DEPLOYMENT_MODE in
-                 .env, else single; restart follows the running mode)
+                 .env, else single-adapter; restart follows the running mode)
   down           stop everything, keep the data
   destroy        stop everything and DELETE every volume
   setup          re-run bin/setup.py only
