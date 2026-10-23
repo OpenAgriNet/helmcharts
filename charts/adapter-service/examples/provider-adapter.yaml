@@ -5,13 +5,13 @@
 # the upstream APIs that actually answer it. Unlike the other two roles it has
 # more than one target, which is why routing.rules is a list.
 #
-#   helm install provider-adapter . -f examples/provider.yaml
+#   helm install provider-adapter . -f examples/provider-adapter.yaml
 #
 # MANDI_TOKEN is the mandi upstream's credential. It is named here and read at
 # call time, so it never lands in a config file or in the registry -- put it in
 # a Secret and reference it, do not inline it.
 # ===========================================================================
-role: provider
+role: provider-adapter
 
 # The Service name, and therefore the in-cluster DNS name other adapters use.
 # Set explicitly because fullname is otherwise "<release>-<chart>" -- release
@@ -37,7 +37,7 @@ service:
 
 # One rule per upstream. Each target.url is a bare host and port -- the router
 # appends the action, so no path and no trailing slash.
-# Routing is no longer a value: it comes from config/routing-<role>.yaml in
+# Routing is no longer a value: it comes from config/multi-adapter/routing-<tier>.yaml in
 # the chart, like the adapter config. Set `routing.config` to a whole routing
 # file only if this deployment must differ.
 

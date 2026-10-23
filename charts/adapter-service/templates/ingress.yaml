@@ -1,9 +1,34 @@
 {{- if .Values.ingress.enabled }}
+{{- $ann := merge (dict) (.Values.ingress.annotations | default dict) (.Values.commonAnnotations | default dict) }}
+{{- $single := eq (include "adapter-service.deploymentMode" .) "single-adapter" }}
+{{- if $single }}
+{{- /* Single mode: only literal one-segment /<action> paths (Prefix/Exact); no snippet,
+       rewrite or regex annotation; never /, /publish or /_internal* (ADR-0001). */}}
+{{- range $k, $_ := $ann }}
+{{- if regexMatch "(?i)(snippet|rewrite|regex)" $k }}
+{{- fail (printf "%s: ingress annotation %s is not allowed in the single deployment mode. Snippet, rewrite and regex annotations can reach /_internal or /publish." $.Chart.Name $k) }}
+{{- end }}
+{{- end }}
+{{- range .Values.ingress.hosts }}
+{{- range .paths }}
+{{- $p := .path | default "" }}
+{{- $pt := .pathType | default "Prefix" }}
+{{- if not (has $pt (list "Prefix" "Exact")) }}
+{{- fail (printf "%s: ingress path %q has pathType %s, which is not allowed in the single deployment mode. Use Prefix or Exact." $.Chart.Name $p $pt) }}
+{{- end }}
+{{- if or (not (regexMatch "^/[A-Za-z0-9_.-]+$" $p)) (hasPrefix "/_internal" $p) (eq $p "/publish") }}
+{{- fail (printf "%s: ingress path %q is not allowed in the single deployment mode. Allowed: one literal segment, /<action> (e.g. /discover, /select). /, /publish and /_internal* are never public." $.Chart.Name $p) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{/*
 Off by default, and worth a thought before turning on.
 
-This adapter takes SIGNED requests -- validateSign is its first step -- so
-publishing it is not the same risk as publishing an adapter that does not. But
+The provider and network roles take SIGNED requests -- validateSign is their
+first step -- so publishing them is not the same risk as publishing an adapter
+that does not. The consumer role, and the single-mode consumer module
+at /, take UNSIGNED requests (NOTES says so when ingress is on). Either way
 it is still a Beckn peer endpoint, and the thing that makes it safe is that
 every caller must hold a key the registry publishes. That is a property of the
 registry's contents, not of this Ingress.
@@ -14,7 +39,7 @@ metadata:
   name: {{ include "adapter-service.fullname" . }}
   labels:
     {{- include "adapter-service.labels" . | nindent 4 }}
-  {{- with (merge (dict) .Values.ingress.annotations (.Values.commonAnnotations | default dict)) }}
+  {{- with $ann }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}

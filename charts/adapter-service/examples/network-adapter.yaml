@@ -1,15 +1,17 @@
 # ===========================================================================
-# network role -- the network layer of the Beckn network.
+# network-adapter role. deploymentMode decides: single-adapter (default) runs all
+# three tiers; multi-adapter runs the network tier alone.
 #
 # Verifies that the caller's signature checks out against the key the registry
 # publishes for them, hands discover and publish to the discovery service, and
 # signs on the way out. It answers neither action itself.
 #
-#   helm install network-adapter . -f examples/network.yaml
+#   helm install network-adapter . -n network-adapter -f examples/network-adapter.yaml \
+#     --set deploymentMode=single-adapter   # or multi-adapter
 #
 # Keep the release name `network-adapter`: consumer routes to this Service by name.
 # ===========================================================================
-role: network
+role: network-adapter
 
 # The Service name, and therefore the in-cluster DNS name other adapters use.
 # Set explicitly because fullname is otherwise "<release>-<chart>" -- release
@@ -36,7 +38,7 @@ service:
 # Both actions share one rule because they share a target: publish arrives
 # from the provider adapter, discover from the consumer adapter, and neither
 # is answered here.
-# Routing is no longer a value: it comes from config/routing-<role>.yaml in
+# Routing is no longer a value: it comes from config/multi-adapter/routing-<tier>.yaml in
 # the chart, like the adapter config. Set `routing.config` to a whole routing
 # file only if this deployment must differ.
 
