@@ -224,7 +224,8 @@ modules:
               # its contract, support on its channel.
               providerIdAt: "message.contract.commitments[].offer.provider.id, message.support.channels[].provider.id"
               capabilityCodeAt: "message.contract.commitments[].commitmentAttributes.@type, message.support.channels[].@type"
-              # Logs in at NICUsersLogin and sends the token bare in Authorization.
+              # Logs in at NICUsersLogin and sends the token bare in Authorization,
+              # held until the login reply's validTo.
               __PMFBY_PARTICIPANT_ID__:
                 authScheme: tokenHeader
                 tokenUrl: "__PMFBY_TOKEN_URL__"
@@ -233,7 +234,7 @@ modules:
                 tokenSecretField: appAccessPWD
                 tokenSecretEnv: PMFBY_ACCESS_PWD
                 tokenResponseField: responseDynamic.token.Token
-                tokenTtl: 10m
+                tokenExpiryField: responseDynamic.token.validTo
                 headerName: Authorization
 
       # Signing and signature validation are OFF: validateSign and signAck are
