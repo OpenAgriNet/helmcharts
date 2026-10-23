@@ -8,18 +8,18 @@ the adapter configs.
 it renders are bind-mounted files, and an adapter started before they exist
 leaves a directory in their place.
 
-WHAT IT WRITES. Seven participants, four capability bindings, four schemas:
+WHAT IT WRITES. Eight participants, five capability bindings, five schemas:
 
     3 x node      one per adapter -- consumer, network, provider -- each with the
                   public halves of a keypair. The private halves stay in
                   keys/keys.json and never reach the registry.
-    4 x upstream  the APIs this deployment calls. ALL FOUR are real external
+    5 x upstream  the APIs this deployment calls. ALL FIVE are real external
                   hosts now, whose base URLs come from .env -- no mock is in
                   use by any capability. An upstream signs nothing, so it needs
                   no role and no keys.
-    4 x binding   a ProviderSchema row per capability: which upstream answers
+    5 x binding   a ProviderSchema row per capability: which upstream answers
                   it, the method and path, timeouts, and the mapping URL.
-    4 x schema    a SchemaRegistry row per capability, saying what the
+    5 x schema    a SchemaRegistry row per capability, saying what the
                   capability MEANS rather than who serves it: the pack in
                   network-specs that defines its attributes. One per
                   capability, so two providers of one capability share a row.
@@ -357,18 +357,24 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url,
           f"{result['params'].get('errmsg', '')[:160]}")
 
 
-# The four capability schemas, keyed by the .env variable each capability code
+# network-specs keeps resource packs under schema/ and API packs under
+# api-schemas/, each folder on its own ref.
+RESOURCE_PACKS = "schema"
+API_PACKS = "api-schemas"
+
+# The five capability schemas, keyed by the .env variable each capability code
 # comes from so the code itself is never written twice.
 #
 # The display name mirrors the pack's own info.title, minus its "OpenAgriNet -"
 # and "Attributes" framing. The version is per capability rather than one
-# setting for all four, because a capability can move to v0.2 while the others
+# setting for all five, because a capability can move to v0.2 while the others
 # stay -- that is the point of versioning the packs separately.
 CAPABILITY_SCHEMAS = (
-    ("MAUSAMGRAM_CAPABILITY", "Weather Observation", "v0.1"),
-    ("AGMARKNET_CAPABILITY", "Mandi Price", "v0.1"),
-    ("VISTAAR_CAPABILITY", "Knowledge Advisory", "v0.1"),
-    ("POCRA_CAPABILITY", "Agriculture Facility", "v0.1"),
+    ("MAUSAMGRAM_CAPABILITY", "Weather Observation", "v0.1", RESOURCE_PACKS),
+    ("AGMARKNET_CAPABILITY", "Mandi Price", "v0.1", RESOURCE_PACKS),
+    ("VISTAAR_CAPABILITY", "Knowledge Advisory", "v0.1", RESOURCE_PACKS),
+    ("POCRA_CAPABILITY", "Agriculture Facility", "v0.1", RESOURCE_PACKS),
+    ("PMFBY_CAPABILITY", "Grievance", "v0.1", API_PACKS),
 )
 
 
@@ -384,21 +390,21 @@ def pmfby_actions():
                 ("status", "/krphapi/FGMS/GetGrievenceTicketsStatus", 2))]
 
 
-def schema_url(capability, version, ref):
+def schema_url(capability, version, folder, ref):
     """Build a pack URL from the capability code, which already contains the
     pack directory's name: openagrinet:WeatherObservation is served out of
     schema/WeatherObservation. Deriving it means the two cannot drift.
 
     The registry pattern-checks the result against exactly this shape, so a
     capability whose pack is laid out differently is refused rather than
-    stored -- which is the behaviour to want, since all eight packs in
-    network-specs are <Capability>/<version>/attributes.yaml today."""
+    stored -- which is the behaviour to want, since every pack in
+    network-specs is <folder>/<Capability>/<version>/attributes.yaml today."""
     return ("https://raw.githubusercontent.com/OpenAgriNet/network-specs/"
-            f"{ref}/schema/{capability.partition(':')[2]}/{version}"
+            f"{ref}/{folder}/{capability.partition(':')[2]}/{version}"
             "/attributes.yaml")
 
 
-def ensure_capability_schema(bearer, capability, name, version, ref):
+def ensure_capability_schema(bearer, capability, name, version, folder, ref):
     """Create a capability's schema row only when absent.
 
     THE REGISTRY NEVER FETCHES schemaUrl -- it only checks its shape. So a row
@@ -415,7 +421,7 @@ def ensure_capability_schema(bearer, capability, name, version, ref):
         return
     result = post("SchemaRegistry", {
         "capabilityCode": capability, "name": name, "version": version,
-        "schemaUrl": schema_url(capability, version, ref),
+        "schemaUrl": schema_url(capability, version, folder, ref),
         "status": "active"}, bearer)
     print(f"  {capability}: {result['params']['status']} "
           f"{result['params'].get('errmsg', '')[:160]}")
@@ -436,7 +442,7 @@ def seed(identities):
     wait_for_registry()
     bearer = token()
 
-    # Seven participants and four capability bindings, all of it from here.
+    # Eight participants and five capability bindings, all of it from here.
     #
     # The registry is not reachable from outside this stack -- no published
     # port beyond loopback and no proxy host in front of it -- so there is no
@@ -453,7 +459,7 @@ def seed(identities):
                                 env(f"{role.upper()}_BASE_URL"),
                                 identity["signingPublic"]))
 
-    # All four upstreams are real external providers now -- no mock is in use
+    # All five upstreams are real external providers now -- no mock is in use
     # by any capability, so every base URL comes from .env and the stack needs
     # egress to all of them.
     #
@@ -524,10 +530,11 @@ def seed(identities):
     # SEPARATE FROM THE MAPPING URLS ABOVE, which live in helmcharts and
     # describe one upstream's wire format. These are network-specs and describe
     # the network's own vocabulary, so they move on their own ref.
-    print("registry: four capability schemas")
-    ref = env("SCHEMA_PACK_REF", "main")
-    for var, name, version in CAPABILITY_SCHEMAS:
-        ensure_capability_schema(bearer, env(var), name, version, ref)
+    print("registry: five capability schemas")
+    pack_refs = {RESOURCE_PACKS: env("SCHEMA_PACK_REF", "main"),
+                 API_PACKS: env("API_SCHEMA_PACK_REF", "api-schema-packs-v0.1")}
+    for var, name, version, folder in CAPABILITY_SCHEMAS:
+        ensure_capability_schema(bearer, env(var), name, version, folder, pack_refs[folder])
 
 
 def key_osids(identities):
