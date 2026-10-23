@@ -1,4 +1,4 @@
-{{- $single := eq (include "adapter-service.deploymentMode" .) "single" -}}
+{{- $single := eq (include "adapter-service.deploymentMode" .) "single-adapter" -}}
 {{ .Chart.Name }} {{ .Chart.Version }} — {{ include "adapter-service.fullname" . }}
 
 {{- if $single }}
@@ -13,7 +13,7 @@
   service    {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}
 {{- if not $single }}
   registry   {{ .Values.registry.url }}
-  routes     from config/routing-{{ include "adapter-service.role" . }}.yaml
+  routes     from config/multi-adapter/routing-{{ include "adapter-service.role" . }}.yaml
   telemetry  {{ if .Values.otel.enabled }}{{ .Values.otel.endpoint }}{{ else }}off{{ end }}
 {{- end }}
 
@@ -33,7 +33,7 @@ TWO THINGS THIS CHART CANNOT CHECK FOR YOU
 
 {{ if $single -}}
 1. The Participant rows. Each tier signs from its own Secret
-   (networkTierKeys); each registry row must carry that tier's public key.
+   (adapterKeys); each registry row must carry that tier's public key.
 {{- else -}}
 1. The Participant row. This adapter signs as {{ .Values.keys.existingSecret.name }}'s
    subscriberId, and every peer verifies that signature against the public key

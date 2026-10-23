@@ -13,7 +13,7 @@
 # routing.rules points at the network adapter by RELEASE name. Rename that
 # release and this must change with it.
 # ===========================================================================
-role: consumer
+role: consumer-adapter
 
 # The Service name, and therefore the in-cluster DNS name other adapters use.
 # Set explicitly because fullname is otherwise "<release>-<chart>" -- release
@@ -46,7 +46,7 @@ handler:
     - addRoute
     - sign
 
-# Routing is no longer a value: it comes from config/routing-<role>.yaml in
+# Routing is no longer a value: it comes from config/multi-adapter/routing-<tier>.yaml in
 # the chart, like the adapter config. Set `routing.config` to a whole routing
 # file only if this deployment must differ.
 

@@ -1,6 +1,6 @@
-# CI only: renders single mode (generated routing, tier identities)
+# CI only: renders single-adapter mode (generated routing, tier identities)
 # with ingress on and annotations null to exercise the path guard.
-role: network
+role: network-adapter
 fullnameOverride: network-adapter
 
 image:
@@ -9,7 +9,7 @@ image:
   tag: "v1.9.0"
 
 # registry.url, otel.*, appName, logLevel, http.timeout.*, routing.* and handler.*
-# are unused in single mode: set them in config/network-adapter-config.yaml.
+# are unused in single-adapter mode: set them in config/single-adapter/network-adapter-config.yaml.
 
 service:
   port: 9201

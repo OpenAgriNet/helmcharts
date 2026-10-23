@@ -1,6 +1,6 @@
 {{- if .Values.ingress.enabled }}
 {{- $ann := merge (dict) (.Values.ingress.annotations | default dict) (.Values.commonAnnotations | default dict) }}
-{{- $single := eq (include "adapter-service.deploymentMode" .) "single" }}
+{{- $single := eq (include "adapter-service.deploymentMode" .) "single-adapter" }}
 {{- if $single }}
 {{- /* Single mode: only literal one-segment /<action> paths (Prefix/Exact, no regex or
        rewrite); never /, /publish or /_internal* (ADR-0001). */}}

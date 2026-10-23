@@ -11,8 +11,8 @@
 #   helm install network-adapter  . -f examples/network.yaml
 #   helm install consumer-adapter      . -f examples/consumer.yaml
 #
-# Role network defaults to single mode, all three tiers in one release
-# (examples/network.yaml); see networkAdapterDeploymentMode.
+# Role network-adapter defaults to single-adapter mode, all three tiers in one release
+# (examples/network.yaml); see deploymentMode.
 #
 # The release name is what the Service is called, which is the DNS name the
 # other adapters address. Rename a release and you must update whatever routes
@@ -28,7 +28,8 @@
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
-# Role: provider | network | consumer
+# Role: provider-adapter | network-adapter | consumer-adapter (provider | network | consumer
+# still accepted)
 #
 # Required, with no default. A default would hand one role's handler role and
 # step list to a different adapter, which renders, starts, reports Ready and
@@ -36,9 +37,9 @@
 # ---------------------------------------------------------------------------
 role: ""
 
-# single (default): role network runs all three tiers; multi: the network tier alone.
-# A multi network release must set multi. provider and consumer ignore it.
-networkAdapterDeploymentMode: single
+# single-adapter (default): role network-adapter runs all three tiers; multi-adapter: the
+# network tier alone. provider-adapter and consumer-adapter ignore it.
+deploymentMode: single-adapter
 
 # Overrides for what the role implies. Leave empty to take the role's default.
 appName: ""
@@ -210,8 +211,8 @@ handler:
 # ---------------------------------------------------------------------------
 # Routing
 #
-# WHERE THE ROUTES ACTUALLY LIVE: config/routing-<role>.yaml in this chart,
-# mounted verbatim, exactly like config/<role>-config.yaml beside it.
+# WHERE THE ROUTES ACTUALLY LIVE: config/multi-adapter/routing-<tier>.yaml in this chart,
+# mounted verbatim, exactly like config/multi-adapter/<tier>-config.yaml beside it.
 #
 # Routing is topology rather than environment. The in-cluster targets follow the
 # namespace-per-component convention and are the same in every environment, so
@@ -412,11 +413,11 @@ envFromSecrets: []
 
 # Single mode only: one key Secret per tier (six keys each, as under keys.existingSecret),
 # named as openbao-secrets creates them. routing.config and handler.* are unused.
-networkTierKeys:
-  consumer: consumer-adapter-keys
-  network: network-adapter-keys
-  provider: provider-adapter-keys
-  # The provider tier's upstream credentials, loaded as env vars in single mode.
+adapterKeys:
+  consumer-adapter: consumer-adapter-keys
+  network-adapter: network-adapter-keys
+  provider-adapter: provider-adapter-keys
+  # The provider tier's upstream credentials, loaded as env vars in single-adapter mode.
   upstreamSecret: provider-upstream
   # Extra placeholders, as "<tier>/<key in that tier's Secret>", e.g.
   #   __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl

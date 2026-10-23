@@ -36,7 +36,7 @@ plugins:
 modules:
   # consumer: unsigned app calls at / (the catch-all mount, on purpose: see ADR-0001);
   # discover to /_internal/network, transactions to /_internal/provider.
-  - name: consumer
+  - name: consumer-adapter
     path: /
     handler:
       type: std
@@ -102,7 +102,7 @@ modules:
 
   # network: verifies the caller, forwards discover and publish to discovery.
   # Internal: never expose it on an Ingress.
-  - name: network
+  - name: network-adapter
     path: /_internal/network/
     handler:
       type: std
@@ -169,7 +169,7 @@ modules:
 
   # provider: verifies the caller and answers from the upstream APIs (no router);
   # upstream credentials come from envFromSecrets: provider-upstream.
-  - name: provider
+  - name: oanProvider
     path: /_internal/provider/
     handler:
       type: std
@@ -273,7 +273,7 @@ modules:
 
   # provider-publish: the catalogue system publishes at /publish, signed as the
   # provider. No validateSign: never expose it on an Ingress.
-  - name: provider-publish
+  - name: oanProviderPublish
     path: /publish
     handler:
       type: std

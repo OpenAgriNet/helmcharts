@@ -1,5 +1,5 @@
 apiVersion: {{ include "common.deployment.apiVersion" . }}
-{{- $single := eq (include "adapter-service.deploymentMode" .) "single" }}
+{{- $single := eq (include "adapter-service.deploymentMode" .) "single-adapter" }}
 kind: Deployment
 metadata:
   name: {{ include "adapter-service.fullname" . }}
@@ -72,7 +72,7 @@ spec:
             - |
               set -eu
               {{- if $single }}
-              # single mode: adapter.yaml plus one routing file per routed module.
+              # single-adapter mode: adapter.yaml plus one routing file per routed module.
               cp /config-template/*.yaml /rendered/
               {{- else }}
               cp /config-template/adapter.yaml /rendered/adapter.yaml
@@ -121,7 +121,7 @@ spec:
               subst __{{ $T }}_ENCR_PRIVATE__ /keys/{{ $tier }}/{{ $k.encrPrivateKey }}
               subst __{{ $T }}_ENCR_PUBLIC__ /keys/{{ $tier }}/{{ $k.encrPublicKey }}
               {{- end }}
-              {{- range $ph, $path := .Values.networkTierKeys.extraSubstitutions }}
+              {{- range $ph, $path := .Values.adapterKeys.extraSubstitutions }}
               subst {{ $ph }} /keys/{{ $path }}
               {{- end }}
               {{- else }}
@@ -149,7 +149,7 @@ spec:
                 grep -oE '__[A-Z][A-Z0-9_]*__' /rendered/adapter.yaml | sort -u >&2
                 exit 1
               fi
-              echo "render-config: config rendered for the {{ include "adapter-service.role" . }} role{{ if $single }} (single mode: all three tiers){{ end }}"
+              echo "render-config: config rendered for the {{ include "adapter-service.role" . }} role{{ if $single }} (single-adapter mode: all three tiers){{ end }}"
           volumeMounts:
             - name: config-template
               mountPath: /config-template
@@ -195,8 +195,8 @@ spec:
             {{- toYaml . | nindent 12 }}
             {{- end }}
           {{- $envFrom := .Values.envFromSecrets | default list }}
-          {{- if and $single .Values.networkTierKeys.upstreamSecret }}
-          {{- $envFrom = append $envFrom .Values.networkTierKeys.upstreamSecret }}
+          {{- if and $single .Values.adapterKeys.upstreamSecret }}
+          {{- $envFrom = append $envFrom .Values.adapterKeys.upstreamSecret }}
           {{- end }}
           {{- with $envFrom }}
           envFrom:
