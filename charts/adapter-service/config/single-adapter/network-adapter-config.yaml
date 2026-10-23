@@ -251,7 +251,7 @@ modules:
               bharat-vistaar:
                 authScheme: oauth2
                 # Substituted from the provider Secret (vistaarTokenUrl) via
-                # networkAdapterLayer.extraSubstitutions.
+                # adapterKeys.extraSubstitutions.
                 tokenUrl: "__VISTAAR_TOKEN_URL__"
                 clientIdEnv: VISTAAR_CLIENT_ID
                 clientSecretEnv: VISTAAR_CLIENT_SECRET

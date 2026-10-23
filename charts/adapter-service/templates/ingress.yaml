@@ -2,13 +2,12 @@
 {{- $ann := merge (dict) (.Values.ingress.annotations | default dict) (.Values.commonAnnotations | default dict) }}
 {{- $single := eq (include "adapter-service.deploymentMode" .) "single-adapter" }}
 {{- if $single }}
-{{- /* Single mode: only literal one-segment /<action> paths (Prefix/Exact, no regex or
-       rewrite); never /, /publish or /_internal* (ADR-0001). */}}
-{{- if eq (index $ann "nginx.ingress.kubernetes.io/use-regex" | default "" | toString | trim | lower) "true" }}
-{{- fail (printf "%s: ingress annotation nginx.ingress.kubernetes.io/use-regex is not allowed in the single deployment mode. A regex path can match /_internal or /publish." .Chart.Name) }}
+{{- /* Single mode: only literal one-segment /<action> paths (Prefix/Exact); no snippet,
+       rewrite or regex annotation; never /, /publish or /_internal* (ADR-0001). */}}
+{{- range $k, $_ := $ann }}
+{{- if regexMatch "(?i)(snippet|rewrite|regex)" $k }}
+{{- fail (printf "%s: ingress annotation %s is not allowed in the single deployment mode. Snippet, rewrite and regex annotations can reach /_internal or /publish." $.Chart.Name $k) }}
 {{- end }}
-{{- if hasKey $ann "nginx.ingress.kubernetes.io/rewrite-target" }}
-{{- fail (printf "%s: ingress annotation nginx.ingress.kubernetes.io/rewrite-target is not allowed in the single deployment mode. It turns paths into regexes and can rewrite a request onto /_internal or /publish." .Chart.Name) }}
 {{- end }}
 {{- range .Values.ingress.hosts }}
 {{- range .paths }}

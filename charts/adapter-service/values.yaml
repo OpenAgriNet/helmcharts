@@ -269,8 +269,8 @@ otel:
   # OTLP/gRPC, e.g. "otel-collector.observability.svc.cluster.local:4317"
   endpoint: ""
   environment: dev
-  # Not read by any template: the role's config file sets it
-  # (plugins.otelsetup.config.serviceName).
+  # Unused: the role's config file sets the service name (plugins.otelsetup.config.serviceName);
+  # only the uncalled adapter-service.otelServiceName helper reads this.
   serviceName: ""
 
 logLevel: info
