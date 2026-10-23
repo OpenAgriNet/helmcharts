@@ -15,6 +15,7 @@ templates.
 |---|---|---|---|
 | `dashboards/oan-alerts.json` | dashboards sidecar | `OAN` | OAN Alerts: every alert in one place -- error rate, response time, data received per service, and logs filtered by service and level. Slack alerts link here |
 | `dashboards/oan-discovery-overview.json` | dashboards sidecar | `OAN` | Service overview: RED, failures, discovery quality, logs |
+| `dashboards/oan-discovery-troubleshoot.json` | dashboards sidecar | `OAN` | Troubleshoot one request: its spans and logs by transaction_id or trace_id. Opened from the overview dashboard's links |
 | `dashboards/network-api.json` | dashboards sidecar | `OAN` | Network API: requests, errors and performance, from traces and logs |
 | `dashboards/providers.json` | dashboards sidecar | `OAN` | Providers: publishing and discovery, from the adapters' audit logs |
 | `dashboards/infra-overview.json` | dashboards sidecar | `OAN` | Infra: CPU, memory, disk, volume and network per service, from kubelet metrics |

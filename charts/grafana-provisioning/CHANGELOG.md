@@ -5,6 +5,20 @@ All notable changes to the `grafana-provisioning` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-10-23
+
+### Added
+- Dashboard: `oan-discovery-troubleshoot`, in the `OAN` folder -- one request's
+  spans, span events and log lines, by transaction_id or trace_id. The
+  overview dashboard already linked to it, so on the cluster those links
+  opened a dashboard that did not exist. Byte-identical to its quick-start copy.
+
+### Fixed
+- Alert rules and dashboards no longer name the `otel` database: tables are
+  unqualified and resolve against the datasource's defaultDatabase. With any
+  other database name every alert rule errored, and `execErrState: KeepLast`
+  kept that silent.
+
 ## [0.3.0] - 2026-10-12
 
 ### Added

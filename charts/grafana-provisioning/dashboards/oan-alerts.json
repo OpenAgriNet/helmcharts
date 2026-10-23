@@ -43,7 +43,7 @@
           "editorType": "sql",
           "format": 1,
           "queryType": "sql",
-          "rawSql": "SELECT DISTINCT service FROM (\n  SELECT ServiceName AS service FROM otel.otel_logs WHERE Timestamp >= now() - INTERVAL 1 DAY\n  UNION ALL\n  SELECT ServiceName AS service FROM otel.otel_traces WHERE Timestamp >= now() - INTERVAL 1 DAY\n  UNION ALL\n  SELECT ServiceName AS service FROM otel.otel_metrics_gauge WHERE TimeUnix >= now() - INTERVAL 1 DAY\n)\nWHERE service != ''\nORDER BY service"
+          "rawSql": "SELECT DISTINCT service FROM (\n  SELECT ServiceName AS service FROM otel_logs WHERE Timestamp >= now() - INTERVAL 1 DAY\n  UNION ALL\n  SELECT ServiceName AS service FROM otel_traces WHERE Timestamp >= now() - INTERVAL 1 DAY\n  UNION ALL\n  SELECT ServiceName AS service FROM otel_metrics_gauge WHERE TimeUnix >= now() - INTERVAL 1 DAY\n)\nWHERE service != ''\nORDER BY service"
         },
         "refresh": 1,
         "multi": true,
@@ -155,7 +155,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT\n  $__timeInterval(Timestamp) AS time,\n  ServiceName AS service,\n  100 * countIf(toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) >= 500) / count() AS error_pct\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(ServiceName IN ($service), $service)\nGROUP BY time, service\nORDER BY time",
+          "rawSql": "SELECT\n  $__timeInterval(Timestamp) AS time,\n  ServiceName AS service,\n  100 * countIf(toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) >= 500) / count() AS error_pct\nFROM otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(ServiceName IN ($service), $service)\nGROUP BY time, service\nORDER BY time",
           "format": 0,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -262,7 +262,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT\n  $__timeInterval(Timestamp) AS time,\n  concat(ServiceName, ' ', SpanName) AS route,\n  quantile(0.95)(Duration) / 1e9 AS p95_seconds\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(ServiceName IN ($service), $service)\nGROUP BY time, route\nORDER BY time",
+          "rawSql": "SELECT\n  $__timeInterval(Timestamp) AS time,\n  concat(ServiceName, ' ', SpanName) AS route,\n  quantile(0.95)(Duration) / 1e9 AS p95_seconds\nFROM otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(ServiceName IN ($service), $service)\nGROUP BY time, route\nORDER BY time",
           "format": 0,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -369,7 +369,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT time, service, sum(n) AS received\nFROM (\n  SELECT $__timeInterval(Timestamp) AS time, ServiceName AS service, count() AS n\n  FROM otel.otel_logs WHERE $__timeFilter(Timestamp) AND $__conditionalAll(ServiceName IN ($service), $service) GROUP BY time, service\n  UNION ALL\n  SELECT $__timeInterval(Timestamp) AS time, ServiceName AS service, count() AS n\n  FROM otel.otel_traces WHERE $__timeFilter(Timestamp) AND $__conditionalAll(ServiceName IN ($service), $service) GROUP BY time, service\n  UNION ALL\n  SELECT $__timeInterval(TimeUnix) AS time, ServiceName AS service, count() AS n\n  FROM otel.otel_metrics_gauge WHERE $__timeFilter(TimeUnix) AND $__conditionalAll(ServiceName IN ($service), $service) GROUP BY time, service\n)\nWHERE service != ''\nGROUP BY time, service\nORDER BY time",
+          "rawSql": "SELECT time, service, sum(n) AS received\nFROM (\n  SELECT $__timeInterval(Timestamp) AS time, ServiceName AS service, count() AS n\n  FROM otel_logs WHERE $__timeFilter(Timestamp) AND $__conditionalAll(ServiceName IN ($service), $service) GROUP BY time, service\n  UNION ALL\n  SELECT $__timeInterval(Timestamp) AS time, ServiceName AS service, count() AS n\n  FROM otel_traces WHERE $__timeFilter(Timestamp) AND $__conditionalAll(ServiceName IN ($service), $service) GROUP BY time, service\n  UNION ALL\n  SELECT $__timeInterval(TimeUnix) AS time, ServiceName AS service, count() AS n\n  FROM otel_metrics_gauge WHERE $__timeFilter(TimeUnix) AND $__conditionalAll(ServiceName IN ($service), $service) GROUP BY time, service\n)\nWHERE service != ''\nGROUP BY time, service\nORDER BY time",
           "format": 0,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -458,7 +458,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT\n  service,\n  silent - min(silent) OVER () AS silent_seconds\nFROM (\n  SELECT service, dateDiff('second', max(last_seen), now()) AS silent\n  FROM (\n    SELECT ServiceName AS service, max(Timestamp) AS last_seen FROM otel.otel_logs\n    WHERE Timestamp >= now() - INTERVAL 1 DAY GROUP BY service\n    UNION ALL\n    SELECT ServiceName AS service, max(Timestamp) AS last_seen FROM otel.otel_traces\n    WHERE Timestamp >= now() - INTERVAL 1 DAY GROUP BY service\n    UNION ALL\n    SELECT ServiceName AS service, max(TimeUnix) AS last_seen FROM otel.otel_metrics_gauge\n    WHERE TimeUnix >= now() - INTERVAL 1 DAY GROUP BY service\n  )\n  WHERE service != ''\n  GROUP BY service\n)\nWHERE $__conditionalAll(service IN ($service), $service)\nORDER BY silent_seconds DESC",
+          "rawSql": "SELECT\n  service,\n  silent - min(silent) OVER () AS silent_seconds\nFROM (\n  SELECT service, dateDiff('second', max(last_seen), now()) AS silent\n  FROM (\n    SELECT ServiceName AS service, max(Timestamp) AS last_seen FROM otel_logs\n    WHERE Timestamp >= now() - INTERVAL 1 DAY GROUP BY service\n    UNION ALL\n    SELECT ServiceName AS service, max(Timestamp) AS last_seen FROM otel_traces\n    WHERE Timestamp >= now() - INTERVAL 1 DAY GROUP BY service\n    UNION ALL\n    SELECT ServiceName AS service, max(TimeUnix) AS last_seen FROM otel_metrics_gauge\n    WHERE TimeUnix >= now() - INTERVAL 1 DAY GROUP BY service\n  )\n  WHERE service != ''\n  GROUP BY service\n)\nWHERE $__conditionalAll(service IN ($service), $service)\nORDER BY silent_seconds DESC",
           "format": 1,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -548,7 +548,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT\n  $__timeInterval(Timestamp) AS time,\n  ServiceName AS service,\n  count() AS lines\nFROM otel.otel_logs\nWHERE $__timeFilter(Timestamp)\n  AND $__conditionalAll(ServiceName IN ($service), $service)\n  AND $__conditionalAll(multiIf(SeverityNumber >= 17 OR lower(SeverityText) IN ('error', 'fatal', 'panic'), 'error', SeverityNumber >= 13 OR lower(SeverityText) IN ('warn', 'warning'), 'warn', SeverityNumber >= 9 OR lower(SeverityText) = 'info', 'info', SeverityNumber >= 1 OR lower(SeverityText) = 'debug', 'debug', 'unknown') IN ($level), $level)\nGROUP BY time, service\nORDER BY time",
+          "rawSql": "SELECT\n  $__timeInterval(Timestamp) AS time,\n  ServiceName AS service,\n  count() AS lines\nFROM otel_logs\nWHERE $__timeFilter(Timestamp)\n  AND $__conditionalAll(ServiceName IN ($service), $service)\n  AND $__conditionalAll(multiIf(SeverityNumber >= 17 OR lower(SeverityText) IN ('error', 'fatal', 'panic'), 'error', SeverityNumber >= 13 OR lower(SeverityText) IN ('warn', 'warning'), 'warn', SeverityNumber >= 9 OR lower(SeverityText) = 'info', 'info', SeverityNumber >= 1 OR lower(SeverityText) = 'debug', 'debug', 'unknown') IN ($level), $level)\nGROUP BY time, service\nORDER BY time",
           "format": 0,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -637,7 +637,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT\n  Timestamp AS timestamp,\n  Body AS body,\n  multiIf(SeverityNumber >= 17 OR lower(SeverityText) IN ('error', 'fatal', 'panic'), 'error', SeverityNumber >= 13 OR lower(SeverityText) IN ('warn', 'warning'), 'warn', SeverityNumber >= 9 OR lower(SeverityText) = 'info', 'info', SeverityNumber >= 1 OR lower(SeverityText) = 'debug', 'debug', 'unknown') AS level,\n  ServiceName AS service\nFROM otel.otel_logs\nWHERE $__timeFilter(Timestamp)\n  AND $__conditionalAll(ServiceName IN ($service), $service)\n  AND $__conditionalAll(multiIf(SeverityNumber >= 17 OR lower(SeverityText) IN ('error', 'fatal', 'panic'), 'error', SeverityNumber >= 13 OR lower(SeverityText) IN ('warn', 'warning'), 'warn', SeverityNumber >= 9 OR lower(SeverityText) = 'info', 'info', SeverityNumber >= 1 OR lower(SeverityText) = 'debug', 'debug', 'unknown') IN ($level), $level)\nORDER BY Timestamp DESC\nLIMIT 500",
+          "rawSql": "SELECT\n  Timestamp AS timestamp,\n  Body AS body,\n  multiIf(SeverityNumber >= 17 OR lower(SeverityText) IN ('error', 'fatal', 'panic'), 'error', SeverityNumber >= 13 OR lower(SeverityText) IN ('warn', 'warning'), 'warn', SeverityNumber >= 9 OR lower(SeverityText) = 'info', 'info', SeverityNumber >= 1 OR lower(SeverityText) = 'debug', 'debug', 'unknown') AS level,\n  ServiceName AS service\nFROM otel_logs\nWHERE $__timeFilter(Timestamp)\n  AND $__conditionalAll(ServiceName IN ($service), $service)\n  AND $__conditionalAll(multiIf(SeverityNumber >= 17 OR lower(SeverityText) IN ('error', 'fatal', 'panic'), 'error', SeverityNumber >= 13 OR lower(SeverityText) IN ('warn', 'warning'), 'warn', SeverityNumber >= 9 OR lower(SeverityText) = 'info', 'info', SeverityNumber >= 1 OR lower(SeverityText) = 'debug', 'debug', 'unknown') IN ($level), $level)\nORDER BY Timestamp DESC\nLIMIT 500",
           "format": 2,
           "queryType": "sql",
           "pluginVersion": "4.21.3"

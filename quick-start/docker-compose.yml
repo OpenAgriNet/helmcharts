@@ -697,7 +697,7 @@ services:
   # is workable.
   # ==========================================================================
   clickhouse:
-    image: clickhouse/clickhouse-server:latest
+    image: clickhouse/clickhouse-server:26.9
     container_name: clickhouse
     restart: unless-stopped
     logging: *logging
@@ -748,7 +748,7 @@ services:
   # OpAMP -- there is no longer an upstream image's own naming to stay
   # coupled to.
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
+    image: otel/opentelemetry-collector-contrib:0.160.0
     container_name: otel-collector
     restart: unless-stopped
     logging: *logging
@@ -840,7 +840,7 @@ services:
   # plugin, provisioned automatically from config/grafana/provisioning -- no
   # click-through needed, unlike HyperDX's Team Settings step.
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:13.2.2
     container_name: grafana
     restart: unless-stopped
     logging: *logging
@@ -885,7 +885,13 @@ services:
       # datasource plugin, so it has to be installed at boot. That needs
       # egress, on the same argument as the "why isn't this internal: true"
       # note at the top of this file.
-      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
+      #
+      # Pinned to the version the cluster runs, as the image is: the
+      # datasource's logs/traces jsonData shape is plugin-version-specific, and
+      # the two paths share dashboard JSON on the premise that they are the
+      # same stack. SYNC so it is installed before provisioning reads the
+      # datasource, not in the background after.
+      GF_PLUGINS_PREINSTALL_SYNC: grafana-clickhouse-datasource@4.21.3
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
       # Alerting on or off: GRAFANA_ALERTING_ENABLED=false in .env, then
@@ -902,7 +908,7 @@ services:
       CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB:-otel}
       CLICKHOUSE_USERNAME: ${CLICKHOUSE_USER:-otel}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
-      # Substituted into config/grafana/provisioning/alerting/notifications.yaml:
+      # Substituted into config/grafana/alerting-true/notifications.yaml:
       # the Slack incoming webhook alerts are posted to. The placeholder is not
       # a real webhook, so notifications fail to send until this is set -- but
       # it must not be empty: Grafana refuses to start with a Slack contact
@@ -911,9 +917,10 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
-      # Mounted over provisioning/alerting, following GRAFANA_ALERTING_ENABLED.
-      # alerting-true is a symlink to provisioning/alerting itself, so on is
-      # the same files as without this line. alerting-false is empty: Grafana
+      # Grafana's provisioning/alerting, chosen by GRAFANA_ALERTING_ENABLED
+      # (bin/stack.sh refuses anything but true/false, since Docker would create
+      # an empty alerting-<typo>/ instead of failing). alerting-true holds the
+      # rules and contact point; alerting-false is empty: Grafana
       # with alerting off does not just skip a contact point it is given, it
       # fails to start ("could not find an Alertmanager configuration"), and
       # the dashboards go down with it.

@@ -2,7 +2,7 @@
 # to it (#34).
 #
 # Same rule as the other files here: byte-identical to the quick-start's copy
-# in quick-start/config/grafana/provisioning/alerting/, checked by
+# in quick-start/config/grafana/alerting-true/, checked by
 # scripts/lint-charts.sh.
 #
 # THE WEBHOOK URL IS NOT IN THIS FILE. Grafana substitutes environment variables

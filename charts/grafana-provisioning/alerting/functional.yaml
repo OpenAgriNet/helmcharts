@@ -10,7 +10,7 @@
 #
 #   Helm         charts/grafana-provisioning/alerting/functional.yaml, rendered into a
 #                ConfigMap that the grafana chart's alerts sidecar loads
-#   quick-start  quick-start/config/grafana/provisioning/alerting/functional.yaml
+#   quick-start  quick-start/config/grafana/alerting-true/functional.yaml
 #
 # Provisioned rules cannot be edited in the Grafana UI -- change them here.
 # Thresholds are initial values, to be tuned once dev has a baseline.
@@ -19,6 +19,12 @@
 # files, so `$__timeFilter`, `$A` and `$labels` below reach Grafana as written.
 # The file is also never passed through Helm's `tpl`, which would read the
 # annotation templates as its own.
+#
+# Table names are unqualified on purpose: the database is whatever the
+# ClickHouse datasource's defaultDatabase is (CLICKHOUSE_DB in the quick-start).
+# Writing `otel.otel_traces` would pin the rules to one database name, and a
+# rule that cannot find its table only errors -- execErrState: KeepLast keeps
+# it quiet, so alerting would look healthy and never fire.
 apiVersion: 1
 
 groups:
@@ -71,7 +77,7 @@ groups:
                 SELECT
                   ServiceName AS service,
                   round(100 * countIf(toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) >= 500) / count(), 2) AS failure_pct
-                FROM otel.otel_traces
+                FROM otel_traces
                 WHERE $__timeFilter(Timestamp)
                   AND SpanKind = 'Server'
                 GROUP BY service
@@ -144,7 +150,7 @@ groups:
                   ServiceName AS service,
                   SpanName AS route,
                   round(quantile(0.95)(Duration) / 1e9, 3) AS p95_seconds
-                FROM otel.otel_traces
+                FROM otel_traces
                 WHERE $__timeFilter(Timestamp)
                   AND SpanKind = 'Server'
                 GROUP BY service, route
@@ -227,22 +233,22 @@ groups:
                   dateDiff('second', max(last_seen), now()) AS silent
                 FROM (
                   SELECT ServiceName AS service, max(Timestamp) AS last_seen
-                  FROM otel.otel_logs
+                  FROM otel_logs
                   WHERE Timestamp >= now() - INTERVAL 1 DAY
                   GROUP BY service
                   UNION ALL
                   SELECT ServiceName AS service, max(Timestamp) AS last_seen
-                  FROM otel.otel_traces
+                  FROM otel_traces
                   WHERE Timestamp >= now() - INTERVAL 1 DAY
                   GROUP BY service
                   UNION ALL
                   SELECT ServiceName AS service, max(TimeUnix) AS last_seen
-                  FROM otel.otel_metrics_gauge
+                  FROM otel_metrics_gauge
                   WHERE TimeUnix >= now() - INTERVAL 1 DAY
                   GROUP BY service
                   UNION ALL
                   SELECT ServiceName AS service, max(TimeUnix) AS last_seen
-                  FROM otel.otel_metrics_sum
+                  FROM otel_metrics_sum
                   WHERE TimeUnix >= now() - INTERVAL 1 DAY
                   GROUP BY service
                 )

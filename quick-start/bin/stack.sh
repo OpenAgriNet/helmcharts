@@ -62,6 +62,17 @@ preflight() {
 
     python3 -c 'import cryptography' >/dev/null 2>&1 \
         || die "the python 'cryptography' package is missing -- pip install cryptography"
+
+    # Grafana's alerting mount is ./config/grafana/alerting-<this value>, and
+    # only alerting-true and alerting-false exist. Anything else (True, 1, yes)
+    # is not an error to Docker: it creates an empty alerting-True/ and Grafana
+    # silently loads no rules. The shell environment wins over .env, as it does
+    # for compose.
+    local alerting="${GRAFANA_ALERTING_ENABLED:-$(sed -n 's/^GRAFANA_ALERTING_ENABLED=//p' .env | tail -n 1 | tr -d "\"'")}"
+    case "${alerting:-true}" in
+        true|false) ;;
+        *) die "GRAFANA_ALERTING_ENABLED must be exactly true or false, not '$alerting'" ;;
+    esac
 }
 
 # ------------------------------------------------------------------- up

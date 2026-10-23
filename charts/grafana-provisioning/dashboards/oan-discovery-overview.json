@@ -41,7 +41,7 @@
         "query": {
           "refId": "action-variable",
           "editorType": "sql",
-          "rawSql": "SELECT DISTINCT SpanAttributes['beckn.action'] AS action\nFROM otel.otel_traces\nWHERE SpanAttributes['beckn.action'] != ''\nORDER BY action",
+          "rawSql": "SELECT DISTINCT SpanAttributes['beckn.action'] AS action\nFROM otel_traces\nWHERE SpanAttributes['beckn.action'] != ''\nORDER BY action",
           "format": 1,
           "queryType": "sql"
         },
@@ -72,7 +72,7 @@
         "query": {
           "refId": "service-variable",
           "editorType": "sql",
-          "rawSql": "SELECT DISTINCT service FROM (\n  SELECT ServiceName AS service FROM otel.otel_logs WHERE Timestamp >= now() - INTERVAL 1 DAY\n  UNION ALL\n  SELECT ServiceName AS service FROM otel.otel_traces WHERE Timestamp >= now() - INTERVAL 1 DAY\n)\nWHERE service != ''\nORDER BY service",
+          "rawSql": "SELECT DISTINCT service FROM (\n  SELECT ServiceName AS service FROM otel_logs WHERE Timestamp >= now() - INTERVAL 1 DAY\n  UNION ALL\n  SELECT ServiceName AS service FROM otel_traces WHERE Timestamp >= now() - INTERVAL 1 DAY\n)\nWHERE service != ''\nORDER BY service",
           "format": 1,
           "queryType": "sql"
         },
@@ -134,7 +134,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT count() AS requests\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND ServiceName = 'discovery-service' AND SpanKind = 'Server'",
+          "rawSql": "SELECT count() AS requests\nFROM otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND ServiceName = 'discovery-service' AND SpanKind = 'Server'",
           "format": 1,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -201,7 +201,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT\n  ServiceName AS service,\n  100 * countIf(toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) >= 500) / count() AS error_pct\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(ServiceName IN ($service), $service)\nGROUP BY service\nORDER BY service",
+          "rawSql": "SELECT\n  ServiceName AS service,\n  100 * countIf(toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) >= 500) / count() AS error_pct\nFROM otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(ServiceName IN ($service), $service)\nGROUP BY service\nORDER BY service",
           "format": 1,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -276,7 +276,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT\n  concat(ServiceName, ' ', SpanName) AS route,\n  quantile(0.95)(Duration) / 1e9 AS p95_seconds\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(ServiceName IN ($service), $service)\nGROUP BY route\nORDER BY route",
+          "rawSql": "SELECT\n  concat(ServiceName, ' ', SpanName) AS route,\n  quantile(0.95)(Duration) / 1e9 AS p95_seconds\nFROM otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(ServiceName IN ($service), $service)\nGROUP BY route\nORDER BY route",
           "format": 1,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -351,7 +351,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT 100 * countIf(SpanAttributes['result.empty'] = 'true')\n     / countIf(SpanAttributes['result.empty'] != '') AS empty_pct\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND ServiceName = 'discovery-service'\n  AND SpanAttributes['beckn.action'] = 'discover'",
+          "rawSql": "SELECT 100 * countIf(SpanAttributes['result.empty'] = 'true')\n     / countIf(SpanAttributes['result.empty'] != '') AS empty_pct\nFROM otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND ServiceName = 'discovery-service'\n  AND SpanAttributes['beckn.action'] = 'discover'",
           "format": 1,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -439,7 +439,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT\n  $__timeInterval(Timestamp) AS time,\n  SpanAttributes['beckn.action'] AS action,\n  count() AS requests\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND ServiceName = 'discovery-service' AND SpanKind = 'Server'\n  AND $__conditionalAll(SpanAttributes['beckn.action'] IN ($action), $action)\nGROUP BY time, action\nORDER BY time",
+          "rawSql": "SELECT\n  $__timeInterval(Timestamp) AS time,\n  SpanAttributes['beckn.action'] AS action,\n  count() AS requests\nFROM otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND ServiceName = 'discovery-service' AND SpanKind = 'Server'\n  AND $__conditionalAll(SpanAttributes['beckn.action'] IN ($action), $action)\nGROUP BY time, action\nORDER BY time",
           "format": 0,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -535,7 +535,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT\n  $__timeInterval(Timestamp) AS time,\n  quantile(0.50)(Duration / 1e6) AS p50,\n  quantile(0.95)(Duration / 1e6) AS p95,\n  quantile(0.99)(Duration / 1e6) AS p99\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND ServiceName = 'discovery-service' AND SpanKind = 'Server'\nGROUP BY time\nORDER BY time",
+          "rawSql": "SELECT\n  $__timeInterval(Timestamp) AS time,\n  quantile(0.50)(Duration / 1e6) AS p50,\n  quantile(0.95)(Duration / 1e6) AS p95,\n  quantile(0.99)(Duration / 1e6) AS p99\nFROM otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND ServiceName = 'discovery-service' AND SpanKind = 'Server'\nGROUP BY time\nORDER BY time",
           "format": 0,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -631,7 +631,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT\n  Timestamp AS time,\n  SpanAttributes['beckn.action'] AS action,\n  round(Duration / 1e6, 2) AS duration_ms,\n  SpanAttributes['http.status_code'] AS status,\n  SpanAttributes['result.empty'] AS empty,\n  SpanAttributes['beckn.transactionId'] AS transaction_id,\n  TraceId\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND ServiceName = 'discovery-service' AND SpanKind = 'Server'\n  AND $__conditionalAll(SpanAttributes['beckn.action'] IN ($action), $action)\nORDER BY Timestamp DESC\nLIMIT 200",
+          "rawSql": "SELECT\n  Timestamp AS time,\n  SpanAttributes['beckn.action'] AS action,\n  round(Duration / 1e6, 2) AS duration_ms,\n  SpanAttributes['http.status_code'] AS status,\n  SpanAttributes['result.empty'] AS empty,\n  SpanAttributes['beckn.transactionId'] AS transaction_id,\n  TraceId\nFROM otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND ServiceName = 'discovery-service' AND SpanKind = 'Server'\n  AND $__conditionalAll(SpanAttributes['beckn.action'] IN ($action), $action)\nORDER BY Timestamp DESC\nLIMIT 200",
           "format": 1,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -767,7 +767,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT\n  $__timeInterval(Timestamp) AS time,\n  ev.2['type'] AS error_type,\n  count() AS errors\nFROM otel.otel_traces\nARRAY JOIN arrayZip(Events.Name, Events.Attributes) AS ev\nWHERE $__timeFilter(Timestamp) AND ev.1 = 'error'\nGROUP BY time, error_type\nORDER BY time",
+          "rawSql": "SELECT\n  $__timeInterval(Timestamp) AS time,\n  ev.2['type'] AS error_type,\n  count() AS errors\nFROM otel_traces\nARRAY JOIN arrayZip(Events.Name, Events.Attributes) AS ev\nWHERE $__timeFilter(Timestamp) AND ev.1 = 'error'\nGROUP BY time, error_type\nORDER BY time",
           "format": 0,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -863,7 +863,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT\n  ev.2['type'] AS error_type,\n  ev.2['code'] AS error_code,\n  ev.2['path'] AS path,\n  count() AS errors\nFROM otel.otel_traces\nARRAY JOIN arrayZip(Events.Name, Events.Attributes) AS ev\nWHERE $__timeFilter(Timestamp) AND ev.1 = 'error'\nGROUP BY error_type, error_code, path\nORDER BY errors DESC",
+          "rawSql": "SELECT\n  ev.2['type'] AS error_type,\n  ev.2['code'] AS error_code,\n  ev.2['path'] AS path,\n  count() AS errors\nFROM otel_traces\nARRAY JOIN arrayZip(Events.Name, Events.Attributes) AS ev\nWHERE $__timeFilter(Timestamp) AND ev.1 = 'error'\nGROUP BY error_type, error_code, path\nORDER BY errors DESC",
           "format": 1,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -950,7 +950,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT\n  Timestamp AS time,\n  SpanAttributes['beckn.action'] AS action,\n  SpanAttributes['http.status_code'] AS status,\n  ev.2['type'] AS error_type,\n  ev.2['code'] AS error_code,\n  ev.2['msg'] AS message,\n  SpanAttributes['beckn.transactionId'] AS transaction_id,\n  TraceId\nFROM otel.otel_traces\nARRAY JOIN arrayZip(Events.Name, Events.Attributes) AS ev\nWHERE $__timeFilter(Timestamp) AND ev.1 = 'error'\nORDER BY Timestamp DESC\nLIMIT 100",
+          "rawSql": "SELECT\n  Timestamp AS time,\n  SpanAttributes['beckn.action'] AS action,\n  SpanAttributes['http.status_code'] AS status,\n  ev.2['type'] AS error_type,\n  ev.2['code'] AS error_code,\n  ev.2['msg'] AS message,\n  SpanAttributes['beckn.transactionId'] AS transaction_id,\n  TraceId\nFROM otel_traces\nARRAY JOIN arrayZip(Events.Name, Events.Attributes) AS ev\nWHERE $__timeFilter(Timestamp) AND ev.1 = 'error'\nORDER BY Timestamp DESC\nLIMIT 100",
           "format": 1,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -1061,7 +1061,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT\n  $__timeInterval(Timestamp) AS time,\n  100 * countIf(SpanAttributes['result.empty'] = 'true')\n      / countIf(SpanAttributes['result.empty'] != '') AS empty_pct\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND ServiceName = 'discovery-service'\n  AND SpanAttributes['beckn.action'] = 'discover'\nGROUP BY time\nORDER BY time",
+          "rawSql": "SELECT\n  $__timeInterval(Timestamp) AS time,\n  100 * countIf(SpanAttributes['result.empty'] = 'true')\n      / countIf(SpanAttributes['result.empty'] != '') AS empty_pct\nFROM otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND ServiceName = 'discovery-service'\n  AND SpanAttributes['beckn.action'] = 'discover'\nGROUP BY time\nORDER BY time",
           "format": 0,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -1162,7 +1162,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT\n  replaceRegexpAll(SpanAttributes['beckn.schemaType'], '[\\\\[\\\\]\"]|openagrinet:', '') AS schema_type,\n  count() AS requests,\n  countIf(SpanAttributes['result.empty'] = 'true') AS empty_results,\n  round(100 * countIf(SpanAttributes['result.empty'] = 'true') / count(), 1) AS empty_pct\nFROM otel.otel_traces\nWHERE $__timeFilter(Timestamp) AND SpanAttributes['beckn.schemaType'] != ''\nGROUP BY schema_type\nORDER BY requests DESC",
+          "rawSql": "SELECT\n  replaceRegexpAll(SpanAttributes['beckn.schemaType'], '[\\\\[\\\\]\"]|openagrinet:', '') AS schema_type,\n  count() AS requests,\n  countIf(SpanAttributes['result.empty'] = 'true') AS empty_results,\n  round(100 * countIf(SpanAttributes['result.empty'] = 'true') / count(), 1) AS empty_pct\nFROM otel_traces\nWHERE $__timeFilter(Timestamp) AND SpanAttributes['beckn.schemaType'] != ''\nGROUP BY schema_type\nORDER BY requests DESC",
           "format": 1,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -1249,7 +1249,7 @@
             "uid": "clickhouse"
           },
           "editorType": "sql",
-          "rawSql": "SELECT\n  ev.2['retrieval.modes_run'] AS modes_run,\n  ev.2['retrieval.modes_degraded'] AS modes_degraded,\n  count() AS requests\nFROM otel.otel_traces\nARRAY JOIN arrayZip(Events.Name, Events.Attributes) AS ev\nWHERE $__timeFilter(Timestamp) AND ev.1 = 'retrieval_info'\nGROUP BY modes_run, modes_degraded\nORDER BY requests DESC",
+          "rawSql": "SELECT\n  ev.2['retrieval.modes_run'] AS modes_run,\n  ev.2['retrieval.modes_degraded'] AS modes_degraded,\n  count() AS requests\nFROM otel_traces\nARRAY JOIN arrayZip(Events.Name, Events.Attributes) AS ev\nWHERE $__timeFilter(Timestamp) AND ev.1 = 'retrieval_info'\nGROUP BY modes_run, modes_degraded\nORDER BY requests DESC",
           "format": 1,
           "queryType": "sql",
           "pluginVersion": "4.21.3"
@@ -1322,7 +1322,7 @@
                 "uid": "clickhouse"
               },
               "editorType": "sql",
-              "rawSql": "SELECT\n  time,\n  greatest(0, cum - any(cum) OVER (ORDER BY time ROWS BETWEEN 1 PRECEDING AND 1 PRECEDING)) AS empty_acquires\nFROM (\n  SELECT $__timeInterval(TimeUnix) AS time, max(Value) AS cum\n  FROM otel.otel_metrics_sum\n  WHERE $__timeFilter(TimeUnix) AND MetricName = 'pgxpool.empty_acquire'\n  GROUP BY time\n)\nORDER BY time",
+              "rawSql": "SELECT\n  time,\n  greatest(0, cum - any(cum) OVER (ORDER BY time ROWS BETWEEN 1 PRECEDING AND 1 PRECEDING)) AS empty_acquires\nFROM (\n  SELECT $__timeInterval(TimeUnix) AS time, max(Value) AS cum\n  FROM otel_metrics_sum\n  WHERE $__timeFilter(TimeUnix) AND MetricName = 'pgxpool.empty_acquire'\n  GROUP BY time\n)\nORDER BY time",
               "format": 0,
               "queryType": "sql",
               "pluginVersion": "4.21.3"
@@ -1418,7 +1418,7 @@
                 "uid": "clickhouse"
               },
               "editorType": "sql",
-              "rawSql": "SELECT 'traces' AS signal, max(Timestamp) AS last_seen, count() AS rows_in_range\nFROM otel.otel_traces WHERE $__timeFilter(Timestamp)\nUNION ALL\nSELECT 'logs', max(Timestamp), count() FROM otel.otel_logs WHERE $__timeFilter(Timestamp)\nUNION ALL\nSELECT 'metrics', max(TimeUnix), count() FROM otel.otel_metrics_sum WHERE $__timeFilter(TimeUnix)",
+              "rawSql": "SELECT 'traces' AS signal, max(Timestamp) AS last_seen, count() AS rows_in_range\nFROM otel_traces WHERE $__timeFilter(Timestamp)\nUNION ALL\nSELECT 'logs', max(Timestamp), count() FROM otel_logs WHERE $__timeFilter(Timestamp)\nUNION ALL\nSELECT 'metrics', max(TimeUnix), count() FROM otel_metrics_sum WHERE $__timeFilter(TimeUnix)",
               "format": 1,
               "queryType": "sql",
               "pluginVersion": "4.21.3"
@@ -1493,7 +1493,7 @@
                 "uid": "clickhouse"
               },
               "editorType": "sql",
-              "rawSql": "SELECT\n  Timestamp AS timestamp,\n  Body AS body,\n  SeverityText AS level,\n  ServiceName,\n  TraceId\nFROM otel.otel_logs\nWHERE $__timeFilter(Timestamp)\n  AND $__conditionalAll(ServiceName IN ($service), $service)\nORDER BY Timestamp DESC\nLIMIT 500",
+              "rawSql": "SELECT\n  Timestamp AS timestamp,\n  Body AS body,\n  SeverityText AS level,\n  ServiceName,\n  TraceId\nFROM otel_logs\nWHERE $__timeFilter(Timestamp)\n  AND $__conditionalAll(ServiceName IN ($service), $service)\nORDER BY Timestamp DESC\nLIMIT 500",
               "format": 2,
               "queryType": "sql",
               "pluginVersion": "4.21.3"
