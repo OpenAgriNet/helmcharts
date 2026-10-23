@@ -135,15 +135,15 @@ up_setup() {
 
 # Only now do the bind-mounted config files exist.
 up_adapters() {
-    # The mocks are NOT started. All four capabilities point at real external
-    # upstreams, so starting them would pull two images and run two containers
-    # nothing calls. They are still defined in docker-compose.yml, so
+    # mock-pmfby is started with the adapters. The other mocks are NOT: those
+    # capabilities point at real external upstreams, so starting them would run
+    # containers nothing calls. They are still defined in docker-compose.yml, so
     # `docker compose up -d mock-imd mock-agmarknet` brings them up for anyone
     # debugging a mapping without the real credentials -- but that also needs a
     # new participant id and base URL in .env plus a setup.py re-run, because
     # the registry cannot repoint an existing row.
-    step 3 "$1" "adapters (provider, network, consumer)"
-    docker compose up -d provider-adapter network-adapter consumer-adapter
+    step 3 "$1" "adapters (provider, network, consumer) and mock-pmfby"
+    docker compose up -d provider-adapter network-adapter consumer-adapter mock-pmfby
 }
 
 done_banner() {

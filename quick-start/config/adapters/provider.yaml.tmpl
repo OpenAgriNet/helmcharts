@@ -216,6 +216,27 @@ modules:
               # farmer there is no facility when there is.
               searchConcurrency: 1
 
+          # PMFBY grievance: support files, status reads back. No OTP.
+          - id: Grievance
+            config:
+              bindingKeys: "__PMFBY_BINDING_KEY__"
+              # Paired by position, tried in order: status names the binding on
+              # its contract, support on its channel.
+              providerIdAt: "message.contract.commitments[].offer.provider.id, message.support.channels[].provider.id"
+              capabilityCodeAt: "message.contract.commitments[].commitmentAttributes.@type, message.support.channels[].@type"
+              # Logs in at NICUsersLogin and sends the token bare in Authorization,
+              # held until the login reply's validTo.
+              __PMFBY_PARTICIPANT_ID__:
+                authScheme: tokenHeader
+                tokenUrl: "__PMFBY_TOKEN_URL__"
+                tokenUserField: appAccessUID
+                tokenUserEnv: PMFBY_ACCESS_UID
+                tokenSecretField: appAccessPWD
+                tokenSecretEnv: PMFBY_ACCESS_PWD
+                tokenResponseField: responseDynamic.token.Token
+                tokenExpiryField: responseDynamic.token.validTo
+                headerName: Authorization
+
       # Signing and signature validation are OFF: validateSign and signAck are
       # absent below, so this tier accepts unsigned traffic and answers
       # unsigned. Turning it back on means adding the step names here AND on the
@@ -228,6 +249,7 @@ modules:
         - MandiPrice
         - KnowledgeAdvisory
         - AgricultureFacility
+        - Grievance
 
   # The outbound leg: this provider's catalogue system publishing to the network.
   #
