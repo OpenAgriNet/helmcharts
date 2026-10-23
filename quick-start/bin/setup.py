@@ -666,7 +666,7 @@ nothing. The registry is not reachable from outside this stack, so that write
 happens from here.
 
 Next: `make up` continues to step 3 and starts the adapters. If you ran this
-on its own, run `make up` (or `MODE=multi-adapter make up`) to pick up the rendered configs.
+on its own, run `make up` (or `NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter make up`) to pick up the rendered configs.
 
 Then import ../api-collection/ -- both files, the collection and the
 environment -- and run it. Eighteen requests across the four capabilities,

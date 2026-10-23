@@ -34,7 +34,8 @@ cd "$ROOT"
 # (the gateway, hyperdx, provider- and consumer-adapter).
 PROFILES=(--profile reverse-proxy --profile observability --profile multi-adapter)
 
-# Deployment mode for `up`: the shell's MODE, else .env, else single-adapter (ADR-0001).
+# Deployment mode for `up`: NETWORK_ADAPTER_DEPLOYMENT_MODE from the shell, else .env, else
+# single-adapter (ADR-0001).
 # Other commands keep the running mode so depends_on never swaps network-adapter's config.
 
 # A key's value in .env (quotes, inline comment and CR stripped); empty if absent.
@@ -54,7 +55,7 @@ running_mode() {
     esac
 }
 
-MODE="${MODE:-$(dotenv_get NETWORK_ADAPTER_DEPLOYMENT_MODE)}"
+MODE="${NETWORK_ADAPTER_DEPLOYMENT_MODE:-$(dotenv_get NETWORK_ADAPTER_DEPLOYMENT_MODE)}"
 MODE="${MODE:-single-adapter}"
 case "$MODE" in single|multi) MODE="$MODE-adapter" ;; esac   # old values still accepted
 RUNNING_MODE="$(running_mode)"
@@ -62,7 +63,7 @@ RUNNING_MODE="$(running_mode)"
 # compose mounts config/adapters/<mode>/network-adapter.yaml from this variable.
 export NETWORK_ADAPTER_DEPLOYMENT_MODE="${RUNNING_MODE:-$MODE}"
 check_mode() {
-    case "$MODE" in single-adapter|multi-adapter) ;; *) die "MODE must be single-adapter or multi-adapter, not '$MODE'" ;; esac
+    case "$MODE" in single-adapter|multi-adapter) ;; *) die "NETWORK_ADAPTER_DEPLOYMENT_MODE must be single-adapter or multi-adapter, not '$MODE'" ;; esac
 }
 
 adapters_for() { # $1 mode
