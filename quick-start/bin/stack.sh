@@ -4,7 +4,6 @@
 #
 #     bin/stack.sh up            the whole stack, in the order it has to start
 #     bin/stack.sh up-core       the same minus the gateway and hyperdx
-#     bin/stack.sh up --single-adapter | --multi-adapter    (also with up-core)
 #     bin/stack.sh down          stop everything, keep the data
 #     bin/stack.sh destroy       stop everything, DELETE the data
 #
@@ -77,16 +76,6 @@ configs_for() { # $1 mode
     case "$1" in
         single) echo single-adapter/network-adapter ;;
         multi)  echo multi-adapter/provider multi-adapter/network multi-adapter/consumer ;;
-    esac
-}
-
-# --single-adapter / --multi-adapter after up or up-core set the mode.
-mode_flag() {
-    case "${1:-}" in
-        "") ;;
-        --single-adapter) MODE=single ;;
-        --multi-adapter)  MODE=multi ;;
-        *) usage; die "unknown option: $1" ;;
     esac
 }
 
@@ -411,10 +400,6 @@ bin/stack.sh <command>
                  registry+discovery -> setup.py -> network-adapter (Network Adapter Layer)
                  -> gateway (public, 80/443) -> hyperdx (wants 16 GB)
   up-core        steps 1-3 only. Nothing public, no ClickHouse.
-  up --single-adapter       as up, one network-adapter running all three tiers
-  up --multi-adapter        as up, with the three adapters (provider, network, consumer)
-  up-core --single-adapter  as up-core, in single mode
-  up-core --multi-adapter   as up-core, in multi mode
                  (without a flag: MODE, else NETWORK_ADAPTER_DEPLOYMENT_MODE in
                  .env, else single; restart follows the running mode)
   down           stop everything, keep the data
@@ -431,9 +416,11 @@ bin/stack.sh <command>
 USAGE
 }
 
+# Every command takes no arguments except logs; an extra one is a mistake, not a mode.
+[ $# -le 1 ] || [ "${1:-}" = logs ] || { usage; die "unexpected argument: $2"; }
 case "${1:-}" in
-    up)             mode_flag "${2:-}"; up ;;
-    up-core)        mode_flag "${2:-}"; up_core ;;
+    up)             up ;;
+    up-core)        up_core ;;
     down)           down ;;
     destroy)        destroy ;;
     setup)          setup ;;

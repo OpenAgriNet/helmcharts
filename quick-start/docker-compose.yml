@@ -633,7 +633,7 @@ services:
       VISTAAR_CLIENT_SECRET: ${VISTAAR_CLIENT_SECRET}
     volumes:
       - ./config/adapters/multi-adapter/provider.yaml:/app/config/adapter.yaml:ro
-      - ./config/adapters/routing-provider.yaml:/app/config/routing-provider.yaml:ro
+      - ./config/adapters/multi-adapter/routing-provider.yaml:/app/config/routing-provider.yaml:ro
     ports:
       - "127.0.0.1:${PROVIDER_ADAPTER_PORT}:9200"
 
@@ -660,9 +660,9 @@ services:
       VISTAAR_CLIENT_SECRET: ${VISTAAR_CLIENT_SECRET}
     volumes:
       - ./config/adapters/${NETWORK_ADAPTER_CONFIG:-single-adapter/network-adapter}.yaml:/app/config/adapter.yaml:ro
-      - ./config/adapters/routing-network.yaml:/app/config/routing-network.yaml:ro
-      - ./config/adapters/routing-network-adapter-consumer.yaml:/app/config/routing-network-adapter-consumer.yaml:ro
-      - ./config/adapters/routing-network-adapter-provider.yaml:/app/config/routing-network-adapter-provider.yaml:ro
+      - ./config/adapters/multi-adapter/routing-network.yaml:/app/config/routing-network.yaml:ro
+      - ./config/adapters/single-adapter/routing-network-adapter-consumer.yaml:/app/config/routing-network-adapter-consumer.yaml:ro
+      - ./config/adapters/single-adapter/routing-network-adapter-provider.yaml:/app/config/routing-network-adapter-provider.yaml:ro
     ports:
       - "127.0.0.1:${NETWORK_ADAPTER_PORT}:9201"
 
@@ -684,7 +684,7 @@ services:
       OTEL_SERVICE_NAME: consumer-adapter
     volumes:
       - ./config/adapters/multi-adapter/consumer.yaml:/app/config/adapter.yaml:ro
-      - ./config/adapters/routing-consumer.yaml:/app/config/routing-consumer.yaml:ro
+      - ./config/adapters/multi-adapter/routing-consumer.yaml:/app/config/routing-consumer.yaml:ro
     ports:
       - "127.0.0.1:${CONSUMER_ADAPTER_PORT}:9202"
 
