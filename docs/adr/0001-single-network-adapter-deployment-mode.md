@@ -99,6 +99,7 @@ Code comments stay at two lines or fewer; the reasoning behind them lives here.
   - `/` is refused because a Prefix `/` covers `/publish` and `/_internal`.
   - `ImplementationSpecific` is a plain string prefix on ingress-nginx, and `use-regex` / `rewrite-target` turn paths into patterns. Either could reach `/_internal` or `/publish`, so all three are refused.
 - **Probes:** the adapter fetches `beckn.yaml` at boot, which on slow or proxied egress can outlast liveness's ~70s budget (10s + 3 × 20s). The startup probe holds liveness off for up to 180s (5s × 36).
+- **Probe keys renamed (bug fix, every role):** `values.yaml` had `probes.liveness` and `probes.readiness`, but the shared `common.probes` helper (`charts/common/templates/_helpers.tpl`) reads only `livenessProbe`, `readinessProbe` and `startupProbe`. So on `development` no adapter pod rendered any probe. The keys now match the helper. Existing releases get probes for the first time and roll their pods once, and an override of the old keys must be renamed (it never took effect).
 - **Adapter config:**
   - Go keeps 2 idle connections per host by default, so every module sets an outbound pool (`httpClientConfig`).
   - On the consumer → provider hop, `responseHeaderTimeout` includes the upstream API call.

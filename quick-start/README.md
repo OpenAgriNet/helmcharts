@@ -209,7 +209,7 @@ The network adapter runs in one of two modes. **Single is the default.**
 
 |  | single (default) | multi |
 |---|---|---|
-| Start | `make up` (or `make up-core`) | `make up-multi` (or `make up-core-multi`) |
+| Start | `MODE=single make up` (or `make up`) | `MODE=multi make up` (or `make up-multi`) |
 | Containers | `network-adapter` | `consumer-adapter`, `network-adapter`, `provider-adapter` |
 | App calls | `127.0.0.1:9201/<action>` | `127.0.0.1:9202/<action>` |
 | Catalogue publishes to | `127.0.0.1:9201/publish` | `127.0.0.1:9200/publish` |

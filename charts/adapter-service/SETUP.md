@@ -10,9 +10,9 @@ Why there are two modes is in
    runs the consumer, network and provider tiers. Multi runs one release per tier.
 2. **Run one mode per environment.** Both modes use release `network-adapter` in
    namespace `network-adapter`.
-3. **Set the mode in one place.** `networkAdapterDeploymentMode` in `values.yaml`
-   is `single`. For multi, pass `--set networkAdapterDeploymentMode=multi` on the
-   `network-adapter` release only; `provider` and `consumer` ignore it.
+3. **Switch with one value.** The `network-adapter` release always uses the same
+   command; only `--set networkAdapterDeploymentMode=single|multi` changes
+   (default `single`). `provider` and `consumer` ignore it.
 4. **Keep the release and namespace names.** Adapters find each other by
    Service name, so `consumer-adapter`, `network-adapter` and `provider-adapter`
    must not be renamed.
@@ -27,6 +27,15 @@ Why there are two modes is in
 | App calls | `network-adapter.network-adapter.svc:9201/<action>` | `consumer-adapter.consumer-adapter.svc:9202/<action>` |
 | Catalogue publisher calls | `network-adapter.network-adapter.svc:9201/publish` | `provider-adapter.provider-adapter.svc:9200/publish` |
 
+The network release, in either mode:
+
+```sh
+helm upgrade --install network-adapter charts/adapter-service \
+  -n network-adapter --create-namespace \
+  -f charts/adapter-service/examples/network.yaml \
+  --set networkAdapterDeploymentMode=single   # or multi
+```
+
 ## Single mode (default)
 
 ### 1. Secrets
@@ -39,7 +48,7 @@ The default openbao-secrets values already mirror all four there.
 | `consumer-adapter-keys` | consumer tier keys |
 | `network-adapter-keys` | network tier keys |
 | `provider-adapter-keys` | provider tier keys |
-| `provider-upstream` | provider upstream credentials |
+| `provider-upstream` | provider upstream credentials (`networkTierKeys.upstreamSecret`) |
 
 Each keys Secret has the six keys described in [README.md](README.md#the-identity-secret),
 and each tier's public key must be in its registry row.
@@ -50,7 +59,8 @@ and each tier's public key must be in its registry row.
 helm dependency build charts/adapter-service
 helm upgrade --install network-adapter charts/adapter-service \
   -n network-adapter --create-namespace \
-  -f charts/adapter-service/examples/network-adapter.yaml
+  -f charts/adapter-service/examples/network.yaml \
+  --set networkAdapterDeploymentMode=single
 ```
 
 If the config needs extra values from a tier's Secret, list them per
@@ -114,8 +124,8 @@ helm upgrade --install consumer-adapter charts/adapter-service \
   -n consumer-adapter --create-namespace -f charts/adapter-service/examples/consumer.yaml
 ```
 
-Do not drop `--set networkAdapterDeploymentMode=multi`: without it the network
-release installs as single mode and waits for keys it should not have.
+The network release is the same command as in single mode, with `multi`.
+Without `--set` it would install as single and wait for keys it should not have.
 
 ### 3. Point callers at the new addresses
 
@@ -133,10 +143,11 @@ same keys and registry rows, so the registry does not change.
 
 1. Put `network-adapter` back on the consumer, provider and upstream
    openbao-secrets entries.
-2. Upgrade the network release without `--set`:
+2. Run the network release command with `single`:
    ```sh
-   helm upgrade network-adapter charts/adapter-service \
-     -n network-adapter -f charts/adapter-service/examples/network-adapter.yaml
+   helm upgrade --install network-adapter charts/adapter-service \
+     -n network-adapter -f charts/adapter-service/examples/network.yaml \
+     --set networkAdapterDeploymentMode=single
    ```
 3. Point the app and the publisher at `network-adapter.network-adapter.svc:9201`.
 4. Remove the other two releases:
@@ -160,6 +171,6 @@ The same two modes run locally with `make`; see `quick-start/README.md`.
 
 | | single (default) | multi |
 |---|---|---|
-| Start | `make up` | `make up-multi` |
+| Start | `MODE=single make up` (or `make up`) | `MODE=multi make up` (or `make up-multi`) |
 | App calls | `127.0.0.1:9201/<action>` | `127.0.0.1:9202/<action>` |
 | Publisher | `127.0.0.1:9201/publish` | `127.0.0.1:9200/publish` |
