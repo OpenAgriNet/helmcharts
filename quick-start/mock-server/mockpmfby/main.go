@@ -1,5 +1,5 @@
 // Command mockpmfby stands in for PMFBY's grievance service (KRPH FGMS),
-// copying pmfbydemo.amnex.co.in as observed on 2026-10-12.
+// copying pmfbydemo.amnex.co.in as observed on 2026-10-23.
 //
 // Every answer is HTTP 200 in FGMS's envelope: responseCode "1" is success and
 // "0" a refusal carrying the portal's message. The token from /NICUsersLogin
@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -27,18 +28,31 @@ type application struct {
 // The demo's application, which already has a ticket, and one without, so a
 // repeat lodge and a fresh one can both be exercised.
 var applications = []application{
-	{"040108251010160770605", "9001361774", "Fateh Singh", "Green Gram (Moong)"},
+	{"040108251010160770608", "9001361774", "Fateh Singh", "Green Gram (Moong)"},
 	{"040108251010160770606", "9591931134", "Mock Farmer", "Paddy"},
+}
+
+// The only category names the demo has shown; the full list is still awaited.
+var (
+	categoryNames    = map[int]string{3: "Enrollment"}
+	subCategoryNames = map[int]string{10: "Portal Issues Login"}
+)
+
+// demoLodge is the lodge behind the demo's existing ticket.
+var demoLodge = map[string]any{
+	"complaintDate": "2026-05-11", "requestYear": "2025", "requestSeason": 1,
+	"ticketCategoryID": 3, "ticketSubCategoryID": 10, "grievenceDescription": "Claim is not recieved by me.",
 }
 
 var (
 	mu sync.Mutex
 	// One ticket per application, as the demo keeps.
 	tickets = map[string]map[string]any{
-		applications[0].no: record("100626000099001", 1, "2026-05-11", "Claim is not recieved by me.", applications[0]),
+		applications[0].no: record("121026000099003", 13,
+			time.Date(2026, 10, 12, 11, 2, 49, 0, time.UTC), demoLodge, applications[0]),
 	}
-	nextNo = 100626000099002
-	nextID = 2
+	nextNo = 121026000099004
+	nextID = 14
 )
 
 func main() {
@@ -86,8 +100,7 @@ func main() {
 		}
 		// ponytail: the demo's message for a fresh ticket is unobserved, since its
 		// only application already has one.
-		t := record(fmt.Sprint(nextNo), nextID, fmt.Sprint(body["complaintDate"]),
-			fmt.Sprint(body["grievenceDescription"]), app)
+		t := record(fmt.Sprint(nextNo), nextID, time.Now(), body, app)
 		nextNo++
 		nextID++
 		tickets[app.no] = t
@@ -171,28 +184,43 @@ func find(no string) (application, bool) {
 }
 
 // record is a ticket as the read returns it, with every field the demo sends.
-func record(no string, id int, filed, description string, app application) map[string]any {
+// Year, season and categories come back as the numbers they were lodged with.
+func record(no string, id int, insertedAt time.Time, lodge map[string]any, app application) map[string]any {
+	category, subCategory := number(lodge["ticketCategoryID"]), number(lodge["ticketSubCategoryID"])
 	return map[string]any{
 		"GrievenceSupportTicketID": id, "GrievenceSupportTicketNo": no, "TicketRequestorID": nil,
-		"FarmerName": app.farmer, "RequestorMobileNo": app.phone, "ComplaintDate": filed,
+		"FarmerName": app.farmer, "RequestorMobileNo": app.phone, "ComplaintDate": lodge["complaintDate"],
 		"RepresentationType": "SINGLE", "StateCodeAlpha": "0A5BE76C-BDC2-4405-A32C-C46448FF136B",
 		"DistrictRequestorID": nil, "VillageRequestorID": nil, "NyayPanchayatID": nil, "NyayPanchayat": nil,
 		"GramPanchayatID": "", "GramPanchayat": "", "GrievenceTicketSourceTypeID": 132306,
-		"GrievenceSourceOtherType": nil, "TicketSubCategoryID": 10, "TicketCategoryID": 3,
-		"RequestYear": 2025, "RequestSeason": 1, "SocialMediaTypeID": nil, "OtherSocialMedia": nil,
+		"GrievenceSourceOtherType": nil, "TicketSubCategoryID": subCategory, "TicketCategoryID": category,
+		"RequestYear": number(lodge["requestYear"]), "RequestSeason": number(lodge["requestSeason"]), "SocialMediaTypeID": nil, "OtherSocialMedia": nil,
 		"SocialMediaURL": nil, "ReceiptSourceID": 134306, "VillageName": nil, "CropName": app.crop,
 		"TicketStatusID": 109301, "ApplicationNo": app.no, "InsuranceCompanyID": 1,
 		"InsurancePolicyNo": app.no[:len(app.no)-2], "Email": nil, "SubDistrictID": nil,
-		"SubDistrictName": "Bhadra", "TicketSubCategoryName": "Portal Issues Login", "TicketStatus": "Open",
-		"InsuranceCompany": "AGRICULTURE INSURANCE COMPANY", "TicketCategoryName": "Enrollment",
+		"SubDistrictName": "Bhadra", "TicketSubCategoryName": nameOrNil(subCategoryNames, subCategory), "TicketStatus": "Open",
+		"InsuranceCompany": "AGRICULTURE INSURANCE COMPANY", "TicketCategoryName": nameOrNil(categoryNames, category),
 		"StateMasterName": "RAJASTHAN", "DistrictMasterName": "Hanumangarh",
-		"GrievenceDescription": description, "IsLegal": nil, "LegalRemarks": nil,
+		"GrievenceDescription": lodge["grievenceDescription"], "IsLegal": nil, "LegalRemarks": nil,
 		"CPGramRegistrationNumber": nil, "NCIPReferenceNumber": nil, "InsertUserID": 77777,
-		"InsertDateTime": time.Now().Format("2006-01-02 15:04:05"), "latestRemark": "",
+		"InsertDateTime": insertedAt.UTC().Format("2006-01-02T15:04:05.000Z"), "latestRemark": "",
 	}
 }
 
 func ticketRef(t map[string]any) map[string]any {
 	return map[string]any{"GrievenceSupportTicketNo": t["GrievenceSupportTicketNo"],
 		"GrievenceSupportTicketID": t["GrievenceSupportTicketID"]}
+}
+
+// number reads a lodged value the way the portal stores it, as an integer.
+func number(value any) int {
+	n, _ := strconv.Atoi(fmt.Sprint(value))
+	return n
+}
+
+func nameOrNil(names map[int]string, code int) any {
+	if name, known := names[code]; known {
+		return name
+	}
+	return nil
 }
