@@ -8,7 +8,7 @@
   "definitions": {
 
     "SenderPreference": {
-      "description": "One row per calling sender: which providers it wants, per topic, best first. senderId is the X-sender-Id value; the reserved id 'default' is the fallback ladder, and the per-topic merge is the DSS's job, not this registry's. additionalProperties stays true -- a PUT re-validates the merged document carrying the registry's own os* fields, and false would reject every update (the SchemaRegistry.json defect).",
+      "description": "One row per calling sender: which providers it wants, per capability, best first. senderId is the X-sender-Id value; the reserved id 'default' is the fallback ladder, and the per-capability merge is the DSS's job, not this registry's. additionalProperties stays true -- a PUT re-validates the merged document carrying the registry's own os* fields, and false would reject every update (the SchemaRegistry.json defect).",
       "type": "object",
       "additionalProperties": true,
       "required": ["senderId", "status", "preferences"],
@@ -27,22 +27,22 @@
         "status": { "$ref": "#/definitions/Status" },
 
         "preferences": {
-          "description": "At least one topic. uniqueItems compares whole objects, so it cannot pin one entry per topic -- whoever writes rows checks that, the way verify/records.py does for ProviderSchema actions.",
+          "description": "At least one capability. uniqueItems compares whole objects, so it cannot pin one entry per capability -- whoever writes rows checks that, the way verify/records.py does for ProviderSchema actions.",
           "type": "array",
           "minItems": 1,
           "maxItems": 50,
-          "items": { "$ref": "#/definitions/TopicRanking" }
+          "items": { "$ref": "#/definitions/CapabilityRanking" }
         }
       }
     },
 
-    "TopicRanking": {
-      "description": "One topic's ordered providers. Rank is array order, and the list is exclusive -- an unnamed provider is never consulted for the topic (DSS ADR-0019). topic is an open string on purpose: the DSS validates it against its own taxonomy, so a new topic needs no registry change.",
+    "CapabilityRanking": {
+      "description": "One capability's ordered providers. Rank is array order, and the list is exclusive -- an unnamed provider is never consulted for the capability (DSS ADR-0019). capability is an open string on purpose: the DSS validates it against its own taxonomy, so a new capability needs no registry change.",
       "type": "object",
       "additionalProperties": true,
-      "required": ["topic", "providers"],
+      "required": ["capability", "providers"],
       "properties": {
-        "topic": {
+        "capability": {
           "description": "The ask's subject category as the consumer names it -- 'Weather', 'Market'. Compared case-insensitively by the reader, so casing here is cosmetic.",
           "type": "string",
           "maxLength": 64,
