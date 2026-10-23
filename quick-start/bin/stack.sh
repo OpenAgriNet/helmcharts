@@ -49,7 +49,7 @@ dotenv_get() {
 running_mode() {
     [ "$(docker inspect -f '{{.State.Running}}' network-adapter 2>/dev/null)" = true ] || return 0
     case "$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/app/config/adapter.yaml"}}{{.Source}}{{end}}{{end}}' network-adapter 2>/dev/null)" in
-        */network.yaml) echo multi-adapter ;;
+        */multi-adapter/*) echo multi-adapter ;;
         *) echo single-adapter ;;
     esac
 }
@@ -59,9 +59,8 @@ MODE="${MODE:-single-adapter}"
 case "$MODE" in single|multi) MODE="$MODE-adapter" ;; esac   # old values still accepted
 RUNNING_MODE="$(running_mode)"
 
-# The config network-adapter mounts for a mode (compose: NETWORK_ADAPTER_CONFIG).
-network_config_for() { [ "$1" = multi-adapter ] && echo multi-adapter/network || echo single-adapter/network-adapter; }
-export NETWORK_ADAPTER_CONFIG="$(network_config_for "${RUNNING_MODE:-$MODE}")"
+# compose mounts config/adapters/<mode>/network-adapter.yaml from this variable.
+export NETWORK_ADAPTER_DEPLOYMENT_MODE="${RUNNING_MODE:-$MODE}"
 check_mode() {
     case "$MODE" in single-adapter|multi-adapter) ;; *) die "MODE must be single-adapter or multi-adapter, not '$MODE'" ;; esac
 }
@@ -76,7 +75,7 @@ adapters_for() { # $1 mode
 configs_for() { # $1 mode
     case "$1" in
         single-adapter) echo single-adapter/network-adapter ;;
-        multi-adapter)  echo multi-adapter/provider multi-adapter/network multi-adapter/consumer ;;
+        multi-adapter)  echo multi-adapter/provider-adapter multi-adapter/network-adapter multi-adapter/consumer-adapter ;;
     esac
 }
 
@@ -191,7 +190,7 @@ up_adapters() {
     check_mode
     local f
     # `up` starts the requested mode, not the running one.
-    NETWORK_ADAPTER_CONFIG="$(network_config_for "$MODE")"
+    NETWORK_ADAPTER_DEPLOYMENT_MODE="$MODE"
     step 3 "$1" "adapters, mode $MODE ($(adapters_for "$MODE"))"
     # A pre-merge stack's network-adapter container (service network-adapter-layer)
     # is unknown to compose and would clash by name.

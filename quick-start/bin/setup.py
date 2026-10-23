@@ -569,7 +569,8 @@ def render(identities):
     # which carries all three tiers' identities.
     for name in (*ROLES, "network-adapter"):
         folder = "single-adapter" if name == "network-adapter" else "multi-adapter"
-        template = (ADAPTERS / folder / f"{name}.yaml.tmpl").read_text()
+        fname = name if name == "network-adapter" else f"{name}-adapter"
+        template = (ADAPTERS / folder / f"{fname}.yaml.tmpl").read_text()
         for role in (ROLES if name == "network-adapter" else (name,)):
             identity = identities[role]
             prefix = role.upper()
@@ -608,7 +609,7 @@ def render(identities):
             template = template.replace(placeholder, value)
         if "__" in template:
             sys.exit(f"setup: {name}.yaml still has unrendered placeholders")
-        out = ADAPTERS / folder / f"{name}.yaml"
+        out = ADAPTERS / folder / f"{fname}.yaml"
         # A bare `docker compose up -d` before this script runs starts the
         # adapters too, and Docker creates a DIRECTORY at a bind-mount source
         # that does not exist. Writing would then fail with a bare
@@ -623,7 +624,7 @@ def render(identities):
                 f"    make up")
         out.write_text(template)
         out.chmod(0o600)  # holds a private key
-        print(f"  config/adapters/{folder}/{name}.yaml")
+        print(f"  config/adapters/{folder}/{fname}.yaml")
 
 
 if __name__ == "__main__":

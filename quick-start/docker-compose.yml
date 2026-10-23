@@ -27,7 +27,7 @@
 #                                         everything EXCEPT the adapters
 #   3. python3 bin/setup.py               keys, the three adapter entries, and
 #                                         the adapter configs they mount
-#   4. docker compose up -d network-adapter       now the adapter (multi: MODE=multi-adapter make up)
+#   4. docker compose up -d                       now the adapters (mode and profile from .env)
 #   5. docker compose --profile reverse-proxy --profile observability up -d
 #                                         the edge and the telemetry stack
 #
@@ -632,7 +632,7 @@ services:
       VISTAAR_CLIENT_ID: ${VISTAAR_CLIENT_ID}
       VISTAAR_CLIENT_SECRET: ${VISTAAR_CLIENT_SECRET}
     volumes:
-      - ./config/adapters/multi-adapter/provider.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/multi-adapter/provider-adapter.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/multi-adapter/routing-provider.yaml:/app/config/routing-provider.yaml:ro
     ports:
       - "127.0.0.1:${PROVIDER_ADAPTER_PORT}:9200"
@@ -659,7 +659,7 @@ services:
       VISTAAR_CLIENT_ID: ${VISTAAR_CLIENT_ID}
       VISTAAR_CLIENT_SECRET: ${VISTAAR_CLIENT_SECRET}
     volumes:
-      - ./config/adapters/${NETWORK_ADAPTER_CONFIG:-single-adapter/network-adapter}.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/${NETWORK_ADAPTER_DEPLOYMENT_MODE:-single-adapter}/network-adapter.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/multi-adapter/routing-network.yaml:/app/config/routing-network.yaml:ro
       - ./config/adapters/single-adapter/routing-network-adapter-consumer.yaml:/app/config/routing-network-adapter-consumer.yaml:ro
       - ./config/adapters/single-adapter/routing-network-adapter-provider.yaml:/app/config/routing-network-adapter-provider.yaml:ro
@@ -683,7 +683,7 @@ services:
       <<: *adapter-env
       OTEL_SERVICE_NAME: consumer-adapter
     volumes:
-      - ./config/adapters/multi-adapter/consumer.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/multi-adapter/consumer-adapter.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/multi-adapter/routing-consumer.yaml:/app/config/routing-consumer.yaml:ro
     ports:
       - "127.0.0.1:${CONSUMER_ADAPTER_PORT}:9202"
