@@ -31,6 +31,52 @@ plugins:
       enableTracing: "__OTEL_ENABLED__"
       enableLogs: "__OTEL_ENABLED__"
 
+  # The crawler's OWN registry, separate from the modules' below. It is key
+  # distribution for verifying what a crawl fetches, not request handling, and
+  # the crawler refuses to start without it.
+  registry:
+    id: sunbirdRegistry
+    config:
+      url: http://sunbird-registry-service:8081/api/v1
+      entity: Participant
+      providerEntity: ProviderSchema
+      cacheTTL: 0
+      timeout: 2
+      retry_max: 1
+      retry_wait_min: 100ms
+      retry_wait_max: 500ms
+      maxResponseBytes: 1048576
+
+  # The crawler. One per deployment and app-level, because it is a background
+  # pass rather than something a request reaches.
+  #
+  # No dbDsn: a database is only needed by work that keeps a record between
+  # passes, and crawling other networks keeps none. Publish pipelines do, and
+  # add it when they arrive.
+  crawler:
+    id: catalogcrawler
+    config:
+      # Where what we collect is published: this deployment's own /publish
+      # mount, so a crawled catalog takes the same path as a local one.
+      discoveryPushUrl: "__DISCOVERY_PUSH_URL__"
+      participantId: "__NETWORK_SUBSCRIBER_ID__"
+
+      # Off means this network never crawls. It still ANSWERS another network's
+      # crawl, which is the network module's job and unaffected by this.
+      federationEnabled: "__FEDERATION_ENABLED__"
+      signingPrivateKey: "__NETWORK_SIGNING_PRIVATE__"
+      keyId: "__NETWORK_KEY_ID__"
+      # How often every admitted network is asked.
+      federationRefreshSeconds: "__FEDERATION_REFRESH_SECONDS__"
+      # How many catalogs one call asks for. Discovery's own default is 20, so
+      # without this a network sharing more is only partly collected and
+      # nothing says so.
+      federationPageSize: "__FEDERATION_PAGE_SIZE__"
+      # What breadth of another network's catalogue to ask for. Required in
+      # practice: discovery refuses an intent that narrows nothing, so leaving
+      # it unset mirrors zero catalogs with no error anywhere.
+      federationIntent: '__FEDERATION_INTENT__'
+
 modules:
   - name: network-adapter
     # A subtree: every action lands here and the payload says which one it is.

@@ -642,6 +642,22 @@ def render(identity):
                 ("__AGMARKNET_PARTICIPANT_ID__", env("AGMARKNET_PARTICIPANT_ID")),
                 ("__VISTAAR_PARTICIPANT_ID__", env("VISTAAR_PARTICIPANT_ID")),
                 ("__POCRA_PARTICIPANT_ID__", env("POCRA_PARTICIPANT_ID")),
+                # The crawler. Only the network-adapter templates carry these;
+                # replacing a placeholder no template holds costs nothing.
+                #
+                # Where a crawled catalog is published. In multi mode the
+                # publish mount is the provider adapter's; in single mode this
+                # same process serves it.
+                ("__DISCOVERY_PUSH_URL__",
+                 "http://localhost:9201/publish" if name == "network-adapter"
+                 else "http://provider-adapter:9200/publish"),
+                # on/off in .env, true/false in the config.
+                ("__FEDERATION_ENABLED__",
+                 "false" if env("FEDERATION_CRAWL_PEERS", "off").lower() == "off"
+                 else "true"),
+                ("__FEDERATION_REFRESH_SECONDS__", env("FEDERATION_REFRESH_SECONDS", "900")),
+                ("__FEDERATION_PAGE_SIZE__", env("FEDERATION_PAGE_SIZE", "100")),
+                ("__FEDERATION_INTENT__", env("FEDERATION_INTENT", "")),
                 # Telemetry. One switch drives all three signals: with every
                 # one false the plugin builds no exporter and never dials, so
                 # a stack running without the observability profile stays
