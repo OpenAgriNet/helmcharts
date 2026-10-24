@@ -185,12 +185,12 @@ up_registry_tier() {
     docker compose up -d sunbird-registry-service discovery-service
 }
 
-# Generates the adapter keypairs, registers the three adapter identities, and
+# Generates the network's keypair, registers its one identity, and
 # renders config/adapters/{multi-adapter,single-adapter}/*.yaml from the .tmpl files
 # beside them. Safe to re-run: keys come from keys/keys.json once it exists,
 # and participants already registered are left alone.
 up_setup() {
-    step 2 "$1" "bin/setup.py -- keys, seven registry participants, adapter configs"
+    step 2 "$1" "bin/setup.py -- keys, five registry participants, adapter configs"
     python3 bin/setup.py
 }
 
