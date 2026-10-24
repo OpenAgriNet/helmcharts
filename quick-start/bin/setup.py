@@ -367,7 +367,7 @@ CAPABILITY_SCHEMAS = (
 )
 
 
-def schema_url(capability, version, ref):
+def schema_url(capability, version):
     """Build a pack URL from the capability code, which already contains the
     pack directory's name: openagrinet:WeatherObservation is served out of
     schema/WeatherObservation. Deriving it means the two cannot drift.
@@ -375,19 +375,22 @@ def schema_url(capability, version, ref):
     The registry pattern-checks the result against exactly this shape, so a
     capability whose pack is laid out differently is refused rather than
     stored -- which is the behaviour to want, since all eight packs in
-    network-specs are <Capability>/<version>/attributes.yaml today."""
-    return ("https://raw.githubusercontent.com/OpenAgriNet/network-specs/"
-            f"{ref}/schema/{capability.partition(':')[2]}/{version}"
+    network-specs are <Capability>/<version>/attributes.yaml today.
+
+    openagrinet.github.io, which catalogs carry in their @context; a crawl
+    derived from a raw.githubusercontent URL matches nothing."""
+    return ("https://openagrinet.github.io/network-specs/"
+            f"schema/{capability.partition(':')[2]}/{version}"
             "/attributes.yaml")
 
 
-def ensure_capability_schema(bearer, capability, name, version, ref):
+def ensure_capability_schema(bearer, capability, name, version):
     """Create a capability's schema row only when absent.
 
     THE REGISTRY NEVER FETCHES schemaUrl -- it only checks its shape. So a row
     pointing at a ref that does not serve the pack stores perfectly happily and
-    fails later, at whoever resolves it. Getting SCHEMA_PACK_REF right matters
-    more than the write succeeding.
+    fails later, at whoever resolves it. Getting the URL right matters more
+    than the write succeeding.
 
     And it cannot be corrected afterwards: SchemaRegistry.json sets
     additionalProperties false, so an update is rejected over the system fields
@@ -398,7 +401,7 @@ def ensure_capability_schema(bearer, capability, name, version, ref):
         return
     result = post("SchemaRegistry", {
         "capabilityCode": capability, "name": name, "version": version,
-        "schemaUrl": schema_url(capability, version, ref),
+        "schemaUrl": schema_url(capability, version),
         "status": "active"}, bearer)
     print(f"  {capability}: {result['params']['status']} "
           f"{result['params'].get('errmsg', '')[:160]}")
@@ -500,12 +503,10 @@ def seed(identities):
     #
     # SEPARATE FROM THE MAPPING URLS ABOVE, which live in helmcharts and
     # describe one upstream's wire format. These are network-specs and describe
-    # the network's own vocabulary, so they move on their own ref.
+    # the network's own vocabulary, published on its own site.
     print("registry: four capability schemas")
-    ref = env("SCHEMA_PACK_REF", "main")
     for var, name, version in CAPABILITY_SCHEMAS:
-        ensure_capability_schema(bearer, env(var), name, version, ref)
-
+        ensure_capability_schema(bearer, env(var), name, version)
 
 def key_osids(identities):
     """Read back each key's osid, and check the registry still holds the public
