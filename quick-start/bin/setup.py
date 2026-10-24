@@ -645,12 +645,12 @@ def render(identity):
                 # The crawler. Only the network-adapter templates carry these;
                 # replacing a placeholder no template holds costs nothing.
                 #
-                # Where a crawled catalog is published. In multi mode the
-                # publish mount is the provider adapter's; in single mode this
-                # same process serves it.
-                ("__DISCOVERY_PUSH_URL__",
-                 "http://localhost:9201/publish" if name == "network-adapter"
-                 else "http://provider-adapter:9200/publish"),
+                # Where a crawled catalog is published. The crawler runs on
+                # the network adapter, which serves /publish itself in both
+                # modes -- as a mount in single, as an action on / in multi --
+                # so a crawled catalog takes the same path as a local one
+                # without leaving the process to do it.
+                ("__DISCOVERY_PUSH_URL__", "http://localhost:9201/publish"),
                 # on/off in .env, true/false in the config.
                 ("__FEDERATION_ENABLED__",
                  "false" if env("FEDERATION_CRAWL_PEERS", "off").lower() == "off"
