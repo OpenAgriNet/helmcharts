@@ -502,7 +502,6 @@ def seed(identity):
     for var, name, version in CAPABILITY_SCHEMAS:
         ensure_capability_schema(bearer, env(var), name, version)
 
-
 def key_osid(identity):
     """Check the registry still holds the public half we have the private half
     for, and read back the key's osid: the key id the adapters sign with.
