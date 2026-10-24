@@ -5,6 +5,18 @@ All notable changes to the `registry-seed` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-10-06
+
+### Added
+- `bindings[].publishPipelineUrl` writes a `publish` action beside `select`
+  (no method or path). On a binding that already exists the Job adds or
+  repoints that one action with a PUT of the whole record; every other write is
+  still create-only. Needs registry 0.5.0+.
+- `allowUnpinnedPipeline` (default `false`): the render refuses a
+  `publishPipelineUrl` that is not an https `<...>/publish/<source>.yaml` pinned to
+  a 40-hex commit SHA, since a branch URL changes what production executes on every
+  push.
+
 ## [0.1.1] - 2026-09-20
 
 ### Fixed

@@ -107,6 +107,9 @@ spec:
               {{- range $ph, $key := .Values.keys.existingSecret.extraSubstitutions }}
               subst {{ $ph }} /keys/{{ $key }}
               {{- end }}
+              {{- if .Values.crawler.enabled }}
+              subst __ADAPTER_CRAWLER_DB_DSN__  /keys/{{ .Values.crawler.dbDsnKey }}
+              {{- end }}
 
               # A placeholder that survived means a key was substituted with
               # nothing. Catch it here rather than at the far end, in a peer's
@@ -169,6 +172,10 @@ spec:
             - name: config
               mountPath: {{ include "adapter-service.configDir" . }}
               readOnly: true
+            {{- if .Values.crawler.enabled }}
+            - name: crawler-catalogs
+              mountPath: {{ include "adapter-service.crawlerOutputDir" . }}
+            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -188,6 +195,13 @@ spec:
         - name: config
           emptyDir:
             sizeLimit: 1Mi
+        {{- if .Values.crawler.enabled }}
+        {{- /* Built catalogs. The root filesystem is read-only, so the crawler's
+               output directory needs a mount of its own. Dies with the pod. */}}
+        - name: crawler-catalogs
+          emptyDir:
+            sizeLimit: {{ .Values.crawler.outputSizeLimit }}
+        {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

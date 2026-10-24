@@ -59,6 +59,21 @@ new id. That makes a render-time refusal much cheaper than a successful write.
 {{- if or (not .participantId) (not .capability) (not .path) (not .mappingUrl) }}
 {{- fail (printf "%s: binding %q needs participantId, capability, path and mappingUrl" $root.Chart.Name (.capability | default "?")) }}
 {{- end }}
+{{- /* publishPipelineUrl names the pipeline the network adapter's catalog crawler
+       runs for this binding. Optional, but when it is set it must be something the
+       registry will accept AND something production can live with: an https URL of
+       the shape <...>/publish/<source>.yaml, pinned to a commit SHA. A branch URL
+       is refused unless allowUnpinnedPipeline is set, because every push to a
+       branch then changes what the running adapters execute -- and this registry
+       cannot be corrected afterwards. */}}
+{{- if .publishPipelineUrl }}
+{{- if not (regexMatch "^https://[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%%-]+)*/publish/[A-Za-z0-9._~%%-]+\\.ya?ml$" .publishPipelineUrl) }}
+{{- fail (printf "%s: binding %q publishPipelineUrl %q is not an https URL of the form <...>/publish/<source>.yaml, which is what the registry's ProviderSchema accepts for a publish action" $root.Chart.Name .capability .publishPipelineUrl) }}
+{{- end }}
+{{- if and (not $root.Values.allowUnpinnedPipeline) (not (regexMatch "/[0-9a-f]{40}/" .publishPipelineUrl)) }}
+{{- fail (printf "%s: binding %q publishPipelineUrl %q is not pinned to a commit SHA.\n  A branch or tag URL changes what the running adapters execute on every push.\n  Use .../<40-hex-sha>/... , or set allowUnpinnedPipeline: true for a non-production seed." $root.Chart.Name .capability .publishPipelineUrl) }}
+{{- end }}
+{{- end }}
 {{- end }}
 {{/*
 Refuse a value still in its <describe-it-here> form.
@@ -92,7 +107,7 @@ rather than written out whole.
 {{- end }}
 {{- end }}
 {{- range .Values.bindings }}
-{{- range $k, $v := (dict "path" .path "mappingUrl" .mappingUrl "capability" .capability) }}
+{{- range $k, $v := (dict "path" .path "mappingUrl" .mappingUrl "capability" .capability "publishPipelineUrl" (.publishPipelineUrl | default "")) }}
 {{- if regexMatch "[<>]" $v }}
 {{- $placeholders = append $placeholders (printf "bindings[].%s = %s" $k $v) }}
 {{- end }}
