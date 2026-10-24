@@ -83,6 +83,7 @@ up() {
     # 0.0.0.0:80 and :443, deliberately not scoped, because Let's Encrypt
     # validates HTTP-01 from its own servers.
     step 4 5 "nginx-proxy-manager -- the public edge (80 and 443, all interfaces)"
+    mkdir -p .well-known  # before Docker can create it root-owned
     docker compose --profile reverse-proxy up -d nginx-proxy-manager
 
     # ClickStack. Heaviest thing here by a wide margin: ClickHouse alone wants
@@ -124,12 +125,12 @@ up_registry_tier() {
     docker compose up -d sunbird-registry-service discovery-service
 }
 
-# Generates the adapter keypairs, registers the three adapter identities, and
+# Generates the network's keypair, registers its one identity, and
 # renders config/adapters/{provider,network,consumer}.yaml from the .tmpl files
 # beside them. Safe to re-run: keys come from keys/keys.json once it exists,
 # and participants already registered are left alone.
 up_setup() {
-    step 2 "$1" "bin/setup.py -- keys, seven registry participants, adapter configs"
+    step 2 "$1" "bin/setup.py -- keys, five registry participants, adapter configs"
     python3 bin/setup.py
 }
 
@@ -215,6 +216,7 @@ WARN
 reverse_proxy() {
     preflight
     step 1 1 "nginx-proxy-manager -- publishes 80 and 443 on ALL interfaces"
+    mkdir -p .well-known  # before Docker can create it root-owned
     docker compose --profile reverse-proxy up -d nginx-proxy-manager
     cat <<'NEXT'
 
@@ -320,6 +322,54 @@ setup() {
     python3 bin/setup.py
 }
 
+# Generate the federation documents into .well-known/ and serve them through NPM
+# (npm-custom/server_proxy.conf). Each run publishes the next revision.
+host_descriptor() {
+    preflight
+    step 1 3 "bin/oanfed.py publish -- the Network Descriptor, JWKS and schema-pack list"
+    local revision=1
+    if [ -f .well-known/openagrinet ]; then
+        revision=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["revision"] + 1)' \
+                   .well-known/openagrinet)
+    fi
+    # TTL last: it may be empty.
+    local values
+    values=$(python3 -c 'import os, sys; sys.path.insert(0, "bin"); import setup
+setup.load_dotenv()
+print(setup.env("BECKN_NETWORK_ID"), setup.registry_url(),
+      setup.env("REVERSE_PROXY_HTTPS_PORT", "443"), os.environ.get("FEDERATION_PROJECTION_TTL", ""))')
+    read -r network_id registry https_port ttl <<<"$values"
+    python3 bin/oanfed.py publish \
+        --network-id "$network_id" --registry-url "$registry" \
+        --keys keys/keys.json --revision "$revision" \
+        ${ttl:+--projection-ttl "$ttl"} --out .
+
+    step 2 3 "nginx-proxy-manager -- serves .well-known/ on every proxy host"
+    local was_running
+    was_running=$(docker inspect -f '{{.State.Running}}' nginx-proxy-manager 2>/dev/null || true)
+    docker compose --profile reverse-proxy up -d nginx-proxy-manager
+    if [ "$was_running" = true ]; then
+        docker exec nginx-proxy-manager nginx -s reload >/dev/null 2>&1 \
+            || warn "NPM did not reload; run make restart-edge if the check below fails"
+    else
+        info "NPM just started. Change its default login before anything else: make reverse-proxy says how."
+    fi
+
+    step 3 3 "checking https://$network_id/.well-known/openagrinet through NPM"
+    # Checks routing only (-k); a peer checks the certificate.
+    local served
+    served=$(curl -fsSk --max-time 10 --resolve "$network_id:$https_port:127.0.0.1" \
+             "https://$network_id:$https_port/.well-known/openagrinet" 2>/dev/null \
+             | python3 -c 'import json,sys; print(json.load(sys.stdin)["revision"])' 2>/dev/null || true)
+    if [ "$served" = "$revision" ]; then
+        info "served at revision $revision -- peers can fetch it now"
+    else
+        warn "written, but NPM is not serving it for $network_id yet${served:+ (it serves revision $served)}"
+        info "NPM needs a proxy host, with a certificate, for $network_id -- README Appendix B."
+        info "Create it, then re-run make host-descriptor."
+    fi
+}
+
 usage() {
     cat <<'USAGE'
 bin/stack.sh <command>
@@ -330,6 +380,8 @@ bin/stack.sh <command>
   down           stop everything, keep the data
   destroy        stop everything and DELETE every volume
   setup          re-run bin/setup.py only
+  host-descriptor  sign the descriptor, JWKS and schema packs into .well-known/
+                   and serve them through nginx-proxy-manager (public, 80/443)
   reverse-proxy  start nginx-proxy-manager on its own (public, 80/443)
   observability  start hyperdx on its own
   pull           git pull, fixing the npm-custom ownership first
@@ -347,6 +399,7 @@ case "${1:-}" in
     down)           down ;;
     destroy)        destroy ;;
     setup)          setup ;;
+    host-descriptor) host_descriptor ;;
     reverse-proxy)  reverse_proxy ;;
     observability)  observability ;;
     pull)           pull ;;

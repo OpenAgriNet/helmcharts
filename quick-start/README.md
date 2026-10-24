@@ -96,8 +96,10 @@ Three tiers, in the only order that works: registry and discovery, then
 `bin/setup.py`, then the mocks and the three adapters. Allow up to five minutes
 the first time — Keycloak on a cold volume.
 
-`setup.py` generates a keypair per adapter, registers seven participants and four
-capability bindings, and renders the three adapter configs. Nothing needs
+`setup.py` generates the network's one keypair, registers five participants --
+one entry for the network (`BECKN_NETWORK_ID`, shared by all three adapters) and
+four upstreams -- and four capability bindings, and renders the three adapter
+configs. Nothing needs
 creating by hand. → Appendix C for why the order matters, Appendix D for what
 it wrote.
 
@@ -110,7 +112,7 @@ make ps
 Answers `select`, and the only layer that calls an upstream. Serves all four
 capabilities from one adapter.
 
-`.env` keys: `PROVIDER_SUBSCRIBER_ID`, and the four pairs that become binding
+`.env` keys: the four pairs that become binding
 keys — `MAUSAMGRAM_PARTICIPANT_ID` + `MAUSAMGRAM_CAPABILITY`,
 `AGMARKNET_PARTICIPANT_ID` + `AGMARKNET_CAPABILITY`, `VISTAAR_PARTICIPANT_ID` +
 `VISTAAR_CAPABILITY`, `POCRA_PARTICIPANT_ID` + `POCRA_CAPABILITY`.
@@ -136,8 +138,11 @@ All four capability steps should be listed by name.
 Fronts discovery: verifies the caller, passes `discover` and `publish` on, and
 re-signs as itself.
 
-`.env` keys: `NETWORK_SUBSCRIBER_ID`. `BECKN_NETWORK_ID` belongs to the discovery
-service behind it — a `discover` naming a different network finds nothing.
+`.env` keys: `BECKN_NETWORK_ID` and `NETWORK_BASE_URL`. `BECKN_NETWORK_ID` is the
+network's one identity -- all three adapters sign as it -- and is also the
+discovery service's network, so a `discover` naming a different network finds
+nothing. `NETWORK_BASE_URL` is where this layer is reached; the Network
+Descriptor publishes its `discover` endpoint from it.
 
 ```sh
 docker compose logs network-adapter | grep 'Server listening'
@@ -148,7 +153,7 @@ docker compose logs network-adapter | grep 'Server listening'
 The consumer's edge. Sends `discover` to the network layer and `select`
 straight to the provider layer, per `config/adapters/routing-consumer.yaml`.
 
-`.env` keys: `CONSUMER_SUBSCRIBER_ID`.
+`.env` keys: none of its own; it signs as `BECKN_NETWORK_ID`.
 
 ```sh
 docker compose logs consumer-adapter | grep 'Server listening'
@@ -461,7 +466,7 @@ an `allow`.
 | File | How it applies |
 |---|---|
 | `npm-custom/http_top.conf` | **Automatic**, top of the `http` block. The `consumer` rate-limit zone and `limit_req_status 429`. |
-| `npm-custom/server_proxy.conf` | **Automatic**, every server block. The `/publish` deny. |
+| `npm-custom/server_proxy.conf` | **Automatic**, every server block. The `/publish` deny, and the Network Descriptor, JWKS and schema packs from `.well-known/` (see Appendix D). |
 | `npm-advanced/consumer.conf` | **Manual** — paste into the consumer host's Advanced tab. `limit_req` for that host only; a 10 r/s ceiling on signed peer traffic would throttle for no gain. |
 | `npm-advanced/hyperdx.conf` | **Manual** — paste into the HyperDX host's Advanced tab. 300s timeouts for ClickHouse scans, buffering off for live tail. Carries no credential; the Access List does. |
 
@@ -513,7 +518,7 @@ loopback. A registry route would depend on that silently.
 
 ```
 1. registry and discovery        (also sunbird-registry-postgres, sunbird-registry-keycloak, discovery-postgres)
-2. bin/setup.py                  keys, seven participants, four bindings, three configs
+2. bin/setup.py                  keys, five participants, four bindings, three configs
 3. mock upstreams, then the three adapters
 4. nginx-proxy-manager           the public edge — 80 and 443, all interfaces
 5. hyperdx                       ClickStack
@@ -550,10 +555,24 @@ evidence `server_proxy.conf` is still mounted.
 `setup.py` wrote all of it. Nothing here is a step; it is what to look at when
 something does not match.
 
-**Three `node` rows, one per adapter** — an id, a role (`consumer`, `provider`,
-`network`) and the public halves of a keypair. Private halves stay in
-`keys/keys.json` and are never in the registry. Keys are published as bare
-base64, no encoding label.
+**One `node` row, for the network** — `BECKN_NETWORK_ID` as its id, every layer
+it serves as its role (`["consumer", "network", "provider"]`), and the public
+half of ONE keypair, shared by all three adapters. The private half stays in
+`keys/keys.json` and is never in the registry. Keys are published as bare
+base64, no encoding label. The key's own `osid` is the network's key id: what
+the adapters sign with, and what the Network Descriptor and JWKS publish.
+
+**The Network Descriptor and JWKS** are generated FROM that row, not stored in
+the registry. `make host-descriptor` signs them with the network's key and writes
+`.well-known/openagrinet` and `.well-known/jwks.json`, plus
+`.well-known/schema-packs.json` -- the list of schema packs this network speaks,
+which the descriptor's `schemaPacks` links to as one URL rather than listing.
+NPM then serves all three (`npm-custom/server_proxy.conf`); the command checks
+they are live, which needs a proxy host for the networkId (Appendix B). Re-run
+it whenever the row changes -- each run publishes the next revision, and another
+network refuses one that does not increase. `FEDERATION_PROJECTION_TTL` in `.env`, if
+set, is published as how long another network may keep what it crawls from
+this one.
 
 **Four `upstream` rows, one per provider** — an ordinary HTTP API this
 deployment calls. It signs nothing, so it needs no role and no keys. Holds a
@@ -1003,7 +1022,7 @@ config/
   reverse-proxy/
     npm-custom/             mounted to /data/nginx/custom; NPM includes these
       http_top.conf           on its own -- rate-limit zone, and the /publish
-      server_proxy.conf       deny every proxy host gets
+      server_proxy.conf       deny and the .well-known documents every proxy host gets
     npm-advanced/           NOT loaded. Paste into a host's Advanced tab; kept
       consumer.conf                here because a textarea in a database is not
       hyperdx.conf            reviewable. consumer = rate limit; hyperdx = ClickHouse
@@ -1051,7 +1070,7 @@ for v in sunbird-registry-postgres-data discovery-postgres-data nginx-proxy-mana
 done
 ```
 
-Then `make up`, and confirm the seven participants and your proxy hosts before
+Then `make up`, and confirm the five participants and your proxy hosts before
 deleting anything. Keycloak shares `sunbird-registry-postgres-data`, so its realm travels with
 that volume — and equally does not survive if you skip it.
 
