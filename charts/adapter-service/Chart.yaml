@@ -2,7 +2,7 @@ apiVersion: v2
 name: adapter-service
 description: OAN Beckn adapter; role network-adapter runs all three tiers in single-adapter mode (default), or the network tier in multi-adapter.
 type: application
-version: 0.8.0
+version: 0.7.0
 # The adapter binary, not this chart. `/health` reports the build it is
 # actually running, which is the number to trust over this one.
 appVersion: "v1.9.0"

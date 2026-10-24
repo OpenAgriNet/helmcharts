@@ -410,6 +410,32 @@ podAnnotations: {}
 commonLabels: {}
 commonAnnotations: {}
 
+# The catalog crawler, on the network role only. Other roles ignore this --
+# their config files carry no crawler block for it to fill.
+#
+# Off by default: a deployment that has admitted no network has nothing to
+# crawl, and the pass would wake on its interval to find none every time.
+#
+# None of these is a credential, so they are substituted by the chart rather
+# than by the init container that reads the keys Secret.
+crawler:
+  # on/off for the federated pass. The adapter still ANSWERS another network's
+  # crawl either way -- that is the network module's job, not this one's.
+  enabled: false
+  # How often every admitted network is asked, in seconds.
+  refreshSeconds: 900
+  # How many catalogs one call asks for. Discovery's own default is 20, so
+  # without this a network sharing more is only partly collected and nothing
+  # says so.
+  pageSize: 100
+  # What breadth of another network's catalogue to ask for. Discovery refuses
+  # an intent that narrows nothing, so an empty one mirrors zero catalogs with
+  # no error anywhere.
+  intent: '{"filters": {"type": "jsonpath", "expression": "$.catalogs[*] ? (@.isActive == true)"}}'
+  # Where a crawled catalog is published. Empty means this deployment's own
+  # /publish: localhost in single mode, the provider adapter in multi.
+  discoveryPushUrl: ""
+
 extraInitContainers: []
 extraVolumes: []
 extraVolumeMounts: []

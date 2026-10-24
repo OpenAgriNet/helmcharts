@@ -5,43 +5,26 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.8.0] - 2026-10-28
+## [0.7.0] - 2026-10-24
 
 ### Added
-- `ingress.allowPublicPublish` (default `false`): in single-adapter mode, lets
-  `/publish` be an ingress path. The publish module signs as the provider
-  without authenticating its caller, so this is for throwaway environments
-  only. `/` and `/_internal*` stay refused.
 
-### Changed
-- **BREAKING.** Mandi prices call the real Agmarknet again: `agmarknet` is back
-  on `authScheme: tokenQuery` in both modes, in place of the no-auth setting
-  the benchmark mock needed. A release must now supply
-  `__AGMARKNET_TOKEN_URL__` (`adapterKeys.extraSubstitutions` in single mode,
-  `keys.existingSecret.extraSubstitutions` in multi), and the provider tier's
-  environment must carry `AGMARKNET_ACCESS_NAME` and `AGMARKNET_PASSWORD`.
-  Without the substitution the init container stops on the unfilled
-  placeholder. Point the registry's `agmarknet` upstream at the real API too.
+- `crawler` values, and the catalog crawler's config block on the network
+  role. Off by default, so a deployment that has admitted no network is
+  unchanged. The other roles carry no crawler block, and the values are ignored
+  there.
+- A render-time refusal when `crawler.enabled` is true and `crawler.intent` is
+  empty. Discovery will not take an intent that narrows nothing and answers an
+  empty one with no catalogs, so the pass would report success and mirror
+  nothing.
 
-## [0.7.0] - 2026-10-26
+### Notes
 
-### Added
-- The single-adapter layer's provider tier serves the PMFBY grievance
-  capability: a `Grievance` step for `pmfby|openagrinet:Grievance`, logging in at
-  the provider's login URL and holding the token until the login reply's own
-  expiry. The login URL is the `__PMFBY_TOKEN_URL__` substitution, and the login
-  is read from `PMFBY_ACCESS_UID` and `PMFBY_ACCESS_PWD`.
-- The same step serves PM-KISAN as one participant, `pmkisan`, with two
-  capabilities: `pmkisan|openagrinet:Grievance` (OTP at `init`, lodge at
-  `support`, read back at `status`) and `pmkisan|openagrinet:SchemeApplication`
-  (OTP at `init`, the application record and its blockers at `status`). Each has
-  its own envelope, in a block named by its binding key; Grievance asks for and
-  checks its OTP on the SchemeApplication binding's host. Both read
-  `PMKISAN_GRIEVANCE_KEY`, `PMKISAN_GRIEVANCE_IV`, `PMKISAN_SERVICE_TOKEN` and
-  `PMKISAN_OTP_TOKEN` from `provider-upstream`, which must carry them before
-  PM-KISAN is called.
-- The consumer tier's routing sends `support` to the provider tier.
-
+- No database. A DSN is only needed by crawler work that keeps a record
+  between passes, and crawling other networks keeps none.
+- `crawler.discoveryPushUrl` defaults to this same pod. The crawler runs on the
+  network adapter, which serves `/publish` itself in both deployment modes, so
+  a crawled catalog takes the same path as a local one without leaving the pod.
 ## [0.6.0] - 2026-10-09
 
 ### Added

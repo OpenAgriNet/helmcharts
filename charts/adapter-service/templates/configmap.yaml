@@ -27,12 +27,14 @@ at pod start, which is why no rendered config ever holds a key. A raw config
 with a literal private key in it would put that key in git, in a ConfigMap, and
 in `helm get values` -- so the render refuses it.
 */}}
+{{- include "adapter-service.crawlerCheck" . }}
 {{- $single := eq (include "adapter-service.deploymentMode" .) "single-adapter" }}
 {{- $nlCfg := "" }}
 {{- if $single }}
 {{- /* Single mode: config/single-adapter/network-adapter-config.yaml unless `config` replaces it;
        private keys must be tier placeholders either way. */}}
 {{- $nlCfg = .Values.config | default (.Files.Get "config/single-adapter/network-adapter-config.yaml") }}
+{{- $nlCfg = include "adapter-service.crawlerConfig" (dict "ctx" . "cfg" $nlCfg) }}
 {{- if not $nlCfg }}
 {{- fail (printf "%s: role network-adapter in single mode reads config/single-adapter/network-adapter-config.yaml, which is missing from the chart." .Chart.Name) }}
 {{- end }}
@@ -47,6 +49,7 @@ in `helm get values` -- so the render refuses it.
 {{- else }}
 {{- $cfgFile := printf "config/multi-adapter/%s-config.yaml" (include "adapter-service.role" .) }}
 {{- $cfg := .Values.config | default (.Files.Get $cfgFile) }}
+{{- $cfg = include "adapter-service.crawlerConfig" (dict "ctx" . "cfg" $cfg) }}
 {{- if $cfg }}
 {{- range $ph, $field := dict "__ADAPTER_SIGNING_PRIVATE__" "signingPrivateKey" "__ADAPTER_ENCR_PRIVATE__" "encrPrivateKey" }}
 {{- if and (contains (printf "%s:" $field) $cfg) (not (contains $ph $cfg)) }}
@@ -97,6 +100,7 @@ data:
            differ without a new file. */}}
     {{- $file := printf "config/multi-adapter/%s-config.yaml" (include "adapter-service.role" .) }}
     {{- $raw := .Values.config | default ($.Files.Get $file) }}
+    {{- $raw = include "adapter-service.crawlerConfig" (dict "ctx" $ "cfg" $raw) }}
     {{- if not $raw }}
     {{- fail (printf "%s: no config. Expected %s in the chart, or `config` set in values. The role decides the filename, so a new role needs a new file." .Chart.Name $file) }}
     {{- end }}
