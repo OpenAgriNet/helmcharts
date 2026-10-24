@@ -144,6 +144,7 @@ up() {
     # 0.0.0.0:80 and :443, deliberately not scoped, because Let's Encrypt
     # validates HTTP-01 from its own servers.
     step 4 5 "nginx-proxy-manager -- the public edge (80 and 443, all interfaces)"
+    mkdir -p .well-known  # before Docker can create it root-owned
     docker compose --profile reverse-proxy up -d nginx-proxy-manager
 
     # ClickHouse, the collector, and Grafana. Heaviest thing here by a wide
@@ -304,6 +305,7 @@ WARN
 reverse_proxy() {
     preflight
     step 1 1 "nginx-proxy-manager -- publishes 80 and 443 on ALL interfaces"
+    mkdir -p .well-known  # before Docker can create it root-owned
     docker compose --profile reverse-proxy up -d nginx-proxy-manager
     cat <<'NEXT'
 
@@ -416,35 +418,44 @@ setup() {
 host_descriptor() {
     preflight
     step 1 3 "bin/oanfed.py publish -- the Network Descriptor, JWKS and schema-pack list"
-    python3 bin/oanfed.py publish --keys keys/keys.json --out .
+    local revision=1
+    if [ -f .well-known/openagrinet ]; then
+        revision=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["revision"] + 1)' \
+                   .well-known/openagrinet)
+    fi
+    # TTL last: it may be empty.
+    local values
+    values=$(python3 -c 'import os, sys; sys.path.insert(0, "bin"); import setup
+setup.load_dotenv()
+print(setup.env("BECKN_NETWORK_ID"), setup.registry_url(),
+      setup.env("REVERSE_PROXY_HTTPS_PORT", "443"), os.environ.get("FEDERATION_PROJECTION_TTL", ""))')
+    read -r network_id registry https_port ttl <<<"$values"
+    python3 bin/oanfed.py publish \
+        --network-id "$network_id" --registry-url "$registry" \
+        --keys keys/keys.json --revision "$revision" \
+        ${ttl:+--projection-ttl "$ttl"} --out .
 
     step 2 3 "nginx-proxy-manager -- serves .well-known/ on every proxy host"
     local was_running
     was_running=$(docker inspect -f '{{.State.Running}}' nginx-proxy-manager 2>/dev/null || true)
     docker compose --profile reverse-proxy up -d nginx-proxy-manager
-    if [ "$was_running" = true ] \
-            && ! docker exec nginx-proxy-manager test -f /srv/well-known/openagrinet; then
-        # .well-known/ was deleted and recreated: the container still holds the old,
-        # empty folder until it restarts.
-        docker restart nginx-proxy-manager >/dev/null
-    elif [ "$was_running" = true ]; then
+    if [ "$was_running" = true ]; then
         docker exec nginx-proxy-manager nginx -s reload >/dev/null 2>&1 \
             || warn "NPM did not reload; run make restart-edge if the check below fails"
     else
         info "NPM just started. Change its default login before anything else: make reverse-proxy says how."
     fi
 
-    local network_id="${BECKN_NETWORK_ID:-$(dotenv_get BECKN_NETWORK_ID)}"
-    local https_port="${REVERSE_PROXY_HTTPS_PORT:-$(dotenv_get REVERSE_PROXY_HTTPS_PORT)}"
-    https_port="${https_port:-443}"
     step 3 3 "checking https://$network_id/.well-known/openagrinet through NPM"
-    # Checks routing only (-k); a peer checks the certificate. Retries while NPM starts.
-    if curl -fsSk --max-time 10 --retry 10 --retry-delay 1 --retry-all-errors --resolve "$network_id:$https_port:127.0.0.1" \
-            "https://$network_id:$https_port/.well-known/openagrinet" 2>/dev/null \
-            | cmp -s - .well-known/openagrinet; then
-        info "served -- peers can fetch it now"
+    # Checks routing only (-k); a peer checks the certificate.
+    local served
+    served=$(curl -fsSk --max-time 10 --resolve "$network_id:$https_port:127.0.0.1" \
+             "https://$network_id:$https_port/.well-known/openagrinet" 2>/dev/null \
+             | python3 -c 'import json,sys; print(json.load(sys.stdin)["revision"])' 2>/dev/null || true)
+    if [ "$served" = "$revision" ]; then
+        info "served at revision $revision -- peers can fetch it now"
     else
-        warn "written, but NPM is not serving it for $network_id yet"
+        warn "written, but NPM is not serving it for $network_id yet${served:+ (it serves revision $served)}"
         info "NPM needs a proxy host, with a certificate, for $network_id -- README Appendix B."
         info "Create it, then re-run make host-descriptor."
     fi
