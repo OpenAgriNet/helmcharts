@@ -13,7 +13,7 @@
 
 STACK := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))bin/stack.sh
 
-.PHONY: help up up-core down destroy setup reverse-proxy observability pull restart restart-edge ps logs
+.PHONY: help up up-core down destroy setup host-descriptor reverse-proxy observability pull restart restart-edge ps logs
 
 # Default target: running a bare `make` in a directory that can delete a
 # Postgres volume should print the menu, not pick something from it.
@@ -38,6 +38,9 @@ observability: ; @$(STACK) observability
 # ------------------------------------------------------------------ the rest
 
 setup:         ; @$(STACK) setup
+
+# Generate and serve the federation documents. Re-run when the entry changes.
+host-descriptor: ; @$(STACK) host-descriptor
 
 # NPM chowns the files it is given, so a plain `git pull` fails on them.
 pull:          ; @$(STACK) pull

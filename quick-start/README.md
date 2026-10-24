@@ -466,7 +466,7 @@ an `allow`.
 | File | How it applies |
 |---|---|
 | `npm-custom/http_top.conf` | **Automatic**, top of the `http` block. The `consumer` rate-limit zone and `limit_req_status 429`. |
-| `npm-custom/server_proxy.conf` | **Automatic**, every server block. The `/publish` deny. |
+| `npm-custom/server_proxy.conf` | **Automatic**, every server block. The `/publish` deny, and the Network Descriptor, JWKS and schema packs from `.well-known/` (see Appendix D). |
 | `npm-advanced/consumer.conf` | **Manual** — paste into the consumer host's Advanced tab. `limit_req` for that host only; a 10 r/s ceiling on signed peer traffic would throttle for no gain. |
 | `npm-advanced/hyperdx.conf` | **Manual** — paste into the HyperDX host's Advanced tab. 300s timeouts for ClickHouse scans, buffering off for live tail. Carries no credential; the Access List does. |
 
@@ -561,6 +561,18 @@ half of ONE keypair, shared by all three adapters. The private half stays in
 `keys/keys.json` and is never in the registry. Keys are published as bare
 base64, no encoding label. The key's own `osid` is the network's key id: what
 the adapters sign with, and what the Network Descriptor and JWKS publish.
+
+**The Network Descriptor and JWKS** are generated FROM that row, not stored in
+the registry. `make host-descriptor` signs them with the network's key and writes
+`.well-known/openagrinet` and `.well-known/jwks.json`, plus
+`.well-known/schema-packs.json` -- the list of schema packs this network speaks,
+which the descriptor's `schemaPacks` links to as one URL rather than listing.
+NPM then serves all three (`npm-custom/server_proxy.conf`); the command checks
+they are live, which needs a proxy host for the networkId (Appendix B). Re-run
+it whenever the row changes -- each run publishes the next revision, and another
+network refuses one that does not increase. `FEDERATION_PROJECTION_TTL` in `.env`, if
+set, is published as how long another network may keep what it crawls from
+this one.
 
 **Four `upstream` rows, one per provider** — an ordinary HTTP API this
 deployment calls. It signs nothing, so it needs no role and no keys. Holds a
@@ -1010,7 +1022,7 @@ config/
   reverse-proxy/
     npm-custom/             mounted to /data/nginx/custom; NPM includes these
       http_top.conf           on its own -- rate-limit zone, and the /publish
-      server_proxy.conf       deny every proxy host gets
+      server_proxy.conf       deny and the .well-known documents every proxy host gets
     npm-advanced/           NOT loaded. Paste into a host's Advanced tab; kept
       consumer.conf                here because a textarea in a database is not
       hyperdx.conf            reviewable. consumer = rate limit; hyperdx = ClickHouse

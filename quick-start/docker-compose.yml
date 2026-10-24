@@ -921,6 +921,9 @@ services:
       # ownership of the files, which is cosmetic and not tracked by git.
       - ./config/reverse-proxy/npm-custom:/data/nginx/custom
 
+      # Federation documents from `make host-descriptor`, served by server_proxy.conf.
+      - ./.well-known:/srv/well-known:ro
+
     depends_on:
       # Ordering only; the adapter image has no healthcheck.
       #
