@@ -199,6 +199,9 @@ services:
     image: ghcr.io/sunbird-rc/sunbird-rc-keycloak:latest
     container_name: sunbird-registry-keycloak
     restart: unless-stopped
+    # An interrupted boot leaves keycloak-add-user.json behind, and every restart
+    # then fails on the duplicate admin. Clear it first.
+    entrypoint: ["/bin/sh", "-c", "rm -f /opt/jboss/keycloak/standalone/configuration/keycloak-add-user.json && exec /opt/jboss/tools/docker-entrypoint.sh \"$$@\"", "--"]
     logging: *logging
     networks: [oan-internal]
     volumes:
