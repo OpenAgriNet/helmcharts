@@ -454,12 +454,10 @@ def cmd_publish(args):
             f"publishing it would sign the descriptor with one key and traffic with another")
 
     base_url = entry.get("baseUrl", "").rstrip("/")
-    # Matched by bytes: during a rotation the entry holds several keys.
-    ours = [k for k in entry.get("keys") or []
-            if str(k.get("key", "")).removeprefix("base64:") == base64.b64encode(public_of(network_key)).decode()]
-    key_id = (ours[0].get("osid") if ours else None) or ""
+    # The entry's osid, which survives key rotation.
+    key_id = entry.get("osid") or ""
     if not key_id:
-        raise FederationError(f"{args.network_id}'s registry key has no osid")
+        raise FederationError(f"{args.network_id}'s registry entry has no osid")
     network_jwk = jwk(public_of(network_key), key_id)
 
     descriptor = {

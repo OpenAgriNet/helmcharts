@@ -277,8 +277,8 @@ def signing_key_block(public_key):
     to a base64 decoder is the value as published, and a label left on fails
     every verification with a decode error pointing nowhere near the registry.
 
-    No key id of our own: the registry assigns the key an osid, which is what a
-    sender names. No use either -- alg carries the purpose, ed25519 signs."""
+    No key id of our own: a sender names the entry's osid. No use either -- alg
+    carries the purpose, ed25519 signs."""
     return [{"alg": "ed25519", "key": public_key, "status": "active",
              "validFrom": "2026-01-01T00:00:00Z", "validUntil": "2030-01-01T00:00:00Z"}]
 
@@ -499,9 +499,10 @@ def seed(identity):
         ensure_capability_schema(bearer, env(var), name, version)
 
 
-def key_osid(identity):
+def entry_osid(identity):
     """Check the registry still holds the public half we have the private half
-    for, and read back the key's osid: the key id the adapters sign with.
+    for, and read back the entry's osid: the key id the adapters sign with. It
+    stays the same when keys rotate.
 
     The mismatch check matters because this registry cannot update a record and
     its delete is soft: a participant seeded against an earlier keys.json keeps
@@ -523,7 +524,7 @@ def key_osid(identity):
             f"  the unique index, so the id cannot be reused. Either restore the\n"
             f"  matching keys/keys.json, or pick a new BECKN_NETWORK_ID in .env and\n"
             f"  re-run.")
-    identity["keyOsid"] = keys[0]["osid"]
+    identity["keyId"] = records[0]["osid"]
     return identity
 
 
@@ -553,7 +554,7 @@ def render(identity):
             prefix = role.upper()
             for placeholder, value in (
                     (f"__{prefix}_SUBSCRIBER_ID__", identity["participantId"]),
-                    (f"__{prefix}_KEY_ID__", identity["keyOsid"]),
+                    (f"__{prefix}_KEY_ID__", identity["keyId"]),
                     (f"__{prefix}_SIGNING_PRIVATE__", identity["signingPrivate"]),
                     (f"__{prefix}_SIGNING_PUBLIC__", identity["signingPublic"]),
                     (f"__{prefix}_ENCR_PRIVATE__", identity["encrPrivate"]),
@@ -609,7 +610,7 @@ if __name__ == "__main__":
     preflight()
     identity = load_or_generate_keys()
     seed(identity)
-    identity = key_osid(identity)
+    identity = entry_osid(identity)
     KEYS.write_text(json.dumps(identity, indent=2))
     render(identity)
     print(f"""
