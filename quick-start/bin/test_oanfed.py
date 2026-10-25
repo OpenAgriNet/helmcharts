@@ -14,10 +14,10 @@ import oanfed as o
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 NETWORK = "network-a.example.org"
-# The registry entry's own osid. Nothing names the key by it.
-ENTRY_OSID = "1-dd2e40a3-8d4d-427e-bc77-266befb01d00"
-# The key's own osid: the network's key id.
-KEY_ID = "1-6b9f77c2-139a-4c26-a278-bbb73384ea8a"
+# The registry entry's own osid: the network's key id.
+KEY_ID = "1-dd2e40a3-8d4d-427e-bc77-266befb01d00"
+# The key's own osid. Nothing names the key by it.
+KEY_OSID = "1-6b9f77c2-139a-4c26-a278-bbb73384ea8a"
 
 
 def raw_public(private):
@@ -42,7 +42,7 @@ class Base(unittest.TestCase):
         self.dir = pathlib.Path(tempfile.mkdtemp())
         self.traffic = Ed25519PrivateKey.generate()
         StubRegistry.entry = {
-            "participantId": NETWORK, "name": "Network A", "osid": ENTRY_OSID,
+            "participantId": NETWORK, "name": "Network A", "osid": KEY_ID,
             "baseUrl": f"https://{NETWORK}/network",
             "keys": [self.registry_key(self.traffic)],
         }
@@ -67,7 +67,7 @@ class Base(unittest.TestCase):
     @staticmethod
     def registry_key(private, **extra):
         return {"alg": "ed25519", "status": "active", "validFrom": "2026-01-01T00:00:00Z",
-                "key": base64.b64encode(raw_public(private)).decode(), "osid": KEY_ID, **extra}
+                "key": base64.b64encode(raw_public(private)).decode(), "osid": KEY_OSID, **extra}
 
     def publish(self, revision=1, **overrides):
         args = SimpleNamespace(
@@ -108,10 +108,10 @@ class Publish(Base):
     def test_documents_verify_with_the_one_registered_key(self):
         descriptor, keyset = self.publish()
         o.verify(descriptor, keyset)
-        # Named by the key's osid, never the entry's.
+        # Named by the entry's osid, never the key's.
         self.assertEqual(descriptor["signature"]["keyId"], KEY_ID)
         self.assertEqual([k["kid"] for k in keyset["keys"]], [KEY_ID])
-        self.assertNotIn(ENTRY_OSID, json.dumps([descriptor, keyset]))
+        self.assertNotIn(KEY_OSID, json.dumps([descriptor, keyset]))
         self.assertEqual(keyset["keys"][0], {"kty": "OKP", "crv": "Ed25519", "kid": KEY_ID,
                                              "x": o.b64url(raw_public(self.traffic))})
         self.assertEqual(descriptor["services"]["discovery"], f"https://{NETWORK}/network/discover")
@@ -138,20 +138,14 @@ class Publish(Base):
         with self.assertRaises(o.FederationError):
             fetcher.fetch(NETWORK)
 
-    def test_entry_without_an_osid_still_publishes(self):
-        # A registry other than Sunbird RC assigns no osid; nothing here needs one.
+    def test_entry_without_an_osid_is_refused(self):
         del StubRegistry.entry["osid"]
-        descriptor, keyset = self.publish()
-        o.verify(descriptor, keyset)
-
-    def test_registry_key_without_an_osid_is_refused(self):
-        del StubRegistry.entry["keys"][0]["osid"]
         with self.assertRaisesRegex(o.FederationError, "has no osid"):
             self.publish()
         self.assertFalse((self.dir / ".well-known" / "openagrinet").exists())
 
-    def test_key_id_is_taken_from_our_key_during_a_rotation(self):
-        # Two keys on the entry: only the one we sign with names the documents.
+    def test_key_id_stays_the_entry_osid_during_a_rotation(self):
+        # Two keys on the entry: the documents are still named by the entry.
         other = Ed25519PrivateKey.generate()
         StubRegistry.entry["keys"].insert(0, self.registry_key(other, osid="1-next-key"))
         descriptor, keyset = self.publish()

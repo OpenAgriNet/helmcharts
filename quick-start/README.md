@@ -643,8 +643,9 @@ something does not match.
 it serves as its role (`["consumer", "network", "provider"]`), and the public
 half of ONE keypair, shared by all three adapters. The private half stays in
 `keys/keys.json` and is never in the registry. Keys are published as bare
-base64, no encoding label. The key's own `osid` is the network's key id: what
-the adapters sign with, and what the Network Descriptor and JWKS publish.
+base64, no encoding label. The row's own `osid` is the network's key id: what
+the adapters sign with, and what the Network Descriptor and JWKS publish. It
+stays the same when the key rotates.
 
 **The Network Descriptor and JWKS** are generated FROM that row, not stored in
 the registry. `make host-descriptor` signs them with the network's key and writes
