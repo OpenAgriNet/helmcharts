@@ -309,5 +309,158 @@ class Verify(Base):
         self.refuses(keyset=renamed, match="no published")
 
 
+PEER_PACK = "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1"
+OUR_PACK = "https://openagrinet.github.io/network-specs/schema/WeatherObservation/v0.1"
+
+
+class OurRegistry:
+    """Our registry in memory, behaving as Sunbird RC does where admission depends on it:
+    a supplied osid gets "1-" back on create, lists are replaced, objects merged, {} clears."""
+    own_id = "network-b.example.org"
+
+    def __init__(self):
+        self.rows = {}
+
+    def participant(self, participant_id):
+        return copy.deepcopy(self.rows.get(participant_id))
+
+    def by_osid(self, osid):
+        return [copy.deepcopy(r) for r in self.rows.values() if r["osid"] == osid]
+
+    def schema_packs(self):
+        return [OUR_PACK]
+
+    def create(self, record):
+        record = copy.deepcopy(record)
+        record["osid"] = "1-" + record["osid"]
+        self.rows[record["participantId"]] = record
+
+    def update(self, record):
+        held = self.rows[record["participantId"]]
+        assert held["osid"] == record["osid"]
+        new = copy.deepcopy(record)
+        roles = new.pop("federationRole", None)
+        held.update(new)
+        if roles == {}:
+            held.pop("federationRole", None)
+        elif roles is not None:
+            held["federationRole"] = {**held.get("federationRole", {}), **roles}
+
+
+class Admission(Base):
+    def setUp(self):
+        super().setUp()
+        self.ours = OurRegistry()
+        fetcher = o.Fetcher()
+        fetcher._get = lambda _, path: json.loads((self.dir / path.lstrip("/")).read_text())
+        self._real_open, self._real_fetcher = o.open_registry, o.fetcher_from
+        o.open_registry = lambda: self.ours
+        o.fetcher_from = lambda _args: fetcher
+        self.publish(revision=1)
+
+    def tearDown(self):
+        o.open_registry, o.fetcher_from = self._real_open, self._real_fetcher
+        super().tearDown()
+
+    def admit(self, direction="source", packs=PEER_PACK, network_id=NETWORK):
+        o.cmd_admit(SimpleNamespace(network_id=network_id, direction=direction, schema_packs=packs))
+
+    def refresh(self):
+        o.cmd_refresh(SimpleNamespace(network_id=NETWORK))
+
+    def suspend(self, direction):
+        o.cmd_suspend(SimpleNamespace(network_id=NETWORK, direction=direction))
+
+    def held(self):
+        return self.ours.participant(NETWORK)
+
+    def test_admit_files_the_peer_under_its_entry_osid(self):
+        self.admit()
+        held = self.held()
+        self.assertEqual(held["osid"], KEY_ID)
+        self.assertEqual((held["role"], held["revision"], held["baseUrl"]),
+                         (["network"], 1, f"https://{NETWORK}/network/discover"))
+        self.assertEqual([k["key"] for k in held["keys"]],
+                         [base64.b64encode(raw_public(self.traffic)).decode()])
+        self.assertEqual(held["federationRole"]["source"]["schemaPacks"], [PEER_PACK])
+        self.assertEqual(held["federationRole"]["source"]["descriptorRevision"], 1)
+
+    def test_admit_covers_only_packs_on_offer(self):
+        with self.assertRaisesRegex(o.FederationError, "does not publish"):
+            self.admit(packs=OUR_PACK)
+        with self.assertRaisesRegex(o.FederationError, "this network does not publish"):
+            self.admit(direction="requester", packs=PEER_PACK)
+        self.assertIsNone(self.held())
+
+    def test_a_second_direction_keeps_the_first(self):
+        self.admit()
+        self.admit(direction="requester", packs=OUR_PACK)
+        roles = self.held()["federationRole"]
+        self.assertEqual((roles["source"]["schemaPacks"], roles["requester"]["schemaPacks"]),
+                         ([PEER_PACK], [OUR_PACK]))
+
+    def test_refresh_follows_the_documents_but_never_the_admission(self):
+        self.admit()
+        before = self.held()["federationRole"]
+        self.publish(revision=2)
+        self.refresh()
+        self.assertEqual(self.held()["revision"], 2)
+        self.assertEqual(self.held()["federationRole"], before)
+
+    def test_refresh_files_a_rotated_key(self):
+        self.admit()
+        self.traffic = Ed25519PrivateKey.generate()
+        StubRegistry.entry["keys"] = [self.registry_key(self.traffic)]
+        self.write_key(self.traffic, self.key_file)
+        self.publish(revision=2)
+        self.refresh()
+        self.assertEqual([k["key"] for k in self.held()["keys"]],
+                         [base64.b64encode(raw_public(self.traffic)).decode()])
+        self.assertEqual(self.held()["osid"], KEY_ID)
+
+    def test_replays_are_refused(self):
+        self.admit()
+        self.ours.rows[NETWORK]["revision"] = 5
+        with self.assertRaisesRegex(o.FederationError, "replay"):
+            self.refresh()
+        self.ours.rows[NETWORK].update(revision=1, baseUrl="https://elsewhere.example/discover")
+        with self.assertRaisesRegex(o.FederationError, "different contents"):
+            self.refresh()
+
+    def test_refused_kids(self):
+        self.ours.rows["other.example.org"] = {"participantId": "other.example.org", "osid": KEY_ID}
+        with self.assertRaisesRegex(o.FederationError, "already has osid"):
+            self.admit()
+        StubRegistry.entry["osid"] = "not-a-record-id"
+        self.publish(revision=2)
+        with self.assertRaisesRegex(o.FederationError, "not a registry record id"):
+            self.admit()
+        self.assertIsNone(self.held())
+
+    def test_a_peer_cannot_change_the_osid_it_is_filed_under(self):
+        self.admit()
+        StubRegistry.entry["osid"] = "1-00000000-0000-4000-8000-000000000000"
+        self.publish(revision=2)
+        with self.assertRaisesRegex(o.FederationError, "cannot change"):
+            self.refresh()
+
+    def test_suspend_withdraws_one_direction(self):
+        self.admit()
+        self.admit(direction="requester", packs=OUR_PACK)
+        self.suspend("requester")
+        self.assertEqual(list(self.held()["federationRole"]), ["source"])
+        self.suspend("source")
+        self.assertNotIn("federationRole", self.held())
+        with self.assertRaisesRegex(o.FederationError, "not admitted"):
+            self.refresh()
+
+    def test_our_own_id_and_inactive_peers_are_refused(self):
+        with self.assertRaisesRegex(o.FederationError, "is this network"):
+            o.cmd_suspend(SimpleNamespace(network_id=OurRegistry.own_id, direction="source"))
+        self.publish(revision=2, status="Suspended")
+        with self.assertRaisesRegex(o.FederationError, "declares itself Suspended"):
+            self.admit()
+
+
 if __name__ == "__main__":
     unittest.main()
