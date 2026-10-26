@@ -1,5 +1,5 @@
 {{/* Single mode (role network-adapter): three tiers in one adapter; config from
-config/single-adapter/network-adapter-config.yaml, routing generated below (ADR-0001). */}}
+config/single-adapter/network-adapter-config.yaml and its routing files (ADR-0001). */}}
 
 {{/* deploymentMode (single-adapter | multi-adapter); provider and consumer are always multi-adapter. */}}
 {{- define "adapter-service.deploymentMode" -}}
@@ -22,35 +22,6 @@ Usage: include "adapter-service.networkCheckTierKeys" (dict "ctx" $ "cfg" $parse
 {{- end -}}
 {{- end -}}
 {{- end -}}
-{{- end }}
-
-{{/* Single-mode routing as {<file>: <doc>}: tier hosts in routing-{consumer,provider}.yaml
-become http://localhost:<targetPort>/_internal/<tier> (ADR-0001); routing-network.yaml as is. */}}
-{{- define "adapter-service.networkSingleRouting" -}}
-{{- $ctx := . -}}
-{{- $ownListener := printf "http://localhost:%v/_internal/${1}${4}" .Values.service.targetPort -}}
-{{- /* Anchored: only a tier host (optional namespace and port) plus optional path. */ -}}
-{{- $tierHost := "^https?://(consumer|network|provider)-adapter(\\.[a-z0-9.-]+)?(:[0-9]+)?(/.*)?$" -}}
-{{- $out := dict -}}
-{{- range $pair := list (list "routing-consumer.yaml" "routing-network-adapter-consumer.yaml") (list "routing-network.yaml" "routing-network.yaml") (list "routing-provider.yaml" "routing-network-adapter-provider.yaml") -}}
-{{- $src := index $pair 0 -}}
-{{- $doc := $ctx.Files.Get (printf "config/multi-adapter/%s" $src) | fromYaml -}}
-{{- if not $doc.routingRules -}}
-{{- fail (printf "%s: config/multi-adapter/%s parsed to no routingRules; the single-mode routing is generated from it." $ctx.Chart.Name $src) -}}
-{{- end -}}
-{{- range $i, $rule := $doc.routingRules -}}
-{{- if $rule.target -}}
-{{- $url := $rule.target.url | default "" -}}
-{{- $url = regexReplaceAll $tierHost $url $ownListener -}}
-{{- if hasSuffix "/" $url -}}
-{{- fail (printf "%s: single-mode routing from config/multi-adapter/%s routingRules[%d] ends in a slash (%q). The router appends the action, so that produces //discover." $ctx.Chart.Name $src $i $url) -}}
-{{- end -}}
-{{- $_ := set $rule.target "url" $url -}}
-{{- end -}}
-{{- end -}}
-{{- $_ := set $out (index $pair 1) $doc -}}
-{{- end -}}
-{{- toYaml $out -}}
 {{- end }}
 
 {{/* One tier's key Secret; fails naming the tier when unset.

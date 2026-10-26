@@ -1,4 +1,4 @@
-# CI only: renders single-adapter mode (generated routing, tier identities)
+# CI only: renders single-adapter mode (single-adapter routing, tier identities)
 # with ingress on and annotations null to exercise the path guard.
 role: network-adapter
 fullnameOverride: network-adapter

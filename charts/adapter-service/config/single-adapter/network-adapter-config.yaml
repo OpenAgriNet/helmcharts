@@ -9,7 +9,7 @@ log:
   contextKeys: [transaction_id, message_id, subscriber_id, module_id]
 
 http:
-  # Also the port the generated routing uses: keep it equal to the
+  # Also the port the single-adapter routing files use: keep it equal to the
   # chart's service.targetPort.
   port: 9201
   timeout:
