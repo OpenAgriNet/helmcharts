@@ -404,6 +404,30 @@ Deliberately absent:
 
 ## Appendix B — Reaching it
 
+### Two environments, one difference
+
+The stack is the same everywhere. What changes is whether the network's name
+resolves from outside, because that alone decides how it gets a certificate.
+
+| | The name | Certificate |
+|---|---|---|
+| **A laptop** | one nothing else resolves -- `*.oan.local` in `/etc/hosts`, or an sslip.io name pointed at `127.0.0.1` | a local CA you trust by path |
+| **Anywhere reachable** | a real one: your domain, or `<ip>.sslip.io` if you have none | Let's Encrypt, through NPM |
+
+sslip.io is not a third case. It is a domain like any other, resolving to
+whatever address is in the name, which is simply how you skip owning one.
+
+Either way, one `.env` line carries it:
+
+```
+BECKN_NETWORK_ID=oan.example.org
+NETWORK_BASE_URL=https://oan.example.org/network
+```
+
+That value is what another network stores when it admits you, and what a
+catalog's `bppUri` tells a caller to POST to. The registry and discovery are
+reached at `localhost` in every environment and are never published.
+
 ### The adapters, through Nginx Proxy Manager
 
 NPM owns 80 and 443 and is the whole public surface. Its routing table is
@@ -791,7 +815,26 @@ has run. If it persists, look for a *directory* where a config file should be �
 Appendix C.
 
 **`setup.py` says the registry did not come up.** Check `make ps`. On a cold
-volume the registry spends a minute or two building its schema tables.
+volume the registry spends a minute or two building its schema tables; step 1
+waits for its healthcheck before step 2 runs, so this means it never became
+healthy rather than that it was slow.
+
+**The registry logs `BUG: There can only ever be one graph vertex, found 2`.**
+SunbirdRC loads its schemas into Postgres at startup and cannot do it twice. A
+stack that was interrupted part-way through its first boot and then restarted
+hits this, and no amount of restarting clears it -- the half-loaded schema is
+in the volume. Start that tier over:
+
+```sh
+docker compose down -v
+make up-core
+```
+
+**A publish fails with `SCH_SCHEMA_ADAPTATION_FAILED`.** The adapter fetches a
+capability's pack over the internet per payload. A transient failure reads as a
+schema error rather than a network one; retry before looking at the schema. If
+it is every time, check the container's egress -- a host with broken IPv6 is
+the usual cause.
 
 **`setup.py` says a participant is registered with a different key.** The
 registry cannot update a published key and its delete is soft, so the id cannot
@@ -1195,3 +1238,71 @@ its `/publish` and `/discover` both verify signatures, so a network peer calls
 it directly. Signing is not something Postman does, so those calls are not
 scripted. The variable exists to give the address somewhere to live, not
 because a request is missing.
+
+## Appendix O — A second network on the same machine
+
+Two quick-start networks, side by side, so you can watch one crawl the other.
+Nothing is shared: not a container name, not a compose project, not a docker
+network, not a volume.
+
+### What has to differ
+
+Copy the directory, then change five things in the copy's `.env`:
+
+```sh
+STACK_NAME=oan-net-b          # the compose project
+STACK_PREFIX=b-               # every container and docker network
+BECKN_NETWORK_ID=net-b.oan.local
+NETWORK_BASE_URL=https://net-b.oan.local/network
+```
+
+and every published port, because both stacks bind the same loopback address:
+
+```
+REGISTRY_PORT=8181   DISCOVERY_PORT=8190   NETWORK_ADAPTER_PORT=9211
+PROVIDER_ADAPTER_PORT=9210   CONSUMER_ADAPTER_PORT=9212
+MOCKIMD_PORT=9110   MOCKAGMARKNET_PORT=9111
+REVERSE_PROXY_HTTP_PORT=8081   REVERSE_PROXY_HTTPS_PORT=8443   NPM_ADMIN_PORT=8182
+```
+
+Leave `STACK_NAME` and `STACK_PREFIX` as they ship in the first network --
+`openagrinet` and empty -- and its names do not move.
+
+**Copy the directory, do not clone and prune.** `config/adapters/*/routing-*.yaml`
+are checked-in files that sit beside the generated `*.yaml`; deleting the
+generated ones with a glob takes the routing with them, and Docker then creates
+a DIRECTORY at each missing bind mount. The adapter restart-loops on
+`routing-...yaml: is a directory` until you remove the directories by hand.
+
+Do remove the copy's `keys/` and its generated `config/adapters/*/[a-z]*.yaml`
+**by name**, or the second network signs as the first.
+
+### Bringing them up
+
+```sh
+cd quick-start   && make up-core        # network A
+cd ../net-b      && make up-core        # network B
+```
+
+Then each one hosts its documents and admits the other. They reach each other
+at their **published** addresses, not over a shared bridge, so both names have
+to resolve and B's is on 8443:
+
+```sh
+make host-descriptor                    # in each directory
+
+bin/oanfed.py admit --network-id net-b.oan.local \
+  --direction source --schema-packs <pack-url> \
+  --resolve 127.0.0.1:8443 ...          # from A, pointing at B's https port
+```
+
+Run it both ways: admission is one network's local decision, and A admitting B
+says nothing about B admitting A.
+
+### Why the ports, and not a shared network
+
+A peer calls the address in our registry entry, which is the address in
+`NETWORK_BASE_URL` -- a public one, reached through the proxy. Two proxies on
+one machine cannot both hold 443, so the second takes 8443 and callers resolve
+to it. That is the same thing a real deployment does with two hosts, compressed
+onto one.

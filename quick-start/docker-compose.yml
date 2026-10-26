@@ -84,13 +84,17 @@
 # this line the deployment is named after whatever the checkout is called:
 # `quick-start_registry-data` names a directory, not a network. Pinning it also
 # means the directory can be renamed without orphaning the registry's data.
-name: openagrinet
+#
+# STACK_NAME and STACK_PREFIX are how a SECOND network runs on one machine:
+# set both in its own .env and nothing it creates collides with the first.
+# Empty prefix is the default, so a single network keeps today's names exactly.
+name: ${STACK_NAME:-openagrinet}
 
 networks:
   oan-internal:
-    name: oan-internal
+    name: ${STACK_PREFIX:-}oan-internal
   oan-edge:
-    name: oan-edge
+    name: ${STACK_PREFIX:-}oan-edge
 
 volumes:
   sunbird-registry-postgres-data:
@@ -181,7 +185,7 @@ services:
   # ==========================================================================
   sunbird-registry-postgres:
     image: postgres:14
-    container_name: sunbird-registry-postgres
+    container_name: ${STACK_PREFIX:-}sunbird-registry-postgres
     restart: unless-stopped
     logging: *logging
     networks: [oan-internal]
@@ -202,7 +206,7 @@ services:
 
   sunbird-registry-service:
     image: ghcr.io/sunbird-rc/sunbird-rc-core:${REGISTRY_IMAGE_TAG}
-    container_name: sunbird-registry-service
+    container_name: ${STACK_PREFIX:-}sunbird-registry-service
     restart: unless-stopped
     logging: *logging
     # oan-internal ONLY, and that is the decision, not an omission. NPM sits
@@ -282,7 +286,7 @@ services:
     # pgvector rather than plain postgres: the discovery service's HNSW index
     # options arrived in 0.8.
     image: pgvector/pgvector:0.8.0-pg16
-    container_name: discovery-postgres
+    container_name: ${STACK_PREFIX:-}discovery-postgres
     restart: unless-stopped
     logging: *logging
     networks: [oan-internal]
@@ -360,7 +364,7 @@ services:
         BUILD_DATE:
         TREE_STATE:
 
-    container_name: discovery-service
+    container_name: ${STACK_PREFIX:-}discovery-service
     restart: unless-stopped
     logging: *logging
     networks: [oan-internal]
@@ -519,7 +523,7 @@ services:
   mock-imd:
     image: ${MOCKIMD_IMAGE}
     pull_policy: missing
-    container_name: mock-imd
+    container_name: ${STACK_PREFIX:-}mock-imd
     restart: unless-stopped
     logging: *logging
     networks: [oan-internal]
@@ -534,7 +538,7 @@ services:
   mock-agmarknet:
     image: ${MOCKAGMARKNET_IMAGE}
     pull_policy: missing
-    container_name: mock-agmarknet
+    container_name: ${STACK_PREFIX:-}mock-agmarknet
     restart: unless-stopped
     logging: *logging
     networks: [oan-internal]
@@ -554,7 +558,7 @@ services:
   provider-adapter:
     <<: *adapter
     profiles: ["multi-adapter"]
-    container_name: provider-adapter
+    container_name: ${STACK_PREFIX:-}provider-adapter
     # Registry only. The mocks are deliberately NOT dependencies: every
     # capability points at a real external upstream, and depends_on would start
     # both containers on any `docker compose up -d provider-adapter` even though
@@ -600,7 +604,7 @@ services:
   # Single mode: all three tiers in one process (/, /publish, /_internal/*); keep :9201 local.
   network-adapter:
     <<: *adapter
-    container_name: network-adapter
+    container_name: ${STACK_PREFIX:-}network-adapter
     depends_on:
       sunbird-registry-service:
         condition: service_healthy
@@ -632,7 +636,7 @@ services:
   consumer-adapter:
     <<: *adapter
     profiles: ["multi-adapter"]
-    container_name: consumer-adapter
+    container_name: ${STACK_PREFIX:-}consumer-adapter
     depends_on:
       network-adapter:
         condition: service_started
@@ -667,7 +671,7 @@ services:
   # ==========================================================================
   clickhouse:
     image: clickhouse/clickhouse-server:26.9
-    container_name: clickhouse
+    container_name: ${STACK_PREFIX:-}clickhouse
     restart: unless-stopped
     logging: *logging
     profiles: ["observability"]
@@ -718,7 +722,7 @@ services:
   # coupled to.
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.160.0
-    container_name: otel-collector
+    container_name: ${STACK_PREFIX:-}otel-collector
     restart: unless-stopped
     logging: *logging
     profiles: ["observability"]
@@ -810,7 +814,7 @@ services:
   # click-through needed, unlike HyperDX's Team Settings step.
   grafana:
     image: grafana/grafana:13.2.2
-    container_name: grafana
+    container_name: ${STACK_PREFIX:-}grafana
     restart: unless-stopped
     logging: *logging
     profiles: ["observability"]
@@ -920,7 +924,7 @@ services:
   # ==========================================================================
   nginx-proxy-manager:
     image: jc21/nginx-proxy-manager:latest
-    container_name: nginx-proxy-manager
+    container_name: ${STACK_PREFIX:-}nginx-proxy-manager
     restart: unless-stopped
     logging: *logging
     profiles: ["reverse-proxy"]

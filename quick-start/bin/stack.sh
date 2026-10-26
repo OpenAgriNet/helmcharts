@@ -48,10 +48,17 @@ dotenv_get() {
     printf '%s' "$v" | tr -d '"'"'"' \t\r'
 }
 
+# What this network's containers are called. Empty for a single network, so the
+# names are what they always were; a second network sets STACK_PREFIX in its own
+# .env and every name it touches moves with it.
+container() {
+    printf '%s%s' "${STACK_PREFIX:-$(dotenv_get STACK_PREFIX)}" "$1"
+}
+
 # Running mode, from the config network-adapter mounts; empty if not running.
 running_mode() {
-    [ "$(docker inspect -f '{{.State.Running}}' network-adapter 2>/dev/null)" = true ] || return 0
-    case "$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/app/config/adapter.yaml"}}{{.Source}}{{end}}{{end}}' network-adapter 2>/dev/null)" in
+    [ "$(docker inspect -f '{{.State.Running}}' "$(container network-adapter)" 2>/dev/null)" = true ] || return 0
+    case "$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/app/config/adapter.yaml"}}{{.Source}}{{end}}{{end}}' "$(container network-adapter)" 2>/dev/null)" in
         */multi-adapter/*) echo multi-adapter ;;
         *) echo single-adapter ;;
     esac
@@ -185,6 +192,18 @@ up_core() {
 up_registry_tier() {
     step 1 "$1" "registry and discovery (also starts sunbird-registry-postgres, discovery-postgres)"
     docker compose up -d sunbird-registry-service discovery-service
+
+    # `up -d` waits for this service's DEPENDENCIES to be healthy, never for the
+    # service itself, so step 2 would otherwise race the registry's first boot
+    # and die on a connection reset. It used to wait by accident, through a
+    # depends_on that is gone.
+    info "waiting for the registry to answer"
+    local waited=0
+    until [ "$(docker inspect -f '{{.State.Health.Status}}' "$(container sunbird-registry-service)" 2>/dev/null)" = healthy ]; do
+        [ "$waited" -ge 300 ] && die "the registry did not become healthy in 5 minutes -- docker logs $(container sunbird-registry-service)"
+        sleep 5
+        waited=$((waited + 5))
+    done
 }
 
 # Generates the network's keypair, registers its one identity, and
@@ -212,7 +231,7 @@ up_adapters() {
     step 3 "$1" "adapters, mode $MODE ($(adapters_for "$MODE"))"
     # A pre-merge stack's network-adapter container (service network-adapter-layer)
     # is unknown to compose and would clash by name.
-    if [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' network-adapter 2>/dev/null)" = network-adapter-layer ]; then
+    if [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' "$(container network-adapter)" 2>/dev/null)" = network-adapter-layer ]; then
         docker rm -f network-adapter >/dev/null
     fi
     # Single runs network-adapter alone: remove the multi-only adapters.
@@ -228,7 +247,7 @@ up_adapters() {
     docker compose --profile multi-adapter up -d --force-recreate $(adapters_for "$MODE")
     # NPM resolves adapter names when nginx loads and caches the addresses, so
     # a recreated or switched adapter 502s through it until it restarts.
-    if [ "$(docker inspect -f '{{.State.Running}}' nginx-proxy-manager 2>/dev/null)" = true ]; then
+    if [ "$(docker inspect -f '{{.State.Running}}' "$(container nginx-proxy-manager)" 2>/dev/null)" = true ]; then
         info "restarting nginx-proxy-manager so it re-resolves the adapter addresses"
         docker compose --profile reverse-proxy restart nginx-proxy-manager >/dev/null
     fi
@@ -435,10 +454,10 @@ print(setup.env("BECKN_NETWORK_ID"), setup.registry_url(),
 
     step 2 3 "nginx-proxy-manager -- serves .well-known/ on every proxy host"
     local was_running
-    was_running=$(docker inspect -f '{{.State.Running}}' nginx-proxy-manager 2>/dev/null || true)
+    was_running=$(docker inspect -f '{{.State.Running}}' "$(container nginx-proxy-manager)" 2>/dev/null || true)
     docker compose --profile reverse-proxy up -d nginx-proxy-manager
     if [ "$was_running" = true ]; then
-        docker exec nginx-proxy-manager nginx -s reload >/dev/null 2>&1 \
+        docker exec "$(container nginx-proxy-manager)" nginx -s reload >/dev/null 2>&1 \
             || warn "NPM did not reload; run make restart-edge if the check below fails"
     else
         info "NPM just started. Change its default login before anything else: make reverse-proxy says how."
