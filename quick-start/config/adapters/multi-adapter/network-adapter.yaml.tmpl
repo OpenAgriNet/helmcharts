@@ -156,4 +156,6 @@ modules:
       # validateSchema is not listed either, so this tier enforces no payload
       # shape at all -- it only routes.
       steps:
+        - validateSign
+        - checkCrossNetworkRequester
         - addRoute
