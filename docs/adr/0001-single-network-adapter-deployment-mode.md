@@ -85,10 +85,11 @@ Code comments stay at two lines or fewer; the reasoning behind them lives here.
 **Helm (`charts/adapter-service`, `charts/openbao-secrets`)**
 - **Mode:** `deploymentMode` is set once, in `values.yaml` (default `single-adapter`), and read only by role `network-adapter`; multi installs pass `--set deploymentMode=multi-adapter`. A `role: network` release without `multi` renders single; in a multi environment its pod then waits on the consumer and provider key Secrets (`adapterKeys`), which are not mirrored there. Setup steps are in `charts/adapter-service/SETUP.md`.
 - **Consumer at `/`:** the consumer module is the one catch-all mount, on purpose. `/publish` is an exact pattern and `/_internal/<tier>/` are longer subtrees, so both win over it. Its routing file is in effect an action allow-list: `addRoute` runs before `sign`, so an action with no rule errors instead of being forwarded.
-- **Generated routing:**
-  - `routing-network-adapter-{consumer,provider}.yaml` are generated from `routing-{consumer,provider}.yaml`. Every `http://<tier>-adapter[.<ns>][:port][/path]` target becomes `http://localhost:<targetPort>/_internal/<tier>[/path]`. Other targets, and rules with no target, are kept as they are. `routing-network.yaml` is reused unchanged.
-  - Tier hops stay real HTTP calls, not in-process calls, so both modes share one routing source: splitting the modules across pods again changes only the hosts.
-  - `http.port` in the config must equal `service.targetPort`; the render checks this.
+- **Routing files:**
+  - Single mode has its own routing files, `config/single-adapter/routing-network-adapter-{consumer,provider}.yaml`, written by hand like the quick-start ones. Their tier targets are `http://localhost:9201/_internal/<tier>[/path]`. `config/multi-adapter/routing-network.yaml` is reused unchanged.
+  - They are plain files rather than generated from the multi-adapter routing, so what is in git is what the pod reads. The cost: a route added in multi mode must also be added to the single-adapter file.
+  - Tier hops stay real HTTP calls, not in-process calls: splitting the modules across pods again changes only the hosts.
+  - `http.port` in the config, and the localhost port in the routing files, must equal `service.targetPort`; the render checks both.
 - **Keys:**
   - Every `signingPrivateKey` / `encrPrivateKey` in the single-mode config, including a `config:` override, must be a `__<TIER>_*_PRIVATE__` placeholder. This is checked on the parsed config, not with grep.
   - The init container fills each tier's placeholders from that tier's Secret, mounted at `/keys/<tier>`.

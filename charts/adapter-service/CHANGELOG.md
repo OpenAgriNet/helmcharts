@@ -18,9 +18,10 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   like any role's file (an outbound connection pool and log level info on
   every module). Each module is its tier's module, so a change to
   a tier file that should apply to both deployment modes is made in both. Its routing
-  is generated at render time from `config/multi-adapter/routing-*.yaml`
-  (`routing-network-adapter-{consumer,provider}.yaml`), with tier hosts rewritten
-  to `http://localhost:<targetPort>/_internal/<tier>`, so tier hops stay inside the pod. The render fails if `http.port` differs from `service.targetPort`.
+  is two files of its own, `config/single-adapter/routing-network-adapter-{consumer,provider}.yaml`,
+  whose tier hops go to `http://localhost:9201/_internal/<tier>`, so they stay inside the pod;
+  the network module reuses `config/multi-adapter/routing-network.yaml`. The render fails if
+  `http.port` or a routing file's localhost port differs from `service.targetPort`.
 - Three identities: each module signs as its own tier from
   `adapterKeys.{consumer-adapter,network-adapter,provider-adapter}`, defaulting to
   `consumer-adapter-keys`, `network-adapter-keys` and `provider-adapter-keys`
