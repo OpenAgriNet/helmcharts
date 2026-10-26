@@ -326,12 +326,9 @@ def upstream(participant_id, name, base_url):
 
 
 def ensure_binding(bearer, participant_id, capability, path, mapping_url,
-                   method="GET", actions=None):
-    """Create a capability binding only when absent.
-
-    actions is a list, not a map: the registry treats every nested object as an
-    entity and injects an osid into it, which a map cannot carry. It is also
-    what lets one action be retired without touching the others.
+                   method="GET"):
+    """Create a capability binding with the single `select` action, only when
+    absent.
 
     mappings is one reference carrying both directions, because the response
     mapping reads what the request mapping resolved.
@@ -339,9 +336,19 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url,
     method is a parameter because it is the provider's contract, not a network
     convention: Mausamgram and Agmarknet answer a GET whose query the mapping
     builds, while the knowledge provider and POCRA take a POST with a JSON body.
-    The adapter reads it from this row, so nothing about it is compiled in.
+    The adapter reads it from this row, so nothing about it is compiled in."""
+    ensure_binding_with_actions(bearer, participant_id, capability, [
+        {"action": "select", "method": method, "path": path,
+         "mappings": mapping_url, "timeoutMs": 15000, "retryMax": 2,
+         "status": "active"}])
 
-    actions, when given, replaces the single select."""
+
+def ensure_binding_with_actions(bearer, participant_id, capability, actions):
+    """Create a capability binding with the given actions, only when absent.
+
+    actions is a list, not a map: the registry treats every nested object as an
+    entity and injects an osid into it, which a map cannot carry. It is also
+    what lets one action be retired without touching the others."""
     binding = f"{participant_id}|{capability}"
     if search("ProviderSchema", {"bindingKey": {"eq": binding}}):
         print(f"  {binding}: already present")
@@ -349,10 +356,7 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url,
     result = post("ProviderSchema", {
         "bindingKey": binding, "participantId": participant_id,
         "capabilityCode": capability, "status": "active",
-        "actions": actions or [{"action": "select", "method": method, "path": path,
-                                "mappings": mapping_url,
-                                "timeoutMs": 15000, "retryMax": 2,
-                                "status": "active"}]}, bearer)
+        "actions": actions}, bearer)
     print(f"  {binding}: {result['params']['status']} "
           f"{result['params'].get('errmsg', '')[:160]}")
 
@@ -517,8 +521,7 @@ def seed(identities):
     ensure_binding(bearer, pocra, env("POCRA_CAPABILITY"),
                    env("POCRA_PATH"), env("POCRA_MAPPING_URL"),
                    method="POST")
-    ensure_binding(bearer, pmfby, env("PMFBY_CAPABILITY"),
-                   None, None, actions=pmfby_actions())
+    ensure_binding_with_actions(bearer, pmfby, env("PMFBY_CAPABILITY"), pmfby_actions())
 
     # And what each capability MEANS, which is a different question from who
     # serves it. A binding above says mausamgram answers WeatherObservation
