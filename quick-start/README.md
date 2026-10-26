@@ -96,7 +96,7 @@ Three tiers, in the only order that works: registry and discovery, then
 `bin/setup.py`, then the mocks and the three adapters. Allow up to five minutes
 the first time — Keycloak on a cold volume.
 
-`setup.py` generates a keypair per adapter, registers seven participants and four
+`setup.py` generates a keypair per adapter, registers eight participants and five
 capability bindings, and renders the three adapter configs. Nothing needs
 creating by hand. → Appendix C for why the order matters, Appendix D for what
 it wrote.
@@ -107,17 +107,19 @@ make ps
 
 ## Step 5 — Provider layer
 
-Answers `select`, and the only layer that calls an upstream. Serves all four
+Answers `select`, and the only layer that calls an upstream. Serves all five
 capabilities from one adapter.
 
-`.env` keys: `PROVIDER_SUBSCRIBER_ID`, and the four pairs that become binding
+`.env` keys: `PROVIDER_SUBSCRIBER_ID`, and the five pairs that become binding
 keys — `MAUSAMGRAM_PARTICIPANT_ID` + `MAUSAMGRAM_CAPABILITY`,
 `AGMARKNET_PARTICIPANT_ID` + `AGMARKNET_CAPABILITY`, `VISTAAR_PARTICIPANT_ID` +
-`VISTAAR_CAPABILITY`, `POCRA_PARTICIPANT_ID` + `POCRA_CAPABILITY`.
+`VISTAAR_CAPABILITY`, `POCRA_PARTICIPANT_ID` + `POCRA_CAPABILITY`,
+`PMFBY_PARTICIPANT_ID` + `PMFBY_CAPABILITY`.
 
 Plus the credentials each upstream needs: `AGMARKNET_ACCESS_NAME` +
-`AGMARKNET_PASSWORD`, and `VISTAAR_CLIENT_ID` + `VISTAAR_CLIENT_SECRET`. POCRA
-needs none at all.
+`AGMARKNET_PASSWORD`, `VISTAAR_CLIENT_ID` + `VISTAAR_CLIENT_SECRET`, and
+`PMFBY_ACCESS_UID` + `PMFBY_ACCESS_PWD`, which PMFBY exchanges for a token at
+`PMFBY_TOKEN_URL`. POCRA needs none at all.
 
 **Only mausamgram is a mock now.** Mandi, knowledge and POCRA are real
 external hosts, so each needs its own base URL and path in `.env` — and the
@@ -129,7 +131,7 @@ credential.
 docker compose logs provider-adapter | grep 'Processor steps initialized'
 ```
 
-All four capability steps should be listed by name.
+All five capability steps should be listed by name.
 
 ## Step 6 — Network layer
 
@@ -513,7 +515,7 @@ loopback. A registry route would depend on that silently.
 
 ```
 1. registry and discovery        (also sunbird-registry-postgres, sunbird-registry-keycloak, discovery-postgres)
-2. bin/setup.py                  keys, seven participants, four bindings, three configs
+2. bin/setup.py                  keys, eight participants, five bindings, three configs
 3. mock upstreams, then the three adapters
 4. nginx-proxy-manager           the public edge — 80 and 443, all interfaces
 5. hyperdx                       ClickStack
@@ -555,13 +557,13 @@ something does not match.
 `keys/keys.json` and are never in the registry. Keys are published as bare
 base64, no encoding label.
 
-**Four `upstream` rows, one per provider** — an ordinary HTTP API this
+**Five `upstream` rows, one per provider** — an ordinary HTTP API this
 deployment calls. It signs nothing, so it needs no role and no keys. Holds a
 `baseUrl`, now a real external host for every one of them: no capability points
 at a mock. No upstream credential lives in the registry either: the adapter
 config names *environment variables*, not values.
 
-**Four `ProviderSchema` rows, one per capability** — which upstream answers
+**Five `ProviderSchema` rows, one per capability** — which upstream answers
 which capability and how to call it: method, path, timeout, retries, and the
 mapping URL. Its `bindingKey` is `participantId|capabilityCode`:
 
@@ -570,6 +572,7 @@ mausamgram|openagrinet:WeatherObservation
 agmarknet|openagrinet:MandiPrice
 bharat-vistaar|openagrinet:KnowledgeAdvisory
 pocra|openagrinet:AgricultureFacility
+pmfby|openagrinet:Grievance
 ```
 
 The left half is the PARTICIPANT ID and it names the entity — never the
@@ -580,7 +583,7 @@ participant. It is also the string a catalog publishes as `offer.provider.id`,
 which is what lets `capability-examples/` be exercised against this stack
 unedited.
 
-Those four strings are the hinge. The provider adapter builds the same key from
+Those five strings are the hinge. The provider adapter builds the same key from
 each payload — the provider id and the capability `@type` it carries — and a
 step answers only when the key matches its own. `setup.py` renders those keys
 into `provider.yaml` from the same `.env` it seeds the registry from, which is
@@ -1051,7 +1054,7 @@ for v in sunbird-registry-postgres-data discovery-postgres-data nginx-proxy-mana
 done
 ```
 
-Then `make up`, and confirm the seven participants and your proxy hosts before
+Then `make up`, and confirm the eight participants and your proxy hosts before
 deleting anything. Keycloak shares `sunbird-registry-postgres-data`, so its realm travels with
 that volume — and equally does not survive if you skip it.
 

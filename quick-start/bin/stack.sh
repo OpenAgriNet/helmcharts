@@ -135,7 +135,7 @@ up_setup() {
 
 # Only now do the bind-mounted config files exist.
 up_adapters() {
-    # The mocks are NOT started. All four capabilities point at real external
+    # The mocks are NOT started. All five capabilities point at real external
     # upstreams, so starting them would pull two images and run two containers
     # nothing calls. They are still defined in docker-compose.yml, so
     # `docker compose up -d mock-imd mock-agmarknet` brings them up for anyone
