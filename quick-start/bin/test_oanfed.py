@@ -5,7 +5,7 @@
 No network, no registry: the registry is a stub returning one entry.
 """
 
-import base64, copy, json, os, pathlib, sys, tempfile, unittest
+import base64, copy, json, os, pathlib, sys, tempfile, unittest, uuid
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
@@ -14,10 +14,11 @@ import oanfed as o
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 NETWORK = "network-a.example.org"
-# The registry entry's own osid: the network's key id.
-KEY_ID = "1-dd2e40a3-8d4d-427e-bc77-266befb01d00"
-# The key's own osid. Nothing names the key by it.
+# The signing key's own osid: what a signature names, and what a verifier
+# matches when it walks a record's keys.
 KEY_OSID = "1-6b9f77c2-139a-4c26-a278-bbb73384ea8a"
+# The entry's own osid. Nothing names a key by it.
+ENTRY_OSID = "1-dd2e40a3-8d4d-427e-bc77-266befb01d00"
 
 
 def raw_public(private):
@@ -42,7 +43,7 @@ class Base(unittest.TestCase):
         self.dir = pathlib.Path(tempfile.mkdtemp())
         self.traffic = Ed25519PrivateKey.generate()
         StubRegistry.entry = {
-            "participantId": NETWORK, "name": "Network A", "osid": KEY_ID,
+            "participantId": NETWORK, "name": "Network A", "osid": ENTRY_OSID,
             "baseUrl": f"https://{NETWORK}/network",
             "keys": [self.registry_key(self.traffic)],
         }
@@ -108,11 +109,12 @@ class Publish(Base):
     def test_documents_verify_with_the_one_registered_key(self):
         descriptor, keyset = self.publish()
         o.verify(descriptor, keyset)
-        # Named by the entry's osid, never the key's.
-        self.assertEqual(descriptor["signature"]["keyId"], KEY_ID)
-        self.assertEqual([k["kid"] for k in keyset["keys"]], [KEY_ID])
-        self.assertNotIn(KEY_OSID, json.dumps([descriptor, keyset]))
-        self.assertEqual(keyset["keys"][0], {"kty": "OKP", "crv": "Ed25519", "kid": KEY_ID,
+        # Named by the key's osid, never the entry's: a verifier resolves a key
+        # by walking the record's keys and matching on theirs.
+        self.assertEqual(descriptor["signature"]["keyId"], KEY_OSID)
+        self.assertEqual([k["kid"] for k in keyset["keys"]], [KEY_OSID])
+        self.assertNotIn(ENTRY_OSID, json.dumps([descriptor, keyset]))
+        self.assertEqual(keyset["keys"][0], {"kty": "OKP", "crv": "Ed25519", "kid": KEY_OSID,
                                              "x": o.b64url(raw_public(self.traffic))})
         self.assertEqual(descriptor["services"]["discovery"], f"https://{NETWORK}/network/discover")
         self.assertNotIn("operationalKeys", descriptor)
@@ -138,19 +140,20 @@ class Publish(Base):
         with self.assertRaises(o.FederationError):
             fetcher.fetch(NETWORK)
 
-    def test_entry_without_an_osid_is_refused(self):
-        del StubRegistry.entry["osid"]
+    def test_a_key_without_an_osid_is_refused(self):
+        StubRegistry.entry["keys"][0].pop("osid")
         with self.assertRaisesRegex(o.FederationError, "has no osid"):
             self.publish()
         self.assertFalse((self.dir / ".well-known" / "openagrinet").exists())
 
-    def test_key_id_stays_the_entry_osid_during_a_rotation(self):
-        # Two keys on the entry: the documents are still named by the entry.
+    def test_the_key_id_names_the_key_we_signed_with(self):
+        # Two keys on the entry. The documents name the one holding the private
+        # half we signed with, not whichever is listed first.
         other = Ed25519PrivateKey.generate()
         StubRegistry.entry["keys"].insert(0, self.registry_key(other, osid="1-next-key"))
         descriptor, keyset = self.publish()
-        self.assertEqual(descriptor["signature"]["keyId"], KEY_ID)
-        self.assertEqual([k["kid"] for k in keyset["keys"]], [KEY_ID])
+        self.assertEqual(descriptor["signature"]["keyId"], KEY_OSID)
+        self.assertEqual([k["kid"] for k in keyset["keys"]], [KEY_OSID])
 
     def test_readable_key_is_refused(self):
         os.chmod(self.key_file, 0o644)
@@ -332,7 +335,9 @@ class OurRegistry:
 
     def create(self, record):
         record = copy.deepcopy(record)
-        record["osid"] = "1-" + record["osid"]
+        # The registry mints the entry's osid; a caller never supplies one. Keys
+        # keep whatever osid they were filed with, which is what a verifier matches.
+        record["osid"] = "1-" + (record.pop("osid", None) or str(uuid.uuid4()))
         self.rows[record["participantId"]] = record
 
     def update(self, record):
@@ -374,10 +379,12 @@ class Admission(Base):
     def held(self):
         return self.ours.participant(NETWORK)
 
-    def test_admit_files_the_peer_under_its_entry_osid(self):
+    def test_admit_files_the_peer_key_under_the_kid_it_signs_with(self):
         self.admit()
         held = self.held()
-        self.assertEqual(held["osid"], KEY_ID)
+        # On the KEY, not the entry: a verifier filters by participantId and then
+        # matches a key's own osid, so a kid filed anywhere else resolves nothing.
+        self.assertEqual([k["osid"] for k in held["keys"]], [KEY_OSID])
         self.assertEqual((held["role"], held["revision"], held["baseUrl"]),
                          (["network"], 1, f"https://{NETWORK}/network/discover"))
         self.assertEqual([k["key"] for k in held["keys"]],
@@ -407,16 +414,19 @@ class Admission(Base):
         self.assertEqual(self.held()["revision"], 2)
         self.assertEqual(self.held()["federationRole"], before)
 
-    def test_refresh_files_a_rotated_key(self):
+    def test_refresh_files_a_rotated_key_under_its_new_kid(self):
         self.admit()
+        rotated = "1-11111111-2222-4333-8444-555555555555"
         self.traffic = Ed25519PrivateKey.generate()
-        StubRegistry.entry["keys"] = [self.registry_key(self.traffic)]
+        StubRegistry.entry["keys"] = [self.registry_key(self.traffic, osid=rotated)]
         self.write_key(self.traffic, self.key_file)
         self.publish(revision=2)
         self.refresh()
-        self.assertEqual([k["key"] for k in self.held()["keys"]],
+        held = self.held()
+        self.assertEqual([k["key"] for k in held["keys"]],
                          [base64.b64encode(raw_public(self.traffic)).decode()])
-        self.assertEqual(self.held()["osid"], KEY_ID)
+        # A new key is a new kid, and the entry follows it rather than refusing.
+        self.assertEqual([k["osid"] for k in held["keys"]], [rotated])
 
     def test_replays_are_refused(self):
         self.admit()
@@ -427,22 +437,12 @@ class Admission(Base):
         with self.assertRaisesRegex(o.FederationError, "different contents"):
             self.refresh()
 
-    def test_refused_kids(self):
-        self.ours.rows["other.example.org"] = {"participantId": "other.example.org", "osid": KEY_ID}
-        with self.assertRaisesRegex(o.FederationError, "already has osid"):
-            self.admit()
-        StubRegistry.entry["osid"] = "not-a-record-id"
+    def test_a_kid_that_is_not_a_record_id_is_refused(self):
+        StubRegistry.entry["keys"][0]["osid"] = "not-a-record-id"
         self.publish(revision=2)
         with self.assertRaisesRegex(o.FederationError, "not a registry record id"):
             self.admit()
         self.assertIsNone(self.held())
-
-    def test_a_peer_cannot_change_the_osid_it_is_filed_under(self):
-        self.admit()
-        StubRegistry.entry["osid"] = "1-00000000-0000-4000-8000-000000000000"
-        self.publish(revision=2)
-        with self.assertRaisesRegex(o.FederationError, "cannot change"):
-            self.refresh()
 
     def test_suspend_withdraws_one_direction(self):
         self.admit()

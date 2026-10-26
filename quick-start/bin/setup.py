@@ -564,10 +564,13 @@ def seed(identity):
     seed_pmkisan(bearer)
 
 
-def entry_osid(identity):
+def key_osid(identity):
     """Check the registry still holds the public half we have the private half
-    for, and read back the entry's osid: the key id the adapters sign with. It
-    stays the same when keys rotate.
+    for, and read back the KEY's osid: the key id the adapters sign with.
+
+    The key's own osid, not the entry's. A verifier filters by participantId and
+    then walks that record's keys matching on their osid, so a signature naming
+    anything else resolves to no key and fails as an unregistered subscriber.
 
     The mismatch check matters because this registry cannot update a record and
     its delete is soft: a participant seeded against an earlier keys.json keeps
@@ -589,7 +592,7 @@ def entry_osid(identity):
             f"  the unique index, so the id cannot be reused. Either restore the\n"
             f"  matching keys/keys.json, or pick a new BECKN_NETWORK_ID in .env and\n"
             f"  re-run.")
-    identity["keyId"] = records[0]["osid"]
+    identity["keyId"] = keys[0]["osid"]
     return identity
 
 
@@ -691,7 +694,7 @@ if __name__ == "__main__":
     preflight()
     identity = load_or_generate_keys()
     seed(identity)
-    identity = entry_osid(identity)
+    identity = key_osid(identity)
     KEYS.write_text(json.dumps(identity, indent=2))
     render(identity)
     print(f"""
