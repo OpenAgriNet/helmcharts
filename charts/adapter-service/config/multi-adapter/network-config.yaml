@@ -181,4 +181,5 @@ modules:
       # it checks who is calling and routes.
       steps:
         - validateSign
+        - checkCrossNetworkRequester
         - addRoute

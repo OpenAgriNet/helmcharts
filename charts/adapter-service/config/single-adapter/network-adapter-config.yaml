@@ -214,6 +214,7 @@ modules:
               role: bpp
       steps:
         - validateSign
+        - checkCrossNetworkRequester
         - addRoute
 
   # provider: verifies the caller and answers from the upstream APIs (no router);
@@ -392,6 +393,7 @@ modules:
                 followUpTimeoutMs: "10000"
       steps:
         - validateSign
+        - checkCrossNetworkRequester
         - validateSchema
         - WeatherObservation
         - MandiPrice

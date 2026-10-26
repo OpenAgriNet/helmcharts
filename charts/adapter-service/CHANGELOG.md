@@ -7,6 +7,13 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ## [0.7.0] - 2026-10-24
 
+### Changed
+
+- The network and provider roles list `checkCrossNetworkRequester` after
+  `validateSign`. The agreement check used to run inside the registry's key
+  lookup, so it only happened when a signature was verified; it is now a step
+  of its own and holds either way. Needs an adapter image carrying the step.
+
 ### Added
 
 - `crawler` values, and the catalog crawler's config block on the network

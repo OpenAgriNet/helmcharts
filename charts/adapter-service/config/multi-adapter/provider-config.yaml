@@ -224,6 +224,7 @@ modules:
       # A plugin declared above but missing from this list is loaded and never runs.
       steps:
         - validateSign
+        - checkCrossNetworkRequester
         - validateSchema
         - WeatherObservation
         - MandiPrice
