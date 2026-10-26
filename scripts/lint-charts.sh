@@ -99,6 +99,36 @@ for chart_dir in "${chart_dirs[@]}"; do
   fi
 done
 
+# Grafana dashboards and alerting exist twice: in charts/grafana-provisioning
+# for the cluster, and in the quick-start's config/grafana for Compose. They
+# must be the same set of files with the same contents, or a dashboard or alert
+# changed -- or added -- in one path silently differs in the other. So both
+# sides are listed, and a file on either side without a twin fails too.
+#
+# infra-overview.json is the exception: the cluster copy reads kubelet metrics,
+# the quick-start copy Docker container stats, so the two differ by design.
+echo "==> grafana provisioning: chart and quick-start copies"
+chart=charts/grafana-provisioning
+qs=quick-start/config/grafana
+platform_specific_dashboard=infra-overview.json
+# nullglob: a pattern matching nothing expands to nothing, not to itself.
+shopt -s nullglob
+for pair in "$chart/dashboards:$qs/provisioning/dashboards/json:json" \
+            "$chart/alerting:$qs/alerting-true:yaml"; do
+  IFS=: read -r chart_dir qs_dir ext <<<"$pair"
+  names=$( { for file in "$chart_dir"/*."$ext" "$qs_dir"/*."$ext"; do basename "$file"; done; } | sort -u)
+  for name in $names; do
+    if [[ ! -f "$chart_dir/$name" || ! -f "$qs_dir/$name" ]]; then
+      echo "!!! $name is in only one of $chart_dir and $qs_dir -- add it to the other"
+      failed=1
+    elif [[ "$name" != "$platform_specific_dashboard" ]] && ! cmp -s "$chart_dir/$name" "$qs_dir/$name"; then
+      echo "!!! $chart_dir/$name and $qs_dir/$name differ -- copy one over the other"
+      failed=1
+    fi
+  done
+done
+shopt -u nullglob
+
 if [[ "$failed" -ne 0 ]]; then
   echo "chart validation FAILED"
   exit 1
