@@ -191,7 +191,7 @@ processors:
   # Parses a JSON body into attributes and lifts a `level` field into
   # severity, so a structured log from a Go service arrives searchable by
   # severity rather than as an unparsed blob. A line that is not JSON (a
-  # plain Postgres or Keycloak line) fails the `ParseJSON` guard and passes
+  # plain Postgres line) fails the `ParseJSON` guard and passes
   # through unchanged -- this is additive, not a requirement every log meet.
   transform/logs:
     log_statements:

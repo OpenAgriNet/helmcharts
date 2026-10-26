@@ -44,7 +44,7 @@ are empty in this stack:
   discovery-service: `pgxpool.empty_acquire`, `pgxpool.empty_acquire_wait_time`.
   `otel_metrics_gauge` and `otel_metrics_histogram` are empty.
 - **Logs.** Every container's stdout lands in `otel_logs`. Only Go services
-  (discovery-service) have a parsed `SeverityText`; Keycloak, Postgres and the
+  (discovery-service) have a parsed `SeverityText`; the registry, Postgres and the
   registry arrive as plain text with `SeverityText = ''`.
 
 ---
@@ -712,7 +712,7 @@ SELECT * FROM (
 
   UNION ALL
 
-  -- Logs: the parsed msg where there is one, the raw body otherwise. Keycloak
+  -- Logs: the parsed msg where there is one, the raw body otherwise. the registry
   -- and Postgres lines have neither a level nor a msg, hence both fallbacks.
   SELECT
     Timestamp,

@@ -71,14 +71,14 @@ cannot drill into is a spike you argue about.
 
 ### 4. Logs Console
 
-`otel_logs` holds stdout from **every** container — Keycloak, both Postgres
+`otel_logs` holds stdout from **every** container — the registry, both Postgres
 instances, the registry, the mocks, Grafana itself. A service dropdown, a
 severity filter and a full-text box replaces `docker logs` across eleven
 containers with one searchable window, and it works retroactively, which
 `docker logs -f` does not.
 
 Caveat worth putting in the panel description: only Go services have a parsed
-`SeverityText`. Keycloak and Postgres lines arrive with `SeverityText = ''`, so
+`SeverityText`. the registry and Postgres lines arrive with `SeverityText = ''`, so
 a severity filter silently hides them. Filter on `SeverityNumber >= 13` *or*
 `SeverityText = ''` if you want everything.
 
