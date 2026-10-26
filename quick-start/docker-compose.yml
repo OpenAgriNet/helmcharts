@@ -11,7 +11,8 @@
 #   registry        sunbird-registry-postgres, sunbird-registry-keycloak,
 #                   sunbird-registry-service
 #   discovery       discovery-postgres, discovery-service
-#   adapters        provider, network, consumer
+#   adapters        network-adapter (all three tiers by default) +
+#                   provider, consumer (profile multi-adapter)
 #   observability   clickhouse, otel-collector, grafana   profile: observability
 #   edge            nginx-proxy-manager          profile: reverse-proxy
 #
@@ -26,7 +27,7 @@
 #                                         everything EXCEPT the adapters
 #   3. python3 bin/setup.py               keys, the three adapter entries, and
 #                                         the adapter configs they mount
-#   4. docker compose up -d               now the adapters
+#   4. docker compose up -d                       now the adapters (mode and profile from .env)
 #   5. docker compose --profile reverse-proxy --profile observability up -d
 #                                         the edge and the telemetry stack
 #
@@ -538,7 +539,8 @@ services:
         condition: service_healthy
 
   # ==========================================================================
-  # adapters -- consumer, network and provider. Same image, three configs.
+  # adapters -- single-adapter (default): network-adapter runs all three tiers; multi-adapter:
+  # plus provider- and consumer-adapter (profile multi-adapter). bin/stack.sh picks the config.
   #
   # Their configs are bind-mounted FILES that do not exist until bin/setup.py
   # renders them from the .tmpl beside them, which is what the step ordering
@@ -597,6 +599,7 @@ services:
   # change here or a restart.
   provider-adapter:
     <<: *adapter
+    profiles: ["multi-adapter"]
     container_name: provider-adapter
     # Registry only. The mocks are deliberately NOT dependencies: every
     # capability points at a real external upstream, and depends_on would start
@@ -634,12 +637,13 @@ services:
       VISTAAR_CLIENT_ID: ${VISTAAR_CLIENT_ID}
       VISTAAR_CLIENT_SECRET: ${VISTAAR_CLIENT_SECRET}
     volumes:
-      - ./config/adapters/provider.yaml:/app/config/adapter.yaml:ro
-      - ./config/adapters/routing-provider.yaml:/app/config/routing-provider.yaml:ro
+      - ./config/adapters/multi-adapter/provider-adapter.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/multi-adapter/routing-provider.yaml:/app/config/routing-provider.yaml:ro
     ports:
       - "127.0.0.1:${PROVIDER_ADAPTER_PORT}:9200"
 
   # Verifies the caller, hands discovery on, re-signs as itself.
+  # Single mode: all three tiers in one process (/, /publish, /_internal/*); keep :9201 local.
   network-adapter:
     <<: *adapter
     container_name: network-adapter
@@ -651,9 +655,19 @@ services:
     environment:
       <<: *adapter-env
       OTEL_SERVICE_NAME: network-adapter
+      # Upstream credentials for the single-mode provider module, read at call
+      # time -- the same variables and reasons as provider-adapter.
+      MAUSAMGRAM_AUTH: ${MAUSAMGRAM_AUTH}
+      AGMARKNET_ACCESS_NAME: ${AGMARKNET_ACCESS_NAME}
+      AGMARKNET_PASSWORD: ${AGMARKNET_PASSWORD}
+      MOCKAGMARKNET_TOKEN: ${MOCKAGMARKNET_TOKEN:-local-mandi-token}
+      VISTAAR_CLIENT_ID: ${VISTAAR_CLIENT_ID}
+      VISTAAR_CLIENT_SECRET: ${VISTAAR_CLIENT_SECRET}
     volumes:
-      - ./config/adapters/network.yaml:/app/config/adapter.yaml:ro
-      - ./config/adapters/routing-network.yaml:/app/config/routing-network.yaml:ro
+      - ./config/adapters/${NETWORK_ADAPTER_DEPLOYMENT_MODE:-single-adapter}/network-adapter.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/multi-adapter/routing-network.yaml:/app/config/routing-network.yaml:ro
+      - ./config/adapters/single-adapter/routing-network-adapter-consumer.yaml:/app/config/routing-network-adapter-consumer.yaml:ro
+      - ./config/adapters/single-adapter/routing-network-adapter-provider.yaml:/app/config/routing-network-adapter-provider.yaml:ro
     ports:
       - "127.0.0.1:${NETWORK_ADAPTER_PORT}:9201"
 
@@ -663,6 +677,7 @@ services:
   # is also why the edge rate-limits this host and nothing else.
   consumer-adapter:
     <<: *adapter
+    profiles: ["multi-adapter"]
     container_name: consumer-adapter
     depends_on:
       network-adapter:
@@ -673,8 +688,8 @@ services:
       <<: *adapter-env
       OTEL_SERVICE_NAME: consumer-adapter
     volumes:
-      - ./config/adapters/consumer.yaml:/app/config/adapter.yaml:ro
-      - ./config/adapters/routing-consumer.yaml:/app/config/routing-consumer.yaml:ro
+      - ./config/adapters/multi-adapter/consumer-adapter.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/multi-adapter/routing-consumer.yaml:/app/config/routing-consumer.yaml:ro
     ports:
       - "127.0.0.1:${CONSUMER_ADAPTER_PORT}:9202"
 
@@ -1036,12 +1051,18 @@ services:
       # whenever NPM does. That means the restart above is not optional after
       # `make observability` -- NPM was started before the name existed, so the
       # Grafana host 502s until it re-resolves.
+      #
+      # required: false -- consumer- and provider-adapter exist only in multi
+      # mode (profile "multi-adapter"); NPM starts with whichever is running.
       consumer-adapter:
         condition: service_started
+        required: false
       network-adapter:
         condition: service_started
+        required: false
       provider-adapter:
         condition: service_started
+        required: false
 
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:81/api/ || exit 1"]

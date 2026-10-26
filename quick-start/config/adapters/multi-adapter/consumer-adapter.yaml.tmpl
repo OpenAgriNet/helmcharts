@@ -1,6 +1,6 @@
-# OAN network adapter. The network layer: hands discovery to the discovery
-# service and re-signs as itself on the way out.
-appName: "network-adapter"
+# Use only in multi-adapter deployment mode: the consumer adapter,
+# the caller: routes discovery to the network layer, transactions to the provider.
+appName: "consumer-adapter"
 
 log:
   level: debug
@@ -9,7 +9,7 @@ log:
   contextKeys: [transaction_id, message_id, subscriber_id, module_id]
 
 http:
-  port: 9201
+  port: 9202
   timeout:
     read: 30
     write: 30
@@ -24,7 +24,7 @@ plugins:
   otelsetup:
     id: otelsetup
     config:
-      serviceName: "network-adapter"
+      serviceName: "consumer-adapter"
       environment: "__OTEL_ENVIRONMENT__"
       otlpEndpoint: "__OTLP_ENDPOINT__"
       enableMetrics: "__OTEL_ENABLED__"
@@ -32,14 +32,14 @@ plugins:
       enableLogs: "__OTEL_ENABLED__"
 
 modules:
-  - name: network-adapter
+  - name: consumer-adapter
     # A subtree: every action lands here and the payload says which one it is.
     path: /
     handler:
       type: std
-      # bpp because this adapter RECEIVES. role sets direction, not participant type.
-      role: bpp
-      subscriberId: __NETWORK_SUBSCRIBER_ID__
+      # bap because this adapter SENDS. role sets direction, not participant type.
+      role: bap
+      subscriberId: __CONSUMER_SUBSCRIBER_ID__
 
       plugins:
         registry:
@@ -62,13 +62,13 @@ modules:
         keyManager:
           id: simplekeymanager
           config:
-            subscriberId: __NETWORK_SUBSCRIBER_ID__
+            subscriberId: __CONSUMER_SUBSCRIBER_ID__
             # The key's osid, not a friendly name: the registry indexes on it.
-            keyId: __NETWORK_KEY_ID__
-            signingPrivateKey: "__NETWORK_SIGNING_PRIVATE__"
-            signingPublicKey: "__NETWORK_SIGNING_PUBLIC__"
-            encrPrivateKey: "__NETWORK_ENCR_PRIVATE__"
-            encrPublicKey: "__NETWORK_ENCR_PUBLIC__"
+            keyId: __CONSUMER_KEY_ID__
+            signingPrivateKey: "__CONSUMER_SIGNING_PRIVATE__"
+            signingPublicKey: "__CONSUMER_SIGNING_PUBLIC__"
+            encrPrivateKey: "__CONSUMER_ENCR_PRIVATE__"
+            encrPublicKey: "__CONSUMER_ENCR_PUBLIC__"
 
         signer:
           id: signer
@@ -81,7 +81,7 @@ modules:
           - id: reqpreprocessor
             config:
               contextKeys: transaction_id,message_id
-              role: bpp
+              role: bap
 
         # The extended layer is off: it fetches a resource's own @context per
         # payload, and nothing here needs it. The settings below only apply if
@@ -101,13 +101,14 @@ modules:
         router:
           id: router
           config:
-            routingConfig: /app/config/routing-network.yaml
+            routingConfig: /app/config/routing-consumer.yaml
 
       # Signing and signature validation are OFF: this tier accepts unsigned
       # traffic and forwards unsigned. Turning it back on means adding the step
       # names here AND on the other side of the hop at the same time.
       #
-      # validateSchema is not listed either, so this tier enforces no payload
-      # shape at all -- it only routes.
+      # No validateSign either way: the experience app calling this is inside
+      # the trust boundary, so there is no network signature to check inbound.
       steps:
+        - validateSchema
         - addRoute

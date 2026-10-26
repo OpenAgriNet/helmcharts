@@ -30,11 +30,57 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-# Both optional profiles, named explicitly. This matters for `down`: compose
+# Every optional profile, named explicitly. This matters for `down`: compose
 # only acts on services whose profile is active, so a plain `docker compose
-# down` leaves the gateway and observability containers running and then
-# reports success. Naming them on teardown is what makes "down" mean down.
-PROFILES=(--profile reverse-proxy --profile observability)
+# down` leaves the gateway, observability and multi-adapter containers running
+# and then reports success. Naming them on teardown is what makes "down" mean down.
+PROFILES=(--profile reverse-proxy --profile observability --profile multi-adapter)
+
+# Deployment mode for `up`: NETWORK_ADAPTER_DEPLOYMENT_MODE from the shell, else .env, else
+# single-adapter (ADR-0001).
+# Other commands keep the running mode so depends_on never swaps network-adapter's config.
+
+# A key's value in .env (quotes, inline comment and CR stripped); empty if absent.
+dotenv_get() {
+    local v
+    v=$(grep -E "^$1=" .env 2>/dev/null | tail -1 | cut -d= -f2-) || true
+    v=${v%%#*}
+    printf '%s' "$v" | tr -d '"'"'"' \t\r'
+}
+
+# Running mode, from the config network-adapter mounts; empty if not running.
+running_mode() {
+    [ "$(docker inspect -f '{{.State.Running}}' network-adapter 2>/dev/null)" = true ] || return 0
+    case "$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/app/config/adapter.yaml"}}{{.Source}}{{end}}{{end}}' network-adapter 2>/dev/null)" in
+        */multi-adapter/*) echo multi-adapter ;;
+        *) echo single-adapter ;;
+    esac
+}
+
+MODE="${NETWORK_ADAPTER_DEPLOYMENT_MODE:-$(dotenv_get NETWORK_ADAPTER_DEPLOYMENT_MODE)}"
+MODE="${MODE:-single-adapter}"
+case "$MODE" in single|multi) MODE="$MODE-adapter" ;; esac   # old values still accepted
+RUNNING_MODE="$(running_mode)"
+
+# compose mounts config/adapters/<mode>/network-adapter.yaml from this variable.
+export NETWORK_ADAPTER_DEPLOYMENT_MODE="${RUNNING_MODE:-$MODE}"
+check_mode() {
+    case "$MODE" in single-adapter|multi-adapter) ;; *) die "NETWORK_ADAPTER_DEPLOYMENT_MODE must be single-adapter or multi-adapter, not '$MODE'" ;; esac
+}
+
+adapters_for() { # $1 mode
+    case "$1" in
+        single-adapter) echo network-adapter ;;
+        multi-adapter)  echo provider-adapter network-adapter consumer-adapter ;;
+    esac
+}
+# The rendered config files (config/adapters/<path>.yaml) a deployment mode mounts.
+configs_for() { # $1 mode
+    case "$1" in
+        single-adapter) echo single-adapter/network-adapter ;;
+        multi-adapter)  echo multi-adapter/provider-adapter multi-adapter/network-adapter multi-adapter/consumer-adapter ;;
+    esac
+}
 
 # ------------------------------------------------------------------ output
 
@@ -86,6 +132,7 @@ preflight() {
 # `up-core` below is the same thing minus steps 4 and 5, for when you want
 # neither a public port nor ClickHouse's memory.
 up() {
+    check_mode
     preflight
     up_registry_tier 5
     up_setup         5
@@ -110,6 +157,7 @@ up() {
 # 16 GB -- this is the stack you can actually exercise, which is the reason the
 # profiles exist in the first place.
 up_core() {
+    check_mode
     preflight
     up_registry_tier 3
     up_setup         3
@@ -138,7 +186,7 @@ up_registry_tier() {
 }
 
 # Generates the adapter keypairs, registers the three adapter identities, and
-# renders config/adapters/{provider,network,consumer}.yaml from the .tmpl files
+# renders config/adapters/{multi-adapter,single-adapter}/*.yaml from the .tmpl files
 # beside them. Safe to re-run: keys come from keys/keys.json once it exists,
 # and participants already registered are left alone.
 up_setup() {
@@ -155,8 +203,33 @@ up_adapters() {
     # debugging a mapping without the real credentials -- but that also needs a
     # new participant id and base URL in .env plus a setup.py re-run, because
     # the registry cannot repoint an existing row.
-    step 3 "$1" "adapters (provider, network, consumer)"
-    docker compose up -d provider-adapter network-adapter consumer-adapter
+    check_mode
+    local f
+    # `up` starts the requested mode, not the running one.
+    NETWORK_ADAPTER_DEPLOYMENT_MODE="$MODE"
+    step 3 "$1" "adapters, mode $MODE ($(adapters_for "$MODE"))"
+    # A pre-merge stack's network-adapter container (service network-adapter-layer)
+    # is unknown to compose and would clash by name.
+    if [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' network-adapter 2>/dev/null)" = network-adapter-layer ]; then
+        docker rm -f network-adapter >/dev/null
+    fi
+    # Single runs network-adapter alone: remove the multi-only adapters.
+    if [ "$MODE" = single-adapter ]; then
+        docker compose --profile multi-adapter rm -sf provider-adapter consumer-adapter >/dev/null 2>&1 || true
+    fi
+    # Never let compose create a directory where a bind-mounted config belongs.
+    for f in $(configs_for "$MODE"); do
+        [ -f "config/adapters/$f.yaml" ] \
+            || die "config/adapters/$f.yaml was not rendered (a directory there? rm -r it, then re-run)"
+    done
+    # shellcheck disable=SC2046
+    docker compose --profile multi-adapter up -d --force-recreate $(adapters_for "$MODE")
+    # NPM resolves adapter names when nginx loads and caches the addresses, so
+    # a recreated or switched adapter 502s through it until it restarts.
+    if [ "$(docker inspect -f '{{.State.Running}}' nginx-proxy-manager 2>/dev/null)" = true ]; then
+        info "restarting nginx-proxy-manager so it re-resolves the adapter addresses"
+        docker compose --profile reverse-proxy restart nginx-proxy-manager >/dev/null
+    fi
 }
 
 done_banner() {
@@ -296,7 +369,6 @@ NEXT
 # It also excludes nginx-proxy-manager, whose routing table lives in a SQLite
 # database rather than in anything a restart would re-read. `restart-edge` is
 # the separate target for the one case that does need it.
-APP_SERVICES=(registry discovery provider-adapter network-adapter consumer-adapter)
 
 # `restart`, not `up -d --force-recreate`. A restart keeps the container and
 # therefore its address, so NPM's cached proxy_pass targets stay valid -- a
@@ -308,10 +380,13 @@ APP_SERVICES=(registry discovery provider-adapter network-adapter consumer-adapt
 # up is a changed image or a changed environment, both of which need the
 # container recreated -- use `make up` for those.
 restart_app() {
-    step 1 1 "restarting registry, discovery and the three adapters"
+    [ -n "$RUNNING_MODE" ] && MODE=$RUNNING_MODE
+    check_mode
+    step 1 1 "restarting registry, discovery and the $MODE-mode adapters"
     info "keycloak, both databases and the edge are left alone"
-    docker compose restart "${APP_SERVICES[@]}"
-    docker compose ps --format 'table {{.Service}}\t{{.Status}}'
+    # shellcheck disable=SC2046
+    docker compose --profile multi-adapter restart sunbird-registry-service discovery-service $(adapters_for "$MODE")
+    docker compose --profile multi-adapter ps --format 'table {{.Service}}\t{{.Status}}'
 }
 
 # ----------------------------------------------------------------- misc
@@ -339,8 +414,11 @@ usage() {
 bin/stack.sh <command>
 
   up             the whole stack: registry+discovery -> setup.py -> adapters
+                 (network-adapter, or all three in multi-adapter)
                  -> gateway (public, 80/443) -> observability (wants 16 GB)
   up-core        steps 1-3 only. Nothing public, no ClickHouse.
+                 (without a flag: MODE, else NETWORK_ADAPTER_DEPLOYMENT_MODE in
+                 .env, else single-adapter; restart follows the running mode)
   down           stop everything, keep the data
   destroy        stop everything and DELETE every volume
   setup          re-run bin/setup.py only
@@ -355,6 +433,8 @@ bin/stack.sh <command>
 USAGE
 }
 
+# Every command takes no arguments except logs; an extra one is a mistake, not a mode.
+[ $# -le 1 ] || [ "${1:-}" = logs ] || { usage; die "unexpected argument: $2"; }
 case "${1:-}" in
     up)             up ;;
     up-core)        up_core ;;
