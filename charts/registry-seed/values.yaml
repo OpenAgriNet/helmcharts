@@ -125,10 +125,6 @@ upstreams: []
 # method is the provider's contract, not a network convention: some answer a GET
 # whose query the mapping builds, others take a POST with a JSON body.
 # ---------------------------------------------------------------------------
-#
-# A binding with one action, `select`, carries its path and mappingUrl itself. A
-# capability that answers other actions lists them instead; each has its own
-# method, path, mappingUrl, timeoutMs and retryMax.
 bindings: []
   # - participantId: mausamgram
   #   capability: openagrinet:WeatherObservation
@@ -137,14 +133,6 @@ bindings: []
   #   mappingUrl: https://raw.githubusercontent.com/...
   #   timeoutMs: 15000
   #   retryMax: 2
-  # - participantId: pmfby
-  #   capability: openagrinet:Grievance
-  #   actions:
-  #     - action: support
-  #       method: POST
-  #       path: /krphapi/FGMS/AddKRPHNCIPGrievenceSupportTicket
-  #       mappingUrl: https://raw.githubusercontent.com/...
-  #       retryMax: 0
 
 # ---------------------------------------------------------------------------
 # What each capability MEANS - a different question from who serves it.
@@ -158,18 +146,10 @@ bindings: []
 # at whoever resolves it. Getting schemaPackRef right matters more than the
 # write succeeding, and it cannot be corrected afterwards.
 # ---------------------------------------------------------------------------
-#
-# A pack under network-specs' schema/ folder on schemaPackRef needs nothing more.
-# One under api-schemas/, or on another ref, says so with packFolder and packRef.
 schemas: []
   # - capability: openagrinet:WeatherObservation
   #   name: Weather Observation
   #   version: v0.1
-  # - capability: openagrinet:Grievance
-  #   name: Grievance
-  #   version: v0.1
-  #   packFolder: api-schemas
-  #   packRef: api-schema-packs-v0.1
 
 # Ref in OpenAgriNet/network-specs the schema packs are read from.
 schemaPackRef: main

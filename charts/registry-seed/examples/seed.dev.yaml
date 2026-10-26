@@ -6,10 +6,9 @@
 # Install LAST, after the registry is serving. Its log reports the key osid each
 # adapter must be configured with.
 #
-# This mirrors what quick-start/bin/setup.py seeds on the compose stack, plus the
-# PMFBY grievance capability: three adapter identities, five upstream providers,
-# five capability bindings and five capability schemas. Eight participants in
-# total.
+# This mirrors what quick-start/bin/setup.py seeds on the compose stack: three
+# adapter identities, four upstream providers, four capability bindings and four
+# capability schemas. Seven participants in total.
 #
 # ANGLE-BRACKETED VALUES BELOW ARE PLACEHOLDERS and the chart refuses to render
 # while any remain. They are the values that cannot be derived from this
@@ -65,9 +64,9 @@ adapters:
     signingPublicKey: <provider-adapter-keys signingPublicKey>
 
 # ---------------------------------------------------------------------------
-# The five upstreams
+# The four upstreams
 #
-# All five are REAL external providers - no mock is in use by any capability -
+# All four are REAL external providers - no mock is in use by any capability -
 # so this stack needs egress to each, and every base URL is a deployment fact
 # that cannot come from this repository.
 #
@@ -87,9 +86,6 @@ upstreams:
   - participantId: pocra
     name: POCRA agriculture facilities
     baseUrl: <pocra base url>
-  - participantId: pmfby
-    name: PMFBY grievance portal
-    baseUrl: <pmfby base url>
 
 # ---------------------------------------------------------------------------
 # Who answers what
@@ -129,28 +125,11 @@ bindings:
     path: <pocra path>
     method: POST
     mappingUrl: https://raw.githubusercontent.com/OpenAgriNet/helmcharts/release-0.0.1/quick-start/config/mappings/pocra/agriculture-facility.select.yaml
-  - participantId: pmfby
-    capability: openagrinet:Grievance
-    # Two actions, so they are listed. support is never retried: a retry would
-    # file a second grievance.
-    actions:
-      - action: support
-        method: POST
-        path: /krphapi/FGMS/AddKRPHNCIPGrievenceSupportTicket
-        mappingUrl: https://raw.githubusercontent.com/OpenAgriNet/helmcharts/release-0.0.1/quick-start/config/mappings/pmfby/grievance.support.yaml
-        timeoutMs: 30000
-        retryMax: 0
-      - action: status
-        method: POST
-        path: /krphapi/FGMS/GetGrievenceTicketsStatus
-        mappingUrl: https://raw.githubusercontent.com/OpenAgriNet/helmcharts/release-0.0.1/quick-start/config/mappings/pmfby/grievance.status.yaml
-        timeoutMs: 30000
-        retryMax: 2
 
 # ---------------------------------------------------------------------------
 # What each capability MEANS - one row per capability, not per binding.
 #
-# The version is per capability rather than one setting for all five, because a
+# The version is per capability rather than one setting for all four, because a
 # capability can move to v0.2 while the others stay. The schemaUrl is built from
 # the capability code, which already names the pack directory, so the two cannot
 # drift.
@@ -168,12 +147,6 @@ schemas:
   - capability: openagrinet:AgricultureFacility
     name: Agriculture Facility
     version: v0.1
-  # An API pack: it lives under api-schemas/ rather than schema/, on its own ref.
-  - capability: openagrinet:Grievance
-    name: Grievance
-    version: v0.1
-    packFolder: api-schemas
-    packRef: api-schema-packs-v0.1
 
 # Ref in OpenAgriNet/network-specs the packs are read from. THE REGISTRY NEVER
 # FETCHES THIS - it only checks the URL's shape - so a ref that does not serve

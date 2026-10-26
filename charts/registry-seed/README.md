@@ -52,9 +52,9 @@ The Job prints one line per adapter. Set `keys.keyId` on each
 
 ## Values
 
-`examples/seed.dev.yaml` carries eight participants, five bindings and five
-capability schemas, so a cluster deployment starts from a known-good set rather
-than a blank one. What it cannot carry is the
+`examples/seed.dev.yaml` carries the same seven participants, four bindings and
+four capability schemas the compose stack seeds, so a cluster deployment starts
+from a known-good set rather than a blank one. What it cannot carry is the
 handful of values that are deployment facts — the addresses peers reach this
 deployment at, the real upstream hosts, and two upstream paths that have no
 default in `setup.py` either. Those ship as `<angle-bracketed>` placeholders and

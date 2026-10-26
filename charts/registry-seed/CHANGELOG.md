@@ -15,9 +15,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   network-specs' `api-schemas/` folder, or on a ref other than `schemaPackRef`,
   gets the right `schemaUrl`. Both default to what they were: `schema` and
   `schemaPackRef`.
-- `examples/seed.dev.yaml` seeds the PMFBY grievance capability: the `pmfby`
-  upstream, its `support` and `status` binding and the `openagrinet:Grievance`
-  schema row.
 
 ## [0.1.1] - 2026-09-20
 
