@@ -240,6 +240,30 @@ modules:
               # farmer there is no facility when there is.
               searchConcurrency: 1
 
+          # PMFBY grievance: support files a grievance and status reads it back.
+          # No OTP. The call is made with a token exchanged at the provider's
+          # login, so the login URL is substituted from the keys Secret like the
+          # other token URLs, and the login itself is read from the environment.
+          - id: Grievance
+            config:
+              bindingKeys: "pmfby|openagrinet:Grievance"
+              # Paired by position, tried in order: status names the binding on
+              # its contract, support on its channel.
+              providerIdAt: "message.contract.commitments[].offer.provider.id, message.support.channels[].provider.id"
+              capabilityCodeAt: "message.contract.commitments[].commitmentAttributes.@type, message.support.channels[].@type"
+              # The token is sent bare in Authorization and held until the
+              # login reply's own validTo.
+              pmfby:
+                authScheme: tokenHeader
+                tokenUrl: "__PMFBY_TOKEN_URL__"
+                tokenUserField: appAccessUID
+                tokenUserEnv: PMFBY_ACCESS_UID
+                tokenSecretField: appAccessPWD
+                tokenSecretEnv: PMFBY_ACCESS_PWD
+                tokenResponseField: responseDynamic.token.Token
+                tokenExpiryField: responseDynamic.token.validTo
+                headerName: Authorization
+
       # This tier VALIDATES the caller's signature and answers UNSIGNED:
       # validateSign is listed, signAck is not. The caller is the consumer
       # adapter, which signs -- removing `sign` there rejects every select
@@ -257,6 +281,7 @@ modules:
         - MandiPrice
         - KnowledgeAdvisory
         - AgricultureFacility
+        - Grievance
 
   # The outbound leg: this provider's catalogue system publishing to the network.
   #

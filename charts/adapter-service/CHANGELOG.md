@@ -5,6 +5,16 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-10-26
+
+### Added
+- The provider config serves the PMFBY grievance capability: a `Grievance` step
+  for `pmfby|openagrinet:Grievance`, logging in at the provider's login URL and
+  holding the token until the login reply's own expiry. The login URL is the
+  `__PMFBY_TOKEN_URL__` substitution, and the login is read from
+  `PMFBY_ACCESS_UID` and `PMFBY_ACCESS_PWD`.
+- The consumer routing sends `support` to the provider adapter.
+
 ## [0.5.2] - 2026-09-29
 
 ### Changed
