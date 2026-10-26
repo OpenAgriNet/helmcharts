@@ -137,6 +137,7 @@ modules:
       steps:
         - validateSchema
         - addRoute
+        - sign
 
   # network-adapter: forwards discover and publish to discovery (routing-network.yaml).
   - name: network-adapter
@@ -194,6 +195,8 @@ modules:
           config:
             routingConfig: /app/config/routing-network.yaml
       steps:
+        - validateSign
+        - checkCrossNetworkRequester
         - addRoute
 
   # oanProvider: answers from the upstream APIs itself (no router).
@@ -290,11 +293,14 @@ modules:
                 authScheme: none
               searchConcurrency: 1
       steps:
+        - validateSign
+        - checkCrossNetworkRequester
         - validateSchema
         - WeatherObservation
         - MandiPrice
         - KnowledgeAdvisory
         - AgricultureFacility
+        - sign
 
   # oanProviderPublish: the catalogue publishes at /publish; routed to
   # /_internal/network/publish (routing-network-adapter-provider.yaml).
@@ -351,3 +357,4 @@ modules:
       steps:
         - validateSchema
         - addRoute
+        - sign

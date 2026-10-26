@@ -223,11 +223,14 @@ modules:
       #
       # A plugin declared above but missing from this list is loaded and never runs.
       steps:
+        - validateSign
+        - checkCrossNetworkRequester
         - validateSchema
         - WeatherObservation
         - MandiPrice
         - KnowledgeAdvisory
         - AgricultureFacility
+        - sign
 
   # The outbound leg: this provider's catalogue system publishing to the network.
   #
@@ -304,3 +307,4 @@ modules:
       steps:
         - validateSchema
         - addRoute
+        - sign
