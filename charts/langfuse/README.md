@@ -30,7 +30,7 @@ bundled dependency deploys:
 |---|---|
 | Deployment `langfuse-web` | The UI and API, `ClusterIP` on 3000 |
 | Deployment `langfuse-worker` | Ingestion, batch export, evaluators — no inbound Service |
-| `ClickHouseCluster` / `KeeperCluster` (`clickhouse.com/v1alpha1`) | Trace/observation storage — **requires the Altinity ClickHouse Operator already installed**, the same operator relationship `postgresql-cnpg` has with CNPG |
+| `ClickHouseCluster` / `KeeperCluster` (`clickhouse.com/v1alpha1`) | Trace/observation storage — **needs the ClickHouse operator, bundled in this chart as a subchart**, the same operator relationship `postgresql-cnpg` has with CNPG |
 | StatefulSet (bundled `postgres` subchart) | Langfuse's own metadata Postgres — **not** `postgresql-cnpg`; see below |
 | Deployment (bundled `redis`/valkey subchart) | Queueing for the worker |
 | Deployment + PVC (bundled `s3`/seaweedfs subchart) | S3-compatible storage for event/media uploads |
@@ -41,18 +41,19 @@ bundled dependency deploys:
 ## Install
 
 ```bash
-helm dependency update charts/langfuse
-helm install langfuse charts/langfuse -n observability \
+helm install langfuse charts/langfuse -n langfuse \
   -f charts/langfuse/ci/lint-values.yaml   # or your own values
 ```
 
-`helm dependency update` is required before lint/template/install — the
-bundled `postgres`, `redis` and `s3` subchart archives are not committed,
-matching how this repo already treats `common` (`CONVENTIONS.md`).
+The `postgres`, `valkey`, `seaweedfs` and `clickhouse-operator-helm` subcharts are committed under `charts/` with `Chart.lock`. Argo CD renders from a git clone and has no `helm dependency build` step, so a dependency missing from `charts/` fails the render even when its condition is false. To bump one, run `helm dependency update`, untar the archives and commit them.
 
-**The Altinity ClickHouse Operator (and its cert-manager prerequisite) must
-already be running in the cluster**, or the install fails fast naming exactly
-that — this chart checks for the CRDs at template time via a cluster `lookup`.
+**The ClickHouse operator is bundled** as the `clickhouse-operator-helm` subchart
+(alias `clickhouse-operator`), so nothing else has to be installed; only cert-manager
+must exist, for the operator's webhook certificate. Its CRDs are installed by this same
+release, so under Argo CD set `clickhouse.crdCheck: false`: the check looks for the
+CRDs at render time, before this release has created them. Set `clickhouse-operator.enabled: false`
+to use an operator you already run. Removing this release removes the operator and
+its CRDs; deleting a CRD deletes every cluster of that kind.
 There is no such check for rendering offline (CI, GitOps diff); that is what
 `clickhouse.crdCheck: false` is for — see
 [Departures from repo conventions](#departures-from-repo-conventions).
@@ -118,8 +119,8 @@ hiding them:
   above. Each has a `deploy: false` escape hatch upstream already built in.
   The S3 one isn't actually optional for this repo — see above.
 - **Requires a cluster-installed operator** (the official ClickHouse
-  Kubernetes Operator, `ghcr.io/clickhouse/clickhouse-operator-helm` — not
-  Altinity's) this repo does not otherwise depend on anywhere else, and checks
+  Kubernetes Operator, bundled here as a subchart — not
+  Altinity's), and checks
   for it with a live `lookup` at template time — which is also why
   `ci/lint-values.yaml` exists (see below), since `scripts/lint-charts.sh`
   renders offline.

@@ -4,7 +4,7 @@
 # Uses the consumer role on purpose: it is the one with a different handler role and
 # a shorter step list, so this case renders the role branches that
 # ci/lint-values.yaml (network) does not.
-role: consumer
+role: consumer-adapter
 fullnameOverride: consumer-adapter
 
 image:
@@ -19,7 +19,7 @@ keys:
 registry:
   url: http://registry:8081/api/v1
 
-# Routing is no longer a value: it comes from config/routing-<role>.yaml in
+# Routing is no longer a value: it comes from config/multi-adapter/routing-<tier>.yaml in
 # the chart, like the adapter config. Set `routing.config` to a whole routing
 # file only if this deployment must differ.
 

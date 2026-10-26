@@ -10,6 +10,21 @@ nothing else. The moment an OAN modification lands, this chart's version has to
 fork from upstream's and follow [`CONVENTIONS.md`](../../CONVENTIONS.md)
 instead — record that switch in this file when it happens.
 
+## [2.2.0] - 2026-10-08
+
+**This chart no longer tracks upstream's version.** It is upstream 2.1.1 plus one OAN dependency, so `version` now follows [`CONVENTIONS.md`](../../CONVENTIONS.md). `appVersion` is unchanged (4.35.0).
+
+### Added
+- The official ClickHouse operator, bundled as the `clickhouse-operator-helm` 0.0.8 subchart (alias `clickhouse-operator`) in `charts/`, unmodified. Langfuse now brings its own operator and shares nothing with any other ClickHouse. `Chart.yaml` gains one dependency with an empty `repository`, so the subchart is committed rather than downloaded.
+- The `postgres`, `valkey` and `seaweedfs` subcharts under `charts/`, with `Chart.lock`, untarred and committed. Argo CD renders from a git clone with no `helm dependency build` step, so a dependency missing from `charts/` fails the render even when its condition is false.
+
+### Changed
+- `README.md`: install notes for the bundled operator; the text that named the Altinity operator now names the official ClickHouse one.
+
+### Notes
+- Removing this release removes the operator and its CRDs, and deleting a CRD deletes every cluster of that kind. In Argo CD, set the Application not to cascade on delete.
+- Set `clickhouse.crdCheck: false` under Argo CD: the CRDs are installed by this same release, so they cannot exist at render time.
+
 ## [2.1.1] - 2026-10-01
 
 Initial import. Upstream `langfuse/langfuse-k8s` 2.1.1 (appVersion 4.35.0),

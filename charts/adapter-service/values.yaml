@@ -7,9 +7,12 @@
 #
 # INSTALL ONCE PER ROLE, and keep the RELEASE name per-role:
 #
-#   helm install provider-adapter . -f examples/provider.yaml
-#   helm install network-adapter  . -f examples/network.yaml
-#   helm install consumer-adapter      . -f examples/consumer.yaml
+#   helm install provider-adapter . -f examples/provider-adapter.yaml
+#   helm install network-adapter  . -f examples/network-adapter.yaml
+#   helm install consumer-adapter      . -f examples/consumer-adapter.yaml
+#
+# Role network-adapter defaults to single-adapter mode, all three tiers in one release
+# (examples/network-adapter.yaml); see deploymentMode.
 #
 # The release name is what the Service is called, which is the DNS name the
 # other adapters address. Rename a release and you must update whatever routes
@@ -25,13 +28,18 @@
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
-# Role: provider | network | consumer
+# Role: provider-adapter | network-adapter | consumer-adapter (provider | network | consumer
+# still accepted)
 #
 # Required, with no default. A default would hand one role's handler role and
 # step list to a different adapter, which renders, starts, reports Ready and
 # then mis-handles every request. See examples/ for a values file per role.
 # ---------------------------------------------------------------------------
 role: ""
+
+# single-adapter (default): role network-adapter runs all three tiers; multi-adapter: the
+# network tier alone. provider-adapter and consumer-adapter ignore it.
+deploymentMode: single-adapter
 
 # Overrides for what the role implies. Leave empty to take the role's default.
 appName: ""
@@ -203,8 +211,8 @@ handler:
 # ---------------------------------------------------------------------------
 # Routing
 #
-# WHERE THE ROUTES ACTUALLY LIVE: config/routing-<role>.yaml in this chart,
-# mounted verbatim, exactly like config/<role>-config.yaml beside it.
+# WHERE THE ROUTES ACTUALLY LIVE: config/multi-adapter/routing-<tier>.yaml in this chart,
+# mounted verbatim, exactly like config/multi-adapter/<tier>-config.yaml beside it.
 #
 # Routing is topology rather than environment. The in-cluster targets follow the
 # namespace-per-component convention and are the same in every environment, so
@@ -261,8 +269,8 @@ otel:
   # OTLP/gRPC, e.g. "otel-collector.observability.svc.cluster.local:4317"
   endpoint: ""
   environment: dev
-  # Left empty, defaults to oan-<role>-adapter, matching OTEL_SERVICE_NAME in
-  # the compose stack so traces from either deployment line up.
+  # Unused: the role's config file sets the service name (plugins.otelsetup.config.serviceName);
+  # only the uncalled adapter-service.otelServiceName helper reads this.
   serviceName: ""
 
 logLevel: info
@@ -327,21 +335,34 @@ resources:
 # Both hit /health, which the adapter serves from its own mux and which does
 # not touch the registry or discovery -- so a readiness failure here means
 # this process is unwell, not that something downstream is.
-probes:
-  liveness:
-    enabled: true
+# The startup probe holds liveness off until /health answers; first boot fetches
+# beckn.yaml, so it gets up to 180s.
+startupProbe:
+  enabled: true
+  httpGet:
     path: /health
-    initialDelaySeconds: 10
-    periodSeconds: 20
-    timeoutSeconds: 3
-    failureThreshold: 3
-  readiness:
-    enabled: true
+    port: http
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 36
+livenessProbe:
+  enabled: true
+  httpGet:
     path: /health
-    initialDelaySeconds: 5
-    periodSeconds: 10
-    timeoutSeconds: 3
-    failureThreshold: 3
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 20
+  timeoutSeconds: 3
+  failureThreshold: 3
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
 
 autoscaling:
   enabled: false
@@ -389,3 +410,15 @@ extraVolumes: []
 extraVolumeMounts: []
 extraEnv: []
 envFromSecrets: []
+
+# Single mode only: one key Secret per tier (six keys each, as under keys.existingSecret),
+# named as openbao-secrets creates them. routing.config and handler.* are unused.
+adapterKeys:
+  consumer-adapter: consumer-adapter-keys
+  network-adapter: network-adapter-keys
+  provider-adapter: provider-adapter-keys
+  # The provider tier's upstream credentials, loaded as env vars in single-adapter mode.
+  upstreamSecret: provider-upstream
+  # Extra placeholders, as "<tier>/<key in that tier's Secret>", e.g.
+  #   __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl
+  extraSubstitutions: {}

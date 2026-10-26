@@ -1,4 +1,5 @@
 apiVersion: {{ include "common.deployment.apiVersion" . }}
+{{- $single := eq (include "adapter-service.deploymentMode" .) "single-adapter" }}
 kind: Deployment
 metadata:
   name: {{ include "adapter-service.fullname" . }}
@@ -70,13 +71,23 @@ spec:
             - -c
             - |
               set -eu
+              {{- if $single }}
+              # single-adapter mode: adapter.yaml plus one routing file per routed module.
+              cp /config-template/*.yaml /rendered/
+              {{- else }}
               cp /config-template/adapter.yaml /rendered/adapter.yaml
               cp /config-template/{{ include "adapter-service.routingFile" . }} /rendered/{{ include "adapter-service.routingFile" . }}
+              {{- end }}
 
               subst() {
                 # $1 placeholder, $2 file holding the value
                 if [ ! -s "$2" ]; then
+                  {{- if $single }}
+                  # three tier Secrets share key names: name the tier too (e.g. network/keyId)
+                  echo "render-config: ${2#/keys/} is missing or empty in its tier's keys Secret" >&2
+                  {{- else }}
                   echo "render-config: $(basename "$2") is missing or empty in the keys Secret" >&2
+                  {{- end }}
                   exit 1
                 fi
                 # A value the registry has not assigned yet. keyId is the osid it
@@ -85,7 +96,11 @@ spec:
                 # -- the sentinel contains a colon -- or an adapter signing with an
                 # identity nothing can verify.
                 if head -c 9 "$2" | grep -q "<<PENDING"; then
+                  {{- if $single }}
+                  echo "render-config: ${2#/keys/} is still unresolved." >&2
+                  {{- else }}
                   echo "render-config: $(basename "$2") is still unresolved." >&2
+                  {{- end }}
                   echo "  The registry assigns it when registry-seed writes this" >&2
                   echo "  adapter's public key. Run that, then:" >&2
                   echo "    ./scripts/resolve-key-ids.sh -e <env>" >&2
@@ -93,6 +108,23 @@ spec:
                 fi
                 sed -i "s|$1|$(cat "$2")|g" /rendered/adapter.yaml
               }
+              {{- if $single }}
+
+              {{- /* Each tier's module signs from its own Secret at /keys/<tier>. */}}
+              {{- $k := .Values.keys.existingSecret }}
+              {{- range $tier := list "consumer" "network" "provider" }}
+              {{- $T := upper $tier }}
+              subst __{{ $T }}_SUBSCRIBER_ID__ /keys/{{ $tier }}/{{ $k.subscriberIdKey }}
+              subst __{{ $T }}_KEY_ID__ /keys/{{ $tier }}/{{ $k.keyIdKey }}
+              subst __{{ $T }}_SIGNING_PRIVATE__ /keys/{{ $tier }}/{{ $k.signingPrivateKey }}
+              subst __{{ $T }}_SIGNING_PUBLIC__ /keys/{{ $tier }}/{{ $k.signingPublicKey }}
+              subst __{{ $T }}_ENCR_PRIVATE__ /keys/{{ $tier }}/{{ $k.encrPrivateKey }}
+              subst __{{ $T }}_ENCR_PUBLIC__ /keys/{{ $tier }}/{{ $k.encrPublicKey }}
+              {{- end }}
+              {{- range $ph, $path := .Values.adapterKeys.extraSubstitutions }}
+              subst {{ $ph }} /keys/{{ $path }}
+              {{- end }}
+              {{- else }}
 
               subst __ADAPTER_SUBSCRIBER_ID__   /keys/{{ .Values.keys.existingSecret.subscriberIdKey }}
               subst __ADAPTER_KEY_ID__          /keys/{{ .Values.keys.existingSecret.keyIdKey }}
@@ -107,6 +139,7 @@ spec:
               {{- range $ph, $key := .Values.keys.existingSecret.extraSubstitutions }}
               subst {{ $ph }} /keys/{{ $key }}
               {{- end }}
+              {{- end }}
 
               # A placeholder that survived means a key was substituted with
               # nothing. Catch it here rather than at the far end, in a peer's
@@ -116,14 +149,22 @@ spec:
                 grep -oE '__[A-Z][A-Z0-9_]*__' /rendered/adapter.yaml | sort -u >&2
                 exit 1
               fi
-              echo "render-config: config rendered for the {{ include "adapter-service.role" . }} role"
+              echo "render-config: config rendered for the {{ include "adapter-service.role" . }} role{{ if $single }} (single-adapter mode: all three tiers){{ end }}"
           volumeMounts:
             - name: config-template
               mountPath: /config-template
               readOnly: true
+            {{- if $single }}
+            {{- range $tier := list "consumer" "network" "provider" }}
+            - name: keys-{{ $tier }}
+              mountPath: /keys/{{ $tier }}
+              readOnly: true
+            {{- end }}
+            {{- else }}
             - name: keys
               mountPath: /keys
               readOnly: true
+            {{- end }}
             - name: config
               mountPath: /rendered
           resources:
@@ -153,7 +194,11 @@ spec:
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-          {{- with .Values.envFromSecrets }}
+          {{- $envFrom := .Values.envFromSecrets | default list }}
+          {{- if and $single .Values.adapterKeys.upstreamSecret }}
+          {{- $envFrom = append $envFrom .Values.adapterKeys.upstreamSecret }}
+          {{- end }}
+          {{- with $envFrom }}
           envFrom:
             {{- range . }}
             - secretRef:
@@ -176,10 +221,19 @@ spec:
         - name: config-template
           configMap:
             name: {{ include "adapter-service.fullname" . }}-config
+        {{- if $single }}
+        {{- range $tier := list "consumer" "network" "provider" }}
+        - name: keys-{{ $tier }}
+          secret:
+            secretName: {{ include "adapter-service.networkTierSecret" (dict "ctx" $ "tier" $tier) }}
+            defaultMode: 0400
+        {{- end }}
+        {{- else }}
         - name: keys
           secret:
             secretName: {{ include "adapter-service.keysSecretName" . }}
             defaultMode: 0400
+        {{- end }}
         {{/*
         The rendered config. emptyDir rather than anything durable: it is
         derived from a ConfigMap and a Secret and is rebuilt on every start,
