@@ -1303,10 +1303,14 @@ to resolve and B's is on 8443:
 ```sh
 make host-descriptor                    # in each directory
 
-bin/oanfed.py admit --network-id net-b.oan.local \
-  --direction source --schema-packs <pack-url> \
-  --resolve 127.0.0.1:8443 ...          # from A, pointing at B's https port
+# from A, pointing at B's https port and the CA that signed its certificate
+make admit PEER=net-b.oan.local DIRECTION=source PACKS=<pack-url> \
+     RESOLVE=127.0.0.1:8443 CA_FILE=<path-to-ca.pem>
 ```
+
+`make refresh PEER=...` re-reads a peer's documents, `make suspend PEER=...
+DIRECTION=...` withdraws one direction, and `make verify PEER=...` fetches and
+checks them without writing anything.
 
 Run it both ways: admission is one network's local decision, and A admitting B
 says nothing about B admitting A.

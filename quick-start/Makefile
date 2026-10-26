@@ -13,7 +13,7 @@
 
 STACK := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))bin/stack.sh
 
-.PHONY: help up up-core down destroy setup host-descriptor reverse-proxy observability pull restart restart-edge ps logs
+.PHONY: help up up-core down destroy setup host-descriptor admit refresh suspend verify reverse-proxy observability pull restart restart-edge ps logs
 
 # Default target: running a bare `make` in a directory that can delete a
 # Postgres volume should print the menu, not pick something from it.
@@ -41,6 +41,18 @@ setup:         ; @$(STACK) setup
 
 # Generate and serve the federation documents. Re-run when the entry changes.
 host-descriptor: ; @$(STACK) host-descriptor
+
+# Admitting another network, one direction at a time. Run it both ways for a
+# pair: admission is our own local decision and says nothing about theirs.
+#
+#   make admit PEER=net-b.oan.local DIRECTION=source PACKS=https://.../attributes.yaml
+#
+# RESOLVE and CA_FILE are for two networks on one machine, where the peer's
+# name does not resolve and its certificate comes from a local CA.
+admit:         ; @$(STACK) admit
+refresh:       ; @$(STACK) refresh
+suspend:       ; @$(STACK) suspend
+verify:        ; @$(STACK) verify
 
 # NPM chowns the files it is given, so a plain `git pull` fails on them.
 pull:          ; @$(STACK) pull

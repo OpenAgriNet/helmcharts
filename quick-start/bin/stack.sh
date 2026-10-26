@@ -432,6 +432,63 @@ setup() {
 
 # Generate the federation documents into .well-known/ and serve them through NPM
 # (npm-custom/server_proxy.conf). Each run publishes the next revision.
+# Admitting a peer, and the three things that follow from it. Each is one call
+# to oanfed.py with the flags filled from .env, so an operator names only the
+# peer and what was agreed.
+#
+# PEER, DIRECTION and PACKS come from the environment: make passes them through.
+# RESOLVE and CA_FILE are for two networks on one machine, where the peer's name
+# does not resolve and its certificate is signed by a local CA.
+peer_access() {
+    printf '%s' "${RESOLVE:+--resolve $RESOLVE} ${CA_FILE:+--ca-file $CA_FILE} ${SCHEME:+--scheme $SCHEME}"
+}
+
+need_peer() {
+    [ -n "${PEER:-}" ] || die "which peer? e.g. make $1 PEER=net-b.oan.local"
+}
+
+need_direction() {
+    case "${DIRECTION:-}" in
+        source|requester) ;;
+        *) die "DIRECTION must be source (we read from them) or requester (they read from us)" ;;
+    esac
+}
+
+admit() {
+    preflight
+    need_peer admit
+    need_direction
+    [ -n "${PACKS:-}" ] || die "which packs? PACKS is a comma-separated list of pack URLs"
+    step 1 1 "bin/oanfed.py admit -- $DIRECTION, $PEER"
+    # shellcheck disable=SC2046
+    python3 bin/oanfed.py admit --network-id "$PEER" --direction "$DIRECTION" \
+        --schema-packs "$PACKS" $(peer_access)
+}
+
+refresh_peer() {
+    preflight
+    need_peer refresh
+    step 1 1 "bin/oanfed.py refresh -- $PEER"
+    # shellcheck disable=SC2046
+    python3 bin/oanfed.py refresh --network-id "$PEER" $(peer_access)
+}
+
+suspend_peer() {
+    preflight
+    need_peer suspend
+    need_direction
+    step 1 1 "bin/oanfed.py suspend -- $DIRECTION, $PEER"
+    python3 bin/oanfed.py suspend --network-id "$PEER" --direction "$DIRECTION"
+}
+
+verify_peer() {
+    preflight
+    need_peer verify
+    step 1 1 "bin/oanfed.py verify -- $PEER"
+    # shellcheck disable=SC2046
+    python3 bin/oanfed.py verify --network-id "$PEER" $(peer_access)
+}
+
 host_descriptor() {
     preflight
     step 1 3 "bin/oanfed.py publish -- the Network Descriptor, JWKS and schema-pack list"
@@ -492,6 +549,10 @@ bin/stack.sh <command>
   destroy        stop everything and DELETE every volume
   setup          re-run bin/setup.py only
   host-descriptor  sign the descriptor, JWKS and schema packs into .well-known/
+  admit            admit a peer in one direction   PEER= DIRECTION= PACKS=
+  refresh          re-read an admitted peer's documents            PEER=
+  suspend          withdraw one direction          PEER= DIRECTION=
+  verify           fetch and check a peer's documents, changing nothing   PEER=
                    and serve them through nginx-proxy-manager (public, 80/443)
   reverse-proxy  start nginx-proxy-manager on its own (public, 80/443)
   observability  start clickhouse, otel-collector and grafana on their own
@@ -513,6 +574,10 @@ case "${1:-}" in
     destroy)        destroy ;;
     setup)          setup ;;
     host-descriptor) host_descriptor ;;
+    admit)          admit ;;
+    refresh)        refresh_peer ;;
+    suspend)        suspend_peer ;;
+    verify)         verify_peer ;;
     reverse-proxy)  reverse_proxy ;;
     observability)  observability ;;
     pull)           pull ;;
