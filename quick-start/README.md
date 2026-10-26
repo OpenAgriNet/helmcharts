@@ -376,6 +376,7 @@ Reference, read on demand. Nothing here is a step.
 | **L** | Renaming this directory |
 | **M** | Starting over |
 | **N** | What the collection demonstrates |
+| **O** | Scheduled catalog publishing (the crawler) |
 
 ## Appendix A — What is here, and what is not
 
@@ -1189,3 +1190,36 @@ its `/publish` and `/discover` both verify signatures, so a network peer calls
 it directly. Signing is not something Postman does, so those calls are not
 scripted. The variable exists to give the address somewhere to live, not
 because a request is missing.
+
+## Appendix O — Scheduled catalog publishing (the crawler)
+
+The network adapter also runs the `catalogcrawler` plugin, in both modes. On
+every tick (`catalogIntervalSeconds`, 60 s here) it lists the registry's
+bindings, keeps the ones with a `publish` action, and runs each pipeline that
+is due: fetch the upstream, build the catalogs, POST each to `/publish`, which
+signs it as the provider and routes it to discovery.
+
+| Piece | Where |
+|---|---|
+| `registry` and `crawler` plugin blocks | `config/adapters/{single,multi}-adapter/network-adapter.yaml.tmpl` |
+| `publish` action on the Agmarknet binding | `bin/setup.py`, pinned to a commit; override with `AGMARKNET_PUBLISH_PIPELINE_URL` |
+| Schema that admits `publish` | `config/registry/schemas/ProviderSchema.json` |
+| Run log database `catalogcrawler` | `discovery-postgres`, created on a fresh volume |
+| Pipeline inputs `MANDI_*`, `APP_NETWORK_ID` | `network-adapter` environment, mapped from `AGMARKNET_*` |
+
+Catalogs go to `http://localhost:9201/publish` in single mode and to
+`http://provider-adapter:9200/publish` in multi mode.
+
+**On a stack that already exists**, the database and the schema are not picked up
+by themselves:
+
+```sh
+docker exec discovery-postgres createdb -U discovery catalogcrawler
+docker compose restart sunbird-registry-service   # loads the schema that admits publish
+make up                                           # re-runs setup.py: adds the publish action
+```
+
+**The image must have the crawler's publish sweep and the `render.mappingByField`
+engine.** `network-adapter:0.0.1` predates both: it starts, but publishes
+nothing. Set `ADAPTER_IMAGE` to a build from network-adapter `development`.
+Without real `AGMARKNET_*` values the pipeline runs and its fetch fails.
