@@ -1,0 +1,26 @@
+{{- /*
+One ConfigMap per file under dashboards/, holding the JSON byte for byte, for
+the grafana chart's dashboards sidecar.
+
+.Files.Get and NOT tpl: dashboard JSON carries Grafana's own templates in
+legends, links and variables, which Helm would try to render.
+
+One file per ConfigMap keeps each well under the 1 MiB object limit, and lets a
+dashboard be added by dropping a file in, with no values change.
+*/ -}}
+{{- if .Values.dashboards.enabled }}
+{{- range $path, $_ := .Files.Glob "dashboards/*.json" }}
+{{- $name := base $path | trimSuffix ".json" }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-dashboard-%s" (include "grafana-provisioning.name" $) $name | trunc 63 | trimSuffix "-" }}
+  labels:
+    {{- include "grafana-provisioning.labels" $ | nindent 4 }}
+    {{ $.Values.dashboards.sidecarLabel.name }}: {{ $.Values.dashboards.sidecarLabel.value | quote }}
+data:
+  {{ base $path }}: |-
+{{ $.Files.Get $path | indent 4 }}
+{{- end }}
+{{- end }}

@@ -14,7 +14,8 @@
 */}}
 
 {{/*
-The adapter's role: provider | network | consumer.
+The adapter's role: provider-adapter | network-adapter | consumer-adapter (old names
+provider | network | consumer still accepted). Returns the tier: provider | network | consumer.
 
 Required, with no default. A default would silently give one role's step list
 and handler role to a different adapter -- which renders, starts, reports Ready
@@ -23,12 +24,13 @@ and then mis-handles every request, at the far end, in a peer's logs.
 {{- define "adapter-service.role" -}}
 {{- $role := .Values.role | default "" -}}
 {{- if not $role -}}
-{{- fail (printf "%s: role is required -- one of provider, network, consumer. It decides the handler role, the step list and the routing target, so there is no safe default. See examples/ for a values file per role." .Chart.Name) -}}
+{{- fail (printf "%s: role is required -- one of provider-adapter, network-adapter, consumer-adapter. It decides the handler role, the step list and the routing target, so there is no safe default. See examples/ for a values file per role." .Chart.Name) -}}
 {{- end -}}
-{{- if not (has $role (list "provider" "network" "consumer")) -}}
-{{- fail (printf "%s: role must be one of provider, network, consumer (got %q)." .Chart.Name $role) -}}
+{{- $tier := trimSuffix "-adapter" $role -}}
+{{- if not (has $tier (list "provider" "network" "consumer")) -}}
+{{- fail (printf "%s: role must be one of provider-adapter, network-adapter, consumer-adapter (got %q)." .Chart.Name $role) -}}
 {{- end -}}
-{{- $role -}}
+{{- $tier -}}
 {{- end }}
 
 {{/*

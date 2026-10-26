@@ -1,0 +1,21 @@
+# Single mode, consumer module: tier hops go to this adapter's own listener.
+# localhost:9201 must equal service.targetPort (the render checks it).
+routingRules:
+  # Discovery, via the network module.
+  - version: "2.0.0"
+    targetType: url
+    target:
+      url: http://localhost:9201/_internal/network
+    endpoints:
+      - discover
+
+  # Transactions go to the provider module; context.bppUri passes through untouched.
+  - version: "2.0.0"
+    targetType: url
+    target:
+      url: http://localhost:9201/_internal/provider
+    endpoints:
+      - select
+      - init
+      - confirm
+      - status
