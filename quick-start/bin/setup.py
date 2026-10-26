@@ -205,40 +205,13 @@ def registry_url():
     return f"http://localhost:{env('REGISTRY_PORT', '8081')}"
 
 
-def token():
-    body = urllib.parse.urlencode({
-        "client_id": env("KEYCLOAK_CLIENT_ID", "registry-frontend"),
-        "grant_type": "password",
-        "username": env("REGISTRY_ADMIN_USER", "no-user"),
-        "password": env("REGISTRY_ADMIN_PASSWORD", "no-user-password"),
-    }).encode()
-    # Keycloak sits behind PROXY_ADDRESS_FORWARDING, so it builds the token's
-    # issuer from these headers. Without them it answers with an empty body.
-    #
-    # sunbird-registry-keycloak:8080 is the CONTAINER-INTERNAL address, and is deliberately not
-    # KEYCLOAK_PORT. The registry validates the issuer against
-    # OAUTH2_RESOURCES_0_URI, which names that internal address -- so a token
-    # minted with the host port in its issuer is rejected with a 401 and an
-    # empty body, however the port is published.
-    req = urllib.request.Request(
-        f"http://localhost:{env('KEYCLOAK_PORT', '8080')}/auth/realms/"
-        f"{env('KEYCLOAK_REALM', 'sunbird-rc')}/protocol/openid-connect/token",
-        data=body, headers={"X-Forwarded-Host": "sunbird-registry-keycloak:8080",
-                            "X-Forwarded-Proto": "http"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        payload = json.load(r)
-    if not payload.get("access_token"):
-        sys.exit("setup: keycloak issued no token -- check the KEYCLOAK_* values in .env")
-    return payload["access_token"]
-
-
-def post(entity, payload, bearer):
+def post(entity, payload):
     # No {"EntityName": {...}} wrapper: this registry takes the record itself,
     # and a wrapper comes back as "extraneous key [...] is not permitted".
     req = urllib.request.Request(f"{registry_url()}/api/v1/{entity}", method="POST",
                                  data=json.dumps(payload).encode(),
                                  headers={"Content-Type": "application/json",
-                                          "Authorization": f"Bearer {bearer}"})
+                                          })
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
             return json.load(r)
@@ -321,7 +294,7 @@ def upstream(participant_id, name, base_url):
             "status": "active", "baseUrl": base_url}
 
 
-def ensure_binding(bearer, participant_id, capability, path, mapping_url,
+def ensure_binding(participant_id, capability, path, mapping_url,
                    method="GET"):
     """Create a capability binding only when absent.
 
@@ -346,7 +319,7 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url,
         "actions": [{"action": "select", "method": method, "path": path,
                      "mappings": mapping_url,
                      "timeoutMs": 15000, "retryMax": 2,
-                     "status": "active"}]}, bearer)
+                     "status": "active"}]})
     print(f"  {binding}: {result['params']['status']} "
           f"{result['params'].get('errmsg', '')[:160]}")
 
@@ -440,7 +413,7 @@ def schema_url(capability, version):
             "/attributes.yaml")
 
 
-def ensure_capability_schema(bearer, capability, name, version):
+def ensure_capability_schema(capability, name, version):
     """Create a capability's schema row only when absent.
 
     THE REGISTRY NEVER FETCHES schemaUrl -- it only checks its shape. So a row
@@ -458,25 +431,24 @@ def ensure_capability_schema(bearer, capability, name, version):
     result = post("SchemaRegistry", {
         "capabilityCode": capability, "name": name, "version": version,
         "schemaUrl": schema_url(capability, version),
-        "status": "active"}, bearer)
+        "status": "active"})
     print(f"  {capability}: {result['params']['status']} "
           f"{result['params'].get('errmsg', '')[:160]}")
 
 
-def ensure_participant(bearer, participant_id, payload):
+def ensure_participant(participant_id, payload):
     """Create only when absent. Delete here is soft and keeps the unique index,
     so a recreate would fail on a duplicate key rather than replacing."""
     if search("Participant", {"participantId": {"eq": participant_id}}):
         print(f"  {participant_id}: already present")
         return
-    result = post("Participant", payload, bearer)
+    result = post("Participant", payload)
     status = result["params"]["status"]
     print(f"  {participant_id}: {status} {result['params'].get('errmsg', '')[:160]}")
 
 
 def seed(identity):
     wait_for_registry()
-    bearer = token()
 
     # Five participants and four capability bindings, all of it from here.
     #
@@ -486,7 +458,7 @@ def seed(identity):
     # request has to exist by the time this returns.
     # One entry for the network, shared by all three adapters.
     print("registry: one network identity")
-    ensure_participant(bearer, identity["participantId"],
+    ensure_participant(identity["participantId"],
                        node(identity["participantId"],
                             env("BECKN_NETWORK_NAME", identity["participantId"]),
                             list(ROLES), env("NETWORK_BASE_URL"),
@@ -501,7 +473,7 @@ def seed(identity):
     # capability is configured with, and the registry cannot update it after.
     print("registry: four upstream providers")
     weather = env("MAUSAMGRAM_PARTICIPANT_ID")
-    ensure_participant(bearer, weather,
+    ensure_participant(weather,
                        upstream(weather, "IMD Mausamgram NWP",
                                 env("MAUSAMGRAM_BASE_URL")))
 
@@ -511,7 +483,7 @@ def seed(identity):
     # that cannot serve the configured scheme, and the registry cannot update
     # it afterwards.
     mandi = env("AGMARKNET_PARTICIPANT_ID")
-    ensure_participant(bearer, mandi,
+    ensure_participant(mandi,
                        upstream(mandi, "Agmarknet Vistaar",
                                 env("AGMARKNET_BASE_URL")))
 
@@ -519,14 +491,14 @@ def seed(identity):
     # needs egress to it and its base URL comes from .env rather than a service
     # name. It is the only one whose action is a POST.
     knowledge = env("VISTAAR_PARTICIPANT_ID")
-    ensure_participant(bearer, knowledge,
+    ensure_participant(knowledge,
                        upstream(knowledge, "Bharat Vistaar knowledge retrieval",
                                 env("VISTAAR_BASE_URL")))
 
     # POCRA, serving AgricultureFacility. A real external provider too, and the
     # only one needing no credential at all.
     pocra = env("POCRA_PARTICIPANT_ID")
-    ensure_participant(bearer, pocra,
+    ensure_participant(pocra,
                        upstream(pocra, "POCRA agriculture facilities",
                                 env("POCRA_BASE_URL")))
 
@@ -535,15 +507,15 @@ def seed(identity):
     # rendered with -- both come from the same .env, which is what keeps them
     # from disagreeing.
     print("registry: four capability bindings")
-    ensure_binding(bearer, weather, env("MAUSAMGRAM_CAPABILITY"),
+    ensure_binding(weather, env("MAUSAMGRAM_CAPABILITY"),
                    env("MAUSAMGRAM_PATH", "/get-daily"), env("MAUSAMGRAM_MAPPING_URL"))
-    ensure_binding(bearer, mandi, env("AGMARKNET_CAPABILITY"),
+    ensure_binding(mandi, env("AGMARKNET_CAPABILITY"),
                    env("AGMARKNET_PATH", "/v1/fetch-agmarknet-vistaar"),
                    env("AGMARKNET_MAPPING_URL"))
-    ensure_binding(bearer, knowledge, env("VISTAAR_CAPABILITY"),
+    ensure_binding(knowledge, env("VISTAAR_CAPABILITY"),
                    env("VISTAAR_PATH"), env("VISTAAR_MAPPING_URL"),
                    method="POST")
-    ensure_binding(bearer, pocra, env("POCRA_CAPABILITY"),
+    ensure_binding(pocra, env("POCRA_CAPABILITY"),
                    env("POCRA_PATH"), env("POCRA_MAPPING_URL"),
                    method="POST")
 
@@ -559,7 +531,7 @@ def seed(identity):
     # the network's own vocabulary, published on its own site.
     print("registry: four capability schemas")
     for var, name, version in CAPABILITY_SCHEMAS:
-        ensure_capability_schema(bearer, env(var), name, version)
+        ensure_capability_schema(env(var), name, version)
 
     seed_pmkisan(bearer)
 

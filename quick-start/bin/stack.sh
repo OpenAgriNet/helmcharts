@@ -94,9 +94,9 @@ die()   { printf '\033[1;31mstack: %s\033[0m\n' "$1" >&2; exit 1; }
 # -------------------------------------------------------------- preflight
 
 # Checked before anything starts, not when it is first needed. Step 1 blocks on
-# Keycloak's healthcheck, which is 30 retries at 10s -- so a missing python3 or
-# an unimportable `cryptography` would surface several minutes in, after a wait
-# that had nothing to do with the problem. These take a millisecond each.
+# the registry's healthcheck, so a missing python3 or an unimportable
+# `cryptography` would surface minutes in, after a wait that had nothing to do
+# with the problem. These take a millisecond each.
 preflight() {
     [ -f .env ] || die ".env is missing -- cp .env.example .env, then change every credential in it"
 
@@ -172,8 +172,8 @@ up_core() {
 #
 # Each takes the step total so the numbering reads correctly in both.
 
-# Naming registry and discovery also starts sunbird-registry-postgres, sunbird-registry-keycloak and
-# discovery-postgres: all are depends_on with condition: service_healthy, so compose
+# Naming registry and discovery also starts sunbird-registry-postgres and
+# discovery-postgres: both are depends_on with condition: service_healthy, so compose
 # blocks here until they pass their healthchecks rather than racing ahead.
 #
 # discovery belongs in this step and not in step 3. It would be dragged in
@@ -183,8 +183,7 @@ up_core() {
 # No --wait. It would only add a second wait on the registry's own healthcheck,
 # and setup.py already polls with an error message that says what to check.
 up_registry_tier() {
-    step 1 "$1" "registry and discovery (also starts sunbird-registry-postgres, sunbird-registry-keycloak, discovery-postgres)"
-    info "sunbird-registry-keycloak's healthcheck allows up to 5 minutes on a cold volume"
+    step 1 "$1" "registry and discovery (also starts sunbird-registry-postgres, discovery-postgres)"
     docker compose up -d sunbird-registry-service discovery-service
 }
 
@@ -364,11 +363,10 @@ NEXT
 
 # The services that hold OAN's own code and config, and nothing else.
 #
-# Deliberately excludes the two Postgres instances and keycloak: those are
-# state, they are slow to come back, and nothing you change in this repo
-# alters their behaviour -- keycloak reads its realm from a database that was
-# seeded on first boot, not from a file you can edit. Restarting them to pick
-# up a config change is a minute of downtime that cannot have helped.
+# Deliberately excludes the two Postgres instances: those are state, they are
+# slow to come back, and nothing you change in this repo alters their
+# behaviour. Restarting them to pick up a config change is downtime that cannot
+# have helped.
 #
 # It also excludes nginx-proxy-manager, whose routing table lives in a SQLite
 # database rather than in anything a restart would re-read. `restart-edge` is
@@ -387,7 +385,7 @@ restart_app() {
     [ -n "$RUNNING_MODE" ] && MODE=$RUNNING_MODE
     check_mode
     step 1 1 "restarting registry, discovery and the $MODE-mode adapters"
-    info "keycloak, both databases and the edge are left alone"
+    info "both databases and the edge are left alone"
     # shellcheck disable=SC2046
     docker compose --profile multi-adapter restart sunbird-registry-service discovery-service $(adapters_for "$MODE")
     docker compose --profile multi-adapter ps --format 'table {{.Service}}\t{{.Status}}'

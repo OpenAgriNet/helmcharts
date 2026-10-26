@@ -541,11 +541,11 @@ RECORD_ID = re.compile(r"1-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a
 
 
 class Registry(ReadOnlyRegistry):
-    """Our registry, with the admin token writes need."""
+    """Our registry, the one we write to."""
 
-    def __init__(self, url, token, own_id, timeout=30):
+    def __init__(self, url, own_id, timeout=30):
         super().__init__(url, timeout)
-        self.token, self.own_id = token, own_id
+        self.own_id = own_id
 
     def by_osid(self, osid):
         return self._search("Participant", {"osid": {"eq": osid}})
@@ -560,7 +560,7 @@ class Registry(ReadOnlyRegistry):
     def _write(self, method, path, body):
         request = urllib.request.Request(
             f"{self.url}/api/v1/{path}", method=method, data=json.dumps(body).encode(),
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.token}"})
+            headers={"Content-Type": "application/json"})
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
                 result = json.load(response)
@@ -575,10 +575,11 @@ class Registry(ReadOnlyRegistry):
 
 
 def open_registry():
-    """Our registry, signed in with the admin from .env, as setup.py does."""
+    """Our registry, at the address setup.py uses. Reached from inside this
+    stack only, so no credential: see the registry service in docker-compose."""
     import setup
     setup.load_dotenv()
-    return Registry(setup.registry_url(), setup.token(), setup.env("BECKN_NETWORK_ID"))
+    return Registry(setup.registry_url(), setup.env("BECKN_NETWORK_ID"))
 
 
 def peer_registry(network_id):

@@ -1474,7 +1474,7 @@
           "id": 20,
           "type": "logs",
           "title": "Container logs",
-          "description": "stdout from every container in the stack, not just discovery-service. Only Go services have a parsed SeverityText -- Keycloak and Postgres lines arrive with an empty level, so a severity filter would silently hide them.",
+          "description": "stdout from every container in the stack, not just discovery-service. Only Go services have a parsed SeverityText -- the registry and Postgres lines arrive with an empty level, so a severity filter would silently hide them.",
           "datasource": {
             "type": "grafana-clickhouse-datasource",
             "uid": "clickhouse"

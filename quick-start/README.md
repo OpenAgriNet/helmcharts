@@ -9,7 +9,7 @@ consumer, network and provider tiers on port 9201. **Multi is optional**: the
 three tiers as three containers. → [Two modes](#two-modes).
 
 Nothing is built here — the images are pulled. Locally that is about ten
-minutes, most of it waiting for Keycloak. Discovery is the one exception, and
+minutes. Discovery is the one exception, and
 only if you ask for it: see [Appendix H](#appendix-h--telemetry), which is also
 where the reason lives.
 
@@ -86,9 +86,8 @@ Locally, nothing in it needs changing. It publishes these on `localhost`:
 
 ```
 8081  registry        9201  network adapter (single; network tier in multi)  9100  mock-imd
-8080  keycloak        9200  provider adapter (multi only)                      9101  mock-agmarknet
-9990  keycloak admin  9202  consumer adapter (multi only)
-8090  discovery
+8090  discovery       9200  provider adapter (multi only)                     9101  mock-agmarknet
+                      9202  consumer adapter (multi only)
 ```
 
 If one is already taken, change it here — that is the only edit a local run
@@ -103,8 +102,8 @@ make up-core
 
 Three tiers, in the only order that works: registry and discovery, then
 `bin/setup.py`, then the adapter (`network-adapter` on 9201; `NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter make up-core`
-starts the three adapters instead). Allow up to five minutes
-the first time — Keycloak on a cold volume.
+starts the three adapters instead). Allow a couple of minutes
+the first time, while the registry builds its schema tables.
 
 `setup.py` generates the network's one keypair, registers five participants --
 one entry for the network (`BECKN_NETWORK_ID`, shared by all three adapters) and
@@ -277,11 +276,10 @@ Then Part 1 Steps 2 and 3 as written.
 `.env.example` ships working defaults, which means they are public:
 
 ```
-POSTGRES_PASSWORD    KEYCLOAK_ADMIN_PASSWORD    KEYCLOAK_ADMIN_CLIENT_SECRET
-KEYCLOAK_DEFAULT_USER_PASSWORD
+POSTGRES_PASSWORD    REGISTRY_DB_PASSWORD
 ```
 
-Change all four before the VM is reachable by anyone but you. Adapter keypairs
+Change both before the VM is reachable by anyone but you. Adapter keypairs
 are the exception — `setup.py` generates those and never writes them to `.env`.
 
 ## Step V3 — Start it
@@ -302,7 +300,8 @@ hosts drop connections for a few seconds.
 
 Everything except the edge's 80 and 443 is bound to `127.0.0.1`, written
 literally in `docker-compose.yml` rather than taken from a variable. So the
-registry, Keycloak and the databases are not publicly reachable — deliberately.
+registry and the databases are not publicly reachable — deliberately, and in
+the registry's case necessarily: it authenticates nothing.
 
 Proxy hosts, certificates, and the `/publish` deny every host gets →
 **Appendix B**. Read it before pointing DNS at the box.
@@ -383,7 +382,7 @@ Reference, read on demand. Nothing here is a step.
 
 ## Appendix A — What is here, and what is not
 
-Running: **registry** (SunbirdRC + Postgres + Keycloak), **discovery**
+Running: **registry** (SunbirdRC + Postgres, authentication off), **discovery**
 (catalogue search + Postgres), **the adapters** (one Network Adapter by
 default, or three tier adapters with `NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter make up`; same image),
 **two mock upstreams** standing in for Mausamgram and Agmarknet. Behind
@@ -561,7 +560,7 @@ in a database row — nothing diffs it and nothing reviews it.
 
 Two steps, and the first is in git rather than the UI. NPM sits on `oan-edge`,
 where only the three adapters and `grafana` resolve, so a proxy host pointed at
-`registry` or `keycloak` 502s rather than quietly working. **The UI alone
+`registry` 502s rather than quietly working. **The UI alone
 cannot widen what is public** — that is the property worth keeping.
 
 1. **Put the service on `oan-edge`** in `docker-compose.yml`
@@ -594,14 +593,14 @@ curl -s -o /dev/null -w '%{http_code}\n' https://discovery.oan.example.com/healt
 It looks like the obvious candidate — `POST /api/v1/Participant/search` takes
 no token and is exactly what a peer needs. But SunbirdRC uses POST for reads
 *and* writes, so no method rule tells them apart and a proxy host forwards the
-whole API. What keeps writes out today is not the route: it is that nothing
-outside the VM can mint a Keycloak token, because Keycloak publishes on
-loopback. A registry route would depend on that silently.
+whole API. And the registry authenticates nothing at all, so there is no token
+to withhold. What keeps writes out is the loopback binding and the registry's
+absence from `oan-edge`. A registry route would undo both, silently.
 
 ## Appendix C — Startup order, and why it is that order
 
 ```
-1. registry and discovery        (also sunbird-registry-postgres, sunbird-registry-keycloak, discovery-postgres)
+1. registry and discovery        (also sunbird-registry-postgres, discovery-postgres)
 2. bin/setup.py                  keys, five participants, four bindings, four configs
 3. the adapters                  network-adapter (default), or the three with NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter
 4. nginx-proxy-manager           the public edge — 80 and 443, all interfaces
@@ -690,22 +689,14 @@ step answers only when the key matches its own. `setup.py` renders those keys
 into `provider.yaml` and `network-adapter.yaml` from the same `.env` it seeds the registry from, which is
 what stops the two drifting.
 
-**Looking at it** — from the VM or a tunnel. Search takes no token; writes do,
-and the token request has a trap:
+**Looking at it** — from the VM or a tunnel. Reads and writes both take no
+token: the registry runs with authentication off, which is why it must stay on
+loopback.
 
 ```sh
-TOKEN=$(curl -s -X POST \
-  "http://127.0.0.1:8080/auth/realms/sunbird-rc/protocol/openid-connect/token" \
-  -H 'X-Forwarded-Host: sunbird-registry-keycloak:8080' -H 'X-Forwarded-Proto: http' \
-  -d 'client_id=registry-frontend' -d 'grant_type=password' \
-  -d 'username=no-user' -d 'password=no-user-password' \
-  | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
+curl -s -X POST http://127.0.0.1:8081/api/v1/Participant/search \
+  -H 'Content-Type: application/json' -d '{"filters":{}}' | python3 -m json.tool
 ```
-
-Those `X-Forwarded-*` headers are not optional and `sunbird-registry-keycloak:8080` is the
-**container-internal** address on purpose. Keycloak builds the token's issuer
-from them and the registry validates it against the internal address; get it
-wrong and you get a 401 with an empty body.
 
 **An upstream may carry its own `keys`.** `setup.py` adds none — the mocks have
 no keypair — but the schema permits it, and the adapter accepts such a key as a
@@ -799,16 +790,13 @@ the upstream answered non-2xx. 4xx is reported immediately, 5xx retried up to
 has run. If it persists, look for a *directory* where a config file should be →
 Appendix C.
 
-**`setup.py` says the registry did not come up.** Check `make ps`. Keycloak's
-healthcheck allows five minutes on a cold volume.
+**`setup.py` says the registry did not come up.** Check `make ps`. On a cold
+volume the registry spends a minute or two building its schema tables.
 
 **`setup.py` says a participant is registered with a different key.** The
 registry cannot update a published key and its delete is soft, so the id cannot
 be reused. Restore the matching `keys/keys.json`, or pick a new
 `*_SUBSCRIBER_ID` in `.env`.
-
-**The registry refuses a write with 401 and an empty body.** The token's issuer
-does not match → the `X-Forwarded-*` headers in Appendix D.
 
 **A pull or a mapping fetch fails with "network is unreachable".** DNS returned
 an IPv6 address the host cannot route.
@@ -1155,7 +1143,6 @@ config/
   registry/
     schemas/                Participant, ProviderSchema, SchemaRegistry.
                             Read at startup -- a change needs a restart
-    imports/                the Keycloak realm
   discovery/                optional instance override
   mappings/                 one file per binding-action, served over the raw CDN
 ../api-collection/      the collection and its environment file
@@ -1185,8 +1172,8 @@ done
 ```
 
 Then `make up`, and confirm the five participants and your proxy hosts before
-deleting anything. Keycloak shares `sunbird-registry-postgres-data`, so its realm travels with
-that volume — and equally does not survive if you skip it.
+deleting anything. The registry's rows live in `sunbird-registry-postgres-data`,
+so they travel with that volume — and equally do not survive if you skip it.
 
 ## Appendix M — Starting over
 

@@ -45,8 +45,8 @@ host-descriptor: ; @$(STACK) host-descriptor
 # NPM chowns the files it is given, so a plain `git pull` fails on them.
 pull:          ; @$(STACK) pull
 
-# The app tier only -- registry, discovery, the three adapters. Not keycloak,
-# not the databases, not the edge.
+# The app tier only -- registry, discovery, the three adapters. Not the
+# databases, not the edge.
 restart:       ; @$(STACK) restart
 restart-edge:  ; @$(STACK) restart-edge
 ps:            ; @$(STACK) ps
