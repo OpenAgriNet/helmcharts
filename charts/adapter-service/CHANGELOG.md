@@ -5,6 +5,20 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-10-26
+
+### Added
+- `crawler`, the scheduled catalog publisher, for the network-adapter role (off
+  by default), in both deployment modes. When enabled the chart inserts the
+  `registry` and `crawler` plugin blocks under the config's `plugins:` key.
+  `participantId` and `receiverId` are required. The run log DSN is a
+  placeholder the init container fills from `crawler.dbDsnKey` (the keys Secret
+  in multi-adapter mode, the network tier's Secret in single-adapter mode), and
+  the pod gets an emptyDir for the catalogs it builds. `discoveryPushUrl`
+  defaults to this pod's `/publish` in single-adapter mode and to the provider
+  adapter's `/publish` in multi-adapter mode. Needs registry 0.5.0+ and a
+  registry-seed 0.2.0+ `publishPipelineUrl` on the binding.
+
 ## [0.6.0] - 2026-10-09
 
 ### Added

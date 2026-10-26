@@ -84,6 +84,24 @@ kubectl -n <namespace> rollout restart deploy/<release>
 
 Any other values change rolls the pods on its own.
 
+## Catalog crawler
+
+`crawler.enabled: true` (role `network-adapter`, either mode) runs the
+catalogcrawler plugin: on every tick it runs the pipeline of each registry
+binding with a `publish` action and POSTs the catalogs to `/publish` (this pod
+in single mode, the provider adapter in multi mode). It needs, outside this chart:
+
+- an image with the `catalogcrawler` plugin and the `render.mappingByField` engine;
+- the `publish` action in the registry: registry 0.5.0+, and
+  `bindings[].publishPipelineUrl` in registry-seed, pinned to a commit SHA;
+- a run log database (PostgreSQL), its DSN under `crawler.dbDsnKey` in the keys
+  Secret (the network tier's Secret in single mode);
+- the pipeline's inputs as env (`envFromSecrets`), e.g. `MANDI_API_URI`,
+  `MANDI_TOKEN_USER`, `MANDI_TOKEN_SECRET`, `MANDI_PARTICIPANT_ID`, `APP_NETWORK_ID`.
+
+`crawler.participantId` and `crawler.receiverId` have no defaults; the render
+fails without them.
+
 ## Values and examples
 
 - `values.yaml`: every field, with a comment on what it does.

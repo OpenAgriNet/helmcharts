@@ -80,6 +80,7 @@ new Job rather than failing on `Job.spec.template` being immutable.
 | `adapters[].signingPublicKey` | Bare base64, **no `base64:` prefix** — it is published verbatim and a verifier hands it straight to a decoder. The chart refuses a prefixed value. |
 | `adapters[].baseUrl` | The address a **peer** posts to. Nothing in-cluster resolves it, so a wrong value costs nothing locally and everything on a shared network. |
 | `bindings[].participantId\|capability` | Must match what the provider adapter is configured with. A mismatch is answered `404 this module serves no capability matching the request`, which names the request rather than the mismatch. |
+| `bindings[].publishPipelineUrl` | Optional. Adds a `publish` action naming the pipeline the network adapter's catalog crawler runs. Must be https `<...>/publish/<source>.yaml` pinned to a 40-hex commit SHA (`allowUnpinnedPipeline: true` overrides). On an existing binding the Job adds or repoints the action. Needs registry 0.5.0+. |
 | `schemaPackRef` | The registry **never fetches** `schemaUrl` — it only checks its shape. A ref that does not serve the pack stores happily and fails later, at whoever resolves it. |
 | `seedUser.passwordSecret` | The account that can WRITE participants. Required; this chart renders no passwords. |
 

@@ -177,3 +177,97 @@ therefore needs a rollout restart -- which the NOTES print.
 {{- define "adapter-service.configChecksum" -}}
 {{- include (print $.Template.BasePath "/configmap.yaml") . | sha256sum -}}
 {{- end }}
+
+{{/*
+The catalog crawler's two application-level plugin blocks, indented to sit under
+the config's top-level `plugins:` key -- beside otelsetup, which is the same kind
+of thing: started once at boot, not per request.
+
+Validated here rather than defaulted: the participant and receiver ids decide who
+the catalogs are published as and to, and a guess publishes under someone else's
+name.
+*/}}
+{{- define "adapter-service.crawlerBlock" -}}
+{{- $c := .Values.crawler -}}
+{{- if ne (include "adapter-service.role" .) "network" -}}
+{{- fail (printf "%s: crawler.enabled is only valid for the network-adapter role (this is %q). The crawler publishes THROUGH /publish and this adapter is where the registry sweep runs." .Chart.Name (include "adapter-service.role" .)) -}}
+{{- end -}}
+{{- if or (not $c.participantId) (not $c.receiverId) -}}
+{{- fail (printf "%s: crawler.participantId and crawler.receiverId are required when crawler.enabled is true. They are stamped on every publish as context.senderId and context.receiverId, and have no default because a guessed identity publishes under someone else's name." .Chart.Name) -}}
+{{- end -}}
+{{- if not $c.dbDsnKey -}}
+{{- fail (printf "%s: crawler.dbDsnKey is required when crawler.enabled is true: the run log's database DSN comes from that key in the keys Secret." .Chart.Name) -}}
+{{- end -}}
+{{- if not (hasPrefix "/" (include "adapter-service.crawlerOutputDir" .)) -}}
+{{- fail (printf "%s: crawler.publishCatalogOutputDir must be an absolute path (got %q)." .Chart.Name (include "adapter-service.crawlerOutputDir" .)) -}}
+{{- end -}}
+registry:
+  id: sunbirdRegistry
+  config:
+    url: {{ required "crawler.registryUrl is required when crawler.enabled is true" $c.registryUrl | quote }}
+    entity: Participant
+    providerEntity: ProviderSchema
+
+crawler:
+  id: catalogcrawler
+  config:
+    dbDsn: "__ADAPTER_CRAWLER_DB_DSN__"
+    discoveryPushUrl: {{ include "adapter-service.crawlerPushUrl" . | quote }}
+    participantId: {{ $c.participantId | quote }}
+    receiverId: {{ $c.receiverId | quote }}
+    publishPipelines: {{ $c.publishPipelines | toString | quote }}
+    publishEnabled: {{ $c.publishEnabled | toString | quote }}
+    catalogIntervalSeconds: {{ $c.catalogIntervalSeconds | toString | quote }}
+    publishCatalogOutputDir: {{ include "adapter-service.crawlerOutputDir" . | quote }}
+{{- range $name, $overrides := $c.pipelines }}
+{{- if not (regexMatch "^[a-z0-9][a-z0-9-]*$" $name) }}
+{{- fail (printf "%s: crawler.pipelines key %q must be the pipeline's metadata.name: lowercase letters, digits and hyphens." $.Chart.Name $name) }}
+{{- end }}
+{{- range $key, $value := $overrides }}
+{{- if not (regexMatch "^[A-Za-z][A-Za-z0-9]*$" $key) }}
+{{- fail (printf "%s: crawler.pipelines.%s has the key %q; it must be the name of the pipeline's schedule or one of its inputs." $.Chart.Name $name $key) }}
+{{- end }}
+    {{ printf "publish.%s.%s" $name $key }}: {{ $value | toString | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Inserts the crawler block under the config's top-level `plugins:` key, so the
+role config stays one file and an environment turns the crawler on with a value,
+not a fork. Returns the config unchanged when the crawler is off.
+Usage: include "adapter-service.withCrawler" (dict "ctx" $ "cfg" $raw "source" "<where cfg came from>")
+*/}}
+{{- define "adapter-service.withCrawler" -}}
+{{- if .ctx.Values.crawler.enabled -}}
+{{- if not (contains "\nplugins:\n" .cfg) -}}
+{{- fail (printf "%s: crawler.enabled needs a top-level `plugins:` key in the config to put the crawler under, and %s has none." .ctx.Chart.Name .source) -}}
+{{- end -}}
+{{- replace "\nplugins:\n" (printf "\nplugins:\n%s\n" (include "adapter-service.crawlerBlock" .ctx | indent 2)) .cfg -}}
+{{- else -}}
+{{- .cfg -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Where the crawler POSTs catalogs. Single mode: this pod's own /publish module,
+which signs as the provider tier. Multi mode: the provider adapter's /publish.
+*/}}
+{{- define "adapter-service.crawlerPushUrl" -}}
+{{- if .Values.crawler.discoveryPushUrl -}}
+{{- .Values.crawler.discoveryPushUrl -}}
+{{- else if eq (include "adapter-service.deploymentMode" .) "single-adapter" -}}
+{{- printf "http://localhost:%v/publish" .Values.service.targetPort -}}
+{{- else -}}
+http://provider-adapter.provider-adapter.svc.cluster.local:9200/publish
+{{- end -}}
+{{- end }}
+
+{{/*
+Where the crawler keeps the catalogs it builds. /tmp/catalogs unless
+crawler.publishCatalogOutputDir says otherwise: the chart mounts an emptyDir
+there, because the root filesystem is read-only.
+*/}}
+{{- define "adapter-service.crawlerOutputDir" -}}
+{{- .Values.crawler.publishCatalogOutputDir | default "/tmp/catalogs" -}}
+{{- end }}
