@@ -8,18 +8,18 @@ the adapter configs.
 it renders are bind-mounted files, and an adapter started before they exist
 leaves a directory in their place.
 
-WHAT IT WRITES. Eight participants, five capability bindings, five schemas:
+WHAT IT WRITES. Seven participants, four capability bindings, four schemas:
 
     3 x node      one per adapter -- consumer, network, provider -- each with the
                   public halves of a keypair. The private halves stay in
                   keys/keys.json and never reach the registry.
-    5 x upstream  the APIs this deployment calls. ALL FIVE are real external
+    4 x upstream  the APIs this deployment calls. ALL FOUR are real external
                   hosts now, whose base URLs come from .env -- no mock is in
                   use by any capability. An upstream signs nothing, so it needs
                   no role and no keys.
-    5 x binding   a ProviderSchema row per capability: which upstream answers
+    4 x binding   a ProviderSchema row per capability: which upstream answers
                   it, the method and path, timeouts, and the mapping URL.
-    5 x schema    a SchemaRegistry row per capability, saying what the
+    4 x schema    a SchemaRegistry row per capability, saying what the
                   capability MEANS rather than who serves it: the pack in
                   network-specs that defines its attributes. One per
                   capability, so two providers of one capability share a row.
@@ -125,9 +125,6 @@ REQUIRED = [
     "VISTAAR_CLIENT_SECRET", "VISTAAR_MAPPING_URL",
     "POCRA_PARTICIPANT_ID", "POCRA_CAPABILITY", "POCRA_BASE_URL",
     "POCRA_PATH", "POCRA_MAPPING_URL",
-    "PMFBY_PARTICIPANT_ID", "PMFBY_CAPABILITY", "PMFBY_BASE_URL",
-    "PMFBY_TOKEN_URL", "PMFBY_ACCESS_UID", "PMFBY_ACCESS_PWD",
-    "PMFBY_MAPPING_BASE_URL",
 ]
 
 
@@ -327,8 +324,11 @@ def upstream(participant_id, name, base_url):
 
 def ensure_binding(bearer, participant_id, capability, path, mapping_url,
                    method="GET"):
-    """Create a capability binding with the single `select` action, only when
-    absent.
+    """Create a capability binding only when absent.
+
+    actions is a list, not a map: the registry treats every nested object as an
+    entity and injects an osid into it, which a map cannot carry. It is also
+    what lets one action be retired without touching the others.
 
     mappings is one reference carrying both directions, because the response
     mapping reads what the request mapping resolved.
@@ -337,18 +337,6 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url,
     convention: Mausamgram and Agmarknet answer a GET whose query the mapping
     builds, while the knowledge provider and POCRA take a POST with a JSON body.
     The adapter reads it from this row, so nothing about it is compiled in."""
-    ensure_binding_with_actions(bearer, participant_id, capability, [
-        {"action": "select", "method": method, "path": path,
-         "mappings": mapping_url, "timeoutMs": 15000, "retryMax": 2,
-         "status": "active"}])
-
-
-def ensure_binding_with_actions(bearer, participant_id, capability, actions):
-    """Create a capability binding with the given actions, only when absent.
-
-    actions is a list, not a map: the registry treats every nested object as an
-    entity and injects an osid into it, which a map cannot carry. It is also
-    what lets one action be retired without touching the others."""
     binding = f"{participant_id}|{capability}"
     if search("ProviderSchema", {"bindingKey": {"eq": binding}}):
         print(f"  {binding}: already present")
@@ -356,59 +344,44 @@ def ensure_binding_with_actions(bearer, participant_id, capability, actions):
     result = post("ProviderSchema", {
         "bindingKey": binding, "participantId": participant_id,
         "capabilityCode": capability, "status": "active",
-        "actions": actions}, bearer)
+        "actions": [{"action": "select", "method": method, "path": path,
+                     "mappings": mapping_url,
+                     "timeoutMs": 15000, "retryMax": 2,
+                     "status": "active"}]}, bearer)
     print(f"  {binding}: {result['params']['status']} "
           f"{result['params'].get('errmsg', '')[:160]}")
 
 
-# network-specs keeps resource packs under schema/ and API packs under
-# api-schemas/, each folder on its own ref.
-RESOURCE_PACKS = "schema"
-API_PACKS = "api-schemas"
-
-# The five capability schemas, keyed by the .env variable each capability code
+# The four capability schemas, keyed by the .env variable each capability code
 # comes from so the code itself is never written twice.
 #
 # The display name mirrors the pack's own info.title, minus its "OpenAgriNet -"
 # and "Attributes" framing. The version is per capability rather than one
-# setting for all five, because a capability can move to v0.2 while the others
+# setting for all four, because a capability can move to v0.2 while the others
 # stay -- that is the point of versioning the packs separately.
 CAPABILITY_SCHEMAS = (
-    ("MAUSAMGRAM_CAPABILITY", "Weather Observation", "v0.1", RESOURCE_PACKS),
-    ("AGMARKNET_CAPABILITY", "Mandi Price", "v0.1", RESOURCE_PACKS),
-    ("VISTAAR_CAPABILITY", "Knowledge Advisory", "v0.1", RESOURCE_PACKS),
-    ("POCRA_CAPABILITY", "Agriculture Facility", "v0.1", RESOURCE_PACKS),
-    ("PMFBY_CAPABILITY", "Grievance", "v0.1", API_PACKS),
+    ("MAUSAMGRAM_CAPABILITY", "Weather Observation", "v0.1"),
+    ("AGMARKNET_CAPABILITY", "Mandi Price", "v0.1"),
+    ("VISTAAR_CAPABILITY", "Knowledge Advisory", "v0.1"),
+    ("POCRA_CAPABILITY", "Agriculture Facility", "v0.1"),
 )
 
 
-def pmfby_actions():
-    """PMFBY's support and status. support is never retried: a retry files a
-    duplicate grievance."""
-    base = env("PMFBY_MAPPING_BASE_URL")
-    return [{"action": action, "method": "POST", "path": path,
-             "mappings": f"{base}/grievance.{action}.yaml",
-             "timeoutMs": 30000, "retryMax": retries, "status": "active"}
-            for action, path, retries in (
-                ("support", "/krphapi/FGMS/AddKRPHNCIPGrievenceSupportTicket", 0),
-                ("status", "/krphapi/FGMS/GetGrievenceTicketsStatus", 2))]
-
-
-def schema_url(capability, version, folder, ref):
+def schema_url(capability, version, ref):
     """Build a pack URL from the capability code, which already contains the
     pack directory's name: openagrinet:WeatherObservation is served out of
     schema/WeatherObservation. Deriving it means the two cannot drift.
 
     The registry pattern-checks the result against exactly this shape, so a
     capability whose pack is laid out differently is refused rather than
-    stored -- which is the behaviour to want, since every pack in
-    network-specs is <folder>/<Capability>/<version>/attributes.yaml today."""
+    stored -- which is the behaviour to want, since all eight packs in
+    network-specs are <Capability>/<version>/attributes.yaml today."""
     return ("https://raw.githubusercontent.com/OpenAgriNet/network-specs/"
-            f"{ref}/{folder}/{capability.partition(':')[2]}/{version}"
+            f"{ref}/schema/{capability.partition(':')[2]}/{version}"
             "/attributes.yaml")
 
 
-def ensure_capability_schema(bearer, capability, name, version, folder, ref):
+def ensure_capability_schema(bearer, capability, name, version, ref):
     """Create a capability's schema row only when absent.
 
     THE REGISTRY NEVER FETCHES schemaUrl -- it only checks its shape. So a row
@@ -425,7 +398,7 @@ def ensure_capability_schema(bearer, capability, name, version, folder, ref):
         return
     result = post("SchemaRegistry", {
         "capabilityCode": capability, "name": name, "version": version,
-        "schemaUrl": schema_url(capability, version, folder, ref),
+        "schemaUrl": schema_url(capability, version, ref),
         "status": "active"}, bearer)
     print(f"  {capability}: {result['params']['status']} "
           f"{result['params'].get('errmsg', '')[:160]}")
@@ -446,7 +419,7 @@ def seed(identities):
     wait_for_registry()
     bearer = token()
 
-    # Eight participants and five capability bindings, all of it from here.
+    # Seven participants and four capability bindings, all of it from here.
     #
     # The registry is not reachable from outside this stack -- no published
     # port beyond loopback and no proxy host in front of it -- so there is no
@@ -463,14 +436,14 @@ def seed(identities):
                                 env(f"{role.upper()}_BASE_URL"),
                                 identity["signingPublic"]))
 
-    # All five upstreams are real external providers now -- no mock is in use
+    # All four upstreams are real external providers now -- no mock is in use
     # by any capability, so every base URL comes from .env and the stack needs
     # egress to all of them.
     #
     # No default base URL for weather any more: falling back to the mock's
     # service name would seed a row that cannot serve the basic auth the
     # capability is configured with, and the registry cannot update it after.
-    print("registry: five upstream providers")
+    print("registry: four upstream providers")
     weather = env("MAUSAMGRAM_PARTICIPANT_ID")
     ensure_participant(bearer, weather,
                        upstream(weather, "IMD Mausamgram NWP",
@@ -501,15 +474,11 @@ def seed(identities):
                        upstream(pocra, "POCRA agriculture facilities",
                                 env("POCRA_BASE_URL")))
 
-    pmfby = env("PMFBY_PARTICIPANT_ID")
-    ensure_participant(bearer, pmfby,
-                       upstream(pmfby, "PMFBY grievance portal", env("PMFBY_BASE_URL")))
-
     # And what each of them answers. The binding key is participantId piped to
     # capabilityCode, and it has to match what the provider adapter was
     # rendered with -- both come from the same .env, which is what keeps them
     # from disagreeing.
-    print("registry: five capability bindings")
+    print("registry: four capability bindings")
     ensure_binding(bearer, weather, env("MAUSAMGRAM_CAPABILITY"),
                    env("MAUSAMGRAM_PATH", "/get-daily"), env("MAUSAMGRAM_MAPPING_URL"))
     ensure_binding(bearer, mandi, env("AGMARKNET_CAPABILITY"),
@@ -521,7 +490,6 @@ def seed(identities):
     ensure_binding(bearer, pocra, env("POCRA_CAPABILITY"),
                    env("POCRA_PATH"), env("POCRA_MAPPING_URL"),
                    method="POST")
-    ensure_binding_with_actions(bearer, pmfby, env("PMFBY_CAPABILITY"), pmfby_actions())
 
     # And what each capability MEANS, which is a different question from who
     # serves it. A binding above says mausamgram answers WeatherObservation
@@ -533,11 +501,10 @@ def seed(identities):
     # SEPARATE FROM THE MAPPING URLS ABOVE, which live in helmcharts and
     # describe one upstream's wire format. These are network-specs and describe
     # the network's own vocabulary, so they move on their own ref.
-    print("registry: five capability schemas")
-    pack_refs = {RESOURCE_PACKS: env("SCHEMA_PACK_REF", "main"),
-                 API_PACKS: env("API_SCHEMA_PACK_REF", "api-schema-packs-v0.1")}
-    for var, name, version, folder in CAPABILITY_SCHEMAS:
-        ensure_capability_schema(bearer, env(var), name, version, folder, pack_refs[folder])
+    print("registry: four capability schemas")
+    ref = env("SCHEMA_PACK_REF", "main")
+    for var, name, version in CAPABILITY_SCHEMAS:
+        ensure_capability_schema(bearer, env(var), name, version, ref)
 
 
 def key_osids(identities):
@@ -598,7 +565,6 @@ def render(identities):
     vistaar_binding = (f"{env('VISTAAR_PARTICIPANT_ID')}"
                        f"|{env('VISTAAR_CAPABILITY')}")
     pocra_binding = f"{env('POCRA_PARTICIPANT_ID')}|{env('POCRA_CAPABILITY')}"
-    pmfby_binding = f"{env('PMFBY_PARTICIPANT_ID')}|{env('PMFBY_CAPABILITY')}"
     for role in ROLES:
         identity = identities[role]
         template = (ADAPTERS / f"{role}.yaml.tmpl").read_text()
@@ -626,9 +592,6 @@ def render(identities):
                 ("__AGMARKNET_PARTICIPANT_ID__", env("AGMARKNET_PARTICIPANT_ID")),
                 ("__VISTAAR_PARTICIPANT_ID__", env("VISTAAR_PARTICIPANT_ID")),
                 ("__POCRA_PARTICIPANT_ID__", env("POCRA_PARTICIPANT_ID")),
-                ("__PMFBY_BINDING_KEY__", pmfby_binding),
-                ("__PMFBY_PARTICIPANT_ID__", env("PMFBY_PARTICIPANT_ID")),
-                ("__PMFBY_TOKEN_URL__", env("PMFBY_TOKEN_URL")),
                 # Telemetry. One switch drives all three signals: with every
                 # one false the plugin builds no exporter and never dials, so
                 # a stack running without the observability profile stays
@@ -666,20 +629,19 @@ if __name__ == "__main__":
     KEYS.write_text(json.dumps(identities, indent=2))
     render(identities)
     print(f"""
-ready. The registry holds eight participants and five capability bindings, and
+ready. The registry holds seven participants and four capability bindings, and
 the adapter configs are rendered, so nothing further has to be created by hand.
 
   {env('MAUSAMGRAM_PARTICIPANT_ID')}|{env('MAUSAMGRAM_CAPABILITY')}
   {env('AGMARKNET_PARTICIPANT_ID')}|{env('AGMARKNET_CAPABILITY')}
   {env('VISTAAR_PARTICIPANT_ID')}|{env('VISTAAR_CAPABILITY')}
   {env('POCRA_PARTICIPANT_ID')}|{env('POCRA_CAPABILITY')}
-  {env('PMFBY_PARTICIPANT_ID')}|{env('PMFBY_CAPABILITY')}
 
 Those are the binding keys the provider adapter answers to. They were rendered
 into its config from the same .env this seeded the registry from, which is what
 keeps the two from disagreeing. A payload naming anything else is answered 404
 "this module serves no capability matching the request" -- explicit, but it
-names the request rather than the mismatch, so compare it against these five.
+names the request rather than the mismatch, so compare it against these four.
 
 The left half of each key is the participant id, and it names the ENTITY that
 operates the upstream -- not the capability, which is already the right half,
@@ -687,7 +649,7 @@ and not the deployment, which is only a base URL. It is also the string a
 catalog publishes as offer.provider.id, so capability-examples/ can be run
 against this stack unedited.
 
-All five upstreams are real external providers reached over the internet, so
+All four upstreams are real external providers reached over the internet, so
 this stack needs egress to each of them and no capability depends on a mock.
 Repointing one is an .env edit and a re-run of this, but it takes a NEW
 participant id: the registry cannot update a row and its delete is soft and

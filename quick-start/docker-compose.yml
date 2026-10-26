@@ -628,9 +628,6 @@ services:
       # configuration fault, not a transient one, so it is not retried.
       VISTAAR_CLIENT_ID: ${VISTAAR_CLIENT_ID}
       VISTAAR_CLIENT_SECRET: ${VISTAAR_CLIENT_SECRET}
-      # PMFBY's login, exchanged at NICUsersLogin for a token.
-      PMFBY_ACCESS_UID: ${PMFBY_ACCESS_UID}
-      PMFBY_ACCESS_PWD: ${PMFBY_ACCESS_PWD}
     volumes:
       - ./config/adapters/provider.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/routing-provider.yaml:/app/config/routing-provider.yaml:ro
