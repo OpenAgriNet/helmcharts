@@ -1,13 +1,12 @@
 # Mock providers
 
-Three stand-in upstreams, so the stack can be exercised end to end without
+Two stand-in upstreams, so the stack can be exercised end to end without
 credentials for the real services.
 
 | mock | stands in for | port | auth |
 |---|---|---|---|
 | `mockimd` | IMD Mausamgram NWP | 9100 | basic |
 | `mockagmarknet` | Agmarknet Vistaar | 9101 | token as a query parameter |
-| `mockpmfby` | PMFBY grievance (KRPH FGMS) | 9102 | token from `/NICUsersLogin`, sent bare in `Authorization` |
 
 ## Why the sources are here
 

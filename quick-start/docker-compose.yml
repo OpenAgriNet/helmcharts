@@ -586,24 +586,6 @@ services:
     ports:
       - "127.0.0.1:${MOCKAGMARKNET_PORT}:9101"
 
-  # PMFBY grievance (KRPH FGMS), copying the demo portal. Accepts the
-  # PMFBY_ACCESS_* login from .env. Built from mock-server/mockpmfby when the
-  # image is not already present. `make up` starts it.
-  mock-pmfby:
-    image: ${MOCKPMFBY_IMAGE}
-    build: ./mock-server/mockpmfby
-    pull_policy: missing
-    container_name: mock-pmfby
-    restart: unless-stopped
-    logging: *logging
-    networks: [oan-internal]
-    command:
-      - "-addr=:9102"
-      - "-user=${PMFBY_ACCESS_UID}"
-      - "-pass=${PMFBY_ACCESS_PWD}"
-    ports:
-      - "127.0.0.1:${MOCKPMFBY_PORT}:9102"
-
   # Verifies the caller, calls the upstream provider, answers synchronously.
   # It has no provider address of its own: it reads the ProviderSchema row,
   # so repointing it at a different upstream is a registry write, not a
