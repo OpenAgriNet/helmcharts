@@ -12,20 +12,24 @@ request: |
     }
   )
 
-# Empty PMFBY fields are dropped. No record, or one for another ticket, is a
-# 400 in our words; any other failure is a 502. PMFBY's message is logged,
-# never returned.
+# Empty PMFBY fields are dropped. No record, or none naming the ticket asked
+# for, is a 400 in our words; any other failure is a 502. PMFBY's message is
+# logged -- stripped of the request it quoted -- and never returned.
 response: |
   (
     /* Constants */
     $PMFBY_SUCCESS_CODE := "1";
     $SCHEME := { "code": "PMFBY", "name": "Pradhan Mantri Fasal Bima Yojana" };
-    $INFORMATION_MODE := "Direct";
+    $INFORMATION_MODE := "OnDemand";
     $COMMITMENT_STATUS_ACTIVE := "ACTIVE";
     $DEFAULT_CASE_STATUS := "UnderReview";
     $CASE_STATUS_CODES := { "open": "Registered", "resolved": "Resolved" };
     $SEASON_NAMES := { "1": "Kharif", "2": "Rabi", "3": "Zaid" };
-    $TIMESTAMP_FORMAT := "[Y0001]-[M01]-[D01]T[H01]:[m01]:[s01]Z";
+    /* filedOn is a calendar date, and the day is the one the farmer filed on
+       -- PMFBY is an Indian portal, so a late-evening filing is that day in
+       IST and the day before in UTC. */
+    $DATE_FORMAT := "[Y0001]-[M01]-[D01]";
+    $IST_OFFSET := "+0530";
 
     /* e.g. "2026-10-12T11:02:49.000Z" */
     $RFC3339_PATTERN := /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$/;
@@ -33,6 +37,7 @@ response: |
     $YEAR_PATTERN := /^[0-9]{4}$/;
 
     $MSG_NOT_FOUND := "No grievance was found for this ticket number and phone number.";
+    $MSG_NO_FILING_DATE := "PMFBY returned the grievance without a usable filing date.";
     $MSG_UNAVAILABLE := "PMFBY could not return the grievance status right now. Please try again later.";
 
     $ERROR_REFUSED := { "status": 400, "code": "BIZ_GENERIC_ERROR" };
@@ -60,26 +65,33 @@ response: |
     /* Inputs */
     $commitment := beckn.message.contract.commitments[0];
     $attributes := $commitment.commitmentAttributes;
-    /* [0] reads a bare record or a list of one alike. */
-    $record := response.responseDynamic[0];
+    $requestedTicket := $string($attributes.case.ticketNo);
+    /* The record that NAMES the ticket asked for, searched across every record
+       returned rather than taken from the first. PMFBY reads by phone, so the
+       list can hold this farmer's other grievances, and a record that does not
+       name its own ticket cannot be shown as the answer to this one. The
+       predicate reads a bare record and a list alike. */
+    $record := response.responseDynamic[$string(GrievenceSupportTicketNo) = $requestedTicket][0];
     $pmfbyMessage := $type(response.responseMessage) = "string" ? $trim(response.responseMessage);
     $refusalMessage := $pmfbyMessage ? $lookup($KNOWN_REFUSALS, $lowercase($pmfbyMessage));
     $isAccepted := $string(response.responseCode) = $PMFBY_SUCCESS_CODE;
-    /* PMFBY reads by phone alone, so a record for another ticket is no record. */
-    $isOtherTicket := $exists($record.GrievenceSupportTicketNo)
-      and $string($record.GrievenceSupportTicketNo) != $string($attributes.case.ticketNo);
-    $isFound := $isAccepted and ($isText($record.ApplicationNo) or $isText($record.TicketStatus)) and $not($isOtherTicket);
+    $isFound := $isAccepted and ($isText($record.ApplicationNo) or $isText($record.TicketStatus));
     $mappedStatus := $isText($record.TicketStatus) ? $lookup($CASE_STATUS_CODES, $lowercase($trim($record.TicketStatus)));
     $caseStatus := $exists($mappedStatus) ? $mappedStatus : $DEFAULT_CASE_STATUS;
     $requestYear := $asId($record.RequestYear);
     $cropYear := $requestYear and $contains($requestYear, $YEAR_PATTERN) ? $requestYear;
     $filedOn := $isText($record.InsertDateTime) and $contains($record.InsertDateTime, $RFC3339_PATTERN)
-      ? $fromMillis($toMillis($record.InsertDateTime), $TIMESTAMP_FORMAT);
+      ? $fromMillis($toMillis($record.InsertDateTime), $DATE_FORMAT, $IST_OFFSET);
     /* The officer's answer; "" until there is one. */
     $reply := $asText($isText($record.latestRemark) ? $trim($record.latestRemark));
+    /* The complaint rides only with its description: the pack requires one,
+       so a category on its own would be an answer the caller must refuse. */
+    $description := $asText($record.GrievenceDescription);
+    /* filedOn is required on an answer, and a date is not ours to invent. */
+    $isComplete := $isFound and $exists($filedOn);
 
     /* Output */
-    $isFound
+    $isComplete
     ? {
       "context": $merge([beckn.context, { "action": "on_status", "timestamp": $now() }]),
       "message": {
@@ -94,13 +106,15 @@ response: |
               "enrolmentId": $asText($record.ApplicationNo),
               "cropYear": $cropYear,
               "season": $lookup($SEASON_NAMES, $asId($record.RequestSeason)),
-              "grievance": {
+              "grievance": $exists($description) ? {
                 "category": $omitIfEmpty({ "code": $asId($record.TicketCategoryID), "name": $asText($record.TicketCategoryName) }),
                 "subCategory": $omitIfEmpty({ "code": $asId($record.TicketSubCategoryID), "name": $asText($record.TicketSubCategoryName) }),
-                "description": $asText($record.GrievenceDescription)
+                "description": $description
               },
               "case": {
-                "ticketNo": $attributes.case.ticketNo,
+                /* The record's own ticket, not the one asked for: the answer
+                   reports what PMFBY returned, never what the caller said. */
+                "ticketNo": $string($record.GrievenceSupportTicketNo),
                 "status": { "code": $caseStatus },
                 "filedOn": $filedOn,
                 "reply": $reply,
@@ -111,6 +125,7 @@ response: |
         }])
       }
     }
+    : $isFound ? $error($ERROR_UNAVAILABLE, $MSG_NO_FILING_DATE, $pmfbyMessage)
     : $isAccepted ? $error($ERROR_REFUSED, $MSG_NOT_FOUND)
     : $exists($refusalMessage) ? $error($ERROR_REFUSED, $refusalMessage, $pmfbyMessage)
     : $error($ERROR_UNAVAILABLE, $MSG_UNAVAILABLE, $pmfbyMessage)
