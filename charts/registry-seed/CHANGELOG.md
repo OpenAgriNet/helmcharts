@@ -5,6 +5,20 @@ All notable changes to the `registry-seed` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-10-26
+
+### Added
+- A binding may list its `actions` instead of carrying one `path` and
+  `mappingUrl`, so a capability that answers more than `select` can be seeded.
+  The single-select form is unchanged.
+- A schema row may set `packFolder` and `packRef`, so a pack under
+  network-specs' `api-schemas/` folder, or on a ref other than `schemaPackRef`,
+  gets the right `schemaUrl`. Both default to what they were: `schema` and
+  `schemaPackRef`.
+- `examples/seed.dev.yaml` seeds the PMFBY grievance capability: the `pmfby`
+  upstream, its `support` and `status` binding and the `openagrinet:Grievance`
+  schema row.
+
 ## [0.1.1] - 2026-09-20
 
 ### Fixed

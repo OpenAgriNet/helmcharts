@@ -129,6 +129,20 @@ data:
                  "validFrom": validity["from"], "validUntil": validity["until"]}]
 
 
+    def actions_of(binding):
+        """A binding is one select, with its path and mapping on the binding
+        itself, or an explicit list for a capability that answers other actions.
+
+        A list, not a map: the registry treats every nested object as an entity
+        and injects an osid, which a map cannot carry."""
+        listed = binding.get("actions") or [{**binding, "action": "select"}]
+        return [{"action": a["action"], "method": a.get("method", "GET"),
+                 "path": a["path"], "mappings": a["mappingUrl"],
+                 "timeoutMs": a.get("timeoutMs", 15000),
+                 "retryMax": a.get("retryMax", 2), "status": "active"}
+                for a in listed]
+
+
     def main():
         wait_for_registry()
         bearer = token()
@@ -162,19 +176,11 @@ data:
         print("registry: capability bindings")
         for b in DOC["bindings"]:
             binding = f'{b["participantId"]}|{b["capability"]}'
-            # actions is a list, not a map: the registry treats every nested
-            # object as an entity and injects an osid, which a map cannot carry.
             ok = ensure("ProviderSchema", "bindingKey", binding,
                         {"bindingKey": binding,
                          "participantId": b["participantId"],
                          "capabilityCode": b["capability"], "status": "active",
-                         "actions": [{"action": "select",
-                                      "method": b.get("method", "GET"),
-                                      "path": b["path"],
-                                      "mappings": b["mappingUrl"],
-                                      "timeoutMs": b.get("timeoutMs", 15000),
-                                      "retryMax": b.get("retryMax", 2),
-                                      "status": "active"}]},
+                         "actions": actions_of(b)},
                         bearer, binding)
             if ok is None:
                 failed.append(binding)
@@ -185,8 +191,9 @@ data:
             # A row pointing at a ref that does not serve the pack stores
             # happily and fails later, at whoever resolves it.
             pack = s["capability"].partition(":")[2]
+            ref = s.get("packRef", DOC["schemaPackRef"])
             url = ("https://raw.githubusercontent.com/OpenAgriNet/network-specs/"
-                   f'{DOC["schemaPackRef"]}/schema/{pack}/{s["version"]}'
+                   f'{ref}/{s.get("packFolder", "schema")}/{pack}/{s["version"]}'
                    "/attributes.yaml")
             ok = ensure("SchemaRegistry", "capabilityCode", s["capability"],
                         {"capabilityCode": s["capability"], "name": s["name"],

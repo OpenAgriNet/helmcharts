@@ -56,8 +56,18 @@ new id. That makes a render-time refusal much cheaper than a successful write.
 {{- end }}
 {{- end }}
 {{- range .Values.bindings }}
-{{- if or (not .participantId) (not .capability) (not .path) (not .mappingUrl) }}
-{{- fail (printf "%s: binding %q needs participantId, capability, path and mappingUrl" $root.Chart.Name (.capability | default "?")) }}
+{{- if or (not .participantId) (not .capability) }}
+{{- fail (printf "%s: binding %q needs participantId and capability" $root.Chart.Name (.capability | default "?")) }}
+{{- end }}
+{{- if .actions }}
+{{- $capability := .capability }}
+{{- range .actions }}
+{{- if or (not .action) (not .path) (not .mappingUrl) }}
+{{- fail (printf "%s: action %q of binding %q needs action, path and mappingUrl" $root.Chart.Name (.action | default "?") $capability) }}
+{{- end }}
+{{- end }}
+{{- else if or (not .path) (not .mappingUrl) }}
+{{- fail (printf "%s: binding %q needs path and mappingUrl, or a list of actions" $root.Chart.Name (.capability | default "?")) }}
 {{- end }}
 {{- end }}
 {{/*
@@ -92,9 +102,16 @@ rather than written out whole.
 {{- end }}
 {{- end }}
 {{- range .Values.bindings }}
-{{- range $k, $v := (dict "path" .path "mappingUrl" .mappingUrl "capability" .capability) }}
+{{- range $k, $v := (dict "path" (.path | default "") "mappingUrl" (.mappingUrl | default "") "capability" .capability) }}
 {{- if regexMatch "[<>]" $v }}
 {{- $placeholders = append $placeholders (printf "bindings[].%s = %s" $k $v) }}
+{{- end }}
+{{- end }}
+{{- range .actions }}
+{{- range $k, $v := (dict "path" .path "mappingUrl" .mappingUrl) }}
+{{- if regexMatch "[<>]" $v }}
+{{- $placeholders = append $placeholders (printf "bindings[].actions[].%s = %s" $k $v) }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
