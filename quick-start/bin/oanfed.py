@@ -406,6 +406,22 @@ def registered_signing_keys(entry, now=None):
     return usable
 
 
+def signing_key_osid(entry, public):
+    """The osid of the entry's key holding this public half.
+
+    The KEY's osid, not the entry's: a verifier walks a record's keys and
+    matches on theirs, so this is the only id a signature may name.
+    """
+    for k in entry.get("keys") or []:
+        held = str(k.get("key", "")).removeprefix("base64:")
+        try:
+            if base64.b64decode(held, validate=True) == public:
+                return str(k.get("osid") or "")
+        except binascii.Error:
+            continue
+    return ""
+
+
 def last_published_revision(path):
     """The revision already on disk, or 0. Unreadable is an error, so a revision never goes back."""
     if not path.exists():
@@ -457,10 +473,11 @@ def cmd_publish(args):
             f"publishing it would sign the descriptor with one key and traffic with another")
 
     base_url = entry.get("baseUrl", "").rstrip("/")
-    # The entry's osid, which survives key rotation.
-    key_id = entry.get("osid") or ""
+    # The osid of the key we are about to sign with, so a verifier resolves the
+    # same key from our record that we signed the descriptor with.
+    key_id = signing_key_osid(entry, public_of(network_key))
     if not key_id:
-        raise FederationError(f"{args.network_id}'s registry entry has no osid")
+        raise FederationError(f"{args.network_id}'s signing key has no osid in the registry")
     network_jwk = jwk(public_of(network_key), key_id)
 
     descriptor = {
@@ -579,8 +596,9 @@ def now_utc():
 def peer_record(descriptor, keyset):
     """What the peer's own documents say about it, shaped as its entry in our registry.
 
-    Only the key the descriptor's signature names is filed: the adapter verifies with
-    the entry's one active key.
+    Only the key the descriptor's signature names is filed, under the kid itself:
+    a verifier walks a record's keys matching on THEIR osid, so the kid has to
+    land on the key rather than on the entry around it.
     """
     kid = descriptor["signature"]["keyId"]
     if not RECORD_ID.fullmatch(kid):
@@ -589,7 +607,8 @@ def peer_record(descriptor, keyset):
     record = {"participantId": descriptor["networkId"], "name": descriptor["name"],
               "type": "node", "status": "active", "role": ["network"],
               "baseUrl": descriptor["services"]["discovery"],
-              "keys": [{"alg": "ed25519", "status": "active", "validFrom": descriptor["issuedAt"],
+              "keys": [{"osid": kid, "alg": "ed25519", "status": "active",
+                        "validFrom": descriptor["issuedAt"],
                         "key": base64.b64encode(validate_keyset(keyset)[kid]).decode()}],
               "revision": descriptor["revision"]}
     if "projectionTtl" in descriptor:
@@ -605,15 +624,8 @@ def file_peer(registry, descriptor, keyset):
     kid, facts = peer_record(descriptor, keyset)
     held = registry.participant(facts["participantId"])
     if held is None:
-        if registry.by_osid(kid):
-            raise FederationError(f"another entry in our registry already has osid {kid}")
-        # Sunbird keeps a supplied osid only without its "1-" prefix, and only on create.
-        registry.create({**facts, "osid": kid.removeprefix("1-")})
+        registry.create(facts)
     else:
-        if held.get("osid") != kid:
-            raise FederationError(
-                f"{facts['participantId']} now signs as {kid}, but we hold it as "
-                f"{held.get('osid')}; an entry's osid cannot change, so it cannot be refreshed")
         if descriptor["revision"] < (held.get("revision") or 0):
             raise FederationError(
                 f"revision {descriptor['revision']} is below the {held['revision']} we hold; "
@@ -627,8 +639,14 @@ def file_peer(registry, descriptor, keyset):
             facts["keys"] = held["keys"]
         registry.update({**held, **facts})
     stored = registry.participant(facts["participantId"])
-    if stored is None or stored.get("osid") != kid:
-        raise FederationError(f"the registry did not store {facts['participantId']} as {kid}")
+    if stored is None:
+        raise FederationError(f"the registry did not store {facts['participantId']}")
+    # The kid must have landed on the KEY: a verifier resolves nothing without it,
+    # and the registry regenerates a nested osid that an update failed to echo.
+    if kid not in [k.get("osid") for k in stored.get("keys") or []]:
+        raise FederationError(
+            f"the registry did not store {facts['participantId']}'s key as {kid}; "
+            f"signatures naming it would resolve to no key")
     if [k.get("key") for k in stored.get("keys") or []] != [facts["keys"][0]["key"]]:
         raise FederationError(f"the registry did not store {facts['participantId']}'s key")
     return stored
