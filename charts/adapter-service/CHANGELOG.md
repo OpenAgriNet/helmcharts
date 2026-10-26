@@ -19,6 +19,11 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   adapter's `/publish` in multi-adapter mode. Needs registry 0.5.0+ and a
   registry-seed 0.2.0+ `publishPipelineUrl` on the binding.
 
+### Fixed
+- The init container's substitution escapes `\`, `&` and `|` in the value. A
+  DSN or URL holding one of them used to be corrupted (`&` expanded to the
+  placeholder) or break the `sed` expression; base64 keys are unaffected.
+
 ## [0.6.0] - 2026-10-09
 
 ### Added

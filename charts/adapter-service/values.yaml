@@ -438,13 +438,12 @@ crawler:
   participantId: ""
   receiverId: ""
 
-  publishPipelines: true      # sweep the registry for publish pipelines
   publishEnabled: true        # false builds catalogs without posting them
   catalogIntervalSeconds: 3600
 
-  # Built catalogs are kept in /tmp/catalogs (publishCatalogOutputDir moves it)
-  # on an emptyDir of this size, because the root filesystem is read-only.
-  publishCatalogOutputDir: ""
+  # Built catalogs are kept here, on an emptyDir of this size, because the root
+  # filesystem is read-only.
+  publishCatalogOutputDir: /tmp/catalogs
   outputSizeLimit: 512Mi
 
   # Per-pipeline overrides by metadata.name, then the pipeline's own key

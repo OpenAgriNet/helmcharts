@@ -106,7 +106,10 @@ spec:
                   echo "    ./scripts/resolve-key-ids.sh -e <env>" >&2
                   exit 1
                 fi
-                sed -i "s|$1|$(cat "$2")|g" /rendered/adapter.yaml
+                # Escape the replacement: base64 never needs it, but a DSN or URL
+                # can hold \, & or | -- each of which sed would otherwise eat,
+                # expand to the placeholder, or end the expression on.
+                sed -i "s|$1|$(sed 's/[\\&|]/\\&/g' "$2")|g" /rendered/adapter.yaml
               }
               {{- if $single }}
 
@@ -124,9 +127,6 @@ spec:
               {{- range $ph, $path := .Values.adapterKeys.extraSubstitutions }}
               subst {{ $ph }} /keys/{{ $path }}
               {{- end }}
-              {{- if .Values.crawler.enabled }}
-              subst __ADAPTER_CRAWLER_DB_DSN__ /keys/network/{{ .Values.crawler.dbDsnKey }}
-              {{- end }}
               {{- else }}
 
               subst __ADAPTER_SUBSCRIBER_ID__   /keys/{{ .Values.keys.existingSecret.subscriberIdKey }}
@@ -142,9 +142,10 @@ spec:
               {{- range $ph, $key := .Values.keys.existingSecret.extraSubstitutions }}
               subst {{ $ph }} /keys/{{ $key }}
               {{- end }}
-              {{- if .Values.crawler.enabled }}
-              subst __ADAPTER_CRAWLER_DB_DSN__  /keys/{{ .Values.crawler.dbDsnKey }}
               {{- end }}
+              {{- if .Values.crawler.enabled }}
+              {{- /* The crawler's run log DSN: the network tier's Secret in single mode. */}}
+              subst __ADAPTER_CRAWLER_DB_DSN__ /keys/{{ ternary "network/" "" $single }}{{ .Values.crawler.dbDsnKey }}
               {{- end }}
 
               # A placeholder that survived means a key was substituted with
@@ -222,7 +223,7 @@ spec:
               readOnly: true
             {{- if .Values.crawler.enabled }}
             - name: crawler-catalogs
-              mountPath: {{ include "adapter-service.crawlerOutputDir" . }}
+              mountPath: {{ .Values.crawler.publishCatalogOutputDir }}
             {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
