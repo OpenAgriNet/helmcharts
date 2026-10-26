@@ -235,7 +235,17 @@ def token():
 def post(entity, payload, bearer):
     # No {"EntityName": {...}} wrapper: this registry takes the record itself,
     # and a wrapper comes back as "extraneous key [...] is not permitted".
-    req = urllib.request.Request(f"{registry_url()}/api/v1/{entity}", method="POST",
+    return write("POST", entity, payload, bearer)
+
+
+def put(entity, osid, payload, bearer):
+    # The registry re-validates the MERGED record on a PUT, so the whole
+    # record goes back, osid and all.
+    return write("PUT", f"{entity}/{osid}", payload, bearer)
+
+
+def write(method, path, payload, bearer):
+    req = urllib.request.Request(f"{registry_url()}/api/v1/{path}", method=method,
                                  data=json.dumps(payload).encode(),
                                  headers={"Content-Type": "application/json",
                                           "Authorization": f"Bearer {bearer}"})
@@ -340,40 +350,13 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url,
 
     publish_url, when given, adds a `publish` action: the pipeline file the
     network adapter's catalog crawler runs for this binding. It carries no
-    method or path (the provider adapter's routing sends a publish on). A row
-    that already exists keeps what it has, except that its publish action is
-    added or repointed -- the only thing ever updated."""
+    method or path (the provider adapter's routing sends a publish on)."""
     binding = f"{participant_id}|{capability}"
     rows = search("ProviderSchema", {"bindingKey": {"eq": binding}})
     if rows:
         print(f"  {binding}: already present")
         if publish_url:
-            record = rows[0]
-            actions = record.get("actions", [])
-            current = next((a for a in actions if a.get("action") == "publish"), None)
-            if current and current.get("mappings") == publish_url and current.get("status") == "active":
-                print(f"  {binding} publish: already names {publish_url}")
-                return
-            if current:
-                current["mappings"], current["status"] = publish_url, "active"
-            else:
-                actions.append({"action": "publish", "mappings": publish_url, "status": "active"})
-            record["actions"] = actions
-            # The registry re-validates the MERGED record, so the whole record
-            # goes back, osid and all. Needs the ProviderSchema that admits publish.
-            req = urllib.request.Request(
-                f"{registry_url()}/api/v1/ProviderSchema/{record['osid']}", method="PUT",
-                data=json.dumps(record).encode(),
-                headers={"Content-Type": "application/json", "Authorization": f"Bearer {bearer}"})
-            try:
-                with urllib.request.urlopen(req, timeout=30) as r:
-                    status = json.load(r).get("params", {}).get("status")
-            except urllib.error.HTTPError as e:
-                sys.exit(f"setup: the registry refused the publish action -- HTTP {e.code}: "
-                         f"{e.read().decode(errors='replace')[:300]}\n"
-                         f"  The registry needs the ProviderSchema.json that admits publish: "
-                         f"docker compose restart sunbird-registry-service")
-            print(f"  {binding} publish: {status} -> {publish_url}")
+            ensure_publish_action(bearer, binding, rows[0], publish_url)
         return
     actions = [{"action": "select", "method": method, "path": path,
                 "mappings": mapping_url, "timeoutMs": 15000, "retryMax": 2,
@@ -386,6 +369,38 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url,
         "actions": actions}, bearer)
     print(f"  {binding}: {result['params']['status']} "
           f"{result['params'].get('errmsg', '')[:160]}")
+
+
+def ensure_publish_action(bearer, binding, record, url):
+    """Make an existing binding's publish action name `url`.
+
+    The one update this script makes: a row seeded before it had a publish
+    action keeps the row it was given, so the action is added or repointed in
+    place. Needs the ProviderSchema.json that admits publish."""
+    actions = record.setdefault("actions", [])
+    current = next((a for a in actions if a.get("action") == "publish"), None)
+    if current and current.get("mappings") == url and current.get("status") == "active":
+        print(f"  {binding} publish: already names {url}")
+        return
+    if current:
+        current["mappings"], current["status"] = url, "active"
+    else:
+        actions.append({"action": "publish", "mappings": url, "status": "active"})
+    params = put("ProviderSchema", record["osid"], record, bearer).get("params", {})
+    if params.get("status") != "SUCCESSFUL":
+        sys.exit(f"setup: the registry refused the publish action for {binding}: "
+                 f"{params.get('errmsg', params)}\n"
+                 f"  It needs the ProviderSchema.json that admits publish:\n"
+                 f"    docker compose restart sunbird-registry-service")
+    print(f"  {binding} publish: SUCCESSFUL -> {url}")
+
+
+# The Mandi publish pipeline the network adapter's catalog crawler runs, pinned
+# to a network-adapter commit so a push to a branch never changes what runs.
+MANDI_PUBLISH_PIPELINE_URL = (
+    "https://raw.githubusercontent.com/OpenAgriNet/network-adapter/"
+    "37f5a09ad7439f8bb4e5fd262d6250bf3ec48de0/"
+    "pkg/plugin/implementation/MandiPrice/publish/agmarknet.yaml")
 
 
 # The four capability schemas, keyed by the .env variable each capability code
@@ -517,16 +532,12 @@ def seed(identities):
     print("registry: four capability bindings")
     ensure_binding(bearer, weather, env("MAUSAMGRAM_CAPABILITY"),
                    env("MAUSAMGRAM_PATH", "/get-daily"), env("MAUSAMGRAM_MAPPING_URL"))
-    # The Mandi publish pipeline, run by the network adapter's catalog crawler.
-    # Pinned to a commit, so a push to a branch never changes what runs; move the
-    # SHA when the pipeline changes and re-run setup.
+    # Agmarknet also carries the Mandi publish pipeline (MANDI_PUBLISH_PIPELINE_URL).
     ensure_binding(bearer, mandi, env("AGMARKNET_CAPABILITY"),
                    env("AGMARKNET_PATH", "/v1/fetch-agmarknet-vistaar"),
                    env("AGMARKNET_MAPPING_URL"),
                    publish_url=env("AGMARKNET_PUBLISH_PIPELINE_URL",
-                                   "https://raw.githubusercontent.com/OpenAgriNet/"
-                                   "network-adapter/37f5a09ad7439f8bb4e5fd262d6250bf3ec48de0/pkg/plugin/implementation/"
-                                   "MandiPrice/publish/agmarknet.yaml"))
+                                   MANDI_PUBLISH_PIPELINE_URL))
     ensure_binding(bearer, knowledge, env("VISTAAR_CAPABILITY"),
                    env("VISTAAR_PATH"), env("VISTAAR_MAPPING_URL"),
                    method="POST")
