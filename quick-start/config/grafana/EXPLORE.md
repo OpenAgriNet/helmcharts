@@ -109,7 +109,7 @@ LIMIT 200
 ```
 
 **This filter hides most of the stack**, deliberately or not: only Go services
-have a parsed `SeverityText`/`SeverityNumber`. the registry, both Postgres instances
+have a parsed `SeverityText`/`SeverityNumber`. The registry, both Postgres instances
 and the registry arrive as plain text with severity `0`, so they never match.
 For those, search the body instead:
 
@@ -501,7 +501,7 @@ you just ran.
 
 ### Anything that looks like a problem, stack-wide
 
-Severity alone is not enough: only Go services set one. the registry, both Postgres
+Severity alone is not enough: only Go services set one. The registry, both Postgres
 instances and the registry arrive as plain text at severity `0`, so this matches
 on the text as well.
 

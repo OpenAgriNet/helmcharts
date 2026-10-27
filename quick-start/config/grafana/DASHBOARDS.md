@@ -78,7 +78,7 @@ containers with one searchable window, and it works retroactively, which
 `docker logs -f` does not.
 
 Caveat worth putting in the panel description: only Go services have a parsed
-`SeverityText`. the registry and Postgres lines arrive with `SeverityText = ''`, so
+`SeverityText`. The registry and Postgres lines arrive with `SeverityText = ''`, so
 a severity filter silently hides them. Filter on `SeverityNumber >= 13` *or*
 `SeverityText = ''` if you want everything.
 

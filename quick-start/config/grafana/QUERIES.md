@@ -712,7 +712,7 @@ SELECT * FROM (
 
   UNION ALL
 
-  -- Logs: the parsed msg where there is one, the raw body otherwise. the registry
+  -- Logs: the parsed msg where there is one, the raw body otherwise. The registry
   -- and Postgres lines have neither a level nor a msg, hence both fallbacks.
   SELECT
     Timestamp,
