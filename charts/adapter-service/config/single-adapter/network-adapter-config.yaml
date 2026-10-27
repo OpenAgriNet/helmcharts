@@ -263,29 +263,6 @@ modules:
               pocra:
                 authScheme: none
               searchConcurrency: 1
-
-          # No OTP. The call is made with a token exchanged at the provider's
-          # login, so the login URL is substituted from the keys Secret like the
-          # other token URLs, and the login itself is read from the environment.
-          - id: Grievance
-            config:
-              bindingKeys: "pmfby|openagrinet:Grievance"
-              # Paired by position, tried in order: status names the binding on
-              # its contract, support on its channel.
-              providerIdAt: "message.contract.commitments[].offer.provider.id, message.support.channels[].provider.id"
-              capabilityCodeAt: "message.contract.commitments[].commitmentAttributes.@type, message.support.channels[].@type"
-              # The token is sent bare in Authorization and held until the
-              # login reply's own validTo.
-              pmfby:
-                authScheme: tokenHeader
-                tokenUrl: "__PMFBY_TOKEN_URL__"
-                tokenUserField: appAccessUID
-                tokenUserEnv: PMFBY_ACCESS_UID
-                tokenSecretField: appAccessPWD
-                tokenSecretEnv: PMFBY_ACCESS_PWD
-                tokenResponseField: responseDynamic.token.Token
-                tokenExpiryField: responseDynamic.token.validTo
-                headerName: Authorization
       steps:
         - validateSign
         - validateSchema
@@ -293,7 +270,6 @@ modules:
         - MandiPrice
         - KnowledgeAdvisory
         - AgricultureFacility
-        - Grievance
 
   # provider-publish: the catalogue system publishes at /publish, signed as the
   # provider. No validateSign: never expose it on an Ingress.
