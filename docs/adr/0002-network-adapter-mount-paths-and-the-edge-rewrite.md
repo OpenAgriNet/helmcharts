@@ -61,10 +61,18 @@ A change complies with this decision if:
   `checkCrossNetworkRequester` before anything else, and `sign` last.
   `/consumer/` and `/publish` list neither, by design -- their caller is this
   deployment's own software, inside the trust boundary.
-- **The edge:** `/consumer/` and `/publish` are never reachable from outside.
-  Any other mount may be, and a rewrite onto it is allowed. The chart validates
-  the rewrite **target**, refusing only those two; it does not enumerate what
-  is permitted, so a mount added later needs no chart change.
+- **The edge:** nothing may LAND on `/consumer/` or `/publish`. Those two run
+  neither `validateSign` nor `checkCrossNetworkRequester`, because their caller
+  is this deployment's own software. The chart checks where a request lands --
+  the rewrite if there is one, else the path -- and refuses only those two
+  mounts. It does not enumerate what is permitted, so a mount added later needs
+  no chart change.
+- **A public `/publish` lands on `/network/publish`.** The network mount serves
+  the publish action behind the signature and admission checks, so publishing
+  from outside is allowed and verified. What it costs is that the caller must
+  sign for itself; the `/publish` mount exists to sign on behalf of a caller
+  inside the trust boundary, and anything that cannot sign reaches it by
+  port-forward rather than by being exposed.
 - **One Ingress per rewrite target.** A rewrite is an annotation on the Ingress
   and holds one target, so `/discover` and `/select` cannot share an object.
   The chart takes `ingress.routes`, a list, and emits one Ingress each. Exactly

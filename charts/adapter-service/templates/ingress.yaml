@@ -13,11 +13,14 @@ objects (ADR-0002).
 {{- if eq (include "adapter-service.deploymentMode" $root) "single-adapter" -}}
 {{- /* Single mode: literal one-segment /<action> paths (Prefix/Exact), and a
        rewrite onto any mount except the two that take unsigned calls. */ -}}
+{{- /* Where a request actually lands: the rewrite if there is one, else the
+       path unchanged. Only its FIRST SEGMENT decides -- /publish is the mount
+       that takes unsigned writes, /network/publish is the mount that checks
+       the caller and happens to serve the same action. */ -}}
+{{- $rewrite := "" -}}
 {{- range $k, $v := $route.annotations }}
 {{- if regexMatch "(?i)(snippet|rewrite|regex)" $k }}
-{{- if regexMatch "(?i)(^|[^A-Za-z0-9])(publish|consumer)([^A-Za-z0-9]|$)" (toString $v) }}
-{{- fail (printf "%s: ingress annotation %s targets /publish or /consumer/.\n\n  Those two mounts take UNSIGNED calls -- their caller is this deployment's own\n  software, inside the trust boundary. Reachable from outside, /publish writes\n  anything into the catalogue and /consumer/ answers anyone. Rewrite onto\n  /network/ or /provider/, which check the signature and the admission." $root.Chart.Name $k) }}
-{{- end }}
+{{- $rewrite = toString $v }}
 {{- end }}
 {{- end }}
 {{- range $route.hosts }}
@@ -27,8 +30,13 @@ objects (ADR-0002).
 {{- if not (has $pt (list "Prefix" "Exact")) }}
 {{- fail (printf "%s: ingress path %q has pathType %s, which is not allowed in the single deployment mode. Use Prefix or Exact." $root.Chart.Name $p $pt) }}
 {{- end }}
-{{- if or (not (regexMatch "^/[A-Za-z0-9_.-]+$" $p)) (eq $p "/publish") (eq $p "/consumer") }}
-{{- fail (printf "%s: ingress path %q is not allowed in the single deployment mode. Allowed: one literal segment, /<action> (e.g. /discover, /select). / , /publish and /consumer are never public." $root.Chart.Name $p) }}
+{{- if not (regexMatch "^/[A-Za-z0-9_.-]+$" $p) }}
+{{- fail (printf "%s: ingress path %q is not allowed in the single deployment mode. Allowed: one literal segment, /<action> (e.g. /discover, /select)." $root.Chart.Name $p) }}
+{{- end }}
+{{- $lands := $rewrite | default $p }}
+{{- $mount := regexFind "^/[A-Za-z0-9_.-]+" $lands }}
+{{- if or (eq $mount "/publish") (eq $mount "/consumer") }}
+{{- fail (printf "%s: %q lands on %s, a mount that takes UNSIGNED calls.\n\n  /publish writes anything into the catalogue and /consumer/ answers anyone --\n  their caller is this deployment's own software, inside the trust boundary.\n  Publishing %s from outside means rewriting onto a mount that checks the\n  caller: /network/publish serves the same action behind validateSign and\n  checkCrossNetworkRequester. Reach the unsigned mount by port-forward." $root.Chart.Name $p $mount $p) }}
 {{- end }}
 {{- end }}
 {{- end }}
