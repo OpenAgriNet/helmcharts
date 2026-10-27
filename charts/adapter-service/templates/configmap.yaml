@@ -140,9 +140,3 @@ data:
     {{- end }}
     {{- $routes | nindent 4 }}
   {{- end }}
-  {{- /* A ConfigMap key cannot hold a slash, so a pack's path is flattened here and
-         restored by the volume's items in the Deployment. */}}
-  {{- range $path, $pack := .Values.schemaPacks }}
-  {{ $path | replace "/" "__" }}: |
-    {{- $pack | nindent 4 }}
-  {{- end }}

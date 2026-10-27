@@ -15,10 +15,10 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   is read from `PMFBY_ACCESS_UID` and `PMFBY_ACCESS_PWD`.
 - The consumer tier's routing sends `support` to the provider tier.
 - `schemaPacks`: schema packs the adapter reads from disk, keyed by
-  `TypeName/<version>/attributes.yaml`, for a pack whose published address does
-  not serve it yet. They are mounted read-only at `/app/schemas` and the config
-  gains `extendedSchema_localSchemaPath`. Unset, nothing changes.
-  `ci/schema-packs-values.yaml` covers it.
+  `TypeName/<version>/attributes.yaml` with the URL to download each from, for a
+  pack whose published address does not serve it yet. An init container fetches
+  them into `/app/schemas` and the config gains `extendedSchema_localSchemaPath`.
+  Unset, nothing changes. `ci/schema-packs-values.yaml` covers it.
 
 ## [0.6.0] - 2026-10-09
 

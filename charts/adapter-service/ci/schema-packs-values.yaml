@@ -1,4 +1,4 @@
-# A pack the adapter reads from disk: the render must mount it and point the
+# A pack the adapter reads from disk: the render must download it and point the
 # validator at it.
 # Minimum that renders. Every value here is one the chart fails without, which
 # makes this file a list of what a real deployment must decide.
@@ -25,5 +25,4 @@ registry:
 # file only if this deployment must differ.
 
 schemaPacks:
-  Grievance/v0.1/attributes.yaml: |
-    openapi: 3.1.0
+  Grievance/v0.1/attributes.yaml: https://raw.githubusercontent.com/OpenAgriNet/network-specs/api-schema-packs-v0.1/api-schemas/Grievance/v0.1/attributes.yaml
