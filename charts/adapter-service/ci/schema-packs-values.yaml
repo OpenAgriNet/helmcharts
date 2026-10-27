@@ -1,7 +1,12 @@
 # A pack the adapter reads from disk: the render must mount it and point the
 # validator at it.
-role: provider-adapter
-fullnameOverride: provider-adapter
+# Minimum that renders. Every value here is one the chart fails without, which
+# makes this file a list of what a real deployment must decide.
+#
+# role is first among them: it has no default, because a default would hand one
+# adapter another one's handler role and step list.
+role: network-adapter
+fullnameOverride: network-adapter
 
 image:
   registry: ghcr.io
@@ -10,10 +15,14 @@ image:
 
 keys:
   existingSecret:
-    name: provider-adapter-keys
+    name: network-adapter-keys
 
 registry:
   url: http://registry:8081/api/v1
+
+# Routing is no longer a value: it comes from config/multi-adapter/routing-<tier>.yaml in
+# the chart, like the adapter config. Set `routing.config` to a whole routing
+# file only if this deployment must differ.
 
 schemaPacks:
   Grievance/v0.1/attributes.yaml: |
