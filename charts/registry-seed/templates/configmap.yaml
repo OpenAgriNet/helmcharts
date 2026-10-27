@@ -99,6 +99,49 @@ data:
                          f"against.")
 
 
+    def put(entity, osid, payload, bearer):
+        # The registry re-validates the MERGED record on a PUT, so the whole
+        # record goes back, osid and all.
+        try:
+            return http(f"{REGISTRY}/api/v1/{entity}/{osid}", method="PUT",
+                        data=json.dumps(payload).encode(),
+                        headers={"Content-Type": "application/json",
+                                 "Authorization": f"Bearer {bearer}"})
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode(errors="replace").strip()[:300] or "(empty body)"
+            sys.exit(f"seed: the registry refused an update -- HTTP {e.code}: {detail}")
+
+
+    def ensure_publish_action(binding, url, bearer):
+        """Make the binding's publish action name `url`. True if changed.
+
+        The row is created with its actions, but a binding seeded BEFORE it had
+        a publish action keeps the row it was given -- create-only does not touch
+        it. So this reads the row back and, when the action is missing or points
+        elsewhere, writes the whole record back with the action added or
+        repointed. It needs the registry to admit `publish` (registry chart
+        0.5.0 or later); on an older registry the write is refused and says so.
+        """
+        rows = search("ProviderSchema", {"bindingKey": {"eq": binding}})
+        if not rows:
+            return None
+        record = rows[0]
+        actions = record.get("actions", [])
+        current = next((a for a in actions if a.get("action") == "publish"), None)
+        if current and current.get("mappings") == url and current.get("status") == "active":
+            print(f"  {binding} publish: already names {url}")
+            return False
+        if current:
+            current["mappings"], current["status"] = url, "active"
+        else:
+            actions.append({"action": "publish", "mappings": url, "status": "active"})
+        record["actions"] = actions
+        result = put("ProviderSchema", record["osid"], record, bearer)
+        status = result.get("params", {}).get("status", "?")
+        print(f"  {binding} publish: {status} {result.get('params', {}).get('errmsg', '')[:160]}")
+        return True if status in ("SUCCESSFUL", "SUCCESS") else None
+
+
     def wait_for_registry():
         for _ in range(60):
             try:
@@ -164,20 +207,32 @@ data:
             binding = f'{b["participantId"]}|{b["capability"]}'
             # actions is a list, not a map: the registry treats every nested
             # object as an entity and injects an osid, which a map cannot carry.
+            actions = [{"action": "select",
+                        "method": b.get("method", "GET"),
+                        "path": b["path"],
+                        "mappings": b["mappingUrl"],
+                        "timeoutMs": b.get("timeoutMs", 15000),
+                        "retryMax": b.get("retryMax", 2),
+                        "status": "active"}]
+            # The publish action names the pipeline the network adapter's
+            # catalog crawler runs on a schedule. No method or path: the
+            # provider adapter's routing sends a publish on, not this row.
+            if b.get("publishPipelineUrl"):
+                actions.append({"action": "publish",
+                                "mappings": b["publishPipelineUrl"],
+                                "status": "active"})
             ok = ensure("ProviderSchema", "bindingKey", binding,
                         {"bindingKey": binding,
                          "participantId": b["participantId"],
                          "capabilityCode": b["capability"], "status": "active",
-                         "actions": [{"action": "select",
-                                      "method": b.get("method", "GET"),
-                                      "path": b["path"],
-                                      "mappings": b["mappingUrl"],
-                                      "timeoutMs": b.get("timeoutMs", 15000),
-                                      "retryMax": b.get("retryMax", 2),
-                                      "status": "active"}]},
+                         "actions": actions},
                         bearer, binding)
             if ok is None:
                 failed.append(binding)
+            elif ok is False and b.get("publishPipelineUrl"):
+                # The row was already there: bring its publish action in line.
+                if ensure_publish_action(binding, b["publishPipelineUrl"], bearer) is None:
+                    failed.append(binding + " (publish action)")
 
         print("registry: capability schemas")
         for s in DOC["schemas"]:
