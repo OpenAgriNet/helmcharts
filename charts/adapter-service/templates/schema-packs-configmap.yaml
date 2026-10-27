@@ -1,0 +1,19 @@
+{{- if .Values.schemaPacks }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "adapter-service.fullname" . }}-schema-packs
+  labels:
+    {{- include "adapter-service.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  {{- /* A ConfigMap key cannot hold a slash, so the path is flattened here and
+         restored by the volume's items in the Deployment. */}}
+  {{- range $path, $pack := .Values.schemaPacks }}
+  {{ $path | replace "/" "__" }}: |
+    {{- $pack | nindent 4 }}
+  {{- end }}
+{{- end }}

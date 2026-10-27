@@ -405,6 +405,16 @@ podAnnotations: {}
 commonLabels: {}
 commonAnnotations: {}
 
+# Schema packs the adapter reads from disk instead of fetching, for a pack its
+# published address does not serve yet. Keyed by the path under the mount, which
+# is TypeName/<version>/attributes.yaml; the value is the pack's text. When set,
+# the config gains extendedSchema_localSchemaPath and the packs are mounted
+# read-only. Anything not listed is still fetched from its @context.
+schemaPacks: {}
+#  Grievance/v0.1/attributes.yaml: |
+#    openapi: 3.1.0
+#    ...
+
 extraInitContainers: []
 extraVolumes: []
 extraVolumeMounts: []

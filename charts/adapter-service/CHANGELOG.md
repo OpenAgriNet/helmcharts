@@ -5,6 +5,15 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-10-27
+
+### Added
+- `schemaPacks`: schema packs the adapter reads from disk, keyed by
+  `TypeName/<version>/attributes.yaml`. When set they are mounted read-only at
+  `/app/schemas` and the config gains `extendedSchema_localSchemaPath`, so a pack
+  whose published address does not serve it yet still validates. Unset, nothing
+  changes. `ci/schema-packs-values.yaml` covers it.
+
 ## [0.7.0] - 2026-10-26
 
 ### Added
