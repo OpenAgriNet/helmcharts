@@ -37,3 +37,6 @@ config/discovery/instance.yaml
 # certificates in the npm-data and npm-letsencrypt volumes, so there is
 # nothing here to ignore -- and nothing here to review either. Back those
 # volumes up; they are the only copy.
+
+# Signed by `make host-descriptor`, per deployment. Never committed.
+.well-known/
