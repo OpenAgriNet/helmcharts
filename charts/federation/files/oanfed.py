@@ -669,16 +669,42 @@ def file_peer(registry, descriptor, keyset):
     return stored
 
 
+def our_schema_packs(args):
+    """The packs WE publish, read from the document another network reads.
+
+    Not registry.schema_packs(): a SchemaRegistry row is ours the moment a
+    provider is registered, where this file is what we have told anyone about.
+    Agreeing to give what is only in the registry is agreeing to something
+    nobody can see to ask for."""
+    path = pathlib.Path(args.out) / ".well-known" / "schema-packs.json"
+    if not path.is_file():
+        raise FederationError(
+            f"{path} does not exist, so this network publishes nothing to agree about.\n"
+            f"  Run `make host-descriptor` first: a requester agreement covers the packs\n"
+            f"  in the document the other network reads, not the rows in our registry.")
+    try:
+        served = json.loads(path.read_text()).get("schemaPacks")
+    except json.JSONDecodeError as err:
+        raise FederationError(f"parsing {path}: {err}") from err
+    return validate_schema_packs(served)
+
+
 def cmd_admit(args):
     """Admit a peer in one direction, after fetching and verifying its documents."""
     descriptor, keyset, published = fetcher_from(args).fetch(args.network_id)
     if descriptor["status"] != "Active":
         raise FederationError(f"{args.network_id} declares itself {descriptor['status']}")
     registry = peer_registry(args.network_id)
-    # What CAN be agreed in this direction: their packs when we read from them,
-    # ours when they ask us. Worked out before the packs are read, so naming
-    # none can list them rather than just refusing.
-    offered = published if args.direction == "source" else registry.schema_packs()
+    # What CAN be agreed in this direction, and in BOTH cases it is what a
+    # DOCUMENT says rather than what a registry holds: theirs when we read from
+    # them, ours when they ask us.
+    #
+    # Our own registry would be the wrong list. A SchemaRegistry row exists the
+    # moment a provider is registered, but the other network only learns of it
+    # when host-descriptor republishes -- so agreeing to give a capability that
+    # is not in the document they read means agreeing to something they have no
+    # way to ask for.
+    offered = published if args.direction == "source" else our_schema_packs(args)
 
     packs = sorted({p.strip() for p in args.schema_packs.split(",") if p.strip()})
     if packs == ["all"]:
@@ -800,7 +826,11 @@ def main(argv=None):
     admit.add_argument("--network-id", required=True, help="the peer, by its domain")
     admit.add_argument("--direction", required=True, choices=DIRECTIONS,
                        help="source: we read from it; requester: it may read from us")
-    admit.add_argument("--schema-packs", required=True,
+    admit.add_argument("--out", default=".",
+                       help="where host-descriptor wrote .well-known/. A requester "
+                            "agreement covers the packs in that document, not the "
+                            "rows in our registry")
+    admit.add_argument("--schema-packs", default="",
                        help="comma-separated pack URLs the agreement covers")
     add_peer_access(admit)
     admit.set_defaults(run=cmd_admit)
