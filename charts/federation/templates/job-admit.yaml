@@ -63,10 +63,8 @@ spec:
             - name: scripts
               mountPath: /opt/federation
               readOnly: true
-            # OUR published documents. A requester agreement covers the packs
-            # in the document the other network reads, so admit reads the same
-            # one -- not this registry's rows, which hold a pack the moment a
-            # provider is registered and before anyone has been told.
+            # OUR published documents: a requester agreement covers what the
+            # other network can read, not what our registry holds.
             - name: published
               mountPath: /published/.well-known
               readOnly: true
@@ -76,10 +74,8 @@ spec:
         - name: published
           configMap:
             name: {{ include "federation.documentsConfigMap" $ }}
-            # Optional so a missing document is oanfed saying which command to
-            # run, rather than a pod stuck Pending with the reason two layers
-            # away. The publish Job is an earlier hook weight, so in practice
-            # it is there.
+            # Optional so a missing document is oanfed naming the fix, not a
+            # pod stuck Pending. The publish Job runs at an earlier weight.
             optional: true
         - name: scripts
           configMap:

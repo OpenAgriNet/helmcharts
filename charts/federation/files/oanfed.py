@@ -578,13 +578,8 @@ class Registry(ReadOnlyRegistry):
 
 
 def open_registry():
-    """Our registry, and our own id.
-
-    From the environment when it carries both: a cluster Job has no .env and no
-    setup.py beside it. Otherwise from quick-start's setup.py, which is where
-    the address and the id already live for a compose stack.
-
-    Reached from inside the deployment only, so no credential either way."""
+    """Our registry and our own id, from the environment when it carries both --
+    a cluster Job has no .env -- otherwise from quick-start's setup.py."""
     url, own = os.environ.get("REGISTRY_URL"), os.environ.get("BECKN_NETWORK_ID")
     if url and own:
         return Registry(url, own)
@@ -670,12 +665,8 @@ def file_peer(registry, descriptor, keyset):
 
 
 def our_schema_packs(args):
-    """The packs WE publish, read from the document another network reads.
-
-    Not registry.schema_packs(): a SchemaRegistry row is ours the moment a
-    provider is registered, where this file is what we have told anyone about.
-    Agreeing to give what is only in the registry is agreeing to something
-    nobody can see to ask for."""
+    """The packs WE publish, from the document another network reads -- not our
+    registry, which holds a row before anyone has been told about it."""
     path = pathlib.Path(args.out) / ".well-known" / "schema-packs.json"
     if not path.is_file():
         raise FederationError(
@@ -695,22 +686,14 @@ def cmd_admit(args):
     if descriptor["status"] != "Active":
         raise FederationError(f"{args.network_id} declares itself {descriptor['status']}")
     registry = peer_registry(args.network_id)
-    # What CAN be agreed in this direction, and in BOTH cases it is what a
-    # DOCUMENT says rather than what a registry holds: theirs when we read from
-    # them, ours when they ask us.
-    #
-    # Our own registry would be the wrong list. A SchemaRegistry row exists the
-    # moment a provider is registered, but the other network only learns of it
-    # when host-descriptor republishes -- so agreeing to give a capability that
-    # is not in the document they read means agreeing to something they have no
-    # way to ask for.
+    # What can be agreed here, and both sides are a DOCUMENT: theirs when we
+    # read from them, ours when they ask us.
     offered = published if args.direction == "source" else our_schema_packs(args)
 
     packs = sorted({p.strip() for p in args.schema_packs.split(",") if p.strip()})
     if packs == ["all"]:
-        # A snapshot, not a standing agreement: what they publish TODAY. An
-        # agreement that silently widened when they added a pack would not be
-        # much of an agreement -- re-run this to take in a new one.
+        # A snapshot: what they publish TODAY. Re-run to take in a new pack,
+        # because an agreement that silently widened would not be one.
         packs = sorted(offered)
         print(f"all: {len(packs)} pack(s) {args.network_id} publishes today")
     if not packs:

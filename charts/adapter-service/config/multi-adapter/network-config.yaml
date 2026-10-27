@@ -40,15 +40,10 @@ plugins:
       enableTracing: "true"
       enableLogs: "true"
 
-  # Crawling other networks. OFF unless federation.enabled is true, and off is
-  # not "does nothing" by halves: with it false the plugin builds no schedule
-  # and never dials, so a cluster that federates with nobody stays quiet.
+  # Off builds no schedule and never dials, so a cluster that federates with
+  # nobody stays quiet. Answering someone else's crawl is unaffected.
   #
-  # This network still ANSWERS another network's crawl either way -- that is
-  # the /network/ mount's job and this does not touch it.
-  #
-  # It needs no database. dbDsn is required only by staticIndexUrls, networks
-  # or publishPipelines, none of which this uses.
+  # No database: dbDsn is only for staticIndexUrls, networks or publishPipelines.
   crawler:
     id: catalogcrawler
     config:

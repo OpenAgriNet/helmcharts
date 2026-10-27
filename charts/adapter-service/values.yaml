@@ -296,8 +296,7 @@ ingress:
   enabled: false
   className: ""
 
-  # One Ingress, from annotations/hosts/tls below. Enough when every path goes
-  # to the same place.
+  # One Ingress, for when every path goes to the same place.
   annotations: {}
   hosts: []
   tls: []
@@ -307,71 +306,41 @@ ingress:
   # publish catalogues under the provider's name.
   allowPublicPublish: false
 
-  # SEVERAL Ingresses, one per entry, each with its own annotations and tls.
-  # Set this and the three above are ignored.
-  #
-  # Needed when paths go to DIFFERENT mounts, because a rewrite is an
-  # annotation on the Ingress and holds one target (ADR-0002). In single mode
-  # /discover is served by /network/ and /select by /provider/, so they cannot
-  # share an object:
+  # One Ingress per entry, each with its own annotations and tls. Needed when
+  # paths go to different mounts: a rewrite holds one target (ADR-0002).
   #
   #   routes:
   #     - name: network
-  #       annotations:
-  #         konghq.com/rewrite: /network/discover
-  #         cert-manager.io/cluster-issuer: letsencrypt-prod
-  #       hosts:
-  #         - host: oan.example.org
-  #           paths: [{path: /discover, pathType: Exact}]
-  #       tls:
-  #         - hosts: [oan.example.org]
-  #           secretName: network-adapter-tls
-  #     - name: provider
-  #       annotations:
-  #         konghq.com/rewrite: /provider/select
-  #       hosts:
-  #         - host: oan.example.org
-  #           paths: [{path: /select, pathType: Exact}]
+  #       annotations: {konghq.com/rewrite: /network/discover}
+  #       hosts: [{host: oan.example.org, paths: [{path: /discover, pathType: Exact}]}]
+  #       tls: [{hosts: [oan.example.org], secretName: network-adapter-tls}]
   #
-  # ONE tls BLOCK PER HOSTNAME, on one route only. A TLS Secret is namespaced
-  # and cert-manager orders per Ingress, so two blocks for one name are two
-  # ACME orders against a limit of five failed authorizations per hostname per
-  # hour. Kong terminates on SNI, so one certificate covers every route on it.
+  # Put tls on ONE route per hostname. cert-manager orders per Ingress, and a
+  # second order for the same name burns an ACME attempt for nothing.
   #
-  # konghq.com/rewrite needs Kong's RewriteURIs feature gate enabled. Other
-  # controllers spell it differently -- nginx uses rewrite-target -- and the
-  # chart does not care which: it checks the TARGET, refusing only /publish and
-  # /consumer, the two mounts that take unsigned calls.
+  # The chart checks where a rewrite LANDS, refusing /publish and /consumer.
+  # It does not care which controller you use.
   routes: []
 
 # ---------------------------------------------------------------------------
-# Crawling other networks.
+# Crawling other networks. Off builds no schedule and never dials, so a
+# cluster that federates with nobody stays quiet. Only the network role reads it.
 #
-# OFF by default, and off means the plugin builds no schedule and never dials
-# -- a cluster that federates with nobody stays quiet rather than logging a
-# refused connection on a loop.
-#
-# This network still ANSWERS another network's crawl with this false. That is
-# the /network/ mount's job and these settings do not touch it.
-#
-# Only the network role reads them. On consumer and provider they replace
-# placeholders no config carries, which costs nothing.
+# Answering someone else's crawl is unaffected -- that is the /network/ mount.
 # ---------------------------------------------------------------------------
 federation:
   enabled: false
 
-  # How often every admitted source network is asked. Keep it well under the
-  # projectionTtl those networks publish, or what we hold expires between
-  # crawls and discover answers from nothing.
+  # Keep it well under the projectionTtl those networks publish, or what we
+  # hold expires between crawls and discover answers from nothing.
   refreshSeconds: 900
 
-  # How many catalogs one call asks for. Discovery's own default is 20, so a
-  # network sharing more is partly collected and nothing says so.
+  # Discovery defaults to 20, so a network sharing more is partly collected
+  # and nothing says so.
   pageSize: 100
 
-  # What breadth of another network's catalogue to ask for. REQUIRED when
-  # enabled: discovery refuses an intent that narrows nothing, and that refusal
-  # looks exactly like zero catalogs -- no error anywhere.
+  # Required when enabled: discovery refuses an intent that narrows nothing,
+  # and that refusal looks exactly like zero catalogs.
   #
   #   intent: '{"filters": {"type": "jsonpath", "expression": "$.catalogs[*] ? (@.isActive == true)"}}'
   intent: ""
@@ -514,18 +483,10 @@ extraVolumeMounts: []
 extraEnv: []
 envFromSecrets: []
 
-# Single mode only: which Secret each tier's placeholders are filled from.
+# Single mode only: which Secret fills each tier's placeholders. All three
+# share one, because a network has one identity and one key.
 #
-# ALL THREE POINT AT THE SAME SECRET by default, because a network has ONE
-# identity. Another network admits a network, not three adapters, and the
-# Network Descriptor names one id and one keyId -- so a tier signing with a
-# different key signs with one that descriptor never mentions.
-#
-# They remain three settings because an existing deployment seeded three
-# participants before the modes were merged, and pointing each tier at its own
-# Secret is how it keeps working until those identities are retired.
-#
-# routing.config and handler.* are unused.
+# Still three settings, so a deployment that seeded three can keep working.
 adapterKeys:
   consumer-adapter: network-adapter-keys
   network-adapter: network-adapter-keys
