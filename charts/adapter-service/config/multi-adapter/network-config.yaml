@@ -40,6 +40,38 @@ plugins:
       enableTracing: "true"
       enableLogs: "true"
 
+  # Scheduled catalog publishing (catalogcrawler). On every tick it lists the
+  # registry's bindings, runs each `publish` pipeline that is due and POSTs the
+  # catalogs to the provider adapter's /publish, which signs them as the provider and sends them on
+  # to discovery. Needs a crawler-capable image, the run log database (its DSN
+  # is a key in the keys Secret, see crawler.dbDsnKey) and the pipeline's
+  # inputs as env (MANDI_*, APP_NETWORK_ID). Remove both blocks to turn it off.
+  # This registry block is the crawler's own lookup; the modules' is separate.
+  registry:
+    id: sunbirdRegistry
+    config:
+      url: http://registry.registry.svc.cluster.local:8081/api/v1
+      entity: Participant
+      providerEntity: ProviderSchema
+
+  crawler:
+    id: catalogcrawler
+    config:
+      dbDsn: "__ADAPTER_CRAWLER_DB_DSN__"
+      discoveryPushUrl: "http://provider-adapter.provider-adapter.svc.cluster.local:9200/publish"
+      # Who the catalogs are published AS (context.senderId) and TO (receiverId).
+      participantId: "provider.oan.dev"
+      receiverId: "discovery.oan.dev"
+      publishPipelines: "true"
+      publishEnabled: "true"
+      catalogIntervalSeconds: "3600"
+      # The chart mounts an emptyDir here (read-only root filesystem).
+      publishCatalogOutputDir: "/tmp/catalogs"
+      # Per-pipeline overrides, by metadata.name. Agmarknet data lags 1-3 weeks:
+      # a relative window, not the pipeline's default (yesterday).
+      publish.mandi-price.schedule: "0 13 * * *"
+      publish.mandi-price.fromDate: "21 days ago"
+
 modules:
   - name: network-adapter
     # A subtree: every action lands here and the payload says which one it is.

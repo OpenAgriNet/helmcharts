@@ -8,16 +8,17 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 ## [0.7.0] - 2026-10-26
 
 ### Added
-- `crawler`, the scheduled catalog publisher, for the network-adapter role (off
-  by default), in both deployment modes. When enabled the chart inserts the
-  `registry` and `crawler` plugin blocks under the config's `plugins:` key.
-  `participantId` and `receiverId` are required. The run log DSN is a
-  placeholder the init container fills from `crawler.dbDsnKey` (the keys Secret
-  in multi-adapter mode, the network tier's Secret in single-adapter mode), and
-  the pod gets an emptyDir for the catalogs it builds. `discoveryPushUrl`
-  defaults to this pod's `/publish` in single-adapter mode and to the provider
-  adapter's `/publish` in multi-adapter mode. Needs registry 0.5.0+ and a
-  registry-seed 0.2.0+ `publishPipelineUrl` on the binding.
+- The catalog crawler (the scheduled catalog publisher) is on for the
+  network-adapter role in both deployment modes: its `registry` and `crawler`
+  plugin blocks are in `config/single-adapter/network-adapter-config.yaml` and
+  `config/multi-adapter/network-config.yaml`. Catalogs go to this pod's
+  `/publish` (single) or the provider adapter's (multi), sent as the provider
+  to `discovery.oan.dev`. When the config carries the
+  `__ADAPTER_CRAWLER_DB_DSN__` placeholder, the init container fills it from
+  `crawler.dbDsnKey` (the keys Secret in multi mode, the network tier's Secret
+  in single mode) and the pod gets an emptyDir at `/tmp/catalogs`. Needs
+  registry 0.5.0+, a registry-seed 0.2.0+ `publishPipelineUrl` on the binding,
+  the run log database, and a crawler-capable image.
 
 ### Fixed
 - The init container's substitution escapes `\`, `&` and `|` in the value. A

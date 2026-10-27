@@ -86,10 +86,15 @@ Any other values change rolls the pods on its own.
 
 ## Catalog crawler
 
-`crawler.enabled: true` (role `network-adapter`, either mode) runs the
-catalogcrawler plugin: on every tick it runs the pipeline of each registry
-binding with a `publish` action and POSTs the catalogs to `/publish` (this pod
-in single mode, the provider adapter in multi mode). It needs, outside this chart:
+The network adapter's config files carry the catalogcrawler's `registry` and
+`crawler` plugin blocks (`config/single-adapter/network-adapter-config.yaml`,
+`config/multi-adapter/network-config.yaml`). On every tick it runs the pipeline
+of each registry binding with a `publish` action and POSTs the catalogs to
+`/publish` (this pod in single mode, the provider adapter in multi mode). When
+the config carries the `__ADAPTER_CRAWLER_DB_DSN__` placeholder, the chart fills
+it from `crawler.dbDsnKey` and mounts an emptyDir at `/tmp/catalogs`.
+
+It needs, outside this chart:
 
 - an image with the `catalogcrawler` plugin and the `render.mappingByField` engine;
 - the `publish` action in the registry: registry 0.5.0+, and
@@ -99,8 +104,7 @@ in single mode, the provider adapter in multi mode). It needs, outside this char
 - the pipeline's inputs as env (`envFromSecrets`), e.g. `MANDI_API_URI`,
   `MANDI_TOKEN_USER`, `MANDI_TOKEN_SECRET`, `MANDI_PARTICIPANT_ID`, `APP_NETWORK_ID`.
 
-`crawler.participantId` and `crawler.receiverId` have no defaults; the render
-fails without them.
+To run without it, remove both blocks from the config file (or from `config`).
 
 ## Values and examples
 

@@ -406,53 +406,21 @@ commonLabels: {}
 commonAnnotations: {}
 
 # ---------------------------------------------------------------------------
-# Catalog crawler (network-adapter role only; off by default)
+# Catalog crawler (network-adapter role)
 #
-# When enabled the network adapter also runs the catalogcrawler plugin: on every
-# tick it runs the pipeline of each registry binding that has a `publish` action
-# and POSTs the catalogs to /publish, which signs them as the provider and sends
-# them on to discovery. It needs, outside this chart: that action in the
-# registry (registry-seed bindings[].publishPipelineUrl), a run log database
-# whose DSN is a key in the keys Secret (dbDsnKey), the pipeline's own inputs as
-# env (envFromSecrets), and egress to the pipeline's host.
+# The crawler's plugin blocks live in the network adapter's config files
+# (config/single-adapter/network-adapter-config.yaml,
+# config/multi-adapter/network-config.yaml). When the config carries them, the
+# chart fills the run log DSN from this key and mounts /tmp/catalogs.
 # ---------------------------------------------------------------------------
 crawler:
-  enabled: false
-
-  # The crawler's own registry lookup; the modules' plugins.registry is separate.
-  registryUrl: http://registry.registry.svc.cluster.local:8081/api/v1
-
   # Key holding the run log DSN, substituted at pod start so the password never
   # reaches the ConfigMap. In the keys Secret (multi-adapter), or in the network
   # tier's Secret, adapterKeys.network-adapter (single-adapter). Use the
   # database's FQDN.
   dbDsnKey: crawlerDbDsn
-
-  # Where catalogs are POSTed. Empty means /publish on this pod in single-adapter
-  # mode (http://localhost:<service.targetPort>/publish), and the provider
-  # adapter's in-cluster /publish in multi-adapter mode.
-  discoveryPushUrl: ""
-
-  # Stamped on every publish as context.senderId / receiverId. No defaults: a
-  # guessed identity publishes under someone else's name.
-  participantId: ""
-  receiverId: ""
-
-  publishEnabled: true        # false builds catalogs without posting them
-  catalogIntervalSeconds: 3600
-
-  # Built catalogs are kept here, on an emptyDir of this size, because the root
-  # filesystem is read-only.
-  publishCatalogOutputDir: /tmp/catalogs
+  # Size of the emptyDir the crawler keeps built catalogs in.
   outputSizeLimit: 512Mi
-
-  # Per-pipeline overrides by metadata.name, then the pipeline's own key
-  # (schedule, or an input's name). Strings; no rebuild, no edit to the hosted file.
-  #   pipelines:
-  #     mandi-price:
-  #       schedule: "0 13 * * *"
-  #       fromDate: "21 days ago"
-  pipelines: {}
 
 extraInitContainers: []
 extraVolumes: []

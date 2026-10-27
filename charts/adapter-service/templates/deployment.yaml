@@ -1,5 +1,6 @@
 apiVersion: {{ include "common.deployment.apiVersion" . }}
 {{- $single := eq (include "adapter-service.deploymentMode" .) "single-adapter" }}
+{{- $crawler := eq (include "adapter-service.crawlerEnabled" .) "true" }}
 kind: Deployment
 metadata:
   name: {{ include "adapter-service.fullname" . }}
@@ -143,7 +144,7 @@ spec:
               subst {{ $ph }} /keys/{{ $key }}
               {{- end }}
               {{- end }}
-              {{- if .Values.crawler.enabled }}
+              {{- if $crawler }}
               {{- /* The crawler's run log DSN: the network tier's Secret in single mode. */}}
               subst __ADAPTER_CRAWLER_DB_DSN__ /keys/{{ ternary "network/" "" $single }}{{ .Values.crawler.dbDsnKey }}
               {{- end }}
@@ -221,9 +222,9 @@ spec:
             - name: config
               mountPath: {{ include "adapter-service.configDir" . }}
               readOnly: true
-            {{- if .Values.crawler.enabled }}
+            {{- if $crawler }}
             - name: crawler-catalogs
-              mountPath: {{ .Values.crawler.publishCatalogOutputDir }}
+              mountPath: /tmp/catalogs
             {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
@@ -253,7 +254,7 @@ spec:
         - name: config
           emptyDir:
             sizeLimit: 1Mi
-        {{- if .Values.crawler.enabled }}
+        {{- if $crawler }}
         {{- /* Built catalogs. The root filesystem is read-only, so the crawler's
                output directory needs a mount of its own. Dies with the pod. */}}
         - name: crawler-catalogs
