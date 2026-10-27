@@ -39,7 +39,11 @@ data:
     # Path is overridable so the script can be exercised outside a pod.
     DOC = json.load(open(os.environ.get("SEED_DOC", "/seed/seed.json")))
     REGISTRY = DOC["registryUrl"].rstrip("/")
-    KC = DOC["keycloak"]
+    KC = DOC.get("keycloak") or {}
+    # Mirrors the registry's own authentication_enabled. With it false the
+    # registry checks no token, so this writes without one and needs no
+    # Keycloak at all.
+    AUTH = bool(DOC.get("authenticationEnabled", True))
 
 
     def http(url, data=None, headers=None, method=None, timeout=30):
@@ -83,7 +87,8 @@ data:
             return http(f"{REGISTRY}/api/v1/{entity}", method="POST",
                         data=json.dumps(payload).encode(),
                         headers={"Content-Type": "application/json",
-                                 "Authorization": f"Bearer {bearer}"})
+                                 **({"Authorization": f"Bearer {bearer}"}
+                                    if bearer else {})})
         except urllib.error.HTTPError as e:
             # A rejected write usually carries a JSON envelope, but a 401 comes
             # back empty -- decoding that blindly gives a traceback that says
@@ -153,7 +158,9 @@ data:
 
     def main():
         wait_for_registry()
-        bearer = token()
+        # No token when the registry runs with authentication off: there is
+        # nothing to check it, and asking Keycloak for one means a Keycloak.
+        bearer = token() if AUTH else None
         failed = []
 
         print("registry: adapter identities")

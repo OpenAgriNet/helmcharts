@@ -36,11 +36,16 @@ new id. That makes a render-time refusal much cheaper than a successful write.
 {{- if not .Values.registry.url }}
 {{- fail (printf "%s: registry.url is required" .Chart.Name) }}
 {{- end }}
+{{- /* Both are only needed while the registry checks a token. With
+       authenticationEnabled false the Job writes without one, so demanding a
+       realm URL and a password means standing up a Keycloak nothing uses. */}}
+{{- if .Values.authenticationEnabled }}
 {{- if not .Values.keycloak.url }}
-{{- fail (printf "%s: keycloak.url is required" .Chart.Name) }}
+{{- fail (printf "%s: keycloak.url is required while authenticationEnabled is true" .Chart.Name) }}
 {{- end }}
 {{- if not .Values.seedUser.passwordSecret.name }}
-{{- fail (printf "%s: seedUser.passwordSecret.name is required - this chart renders no passwords" .Chart.Name) }}
+{{- fail (printf "%s: seedUser.passwordSecret.name is required while authenticationEnabled is true - this chart renders no passwords" .Chart.Name) }}
+{{- end }}
 {{- end }}
 {{- range .Values.adapters }}
 {{- if or (not .participantId) (not .baseUrl) (not .signingPublicKey) }}
@@ -123,6 +128,7 @@ rather than written out whole.
 {{- end }}
 {{- $doc := dict
       "registryUrl" .Values.registry.url
+      "authenticationEnabled" .Values.authenticationEnabled
       "keycloak" (dict "url" .Values.keycloak.url "realm" .Values.keycloak.realm "clientId" .Values.keycloak.clientId "username" .Values.seedUser.username)
       "adapters" .Values.adapters
       "upstreams" .Values.upstreams
