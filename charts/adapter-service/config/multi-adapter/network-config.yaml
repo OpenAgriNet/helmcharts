@@ -40,53 +40,36 @@ plugins:
       enableTracing: "true"
       enableLogs: "true"
 
-  # The crawler's OWN registry, separate from the modules' below. It is key
-  # distribution for verifying what a crawl fetches, not request handling, and
-  # the crawler refuses to start without it.
-  registry:
-    id: sunbirdRegistry
-    config:
-      url: http://registry.registry.svc.cluster.local:8081/api/v1
-      entity: Participant
-      providerEntity: ProviderSchema
-      cacheTTL: 0
-      timeout: 2
-      retry_max: 1
-      retry_wait_min: 100ms
-      retry_wait_max: 500ms
-      maxResponseBytes: 1048576
-
-  # The crawler. One per deployment and app-level, because it is a background
-  # pass rather than something a request reaches.
+  # Crawling other networks. OFF unless federation.enabled is true, and off is
+  # not "does nothing" by halves: with it false the plugin builds no schedule
+  # and never dials, so a cluster that federates with nobody stays quiet.
   #
-  # No dbDsn: a database is only needed by work that keeps a record between
-  # passes, and crawling other networks keeps none. Publish pipelines do, and
-  # add it when they arrive.
+  # This network still ANSWERS another network's crawl either way -- that is
+  # the /network/ mount's job and this does not touch it.
   #
-  # The __FEDERATION_*__ placeholders come from `crawler` in values, not from
-  # the keys Secret -- none of them is a credential.
+  # It needs no database. dbDsn is required only by staticIndexUrls, networks
+  # or publishPipelines, none of which this uses.
   crawler:
     id: catalogcrawler
     config:
-      # Where what we collect is published: this deployment's own /publish
-      # mount, so a crawled catalog takes the same path as a local one.
-      discoveryPushUrl: "__DISCOVERY_PUSH_URL__"
-      participantId: "__ADAPTER_SUBSCRIBER_ID__"
+      # Where a crawled catalog is published: this adapter's own network mount,
+      # which is what a local publish goes through too. The port must match
+      # service.targetPort.
+      discoveryPushUrl: "http://localhost:__ADAPTER_PORT__/network/publish"
+      participantId: "__NETWORK_SUBSCRIBER_ID__"
 
-      # Off means this network never crawls. It still ANSWERS another network's
-      # crawl, which is the network module's job and unaffected by this.
       federationEnabled: "__FEDERATION_ENABLED__"
-      signingPrivateKey: "__ADAPTER_SIGNING_PRIVATE__"
-      keyId: "__ADAPTER_KEY_ID__"
-      # How often every admitted network is asked.
+      # We sign what we send, with the same key that signs everything else.
+      signingPrivateKey: "__NETWORK_SIGNING_PRIVATE__"
+      keyId: "__NETWORK_KEY_ID__"
+      # How often every admitted source network is asked.
       federationRefreshSeconds: "__FEDERATION_REFRESH_SECONDS__"
-      # How many catalogs one call asks for. Discovery's own default is 20, so
-      # without this a network sharing more is only partly collected and
-      # nothing says so.
+      # How many catalogs one call asks for. Discovery defaults to 20, so a
+      # network sharing more is partly collected and nothing says so.
       federationPageSize: "__FEDERATION_PAGE_SIZE__"
-      # What breadth of another network's catalogue to ask for. Required when
-      # the crawler is on: discovery refuses an intent that narrows nothing,
-      # so leaving it empty mirrors zero catalogs with no error anywhere.
+      # What breadth to ask for. Required in practice: discovery refuses an
+      # intent that narrows nothing, and the refusal mirrors zero catalogs with
+      # no error anywhere.
       federationIntent: '__FEDERATION_INTENT__'
 
 modules:

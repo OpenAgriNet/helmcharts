@@ -345,6 +345,38 @@ ingress:
   routes: []
 
 # ---------------------------------------------------------------------------
+# Crawling other networks.
+#
+# OFF by default, and off means the plugin builds no schedule and never dials
+# -- a cluster that federates with nobody stays quiet rather than logging a
+# refused connection on a loop.
+#
+# This network still ANSWERS another network's crawl with this false. That is
+# the /network/ mount's job and these settings do not touch it.
+#
+# Only the network role reads them. On consumer and provider they replace
+# placeholders no config carries, which costs nothing.
+# ---------------------------------------------------------------------------
+federation:
+  enabled: false
+
+  # How often every admitted source network is asked. Keep it well under the
+  # projectionTtl those networks publish, or what we hold expires between
+  # crawls and discover answers from nothing.
+  refreshSeconds: 900
+
+  # How many catalogs one call asks for. Discovery's own default is 20, so a
+  # network sharing more is partly collected and nothing says so.
+  pageSize: 100
+
+  # What breadth of another network's catalogue to ask for. REQUIRED when
+  # enabled: discovery refuses an intent that narrows nothing, and that refusal
+  # looks exactly like zero catalogs -- no error anywhere.
+  #
+  #   intent: '{"filters": {"type": "jsonpath", "expression": "$.catalogs[*] ? (@.isActive == true)"}}'
+  intent: ""
+
+# ---------------------------------------------------------------------------
 # Wait for the upstreams before starting.
 #
 # Off by default. The adapter reads the registry per request rather than at
