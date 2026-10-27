@@ -57,10 +57,10 @@
     },
 
     "MappingPath": {
-      "description": "Fully-qualified URL of one published mapping file, holding request: and response: as YAML block scalars. The action segment must equal the action it sits under — verify/records.py. A publish action instead names a catalog crawler pipeline, <...>/publish/<source>.yaml.",
+      "description": "Fully-qualified URL of one published mapping file, holding request: and response: as YAML block scalars. The action segment must equal the action it sits under — verify/records.py. A publish action instead names a catalog crawler pipeline, https://<...>/publish/<source>.yaml.",
       "type": "string",
       "maxLength": 2000,
-      "pattern": "^https?://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*(/[A-Za-z0-9._~%-]*\\.(discover|select|init|confirm|status|track|cancel|update|rate|support)|/publish/[A-Za-z0-9._~%-]+)\\.ya?ml$"
+      "pattern": "^(?!.*\\.\\.)(https?://[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*/[A-Za-z0-9._~%-]*\\.(discover|select|init|confirm|status|track|cancel|update|rate|support)|https://[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*/publish/[A-Za-z0-9._~%-]+)\\.ya?ml$"
     },
 
     "ParticipantId": { "type": "string", "maxLength": 253, "pattern": "^[a-z0-9][a-z0-9._:-]{2,252}$" },
