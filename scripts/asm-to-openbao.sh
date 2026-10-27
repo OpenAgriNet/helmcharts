@@ -70,12 +70,18 @@ for name in $names; do
     echo "would copy $key ($(jq -r 'keys | join(", ")' <<<"$value"))"
     continue
   fi
-  # Through stdin, so no value appears in a process list or in shell history.
+  # Through stdin, so no value appears in a process list or in shell history --
+  # the token too: exec arguments are part of the request URL, which the API
+  # server's audit log records in full. The shell in the pod reads the first
+  # line into BAO_TOKEN and hands the rest (the value) to bao. -c openbao: the
+  # pod also runs the tls-reloader sidecar.
   # Guarded, so one failed write -- a bad token, no write access, a restarting
   # pod -- is reported and the rest still copy, instead of set -e stopping the
   # run halfway with no record of which entries made it.
-  if ! kubectl -n "$namespace" exec -i "$pod" -- env BAO_TOKEN="$BAO_TOKEN" \
-      bao kv put "secret/${key}" - <<<"$value" >/dev/null; then
+  if ! printf '%s\n%s' "$BAO_TOKEN" "$value" |
+      kubectl -n "$namespace" exec -i "$pod" -c openbao -- \
+        sh -c 'IFS= read -r BAO_TOKEN; export BAO_TOKEN; exec bao "$@"' \
+        bao kv put "secret/${key}" - >/dev/null; then
     echo "!! $key: write to OpenBao failed" >&2
     failed=1
     continue
