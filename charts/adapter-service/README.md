@@ -99,10 +99,13 @@ It needs, outside this chart:
 - an image with the `catalogcrawler` plugin and the `render.mappingByField` engine;
 - the `publish` action in the registry: registry 0.5.0+, and
   `bindings[].publishPipelineUrl` in registry-seed, pinned to a commit SHA;
-- a run log database (PostgreSQL), its DSN under `crawler.dbDsnKey` in the keys
-  Secret (the network tier's Secret in single mode);
-- the pipeline's inputs as env (`envFromSecrets`), e.g. `MANDI_API_URI`,
-  `MANDI_TOKEN_USER`, `MANDI_TOKEN_SECRET`, `MANDI_PARTICIPANT_ID`, `APP_NETWORK_ID`.
+- its own run log database (PostgreSQL), not discovery's: e.g. a `catalogcrawler`
+  database and role on the shared `postgres` cluster. Its DSN goes under
+  `crawler.dbDsnKey` in the keys Secret (the network tier's Secret in single mode);
+- the pipeline's inputs as env: `MANDI_API_URI`, `MANDI_TOKEN_USER`,
+  `MANDI_TOKEN_SECRET`, `MANDI_PARTICIPANT_ID`, `APP_NETWORK_ID`. The credentials
+  are the provider's Agmarknet ones; map them with `extraEnv` `secretKeyRef`s
+  into the provider's upstream Secret rather than copying them into a new one.
 
 To run without it, remove both blocks from the config file (or from `config`).
 
