@@ -3,17 +3,20 @@
 # startup order matters, and a good place to make the right order the shortest
 # thing to type.
 #
-#     make up        the whole stack, in the order it has to start
+#     make up        the containers, in the order they have to start
 #     make up-core   the same minus the reverse proxy and observability
 #     make down      stop everything, keep the data
 #     make help      the rest
+#
+# `make up` stops at the containers: the registry is empty and the adapters are
+# not running. Filling it is four commands of its own, below.
 #
 # Anchored to this file's own directory rather than $(PWD), so `make -C
 # quick-start up` works from the repo root.
 
 STACK := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))bin/stack.sh
 
-.PHONY: help up up-core down destroy setup host-descriptor admit refresh suspend verify reverse-proxy observability pull restart restart-edge ps logs
+.PHONY: help up up-core down destroy keys register-network register-provider configure-adapter host-descriptor admit refresh suspend verify reverse-proxy observability pull restart restart-edge ps logs
 
 # Default target: running a bare `make` in a directory that can delete a
 # Postgres volume should print the menu, not pick something from it.
@@ -35,9 +38,39 @@ destroy:       ; @$(STACK) destroy
 reverse-proxy: ; @$(STACK) reverse-proxy
 observability: ; @$(STACK) observability
 
-# ------------------------------------------------------------------ the rest
+# ------------------------------------------------ filling the registry
+#
+# In order. Each is idempotent, so a re-run after fixing one value changes
+# only what was wrong.
+#
+#   make keys
+#   make register-network
+#   make register-provider PROVIDER=mausamgram
+#   make configure-adapter
+#
+# One provider at a time on purpose: this registry cannot update a record, so a
+# wrong base URL burns that participant id permanently. Registering them singly
+# keeps the damage to one provider.
 
-setup:         ; @$(STACK) setup
+keys:              ; @$(STACK) keys
+register-network:  ; @$(STACK) register-network
+
+# PROVIDER is one of mausamgram, agmarknet, vistaar, pocra.
+register-provider: ; @$(STACK) register-provider
+
+# Renders the adapter configs from the bindings the registry holds, then starts
+# the adapters -- the two together, because a rendered config nothing picked up
+# is a change that silently did not take effect.
+#
+# Asks for the deployment mode (default single-adapter) and whether to crawl
+# other networks, and writes both back to .env. To answer up front, or from a
+# script:
+#
+#   NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter FEDERATION_CRAWL_PEERS=on \
+#       make configure-adapter
+configure-adapter: ; @$(STACK) configure-adapter
+
+# ------------------------------------------------------------------ the rest
 
 # Generate and serve the federation documents. Re-run when the entry changes.
 host-descriptor: ; @$(STACK) host-descriptor

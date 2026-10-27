@@ -256,94 +256,16 @@ modules:
             negativeTTL: 1m
             maxMappingBytes: 262144
             maxCacheEntries: 200
+        # One entry per provider the registry holds a binding for, assembled
+        # from config/adapters/providers/<provider>.yaml.tmpl. A provider that
+        # was never registered contributes nothing here and answers nothing.
         providerSteps:
-          - id: WeatherObservation
-            config:
-              bindingKeys: "__MAUSAMGRAM_BINDING_KEY__"
-              __MAUSAMGRAM_PARTICIPANT_ID__:
-                authScheme: header
-                headerName: Authorization
-                headerValueEnv: MAUSAMGRAM_AUTH
-          - id: MandiPrice
-            config:
-              bindingKeys: "__AGMARKNET_BINDING_KEY__"
-              __AGMARKNET_PARTICIPANT_ID__:
-                authScheme: tokenQuery
-                tokenUrl: "__AGMARKNET_TOKEN_URL__"
-                tokenUserField: access_name
-                tokenUserEnv: AGMARKNET_ACCESS_NAME
-                tokenSecretField: password
-                tokenSecretEnv: AGMARKNET_PASSWORD
-                tokenResponseField: token
-                queryName: token
-                tokenTtl: 10m
-          - id: KnowledgeAdvisory
-            config:
-              bindingKeys: "__VISTAAR_BINDING_KEY__"
-              __VISTAAR_PARTICIPANT_ID__:
-                authScheme: oauth2
-                tokenUrl: "__VISTAAR_TOKEN_URL__"
-                clientIdEnv: VISTAAR_CLIENT_ID
-                clientSecretEnv: VISTAAR_CLIENT_SECRET
-              maxResponseBytes: 1048576
-          - id: AgricultureFacility
-            config:
-              bindingKeys: "__POCRA_BINDING_KEY__"
-              __POCRA_PARTICIPANT_ID__:
-                authScheme: none
-              searchConcurrency: 1
-          # PM-KISAN: one participant, two capabilities on different hosts (the
-          # SchemeApplication binding carries its own baseUrl in the registry).
-          # Keys and tokens are read from the environment at call time, so the
-          # stack starts without them; setup.py seeds PM-KISAN only when
-          # PMKISAN_BASE_URL is set. Same settings as the cluster chart.
-          - id: Grievance
-            config:
-              bindingKeys: "pmkisan|openagrinet:Grievance,pmkisan|openagrinet:SchemeApplication"
-              providerIdAt: "message.contract.commitments[].offer.provider.id, message.support.channels[].provider.id"
-              capabilityCodeAt: "message.contract.commitments[].commitmentAttributes.@type, message.support.channels[].@type"
-              pmkisan:
-                authScheme: none
-              "pmkisan|openagrinet:Grievance":
-                envelope: aesGcm
-                envelopeKeyEnv: PMKISAN_GRIEVANCE_KEY
-                envelopeNonceEnv: PMKISAN_GRIEVANCE_IV
-                envelopeTokenEnv: PMKISAN_SERVICE_TOKEN
-                envelopeTokenField: TokenNo
-                envelopeRequestField: EncryptedRequest
-                envelopeResponsePaths: "d.output,output"
-                otpEnvelope: aesCbcKeyInBand
-                otpBindingKey: "pmkisan|openagrinet:SchemeApplication"
-                otpTokenEnv: PMKISAN_OTP_TOKEN
-                otpTokenField: Token
-                otpRequestField: EncryptedRequest
-                otpResponsePaths: "d.output,output"
-                otpActions: init
-                otpVerifyPath: /ChatbotOTPVerified
-                otpVerifyActions: "support,status"
-                otpVerifyTimeoutMs: "10000"
-              "pmkisan|openagrinet:SchemeApplication":
-                envelope: aesCbcKeyInBand
-                envelopeTokenEnv: PMKISAN_OTP_TOKEN
-                envelopeTokenField: Token
-                envelopeRequestField: EncryptedRequest
-                envelopeResponsePaths: "d.output,output"
-                otpVerifyPath: /ChatbotOTPVerified
-                otpVerifyActions: status
-                otpVerifyTimeoutMs: "10000"
-                followUpPath: /ChatbotBeneficiaryStatus
-                followUpField: _beneficiaryStatus
-                followUpActions: status
-                followUpTimeoutMs: "10000"
+__PROVIDER_STEPS__
       steps:
         - validateSign
         - checkCrossNetworkRequester
         - validateSchema
-        - WeatherObservation
-        - MandiPrice
-        - KnowledgeAdvisory
-        - AgricultureFacility
-        - Grievance
+__PROVIDER_STEP_IDS__
         - sign
 
   # oanProviderPublish: the catalogue publishes at /publish; routed to

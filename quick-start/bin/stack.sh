@@ -48,6 +48,21 @@ dotenv_get() {
     printf '%s' "$v" | tr -d '"'"'"' \t\r'
 }
 
+# Write a key back to .env, replacing the line or appending it. An answer given
+# at a prompt belongs in the file, so .env never disagrees with what is running.
+dotenv_set() {
+    local key=$1 value=$2 tmp
+    tmp=$(mktemp)
+    awk -v k="$key" -v v="$value" '
+        index($0, k "=") == 1 { print k "=" v; found = 1; next }
+        { print }
+        END { if (!found) print k "=" v }
+    ' .env > "$tmp"
+    cat "$tmp" > .env   # not mv: keeps the file's own mode and ownership
+    rm -f "$tmp"
+    info ".env: $key -> $value"
+}
+
 # What this network's containers are called. Empty for a single network, so the
 # names are what they always were; a second network sets STACK_PREFIX in its own
 # .env and every name it touches moves with it.
@@ -64,7 +79,10 @@ running_mode() {
     esac
 }
 
-MODE="${NETWORK_ADAPTER_DEPLOYMENT_MODE:-$(dotenv_get NETWORK_ADAPTER_DEPLOYMENT_MODE)}"
+# An environment variable is an answer already: configure-adapter does not ask
+# for something it was told.
+MODE_GIVEN="${NETWORK_ADAPTER_DEPLOYMENT_MODE:-${MODE:-}}"
+MODE="${MODE_GIVEN:-$(dotenv_get NETWORK_ADAPTER_DEPLOYMENT_MODE)}"
 MODE="${MODE:-single-adapter}"
 case "$MODE" in single|multi) MODE="$MODE-adapter" ;; esac   # old values still accepted
 RUNNING_MODE="$(running_mode)"
@@ -132,46 +150,40 @@ preflight() {
 
 # ------------------------------------------------------------------- up
 
-# The full stack, in the order the compose file's own header documents. Five
-# steps rather than three: the gateway and the observability profile are
-# behind profiles, which means they are opt-in for compose, but "opt-in" and
-# "not part of bringing the stack up" are different claims and only the first
-# one is true.
+# The containers, and only the containers. Nothing is written to the registry
+# and no adapter is started: an adapter's config is a bind-mounted file that
+# does not exist until `make configure-adapter` renders it, and Docker answers
+# a missing bind-mount source by creating a DIRECTORY there.
 #
-# `up-core` below is the same thing minus steps 4 and 5, for when you want
-# neither a public port nor ClickHouse's memory.
+# So `up` leaves you with a registry to register into. What goes in it, and in
+# what order, is make keys -> make register-network -> make register-provider
+# -> make configure-adapter, which is also what starts the adapters.
 up() {
-    check_mode
     preflight
-    up_registry_tier 5
-    up_setup         5
-    up_adapters      5
+    up_registry_tier 3
 
     # NPM. This is the step that makes the VM reachable from the internet --
     # 0.0.0.0:80 and :443, deliberately not scoped, because Let's Encrypt
     # validates HTTP-01 from its own servers.
-    step 4 5 "nginx-proxy-manager -- the public edge (80 and 443, all interfaces)"
+    step 2 3 "nginx-proxy-manager -- the public edge (80 and 443, all interfaces)"
     mkdir -p .well-known  # before Docker can create it root-owned
     docker compose --profile reverse-proxy up -d nginx-proxy-manager
 
     # ClickHouse, the collector, and Grafana. Heaviest thing here by a wide
     # margin: ClickHouse alone wants 2-4 GB, which is what takes this VM from
     # 8 GB to 16 GB.
-    step 5 5 "clickhouse, otel-collector, grafana -- OTLP ingest, storage, UI"
+    step 3 3 "clickhouse, otel-collector, grafana -- OTLP ingest, storage, UI"
     docker compose --profile observability up -d clickhouse otel-collector grafana
 
     done_banner
 }
 
-# Steps 1-3 only. Nothing publishes on a routable interface and nothing needs
+# Step 1 only. Nothing publishes on a routable interface and nothing needs
 # 16 GB -- this is the stack you can actually exercise, which is the reason the
 # profiles exist in the first place.
 up_core() {
-    check_mode
     preflight
-    up_registry_tier 3
-    up_setup         3
-    up_adapters      3
+    up_registry_tier 1
     done_banner
 }
 
@@ -206,29 +218,21 @@ up_registry_tier() {
     done
 }
 
-# Generates the network's keypair, registers its one identity, and
-# renders config/adapters/{multi-adapter,single-adapter}/*.yaml from the .tmpl files
-# beside them. Safe to re-run: keys come from keys/keys.json once it exists,
-# and participants already registered are left alone.
-up_setup() {
-    step 2 "$1" "bin/setup.py -- keys, five registry participants, adapter configs"
-    python3 bin/setup.py
-}
-
-# Only now do the bind-mounted config files exist.
+# Started last, and only by configure_adapter: before it runs there is no
+# config file to mount.
 up_adapters() {
     # The mocks are NOT started. All four capabilities point at real external
     # upstreams, so starting them would pull two images and run two containers
     # nothing calls. They are still defined in docker-compose.yml, so
     # `docker compose up -d mock-imd mock-agmarknet` brings them up for anyone
     # debugging a mapping without the real credentials -- but that also needs a
-    # new participant id and base URL in .env plus a setup.py re-run, because
-    # the registry cannot repoint an existing row.
+    # new participant id and base URL in .env plus a fresh make register-provider,
+    # because the registry cannot repoint an existing row.
     check_mode
     local f
     # `up` starts the requested mode, not the running one.
     NETWORK_ADAPTER_DEPLOYMENT_MODE="$MODE"
-    step 3 "$1" "adapters, mode $MODE ($(adapters_for "$MODE"))"
+    step 2 2 "adapters, mode $MODE ($(adapters_for "$MODE"))"
     # A pre-merge stack's network-adapter container (service network-adapter-layer)
     # is unknown to compose and would clash by name.
     if [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' "$(container network-adapter)" 2>/dev/null)" = network-adapter-layer ]; then
@@ -254,9 +258,16 @@ up_adapters() {
 }
 
 done_banner() {
-    printf '\n\033[1;32m==> stack is up\033[0m\n'
+    printf '\n\033[1;32m==> containers are up\033[0m\n'
     docker compose "${PROFILES[@]}" ps
     cat <<'NEXT'
+
+  The registry is empty and no adapter is running yet. In order:
+
+      make keys
+      make register-network
+      make register-provider PROVIDER=mausamgram    (once per provider)
+      make configure-adapter                        (renders, then starts them)
 
   Everything except NPM's 80 and 443 is bound to 127.0.0.1 on this host.
   From your laptop:
@@ -422,12 +433,99 @@ restart_edge() {
     docker compose --profile reverse-proxy restart nginx-proxy-manager
 }
 
-# Just step 2. Re-run it after editing a .tmpl, or to re-render configs that
-# were deleted. It is idempotent, so this is always safe.
-setup() {
+# ------------------------------------------------- filling the registry
+#
+# Four steps rather than one, because all four CREATE ONLY: a row that exists
+# is left alone, never overwritten. A wrong value is corrected with a PUT, not
+# by re-running, so doing one provider at a time keeps that to one provider.
+#
+# Idempotent in that sense -- anything already there is left alone and said so.
+
+# The network's own keypair. Generated once and reused -- the private halves
+# never leave keys/keys.json, and the public half is what register-network
+# publishes.
+keys() {
     preflight
-    step 1 1 "bin/setup.py"
-    python3 bin/setup.py
+    step 1 1 "keys/keys.json"
+    python3 bin/setup.py keys
+}
+
+# Our one entry, shared by all three adapters, and the key id read back out of
+# it. Nothing can sign until this has run.
+register_network() {
+    preflight
+    step 1 1 "our network entry"
+    python3 bin/setup.py register-network
+}
+
+# One upstream, its binding and its capability schema.
+#
+#   make register-provider PROVIDER=mausamgram
+register_provider() {
+    preflight
+    [ -n "${PROVIDER:-}" ] \
+        || die "which provider? e.g. make register-provider PROVIDER=mausamgram"
+    step 1 1 "provider $PROVIDER"
+    python3 bin/setup.py register-provider "$PROVIDER"
+}
+
+# The two settings that decide what gets rendered and what gets started. Asked
+# rather than passed as a variable, because an operator reads a question and
+# guesses a flag.
+#
+# Neither is asked when it was given as an environment variable, or when there
+# is no terminal to answer from -- CI and scripts keep working off .env alone.
+
+ask_mode() {
+    if [ -n "$MODE_GIVEN" ] || [ ! -t 0 ]; then return 0; fi
+    local answer marker_single="" marker_multi=""
+    [ "$MODE" = single-adapter ] && marker_single="   [default]"
+    [ "$MODE" = multi-adapter ]  && marker_multi="   [default]"
+    printf '\nDeployment mode?\n'
+    printf '  1) single-adapter   one container serving all three tiers%s\n' "$marker_single"
+    printf '  2) multi-adapter    consumer, network and provider separately%s\n' "$marker_multi"
+    read -rp '> ' answer
+    case "$answer" in
+        1|single|single-adapter) MODE=single-adapter ;;
+        2|multi|multi-adapter)   MODE=multi-adapter ;;
+        "")                      ;;   # the default stands
+        *) die "answer 1 or 2, not '$answer'" ;;
+    esac
+    dotenv_set NETWORK_ADAPTER_DEPLOYMENT_MODE "$MODE"
+}
+
+# Whether this network crawls others. It still ANSWERS another network's crawl
+# either way -- that is the network tier's job and this does not touch it.
+ask_crawler() {
+    if [ -n "${FEDERATION_CRAWL_PEERS:-}" ] || [ ! -t 0 ]; then return 0; fi
+    local answer prompt crawl
+    crawl=$(dotenv_get FEDERATION_CRAWL_PEERS)
+    crawl=${crawl:-off}
+    if [ "$crawl" = on ]; then prompt='[Y/n]'; else prompt='[y/N]'; fi
+    read -rp "Enable the federation crawler? $prompt " answer
+    case "$answer" in
+        [Yy]*) crawl=on ;;
+        [Nn]*) crawl=off ;;
+        "")    ;;   # the default stands
+        *) die "answer y or n, not '$answer'" ;;
+    esac
+    export FEDERATION_CRAWL_PEERS="$crawl"
+    dotenv_set FEDERATION_CRAWL_PEERS "$crawl"
+}
+
+# Render the adapter configs from what the registry now holds, then start the
+# adapters. One command, because a rendered config nothing picked up is a
+# change that silently did not take effect -- which is exactly what the old
+# `make setup` did.
+configure_adapter() {
+    preflight
+    ask_mode
+    ask_crawler
+    check_mode
+    step 1 2 "adapter configs, from the registry's bindings"
+    python3 bin/setup.py configure-adapter
+    up_adapters
+    printf '\n\033[1;32m==> adapters are up\033[0m\n'
 }
 
 # Generate the federation documents into .well-known/ and serve them through NPM
@@ -539,21 +637,29 @@ usage() {
     cat <<'USAGE'
 bin/stack.sh <command>
 
-  up             the whole stack: registry+discovery -> setup.py -> adapters
-                 (network-adapter, or all three in multi-adapter)
-                 -> gateway (public, 80/443) -> observability (wants 16 GB)
-  up-core        steps 1-3 only. Nothing public, no ClickHouse.
-                 (without a flag: MODE, else NETWORK_ADAPTER_DEPLOYMENT_MODE in
-                 .env, else single-adapter; restart follows the running mode)
+  up             the containers: registry+discovery -> gateway (public, 80/443)
+                 -> observability (wants 16 GB). No registry writes, no adapters.
+  up-core        the registry and discovery only. Nothing public, no ClickHouse.
   down           stop everything, keep the data
   destroy        stop everything and DELETE every volume
-  setup          re-run bin/setup.py only
+
+  then, in order -- each is idempotent:
+  keys               generate keys/keys.json
+  register-network   publish our own entry and read its key id back
+  register-provider  one upstream, its binding and its schema   PROVIDER=
+  configure-adapter  render the adapter configs from the registry, start them
+                     Asks for the deployment mode and whether to crawl other
+                     networks, and writes both answers back to .env. Set
+                     NETWORK_ADAPTER_DEPLOYMENT_MODE or FEDERATION_CRAWL_PEERS
+                     to answer without being asked; with no terminal it does
+                     not ask at all.
+
   host-descriptor  sign the descriptor, JWKS and schema packs into .well-known/
+                   and serve them through nginx-proxy-manager (public, 80/443)
   admit            admit a peer in one direction   PEER= DIRECTION= PACKS=
   refresh          re-read an admitted peer's documents            PEER=
   suspend          withdraw one direction          PEER= DIRECTION=
   verify           fetch and check a peer's documents, changing nothing   PEER=
-                   and serve them through nginx-proxy-manager (public, 80/443)
   reverse-proxy  start nginx-proxy-manager on its own (public, 80/443)
   observability  start clickhouse, otel-collector and grafana on their own
   pull           git pull, fixing the npm-custom ownership first
@@ -572,7 +678,10 @@ case "${1:-}" in
     up-core)        up_core ;;
     down)           down ;;
     destroy)        destroy ;;
-    setup)          setup ;;
+    keys)           keys ;;
+    register-network) register_network ;;
+    register-provider) register_provider ;;
+    configure-adapter) configure_adapter ;;
     host-descriptor) host_descriptor ;;
     admit)          admit ;;
     refresh)        refresh_peer ;;

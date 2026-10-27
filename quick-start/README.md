@@ -98,19 +98,32 @@ what you type into Postman.
 
 ```sh
 make up-core
+make keys
+make register-network
+make register-provider PROVIDER=mausamgram
+make register-provider PROVIDER=agmarknet
+make register-provider PROVIDER=vistaar
+make register-provider PROVIDER=pocra
+make configure-adapter
 ```
 
-Three tiers, in the only order that works: registry and discovery, then
-`bin/setup.py`, then the adapter (`network-adapter` on 9201; `NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter make up-core`
-starts the three adapters instead). Allow a couple of minutes
-the first time, while the registry builds its schema tables.
+`make up-core` starts the registry and discovery and stops there. Allow a
+couple of minutes the first time, while the registry builds its schema tables.
+It deliberately starts no adapter: an adapter config is a bind-mounted file
+that does not exist yet, and Docker answers a missing bind-mount source by
+creating a directory in its place.
 
-`setup.py` generates the network's one keypair, registers five participants --
-one entry for the network (`BECKN_NETWORK_ID`, shared by all three adapters) and
-four upstreams -- and four capability bindings, and renders the adapter configs
-(the three tier configs and the single adapter's `network-adapter.yaml`). Nothing needs
-creating by hand. → Appendix C for why the order matters, Appendix D for what
-it wrote.
+The rest fills the registry, one write at a time. `make keys` generates the
+network's one keypair; `make register-network` publishes its entry
+(`BECKN_NETWORK_ID`, shared by all three adapters) and reads back the key id it
+will sign with; each `make register-provider` adds one upstream, its capability
+binding and its capability schema.
+
+`make configure-adapter` then renders the adapter configs **from what the
+registry holds** and starts the adapters. It asks for the deployment mode
+(default `single-adapter`) and whether to crawl other networks, and writes both
+answers back to `.env`. Nothing needs creating by hand. → Appendix C for why
+the order matters, Appendix D for what it wrote.
 
 ```sh
 make ps
@@ -624,25 +637,29 @@ absence from `oan-edge`. A registry route would undo both, silently.
 ## Appendix C — Startup order, and why it is that order
 
 ```
-1. registry and discovery        (also sunbird-registry-postgres, discovery-postgres)
-2. bin/setup.py                  keys, five participants, four bindings, four configs
-3. the adapters                  network-adapter (default), or the three with NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter
-4. nginx-proxy-manager           the public edge — 80 and 443, all interfaces
-5. clickhouse, otel-collector, grafana   OTLP ingest, storage, UI
+make up / make up-core — containers only, nothing written:
+  1. registry and discovery      (also sunbird-registry-postgres, discovery-postgres)
+  2. nginx-proxy-manager         the public edge — 80 and 443, all interfaces   (make up only)
+  3. clickhouse, otel-collector, grafana   OTLP ingest, storage, UI             (make up only)
+
+then, filling it:
+  4. make keys                   keys/keys.json
+  5. make register-network       our entry, and the key id read back from it
+  6. make register-provider      one upstream + binding + schema, per provider
+  7. make configure-adapter      render the configs from the registry, start the adapters
 ```
 
-`make up` runs all five; `make up-core` stops after 3, which is enough to
-exercise the stack.
+`make up-core` is steps 1 and 4–7, which is enough to exercise the stack.
 
 **The order is not cosmetic.** An adapter config is a bind-mounted *file*, and
 Docker creates a *directory* at any missing bind-mount source — so an adapter
-started before step 2 wedges on `adapter.yaml: is a directory` and leaves a
-directory where step 2 needs a file. This is why the Makefile exists rather
-than a README line saying "run these in order". `setup.py` refuses with an
-explanation if it finds one; delete them and re-run.
+started before `configure-adapter` wedges on `adapter.yaml: is a directory` and
+leaves a directory where a file belongs. That is why `up` stops at the
+containers and `configure-adapter` is what starts the adapters. `setup.py`
+refuses with an explanation if it finds one; delete them and re-run.
 
-Re-running is safe: `setup.py` reuses `keys/keys.json` and skips rows that
-already exist.
+Re-running is safe: keys come from `keys/keys.json` once it exists, and a
+registry row that is already there is left alone rather than rewritten.
 
 Verify:
 
@@ -783,7 +800,8 @@ provider step recognised the payload, so each passed it through and nothing
 answered. A step compares a key built from the payload — provider id at
 `message.contract.commitments[].offer.provider.id`, capability at
 `...resources[].resourceAttributes.@type` — against its own config. Compare the
-payload with `.env`, then re-run `setup.py` and recreate the adapter.
+payload with `.env`, then `make configure-adapter` — it re-renders and
+recreates the adapters in one step.
 
 **404 naming a binding with no active record.** The other side: a step *is*
 configured for the key, but no active `ProviderSchema` row carries it.
@@ -810,14 +828,15 @@ docker run --rm --entrypoint sh $ADAPTER_IMAGE -c 'ls plugins/*.so'
 the upstream answered non-2xx. 4xx is reported immediately, 5xx retried up to
 `retryMax` from the ProviderSchema row. A non-2xx never reaches the mapping.
 
-**Adapters restart in a loop on the first `up`.** Expected before `setup.py`
-has run. If it persists, look for a *directory* where a config file should be →
-Appendix C.
+**Adapters restart in a loop.** `make up` no longer starts them, so this means
+`make configure-adapter` rendered a config they will not load. Check
+`make logs SVC=network-adapter`. If the error names `adapter.yaml`, look for a
+*directory* where the config file should be → Appendix C.
 
-**`setup.py` says the registry did not come up.** Check `make ps`. On a cold
-volume the registry spends a minute or two building its schema tables; step 1
-waits for its healthcheck before step 2 runs, so this means it never became
-healthy rather than that it was slow.
+**A registry command says the registry did not come up.** Check `make ps`. On
+a cold volume the registry spends a minute or two building its schema tables,
+and `make up` waits for its healthcheck before returning — so this means it
+never became healthy rather than that it was slow.
 
 **The registry logs `BUG: There can only ever be one graph vertex, found 2`.**
 SunbirdRC loads its schemas into Postgres at startup and cannot do it twice. A
@@ -836,10 +855,11 @@ schema error rather than a network one; retry before looking at the schema. If
 it is every time, check the container's egress -- a host with broken IPv6 is
 the usual cause.
 
-**`setup.py` says a participant is registered with a different key.** The
-registry cannot update a published key and its delete is soft, so the id cannot
-be reused. Restore the matching `keys/keys.json`, or pick a new
-`*_SUBSCRIBER_ID` in `.env`.
+**`make register-network` says a participant is registered with a different
+key.** These commands create only, so re-running will not republish it. Restore
+the matching `keys/keys.json`, rotate the registered key with a PUT that echoes
+its nested `osid`, or pick a new `BECKN_NETWORK_ID` — a deleted id cannot be
+reused.
 
 **A pull or a mapping fetch fails with "network is unreachable".** DNS returned
 an IPv6 address the host cannot route.
@@ -852,12 +872,12 @@ on the consumer host** → Appendix B.
 **Config only** — a `.tmpl`, a routing file, `.env`:
 
 ```sh
-make pull      # git pull, and fixes the ownership NPM leaves behind
-make up        # step 2 re-renders the configs, then recreates
+make pull               # git pull, and fixes the ownership NPM leaves behind
+make configure-adapter  # re-renders the configs, then recreates the adapters
 ```
 
 `make restart` alone is not enough for a `.tmpl` change: adapters read a
-rendered `.yaml`, and only `setup.py` writes it.
+rendered `.yaml`, and only `make configure-adapter` writes it.
 
 **A new adapter image as well.** Any change to plugin ids is this case, because
 an id is a `.so` basename. If `ADAPTER_IMAGE` names a **new tag**, set it before
@@ -1154,12 +1174,14 @@ Makefile                    the front door; every target delegates to stack.sh
 bin/
   bootstrap-ubuntu.sh       docker and python on a fresh Ubuntu VM
   stack.sh                  the startup order, and why it is that order
-  setup.py                  keys, five registry rows, the adapter configs
+  setup.py                  keys, the registry rows, the adapter configs
+                            (subcommands: keys, register-network,
+                            register-provider, configure-adapter)
 config/
   reverse-proxy/
     npm-custom/             mounted to /data/nginx/custom; NPM includes these
       http_top.conf           on its own -- rate-limit zone, and the /publish
-      server_proxy.conf       /publish and /_internal denies, and the .well-known documents, every proxy host gets
+      server_proxy.conf       denies and the .well-known documents every proxy host gets
     npm-advanced/           NOT loaded. Paste into a host's Advanced tab; kept
       consumer.conf                here because a textarea in a database is not
       grafana.conf            reviewable. consumer = rate limit; grafana = ClickHouse
@@ -1176,9 +1198,14 @@ config/
                             own environment
   adapters/
     multi-adapter/          multi mode: consumer, network and provider
-      *.yaml.tmpl           templates. setup.py renders each to .yaml beside
-                            it; rendered files hold private keys, gitignored
+      *.yaml.tmpl           templates. make configure-adapter renders each to
+                            .yaml beside it; rendered files hold private keys,
+                            gitignored
       routing-*.yaml        which action goes where (consumer, network, provider)
+    providers/              one .yaml.tmpl per provider: the capability block
+                            and how to authenticate to that upstream. Only the
+                            providers the registry holds a binding for are
+                            assembled into a rendered config
     single-adapter/         single mode: all three tiers in one adapter
       network-adapter.yaml.tmpl
       routing-network-adapter-*.yaml  tier hops to localhost:9201/_internal/...
@@ -1292,8 +1319,12 @@ Do remove the copy's `keys/` and its generated `config/adapters/*/[a-z]*.yaml`
 ### Bringing them up
 
 ```sh
-cd quick-start   && make up-core        # network A
-cd ../net-b      && make up-core        # network B
+# in each directory, in turn
+make up-core
+make keys
+make register-network
+make register-provider PROVIDER=mausamgram     # and any others
+make configure-adapter
 ```
 
 Then each one hosts its documents and admits the other. They reach each other

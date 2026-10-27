@@ -1,0 +1,11 @@
+          - id: KnowledgeAdvisory
+            config:
+              bindingKeys: "__BINDING_KEY__"
+              __PARTICIPANT_ID__:
+                authScheme: oauth2
+                tokenUrl: "__VISTAAR_TOKEN_URL__"
+                clientIdEnv: VISTAAR_CLIENT_ID
+                clientSecretEnv: VISTAAR_CLIENT_SECRET
+              # A retrieval answer is larger than a price row: four passages
+              # measured 15.7 KB against the live corpus.
+              maxResponseBytes: 1048576
