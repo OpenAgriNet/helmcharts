@@ -80,10 +80,12 @@ plugins:
       federationIntent: '__FEDERATION_INTENT__'
 
 modules:
-  # consumer-adapter: the app calls /<action>; discover to /_internal/network, transactions
-  # to /_internal/provider (routing-network-adapter-consumer.yaml).
+  # consumer-adapter: this deployment's OWN callers, never another network's --
+  # it checks no signature. Not public: the edge denies /consumer. The app calls
+  # /consumer/<action>; discover goes to /network, transactions to /provider
+  # (routing-network-adapter-consumer.yaml).
   - name: consumer-adapter
-    path: /
+    path: /consumer/
     handler:
       type: std
       role: bap
@@ -139,9 +141,12 @@ modules:
         - addRoute
         - sign
 
-  # network-adapter: forwards discover and publish to discovery (routing-network.yaml).
+  # network-adapter: the door another network calls. PUBLIC, and the one
+  # NETWORK_BASE_URL names, so the descriptor advertises a path that checks the
+  # signature and the agreement. Forwards discover and publish to discovery
+  # (routing-network.yaml).
   - name: network-adapter
-    path: /_internal/network/
+    path: /network/
     handler:
       type: std
       role: bpp
@@ -199,9 +204,11 @@ modules:
         - checkCrossNetworkRequester
         - addRoute
 
-  # oanProvider: answers from the upstream APIs itself (no router).
+  # oanProvider: answers from the upstream APIs itself (no router). PUBLIC --
+  # another network's select lands here, and it checks the signature and the
+  # agreement before answering.
   - name: oanProvider
-    path: /_internal/provider/
+    path: /provider/
     handler:
       type: std
       role: bpp
@@ -269,7 +276,7 @@ __PROVIDER_STEP_IDS__
         - sign
 
   # oanProviderPublish: the catalogue publishes at /publish; routed to
-  # /_internal/network/publish (routing-network-adapter-provider.yaml).
+  # /network/publish (routing-network-adapter-provider.yaml).
   - name: oanProviderPublish
     path: /publish
     handler:

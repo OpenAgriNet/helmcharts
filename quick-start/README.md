@@ -240,9 +240,11 @@ Guidelines:
 2. **To switch, run the other target.** `make up` after multi removes the
    provider and consumer containers; `NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter make up` after single starts them.
    `make restart`, `make down`, `make ps` and `make logs` follow the running mode.
-3. **Keep the adapter ports on `127.0.0.1`.** Signing is off in every quick-start
-   config, so `/_internal/` and `/publish` accept unsigned calls.
-   `server_proxy.conf` denies both on every proxy host.
+3. **Keep the adapter ports on `127.0.0.1`.** `/consumer/` and `/publish` take
+   unsigned calls by design — their caller is this deployment's own app.
+   `server_proxy.conf` denies both on every proxy host. `/network/` and
+   `/provider/` are the two public doors, and both check the signature and the
+   agreement.
 4. **After switching, re-point the proxy hosts** (Appendix B): single serves
    everything from `network-adapter:9201`.
 
@@ -250,12 +252,16 @@ In single mode, `network-adapter` runs four modules from
 `config/adapters/single-adapter/network-adapter.yaml.tmpl`. Each is an exact copy of its tier
 template's module; only the module name, path and routing file differ:
 
-| Module | Path | Routes to |
-|---|---|---|
-| `consumer-adapter` | `/<action>` | discover to `/_internal/network`, transactions to `/_internal/provider` |
-| `network-adapter` | `/_internal/network/<action>` | discovery |
-| `oanProvider` | `/_internal/provider/<action>` | answers itself from the upstream APIs |
-| `oanProviderPublish` | `/publish` | `/_internal/network/publish` |
+| Module | Path | Public | Routes to |
+|---|---|---|---|
+| `consumer-adapter` | `/consumer/<action>` | no | discover to `/network`, transactions to `/provider` |
+| `network-adapter` | `/network/<action>` | **yes** | discovery |
+| `oanProvider` | `/provider/<action>` | **yes** | answers itself from the upstream APIs |
+| `oanProviderPublish` | `/publish` | no | `/network/publish` |
+
+Multi mode uses the same three paths, one per container. `NETWORK_BASE_URL`
+ends in `/network` either way, so the descriptor advertises a door that checks
+the caller.
 
 **Upgrading an older stack:** the `network-adapter-layer` service and
 `COMPOSE_PROFILES=network` are gone. `make up` cleans up the old container
@@ -477,7 +483,8 @@ certificate. An unknown `Host` gets NPM's default page, not an adapter.
 at `network-adapter`, port 9201, with the same Advanced paste. The
 app's paths (`/discover`, `/select`, …) do not change, and neither does
 `/publish`: both modes present the same URLs. `server_proxy.conf` denies
-`/publish` and `/_internal` on every host: `/_internal/` holds the network and
+`/publish` and `/consumer` on every host: `/consumer/` holds the tier that
+takes unsigned calls, and the network and
 provider tiers, `/publish` publishes as the provider without checking the
 caller, and signing is off in quick-start.
 
@@ -561,16 +568,16 @@ request. It is also the only option for a wildcard. Renewal reuses whichever
 method you chose, so a temporarily-correct DNS record or SG rule fails silently
 in sixty days.
 
-### `POST /publish` and `/_internal` return 403 on every host
+### `POST /publish` and `/consumer` return 403 on every host
 
-Not optional hardening. The provider adapter's module at `/` verifies the
-sender's signature; the publish module (`oanProviderPublish` in multi mode,
-`oanProviderPublish` in single mode), on the exact path `/publish`, has
+Not optional hardening. The provider module at `/provider/` verifies the
+sender's signature; `oanProviderPublish`, on the exact path `/publish`, has
 **no signature check at all**, because its intended caller is the provider's
 own catalogue system inside the trust boundary. A proxy host pointed at
 `provider-adapter:9200` (multi) or `network-adapter:9201` (single) therefore
-exposes `<host>/publish` to anyone. In single mode the network and provider
-tiers also sit under `/_internal/`, which only the adapter itself calls.
+exposes `<host>/publish` to anyone. The consumer tier at `/consumer/` is the
+same case: it takes unsigned calls from this deployment's own app, and is no
+other network's business.
 
 NPM's UI cannot route a host while withholding one path, so the block lives in
 `config/reverse-proxy/npm-custom/server_proxy.conf`, which NPM includes in
@@ -586,7 +593,7 @@ an `allow`.
 | File | How it applies |
 |---|---|
 | `npm-custom/http_top.conf` | **Automatic**, top of the `http` block. The `consumer` rate-limit zone and `limit_req_status 429`. |
-| `npm-custom/server_proxy.conf` | **Automatic**, every server block. The `/publish` and `/_internal` denies, and the Network Descriptor, JWKS and schema packs from `.well-known/` (see Appendix D). |
+| `npm-custom/server_proxy.conf` | **Automatic**, every server block. The `/publish`, `/consumer` and `/crawl` denies, and the Network Descriptor, JWKS and schema packs from `.well-known/` (see Appendix D). |
 | `npm-advanced/consumer.conf` | **Manual** — paste into the consumer host's Advanced tab. `limit_req` for that host only; a 10 r/s ceiling on signed peer traffic would throttle for no gain. |
 | `npm-advanced/grafana.conf` | **Manual** — paste into the Grafana host's Advanced tab. 300s timeouts for ClickHouse-backed queries, a WebSocket upgrade for Grafana Live, buffering off for streaming panels. Carries no credential of its own; Grafana's login and the Access List do. |
 
@@ -1208,7 +1215,7 @@ config/
                             assembled into a rendered config
     single-adapter/         single mode: all three tiers in one adapter
       network-adapter.yaml.tmpl
-      routing-network-adapter-*.yaml  tier hops to localhost:9201/_internal/...
+      routing-network-adapter-*.yaml  tier hops to localhost:9201/network, /provider
                             (the network module reuses multi-adapter/routing-network.yaml)
   registry/
     schemas/                Participant, ProviderSchema, SchemaRegistry.
