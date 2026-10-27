@@ -349,8 +349,8 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url,
     The adapter reads it from this row, so nothing about it is compiled in.
 
     publish_url, when given, adds a `publish` action: the pipeline file the
-    network adapter's catalog crawler runs for this binding. It carries no
-    method or path (the provider adapter's routing sends a publish on)."""
+    network adapter's catalog crawler runs for this binding. The schema needs
+    a method and path on every action; the crawler reads only `mappings`."""
     binding = f"{participant_id}|{capability}"
     rows = search("ProviderSchema", {"bindingKey": {"eq": binding}})
     if rows:
@@ -362,13 +362,18 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url,
                 "mappings": mapping_url, "timeoutMs": 15000, "retryMax": 2,
                 "status": "active"}]
     if publish_url:
-        actions.append({"action": "publish", "mappings": publish_url, "status": "active"})
+        actions.append(publish_action(publish_url))
     result = post("ProviderSchema", {
         "bindingKey": binding, "participantId": participant_id,
         "capabilityCode": capability, "status": "active",
         "actions": actions}, bearer)
     print(f"  {binding}: {result['params']['status']} "
           f"{result['params'].get('errmsg', '')[:160]}")
+
+
+def publish_action(url):
+    return {"action": "publish", "method": "POST", "path": "/publish",
+            "mappings": url, "status": "active"}
 
 
 def ensure_publish_action(bearer, binding, record, url):
@@ -383,9 +388,9 @@ def ensure_publish_action(bearer, binding, record, url):
         print(f"  {binding} publish: already names {url}")
         return
     if current:
-        current["mappings"], current["status"] = url, "active"
+        current.update(publish_action(url))
     else:
-        actions.append({"action": "publish", "mappings": url, "status": "active"})
+        actions.append(publish_action(url))
     params = put("ProviderSchema", record["osid"], record, bearer).get("params", {})
     if params.get("status") != "SUCCESSFUL":
         sys.exit(f"setup: the registry refused the publish action for {binding}: "
