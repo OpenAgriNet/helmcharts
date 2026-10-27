@@ -68,7 +68,7 @@ metadata:
 data:
   {{- if $single }}
   adapter.yaml: |
-    {{- include "adapter-service.withSchemaPacks" (dict "ctx" . "cfg" $nlCfg) | nindent 4 }}
+    {{- $nlCfg | nindent 4 }}
   {{- if .Values.routing.config }}
   {{- fail (printf "%s: routing.config is not used in the single deployment mode. Its routing files are config/single-adapter/routing-network-adapter-{consumer,provider}.yaml and config/multi-adapter/routing-network.yaml; edit those, or set `config` to replace the whole adapter config." .Chart.Name) }}
   {{- end }}
@@ -100,7 +100,7 @@ data:
     {{- if not $raw }}
     {{- fail (printf "%s: no config. Expected %s in the chart, or `config` set in values. The role decides the filename, so a new role needs a new file." .Chart.Name $file) }}
     {{- end }}
-    {{- include "adapter-service.withSchemaPacks" (dict "ctx" . "cfg" $raw) | nindent 4 }}
+    {{- $raw | nindent 4 }}
 
   {{ include "adapter-service.routingFile" . }}: |
     {{- /* Routing comes from a FILE, for the same reason the config above does:

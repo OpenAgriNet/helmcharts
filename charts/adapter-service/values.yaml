@@ -405,15 +405,6 @@ podAnnotations: {}
 commonLabels: {}
 commonAnnotations: {}
 
-# Schema packs the adapter reads from disk instead of fetching, for a pack its
-# published address does not serve yet. Keyed by the path under the mount, which
-# is TypeName/<version>/attributes.yaml; the value is the URL to download it from
-# at pod start. Pin the URL to a commit. When set, the config gains
-# extendedSchema_localSchemaPath. Anything not listed is still fetched from its
-# @context.
-schemaPacks: {}
-#  Grievance/v0.1/attributes.yaml: https://raw.githubusercontent.com/<org>/<repo>/<commit>/api-schemas/Grievance/v0.1/attributes.yaml
-
 extraInitContainers: []
 extraVolumes: []
 extraVolumeMounts: []

@@ -169,31 +169,6 @@ spec:
               mountPath: /rendered
           resources:
             {{- toYaml .Values.configRenderer.resources | nindent 12 }}
-        {{- if .Values.schemaPacks }}
-        {{- /* Fetches each pack into the volume the adapter reads, for a pack whose
-               published address does not serve it yet. Pin the URLs to a commit. */}}
-        - name: fetch-schema-packs
-          image: "{{ .Values.configRenderer.image.registry }}/{{ .Values.configRenderer.image.repository }}:{{ .Values.configRenderer.image.tag }}"
-          imagePullPolicy: {{ .Values.configRenderer.image.pullPolicy }}
-          {{- with (include "common.securityContext" .) }}
-          securityContext:
-            {{- . | nindent 12 }}
-          {{- end }}
-          command:
-            - /bin/sh
-            - -c
-            - |
-              set -e
-              {{- range $path, $url := .Values.schemaPacks }}
-              mkdir -p /schemas/{{ dir $path }}
-              wget -q -O /schemas/{{ $path }} {{ $url | quote }}
-              {{- end }}
-          volumeMounts:
-            - name: schema-packs
-              mountPath: /schemas
-          resources:
-            {{- toYaml .Values.configRenderer.resources | nindent 12 }}
-        {{- end }}
         {{- with .Values.extraInitContainers }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -239,11 +214,6 @@ spec:
             - name: config
               mountPath: {{ include "adapter-service.configDir" . }}
               readOnly: true
-            {{- if .Values.schemaPacks }}
-            - name: schema-packs
-              mountPath: {{ include "adapter-service.schemaPacksDir" . }}
-              readOnly: true
-            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -272,11 +242,6 @@ spec:
         - name: config
           emptyDir:
             sizeLimit: 1Mi
-        {{- if .Values.schemaPacks }}
-        - name: schema-packs
-          emptyDir:
-            sizeLimit: 10Mi
-        {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
