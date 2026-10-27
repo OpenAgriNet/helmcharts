@@ -124,6 +124,16 @@ upstreams: []
 #
 # method is the provider's contract, not a network convention: some answer a GET
 # whose query the mapping builds, others take a POST with a JSON body.
+#
+# A binding is one action. Written flat, as the first example below, it is the
+# select action. A capability that answers more than one action - grievance
+# answers support and status - lists them under `actions`, with path, method,
+# mappingUrl, timeoutMs and retryMax on each entry rather than on the binding.
+# The two forms do not mix: a binding either is flat or has `actions`.
+#
+# It is a list and not a map keyed by action name because the registry treats
+# every nested object as an entity and gives it an osid, which a map cannot
+# carry.
 # ---------------------------------------------------------------------------
 bindings: []
   # - participantId: mausamgram
@@ -133,6 +143,23 @@ bindings: []
   #   mappingUrl: https://raw.githubusercontent.com/...
   #   timeoutMs: 15000
   #   retryMax: 2
+  #
+  # - participantId: pmfby
+  #   capability: openagrinet:Grievance
+  #   actions:
+  #     - action: support
+  #       path: /krphapi/FGMS/AddKRPHNCIPGrievenceSupportTicket
+  #       method: POST
+  #       mappingUrl: https://raw.githubusercontent.com/...
+  #       timeoutMs: 30000
+  #       # A retried support filing opens a second ticket.
+  #       retryMax: 0
+  #     - action: status
+  #       path: /krphapi/FGMS/GetGrievenceTicketsStatus
+  #       method: POST
+  #       mappingUrl: https://raw.githubusercontent.com/...
+  #       timeoutMs: 30000
+  #       retryMax: 2
 
 # ---------------------------------------------------------------------------
 # What each capability MEANS - a different question from who serves it.

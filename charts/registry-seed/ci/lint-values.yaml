@@ -22,12 +22,30 @@ upstreams:
   - participantId: mausamgram
     name: IMD Mausamgram NWP
     baseUrl: https://example.invalid
+  - participantId: pmfby
+    name: PMFBY grievance
+    baseUrl: https://example.invalid
 bindings:
+  # Both binding forms, so the render covers both branches: the flat one, which
+  # is a single select, and the multi-action one.
   - participantId: mausamgram
     capability: openagrinet:WeatherObservation
     path: /get-daily
     method: GET
     mappingUrl: https://example.invalid/mapping.yaml
+  - participantId: pmfby
+    capability: openagrinet:Grievance
+    actions:
+      - action: support
+        path: /add-ticket
+        method: POST
+        mappingUrl: https://example.invalid/grievance.support.yaml
+        timeoutMs: 30000
+        retryMax: 0
+      - action: status
+        path: /ticket-status
+        method: POST
+        mappingUrl: https://example.invalid/grievance.status.yaml
 schemas:
   - capability: openagrinet:WeatherObservation
     name: Weather Observation

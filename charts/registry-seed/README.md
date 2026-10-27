@@ -80,6 +80,7 @@ new Job rather than failing on `Job.spec.template` being immutable.
 | `adapters[].signingPublicKey` | Bare base64, **no `base64:` prefix** — it is published verbatim and a verifier hands it straight to a decoder. The chart refuses a prefixed value. |
 | `adapters[].baseUrl` | The address a **peer** posts to. Nothing in-cluster resolves it, so a wrong value costs nothing locally and everything on a shared network. |
 | `bindings[].participantId\|capability` | Must match what the provider adapter is configured with. A mismatch is answered `404 this module serves no capability matching the request`, which names the request rather than the mismatch. |
+| `bindings[].actions` | Omit it and the binding is one `select` action, with `path`, `method` and `mappingUrl` on the binding itself. List it and each entry is its own action — `action`, `path`, `method`, `mappingUrl`, `timeoutMs`, `retryMax` — and those keys move off the binding. The two forms do not mix. It is a list, not a map keyed by action: the registry gives every nested object an osid, which a map cannot carry. |
 | `schemaPackRef` | The registry **never fetches** `schemaUrl` — it only checks its shape. A ref that does not serve the pack stores happily and fails later, at whoever resolves it. |
 | `seedUser.passwordSecret` | The account that can WRITE participants. Required; this chart renders no passwords. |
 
