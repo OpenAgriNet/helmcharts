@@ -1204,20 +1204,21 @@ signs it as the provider and routes it to discovery.
 | `registry` and `crawler` plugin blocks | `config/adapters/{single,multi}-adapter/network-adapter.yaml.tmpl` |
 | `publish` action on the Agmarknet binding | `bin/setup.py`, pinned to a commit; override with `AGMARKNET_PUBLISH_PIPELINE_URL` |
 | Schema that admits `publish` | `config/registry/schemas/ProviderSchema.json` |
-| Run log database `catalogcrawler` | `discovery-postgres`, created on a fresh volume |
+| Run log database `catalogcrawler` | `crawler-postgres`, its own container and volume; the network adapter waits for it |
 | Pipeline inputs `MANDI_*`, `APP_NETWORK_ID` | `network-adapter` environment, mapped from `AGMARKNET_*` |
 
 Catalogs go to `http://localhost:9201/publish` in single mode and to
 `http://provider-adapter:9200/publish` in multi mode.
 
-**On a stack that already exists**, the database and the schema are not picked up
-by themselves:
+**On a stack that already exists**, the schema is not picked up by itself:
 
 ```sh
-docker exec discovery-postgres createdb -U discovery catalogcrawler
 docker compose restart sunbird-registry-service   # loads the schema that admits publish
-make up                                           # re-runs setup.py: adds the publish action
+make up                                           # starts crawler-postgres, re-runs setup.py: adds the publish action
 ```
+
+To see what the crawler has run: `make logs SVC=network-adapter`, or the run log
+itself with `docker exec -it crawler-postgres psql -U crawler catalogcrawler`.
 
 **The image must have the crawler's publish sweep and the `render.mappingByField`
 engine.** `network-adapter:0.0.1` predates both: it starts, but publishes

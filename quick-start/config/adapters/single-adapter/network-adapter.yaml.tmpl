@@ -46,7 +46,7 @@ plugins:
   crawler:
     id: catalogcrawler
     config:
-      dbDsn: "postgres://discovery:discovery@discovery-postgres:5432/catalogcrawler?sslmode=disable"
+      dbDsn: "postgres://crawler:crawler@crawler-postgres:5432/catalogcrawler?sslmode=disable"
       # Where built catalogs are POSTed: this process's own /publish module.
       discoveryPushUrl: "http://localhost:9201/publish"
       # Who the catalogs are published AS (context.senderId) and TO (receiverId).

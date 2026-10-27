@@ -278,6 +278,7 @@ This deletes every named volume in the project:
                    it up, the click-through starts over.
   sunbird-registry-postgres-data    the registry's Postgres: participants, keys, schemas.
   discovery-postgres-data   the discovery catalogue.
+  crawler-postgres-data     the catalog crawler's run log (when each pipeline last ran).
   clickhouse-data     collected telemetry.
   grafana-data        Grafana's own settings and dashboards (not telemetry).
 
