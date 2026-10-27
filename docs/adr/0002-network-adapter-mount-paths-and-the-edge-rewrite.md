@@ -65,6 +65,12 @@ A change complies with this decision if:
   Any other mount may be, and a rewrite onto it is allowed. The chart validates
   the rewrite **target**, refusing only those two; it does not enumerate what
   is permitted, so a mount added later needs no chart change.
+- **One Ingress per rewrite target.** A rewrite is an annotation on the Ingress
+  and holds one target, so `/discover` and `/select` cannot share an object.
+  The chart takes `ingress.routes`, a list, and emits one Ingress each. Exactly
+  one of them carries the `tls` block for a hostname: a TLS Secret is
+  namespaced and cert-manager orders per Ingress, and Kong terminates on SNI,
+  so a second block is a second ACME order for a name already covered.
 - **No controller is named.** The chart emits a plain Ingress and takes the
   rewrite annotations from values. Kong, ingress-nginx and ALB spell the
   rewrite differently, and a chart that only works behind one of them is not
@@ -100,6 +106,9 @@ A change complies with this decision if:
 **Costs:**
 - The edge now carries a mapping. An environment that forgets it serves 404 on
   `/discover` -- loud, but a new way to be wrong.
+- More Ingress objects, one per rewrite target, and a feature gate: Kong's
+  rewrite annotation needs `RewriteURIs` enabled on the gateway every other
+  service also routes through.
 - The rewrite is spelled differently per ingress controller, so the values
   differ by environment even though the chart does not.
 - `NETWORK_BASE_URL` values already published cannot be corrected in place for

@@ -295,6 +295,9 @@ service:
 ingress:
   enabled: false
   className: ""
+
+  # One Ingress, from annotations/hosts/tls below. Enough when every path goes
+  # to the same place.
   annotations: {}
   hosts: []
   tls: []
@@ -303,6 +306,43 @@ ingress:
   # provider without checking who calls it, so a public /publish lets anyone
   # publish catalogues under the provider's name.
   allowPublicPublish: false
+
+  # SEVERAL Ingresses, one per entry, each with its own annotations and tls.
+  # Set this and the three above are ignored.
+  #
+  # Needed when paths go to DIFFERENT mounts, because a rewrite is an
+  # annotation on the Ingress and holds one target (ADR-0002). In single mode
+  # /discover is served by /network/ and /select by /provider/, so they cannot
+  # share an object:
+  #
+  #   routes:
+  #     - name: network
+  #       annotations:
+  #         konghq.com/rewrite: /network/discover
+  #         cert-manager.io/cluster-issuer: letsencrypt-prod
+  #       hosts:
+  #         - host: oan.example.org
+  #           paths: [{path: /discover, pathType: Exact}]
+  #       tls:
+  #         - hosts: [oan.example.org]
+  #           secretName: network-adapter-tls
+  #     - name: provider
+  #       annotations:
+  #         konghq.com/rewrite: /provider/select
+  #       hosts:
+  #         - host: oan.example.org
+  #           paths: [{path: /select, pathType: Exact}]
+  #
+  # ONE tls BLOCK PER HOSTNAME, on one route only. A TLS Secret is namespaced
+  # and cert-manager orders per Ingress, so two blocks for one name are two
+  # ACME orders against a limit of five failed authorizations per hostname per
+  # hour. Kong terminates on SNI, so one certificate covers every route on it.
+  #
+  # konghq.com/rewrite needs Kong's RewriteURIs feature gate enabled. Other
+  # controllers spell it differently -- nginx uses rewrite-target -- and the
+  # chart does not care which: it checks the TARGET, refusing only /publish and
+  # /consumer, the two mounts that take unsigned calls.
+  routes: []
 
 # ---------------------------------------------------------------------------
 # Wait for the upstreams before starting.
