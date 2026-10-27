@@ -59,6 +59,9 @@ new id. That makes a render-time refusal much cheaper than a successful write.
 {{- if or (not .participantId) (not .capability) }}
 {{- fail (printf "%s: binding %q needs participantId and capability" $root.Chart.Name (.capability | default "?")) }}
 {{- end }}
+{{- if and .actions (or (hasKey . "path") (hasKey . "method") (hasKey . "mappingUrl") (hasKey . "timeoutMs") (hasKey . "retryMax")) }}
+{{- fail (printf "%s: binding %q has both `actions` and flat action fields. Move path, method, mappingUrl, timeoutMs and retryMax into the actions entry." $root.Chart.Name .capability) }}
+{{- end }}
 {{- if .actions }}
 {{- $capability := .capability }}
 {{- range .actions }}

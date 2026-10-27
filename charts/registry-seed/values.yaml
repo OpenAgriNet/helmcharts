@@ -144,6 +144,7 @@ bindings: []
   #   timeoutMs: 15000
   #   retryMax: 2
   #
+  # retryMax defaults to 2 for select, status, track and discover, and to 0 for any other action.
   # - participantId: pmfby
   #   capability: openagrinet:Grievance
   #   actions:

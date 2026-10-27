@@ -10,7 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - A binding may list its `actions` instead of carrying one `path` and
   `mappingUrl`, so a capability that answers more than `select` can be seeded.
-  The single-select form is unchanged.
+  The single-select form is unchanged. A binding that carries both forms is
+  refused at render, since the flat fields would otherwise be dropped.
+- `retryMax` defaults by action: 2 for `select`, `status`, `track` and `discover`,
+  0 for any other, so an action that files something is not repeated unasked.
 
 ## [0.1.1] - 2026-09-20
 
