@@ -18,7 +18,7 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   `TypeName/<version>/attributes.yaml` with the URL to download each from, for a
   pack whose published address does not serve it yet. An init container fetches
   them into `/app/schemas` and the config gains `extendedSchema_localSchemaPath`.
-  Unset, nothing changes. `ci/schema-packs-values.yaml` covers it.
+  Unset, nothing changes.
 
 ## [0.6.0] - 2026-10-09
 
