@@ -2,11 +2,13 @@
 {{- $ann := merge (dict) (.Values.ingress.annotations | default dict) (.Values.commonAnnotations | default dict) }}
 {{- $single := eq (include "adapter-service.deploymentMode" .) "single-adapter" }}
 {{- if $single }}
-{{- /* Single mode: only literal one-segment /<action> paths (Prefix/Exact); no snippet,
-       rewrite or regex annotation; never /, /publish or /_internal* (ADR-0001). */}}
-{{- range $k, $_ := $ann }}
+{{- /* Single mode: literal one-segment /<action> paths (Prefix/Exact), and a
+       rewrite onto any mount except the two that take unsigned calls (ADR-0002). */}}
+{{- range $k, $v := $ann }}
 {{- if regexMatch "(?i)(snippet|rewrite|regex)" $k }}
-{{- fail (printf "%s: ingress annotation %s is not allowed in the single deployment mode. Snippet, rewrite and regex annotations can reach /_internal or /publish." $.Chart.Name $k) }}
+{{- if regexMatch "(?i)(^|[^A-Za-z0-9])(publish|consumer)([^A-Za-z0-9]|$)" (toString $v) }}
+{{- fail (printf "%s: ingress annotation %s targets /publish or /consumer/.\n\n  Those two mounts take UNSIGNED calls -- their caller is this deployment's own\n  software, inside the trust boundary. Reachable from outside, /publish writes\n  anything into the catalogue and /consumer/ answers anyone. Rewrite onto\n  /network/ or /provider/, which check the signature and the admission." $.Chart.Name $k) }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- range .Values.ingress.hosts }}
@@ -16,8 +18,8 @@
 {{- if not (has $pt (list "Prefix" "Exact")) }}
 {{- fail (printf "%s: ingress path %q has pathType %s, which is not allowed in the single deployment mode. Use Prefix or Exact." $.Chart.Name $p $pt) }}
 {{- end }}
-{{- if or (not (regexMatch "^/[A-Za-z0-9_.-]+$" $p)) (hasPrefix "/_internal" $p) (and (eq $p "/publish") (not $.Values.ingress.allowPublicPublish)) }}
-{{- fail (printf "%s: ingress path %q is not allowed in the single deployment mode. Allowed: one literal segment, /<action> (e.g. /discover, /select). / and /_internal* are never public; /publish only with ingress.allowPublicPublish." $.Chart.Name $p) }}
+{{- if or (not (regexMatch "^/[A-Za-z0-9_.-]+$" $p)) (eq $p "/publish") (eq $p "/consumer") }}
+{{- fail (printf "%s: ingress path %q is not allowed in the single deployment mode. Allowed: one literal segment, /<action> (e.g. /discover, /select). / , /publish and /consumer are never public." $.Chart.Name $p) }}
 {{- end }}
 {{- end }}
 {{- end }}
