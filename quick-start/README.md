@@ -1062,6 +1062,7 @@ Three things that bite when writing a payload:
 `config/mappings/` holds the two this deployment uses, and `MAUSAMGRAM_MAPPING_URL` /
 `AGMARKNET_MAPPING_URL` point at **this repo's own copies** over GitHub's raw CDN —
 so the file a reader reviews and the file the adapter fetches are one file.
+`config/mappings/pmfby/` is only hosted here, for the cluster's registry seed; this stack does not run PMFBY.
 
 Each has two halves: the request half turns the Beckn payload into what the
 upstream expects, the response half turns the answer into resources. The mandi
