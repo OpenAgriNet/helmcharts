@@ -1,0 +1,58 @@
+{{- include "federation.require" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "federation.fullname" . }}-scripts
+  labels:
+    {{- include "federation.labels" . | nindent 4 }}
+data:
+  {{- /* Carried as files rather than inline, so the same oanfed.py the
+         quick-start runs is what runs here. */}}
+  oanfed.py: |
+    {{- .Files.Get "files/oanfed.py" | nindent 4 }}
+  publish.py: |
+    {{- .Files.Get "files/publish.py" | nindent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "federation.fullname" . }}-nginx
+  labels:
+    {{- include "federation.labels" . | nindent 4 }}
+data:
+  default.conf: |
+    # The three documents, and nothing else. Each is served from the mounted
+    # ConfigMap as JSON, with no caching: another network re-reads them to pick
+    # up a rotated key or a new revision, and a cached copy of either is a
+    # federation that quietly stops working.
+    server {
+        listen {{ .Values.server.port }};
+        server_name _;
+
+        location = /.well-known/openagrinet {
+            default_type application/json;
+            add_header Cache-Control "no-cache" always;
+            alias /srv/documents/openagrinet;
+        }
+
+        location = /.well-known/jwks.json {
+            default_type application/json;
+            add_header Cache-Control "no-cache" always;
+            alias /srv/documents/jwks.json;
+        }
+
+        location = /.well-known/schema-packs.json {
+            default_type application/json;
+            add_header Cache-Control "no-cache" always;
+            alias /srv/documents/schema-packs.json;
+        }
+
+        location = /healthz {
+            return 200 "ok\n";
+        }
+
+        # Anything else is not part of the contract.
+        location / {
+            return 404;
+        }
+    }

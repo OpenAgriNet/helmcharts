@@ -1,0 +1,129 @@
+# ---------------------------------------------------------------------------
+# What another network reads before it will talk to us.
+#
+#   .well-known/openagrinet       the signed Network Descriptor
+#   .well-known/jwks.json         the PUBLIC half of our signing key
+#   .well-known/schema-packs.json the capability packs we publish
+#
+# Two parts. A Job signs them from our registry entry, using the same Secret
+# the adapter reads, and writes them into a ConfigMap. A small server mounts
+# that ConfigMap and answers for them. The private key exists only inside the
+# Job, for the seconds it runs -- the server only ever holds public documents.
+# ---------------------------------------------------------------------------
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Our own participant id, and where our registry is. Both must match what the
+# adapter uses: the descriptor is built FROM that registry entry, and signed
+# with the key that entry publishes.
+networkId: ""
+registryUrl: ""
+
+# A readable operator name for the descriptor. The entry's name is used when
+# this is empty.
+operator: ""
+
+# Seconds another network may keep what it crawls from us. Omitted from the
+# descriptor when empty. Keep it well above their refresh interval, or what
+# they hold expires between crawls.
+projectionTtl: ""
+
+# The Secret the ADAPTER reads. Not a copy: a descriptor signed with any other
+# key is refused by oanfed before it writes anything, which is the check that
+# makes sharing this the point rather than an economy.
+keys:
+  existingSecret:
+    name: ""
+    signingPrivateKey: signingPrivateKey
+    signingPublicKey: signingPublicKey
+
+# Where the signed documents are kept between the Job and the server.
+documentsConfigMap: ""   # defaults to <fullname>-documents
+
+image:
+  registry: docker.io
+  repository: python
+  # oanfed needs `cryptography`; the slim image installs it at start, so this
+  # Job needs egress to PyPI. An air-gapped cluster should set an image that
+  # already carries it and leave pipInstall empty.
+  tag: "3.13-slim"
+  pullPolicy: IfNotPresent
+pipInstall: "cryptography"
+
+# Re-run on every upgrade. The descriptor has to be re-signed whenever the
+# registry entry changes -- a new base URL, a rotated key, another schema pack
+# -- and each run publishes the next revision, which is what other networks
+# compare against.
+job:
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: before-hook-creation
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 200m, memory: 256Mi}
+
+# The pod that answers for the documents. It holds nothing secret.
+server:
+  replicaCount: 1
+  image:
+    registry: docker.io
+    repository: nginxinc/nginx-unprivileged
+    tag: "1.27-alpine"
+    pullPolicy: IfNotPresent
+  port: 8080
+  resources:
+    requests: {cpu: 10m, memory: 16Mi}
+    limits: {cpu: 100m, memory: 64Mi}
+
+service:
+  type: ClusterIP
+  port: 80
+
+# The three documents are fetched over the internet by any network considering
+# us, so this is public by necessity. One tls block per hostname across the
+# whole deployment: cert-manager orders per Ingress and Kong terminates on SNI,
+# so if the adapter's Ingress already holds the certificate for this name,
+# leave tls empty here.
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  tls: []
+
+# Admitting another network, in one direction. Each entry becomes a Job.
+#
+#   admissions:
+#     - networkId: net-b.example.org
+#       direction: source           # source = we may read from them
+#       schemaPacks:                # must be packs they publish
+#         - https://.../AgricultureFacility/v0.1/attributes.yaml
+#
+# Declarative on purpose: who we agreed to talk to is reviewable in git rather
+# than being a command somebody ran once.
+admissions: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 101
+  seccompProfile: {type: RuntimeDefault}
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities: {drop: ["ALL"]}
+
+commonLabels: {}
+commonAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

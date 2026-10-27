@@ -1,0 +1,83 @@
+{{- include "federation.require" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "federation.fullname" . }}
+  labels:
+    {{- include "federation.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.server.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "federation.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: server
+  template:
+    metadata:
+      labels:
+        {{- include "federation.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: server
+      annotations:
+        # The documents change when the Job re-signs them, and a mounted
+        # ConfigMap updates in place -- nginx serves files per request, so it
+        # picks them up without a restart. This only forces one when the
+        # SERVING config changes.
+        checksum/nginx: {{ include (print $.Template.BasePath "/configmap-scripts.yaml") . | sha256sum }}
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: server
+          image: {{ include "federation.image" (dict "image" .Values.server.image) }}
+          imagePullPolicy: {{ .Values.server.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.server.port }}
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+          resources:
+            {{- toYaml .Values.server.resources | nindent 12 }}
+          volumeMounts:
+            - name: nginx
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+            # The signed documents. Absent until the Job has run once, which is
+            # why /healthz answers from nginx rather than from a document.
+            - name: documents
+              mountPath: /srv/documents
+              readOnly: true
+            - name: cache
+              mountPath: /var/cache/nginx
+            - name: run
+              mountPath: /var/run
+      volumes:
+        - name: nginx
+          configMap:
+            name: {{ include "federation.fullname" . }}-nginx
+        - name: documents
+          configMap:
+            name: {{ include "federation.documentsConfigMap" . }}
+            optional: true
+        - name: cache
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

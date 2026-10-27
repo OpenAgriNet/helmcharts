@@ -1,0 +1,94 @@
+{{- include "federation.require" . }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "federation.fullname" . }}-publish
+  labels:
+    {{- include "federation.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.job.annotations | nindent 4 }}
+    {{- with .Values.commonAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "federation.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: publish
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "federation.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: publish
+          image: {{ include "federation.image" (dict "image" .Values.image) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              {{- if .Values.pipInstall }}
+              pip install --quiet --no-cache-dir --target /tmp/py {{ .Values.pipInstall }}
+              export PYTHONPATH=/tmp/py
+              {{- end }}
+              exec python3 /opt/federation/publish.py
+          env:
+            - name: NETWORK_ID
+              value: {{ .Values.networkId | quote }}
+            - name: REGISTRY_URL
+              value: {{ .Values.registryUrl | quote }}
+            - name: KEYS_DIR
+              value: /keys
+            - name: SIGNING_PRIVATE_KEY
+              value: {{ .Values.keys.existingSecret.signingPrivateKey | quote }}
+            - name: SIGNING_PUBLIC_KEY
+              value: {{ .Values.keys.existingSecret.signingPublicKey | quote }}
+            - name: DOCUMENTS_CONFIGMAP
+              value: {{ include "federation.documentsConfigMap" . | quote }}
+            {{- with .Values.operator }}
+            - name: OPERATOR
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.projectionTtl }}
+            - name: PROJECTION_TTL
+              value: {{ . | quote }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.job.resources | nindent 12 }}
+          volumeMounts:
+            - name: scripts
+              mountPath: /opt/federation
+              readOnly: true
+            - name: keys
+              mountPath: /keys
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ include "federation.fullname" . }}-scripts
+        - name: keys
+          secret:
+            secretName: {{ .Values.keys.existingSecret.name }}
+            defaultMode: 0400
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
