@@ -17,12 +17,12 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 ## [0.7.0] - 2026-10-26
 
 ### Added
-- The provider config serves the PMFBY grievance capability: a `Grievance` step
-  for `pmfby|openagrinet:Grievance`, logging in at the provider's login URL and
-  holding the token until the login reply's own expiry. The login URL is the
-  `__PMFBY_TOKEN_URL__` substitution, and the login is read from
-  `PMFBY_ACCESS_UID` and `PMFBY_ACCESS_PWD`.
-- The consumer routing sends `support` to the provider adapter.
+- The single-adapter layer's provider tier serves the PMFBY grievance
+  capability: a `Grievance` step for `pmfby|openagrinet:Grievance`, logging in at
+  the provider's login URL and holding the token until the login reply's own
+  expiry. The login URL is the `__PMFBY_TOKEN_URL__` substitution, and the login
+  is read from `PMFBY_ACCESS_UID` and `PMFBY_ACCESS_PWD`.
+- The consumer tier's routing sends `support` to the provider tier.
 
 ## [0.6.0] - 2026-10-09
 
