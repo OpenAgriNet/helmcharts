@@ -14,8 +14,6 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   `__PMFBY_TOKEN_URL__` substitution, and the login is read from
   `PMFBY_ACCESS_UID` and `PMFBY_ACCESS_PWD`.
 - The consumer routing sends `support` to the provider adapter.
-- The same step and route are in the single-adapter layer's config, so both
-  deployment modes serve the capability.
 
 ## [0.6.0] - 2026-10-09
 
