@@ -184,11 +184,14 @@ data:
         print("registry: capability bindings")
         for b in DOC["bindings"]:
             binding = f'{b["participantId"]}|{b["capability"]}'
-            ok = ensure("ProviderSchema", "bindingKey", binding,
-                        {"bindingKey": binding,
-                         "participantId": b["participantId"],
-                         "capabilityCode": b["capability"], "status": "active",
-                         "actions": actions_of(b)},
+            record = {"bindingKey": binding,
+                      "participantId": b["participantId"],
+                      "capabilityCode": b["capability"], "status": "active",
+                      "actions": actions_of(b)}
+            # A capability served from another host than its participant's.
+            if b.get("baseUrl"):
+                record["baseUrl"] = b["baseUrl"]
+            ok = ensure("ProviderSchema", "bindingKey", binding, record,
                         bearer, binding)
             if ok is None:
                 failed.append(binding)

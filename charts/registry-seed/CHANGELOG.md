@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   refused at render, since the flat fields would otherwise be dropped.
 - `retryMax` defaults by action: 2 for `select`, `status`, `track` and `discover`,
   0 for any other, so an action that files something is not repeated unasked.
+- A binding may carry its own `baseUrl`, written to the `ProviderSchema` row, for
+  a capability served from another host than its participant's. PM-KISAN's
+  application status is on its chatbot service, not its grievance portal. Needs
+  the `registry` chart's 0.5.0 schema.
 
 ## [0.1.1] - 2026-09-20
 

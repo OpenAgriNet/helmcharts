@@ -105,7 +105,7 @@ rather than written out whole.
 {{- end }}
 {{- end }}
 {{- range .Values.bindings }}
-{{- range $k, $v := (dict "path" (.path | default "") "mappingUrl" (.mappingUrl | default "") "capability" .capability) }}
+{{- range $k, $v := (dict "path" (.path | default "") "mappingUrl" (.mappingUrl | default "") "capability" .capability "baseUrl" (.baseUrl | default "")) }}
 {{- if regexMatch "[<>]" $v }}
 {{- $placeholders = append $placeholders (printf "bindings[].%s = %s" $k $v) }}
 {{- end }}

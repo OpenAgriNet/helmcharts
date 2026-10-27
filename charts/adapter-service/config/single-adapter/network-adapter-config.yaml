@@ -78,8 +78,8 @@ modules:
             location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "true"
-            # Fetch the Grievance pack from its branch until the published URL serves it.
-            extendedSchema_contextRewrite: "https://openagrinet.github.io/network-specs/schema/Grievance/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/api-schema-packs-v0.1/schema/Grievance/"
+            # Fetch the Grievance and SchemeApplication packs from their branch until the published URL serves them.
+            extendedSchema_contextRewrite: "https://openagrinet.github.io/network-specs/schema/Grievance/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/api-schema-packs-v0.1/schema/Grievance/,https://openagrinet.github.io/network-specs/schema/SchemeApplication/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/api-schema-packs-v0.1/schema/SchemeApplication/"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
@@ -211,8 +211,8 @@ modules:
             location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "true"
-            # Fetch the Grievance pack from its branch until the published URL serves it.
-            extendedSchema_contextRewrite: "https://openagrinet.github.io/network-specs/schema/Grievance/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/api-schema-packs-v0.1/schema/Grievance/"
+            # Fetch the Grievance and SchemeApplication packs from their branch until the published URL serves them.
+            extendedSchema_contextRewrite: "https://openagrinet.github.io/network-specs/schema/Grievance/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/api-schema-packs-v0.1/schema/Grievance/,https://openagrinet.github.io/network-specs/schema/SchemeApplication/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/api-schema-packs-v0.1/schema/SchemeApplication/"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
@@ -268,12 +268,21 @@ modules:
                 authScheme: none
               searchConcurrency: 1
 
-          # No OTP. The call is made with a token exchanged at the provider's
-          # login, so the login URL is substituted from the keys Secret like the
-          # other token URLs, and the login itself is read from the environment.
+          # PMFBY: no OTP. The call is made with a token exchanged at the
+          # provider's login, so the login URL is substituted from the keys
+          # Secret like the other token URLs, and the login itself is read from
+          # the environment.
+          #
+          # PM-KISAN: one participant with two capabilities, each on its own
+          # host (the binding's baseUrl in the registry) and its own envelope,
+          # so their settings are blocks named by binding key. Grievance asks
+          # for and checks its OTP on the SchemeApplication binding's host.
+          # Keys and tokens come from the environment (provider-upstream):
+          # PMKISAN_GRIEVANCE_KEY, PMKISAN_GRIEVANCE_IV, PMKISAN_SERVICE_TOKEN
+          # and PMKISAN_OTP_TOKEN.
           - id: Grievance
             config:
-              bindingKeys: "pmfby|openagrinet:Grievance"
+              bindingKeys: "pmfby|openagrinet:Grievance,pmkisan|openagrinet:Grievance,pmkisan|openagrinet:SchemeApplication"
               # Paired by position, tried in order: status names the binding on
               # its contract, support on its channel.
               providerIdAt: "message.contract.commitments[].offer.provider.id, message.support.channels[].provider.id"
@@ -290,6 +299,41 @@ modules:
                 tokenResponseField: responseDynamic.token.Token
                 tokenExpiryField: responseDynamic.token.validTo
                 headerName: Authorization
+              pmkisan:
+                authScheme: none
+              "pmkisan|openagrinet:Grievance":
+                envelope: aesGcm
+                envelopeKeyEnv: PMKISAN_GRIEVANCE_KEY
+                envelopeNonceEnv: PMKISAN_GRIEVANCE_IV
+                envelopeTokenEnv: PMKISAN_SERVICE_TOKEN
+                envelopeTokenField: TokenNo
+                envelopeRequestField: EncryptedRequest
+                envelopeResponsePaths: "d.output,output"
+                otpEnvelope: aesCbcKeyInBand
+                otpBindingKey: "pmkisan|openagrinet:SchemeApplication"
+                otpTokenEnv: PMKISAN_OTP_TOKEN
+                otpTokenField: Token
+                otpRequestField: EncryptedRequest
+                otpResponsePaths: "d.output,output"
+                otpActions: init
+                otpVerifyPath: /ChatbotOTPVerified
+                otpVerifyActions: "support,status"
+                otpVerifyTimeoutMs: "10000"
+              # The binding's host is the OTP service itself: OTP, the record,
+              # then a follow-up read of its blockers.
+              "pmkisan|openagrinet:SchemeApplication":
+                envelope: aesCbcKeyInBand
+                envelopeTokenEnv: PMKISAN_OTP_TOKEN
+                envelopeTokenField: Token
+                envelopeRequestField: EncryptedRequest
+                envelopeResponsePaths: "d.output,output"
+                otpVerifyPath: /ChatbotOTPVerified
+                otpVerifyActions: status
+                otpVerifyTimeoutMs: "10000"
+                followUpPath: /ChatbotBeneficiaryStatus
+                followUpField: _beneficiaryStatus
+                followUpActions: status
+                followUpTimeoutMs: "10000"
       steps:
         - validateSign
         - validateSchema
@@ -341,8 +385,8 @@ modules:
             location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "true"
-            # Fetch the Grievance pack from its branch until the published URL serves it.
-            extendedSchema_contextRewrite: "https://openagrinet.github.io/network-specs/schema/Grievance/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/api-schema-packs-v0.1/schema/Grievance/"
+            # Fetch the Grievance and SchemeApplication packs from their branch until the published URL serves them.
+            extendedSchema_contextRewrite: "https://openagrinet.github.io/network-specs/schema/Grievance/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/api-schema-packs-v0.1/schema/Grievance/,https://openagrinet.github.io/network-specs/schema/SchemeApplication/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/api-schema-packs-v0.1/schema/SchemeApplication/"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"

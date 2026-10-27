@@ -134,6 +134,10 @@ upstreams: []
 # It is a list and not a map keyed by action name because the registry treats
 # every nested object as an entity and gives it an osid, which a map cannot
 # carry.
+#
+# baseUrl is optional: the host this capability is called on, when it is not
+# the participant's. PM-KISAN is one participant whose grievance portal and
+# chatbot service are different hosts.
 # ---------------------------------------------------------------------------
 bindings: []
   # - participantId: mausamgram
@@ -161,6 +165,21 @@ bindings: []
   #       mappingUrl: https://raw.githubusercontent.com/...
   #       timeoutMs: 30000
   #       retryMax: 2
+  #
+  # PM-KISAN: the participant's baseUrl is the grievance portal; application
+  # status is on the chatbot service, and so is the OTP grievance asks for.
+  # - participantId: pmkisan
+  #   capability: openagrinet:Grievance
+  #   actions:
+  #     - { action: init,    path: /ChatbotOTP,           method: POST, mappingUrl: https://raw.githubusercontent.com/..., timeoutMs: 20000 }
+  #     - { action: support, path: /LodgeGrievance,       method: POST, mappingUrl: https://raw.githubusercontent.com/..., timeoutMs: 30000 }
+  #     - { action: status,  path: /GrievanceStatusCheck, method: POST, mappingUrl: https://raw.githubusercontent.com/..., timeoutMs: 30000 }
+  # - participantId: pmkisan
+  #   capability: openagrinet:SchemeApplication
+  #   baseUrl: https://pmkisan.gov.in/services/chatbotservice.asmx
+  #   actions:
+  #     - { action: init,   path: /ChatbotOTP,         method: POST, mappingUrl: https://raw.githubusercontent.com/..., timeoutMs: 20000 }
+  #     - { action: status, path: /ChatbotUserDetails, method: POST, mappingUrl: https://raw.githubusercontent.com/..., timeoutMs: 30000, retryMax: 0 }
 
 # ---------------------------------------------------------------------------
 # What each capability MEANS - a different question from who serves it.

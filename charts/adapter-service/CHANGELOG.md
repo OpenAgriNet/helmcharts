@@ -13,12 +13,22 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   the provider's login URL and holding the token until the login reply's own
   expiry. The login URL is the `__PMFBY_TOKEN_URL__` substitution, and the login
   is read from `PMFBY_ACCESS_UID` and `PMFBY_ACCESS_PWD`.
+- The same step serves PM-KISAN as one participant, `pmkisan`, with two
+  capabilities: `pmkisan|openagrinet:Grievance` (OTP at `init`, lodge at
+  `support`, read back at `status`) and `pmkisan|openagrinet:SchemeApplication`
+  (OTP at `init`, the application record and its blockers at `status`). Each has
+  its own envelope, in a block named by its binding key; Grievance asks for and
+  checks its OTP on the SchemeApplication binding's host. Both read
+  `PMKISAN_GRIEVANCE_KEY`, `PMKISAN_GRIEVANCE_IV`, `PMKISAN_SERVICE_TOKEN` and
+  `PMKISAN_OTP_TOKEN` from `provider-upstream`, which must carry them before
+  PM-KISAN is called.
 - The consumer tier's routing sends `support` to the provider tier.
 - **Temporary, and pinned to a branch.** `extendedSchema_contextRewrite` on the
   consumer, provider and provider-publish modules of
   `config/single-adapter/network-adapter-config.yaml` redirects
-  `https://openagrinet.github.io/network-specs/schema/Grievance/` to the same
-  path on the `api-schema-packs-v0.1` branch of `OpenAgriNet/network-specs`.
+  `https://openagrinet.github.io/network-specs/schema/Grievance/` and
+  `.../schema/SchemeApplication/` to the same paths on the
+  `api-schema-packs-v0.1` branch of `OpenAgriNet/network-specs`.
   The published URL is a 404 today, so without this every Grievance payload
   fails extended validation. A branch is not a release: it moves, and whatever
   it moves to is what the adapters validate against. Delete all three lines once
