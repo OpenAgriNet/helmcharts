@@ -588,12 +588,11 @@ def configure_adapter(identity):
                 # The crawler. Only the network-adapter templates carry these;
                 # replacing a placeholder no template holds costs nothing.
                 #
-                # Where a crawled catalog is published. The crawler runs on
-                # the network adapter, which serves /publish itself in both
-                # modes -- as a mount in single, as an action on / in multi --
-                # so a crawled catalog takes the same path as a local one
-                # without leaving the process to do it.
-                ("__DISCOVERY_PUSH_URL__", "http://localhost:9201/publish"),
+                # Where a crawled catalog is published: the network tier's
+                # own publish action, the same address in both modes now that
+                # the mount is /network/ in each. A crawled catalog takes the
+                # same path as a local one.
+                ("__DISCOVERY_PUSH_URL__", "http://localhost:9201/network/publish"),
                 # on/off in .env, true/false in the config.
                 ("__FEDERATION_ENABLED__",
                  "false" if env("FEDERATION_CRAWL_PEERS", "off").lower() == "off"
