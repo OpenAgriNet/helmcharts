@@ -628,7 +628,7 @@ print(setup.env("BECKN_NETWORK_ID"), setup.registry_url(),
         info "served at revision $revision -- peers can fetch it now"
     else
         warn "written, but NPM is not serving it for $network_id yet${served:+ (it serves revision $served)}"
-        info "NPM needs a proxy host, with a certificate, for $network_id -- README Appendix B."
+        info "NPM needs a proxy host, with a certificate, for $network_id."
         info "Create it, then re-run make host-descriptor."
     fi
 }
