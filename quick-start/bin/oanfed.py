@@ -575,8 +575,16 @@ class Registry(ReadOnlyRegistry):
 
 
 def open_registry():
-    """Our registry, at the address setup.py uses. Reached from inside this
-    stack only, so no credential: see the registry service in docker-compose."""
+    """Our registry, and our own id.
+
+    From the environment when it carries both: a cluster Job has no .env and no
+    setup.py beside it. Otherwise from quick-start's setup.py, which is where
+    the address and the id already live for a compose stack.
+
+    Reached from inside the deployment only, so no credential either way."""
+    url, own = os.environ.get("REGISTRY_URL"), os.environ.get("BECKN_NETWORK_ID")
+    if url and own:
+        return Registry(url, own)
     import setup
     setup.load_dotenv()
     return Registry(setup.registry_url(), setup.env("BECKN_NETWORK_ID"))
