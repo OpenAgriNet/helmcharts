@@ -256,50 +256,16 @@ modules:
             negativeTTL: 1m
             maxMappingBytes: 262144
             maxCacheEntries: 200
+        # One entry per provider the registry holds a binding for, assembled
+        # from config/adapters/providers/<provider>.yaml.tmpl. A provider that
+        # was never registered contributes nothing here and answers nothing.
         providerSteps:
-          - id: WeatherObservation
-            config:
-              bindingKeys: "__MAUSAMGRAM_BINDING_KEY__"
-              __MAUSAMGRAM_PARTICIPANT_ID__:
-                authScheme: header
-                headerName: Authorization
-                headerValueEnv: MAUSAMGRAM_AUTH
-          - id: MandiPrice
-            config:
-              bindingKeys: "__AGMARKNET_BINDING_KEY__"
-              __AGMARKNET_PARTICIPANT_ID__:
-                authScheme: tokenQuery
-                tokenUrl: "__AGMARKNET_TOKEN_URL__"
-                tokenUserField: access_name
-                tokenUserEnv: AGMARKNET_ACCESS_NAME
-                tokenSecretField: password
-                tokenSecretEnv: AGMARKNET_PASSWORD
-                tokenResponseField: token
-                queryName: token
-                tokenTtl: 10m
-          - id: KnowledgeAdvisory
-            config:
-              bindingKeys: "__VISTAAR_BINDING_KEY__"
-              __VISTAAR_PARTICIPANT_ID__:
-                authScheme: oauth2
-                tokenUrl: "__VISTAAR_TOKEN_URL__"
-                clientIdEnv: VISTAAR_CLIENT_ID
-                clientSecretEnv: VISTAAR_CLIENT_SECRET
-              maxResponseBytes: 1048576
-          - id: AgricultureFacility
-            config:
-              bindingKeys: "__POCRA_BINDING_KEY__"
-              __POCRA_PARTICIPANT_ID__:
-                authScheme: none
-              searchConcurrency: 1
+__PROVIDER_STEPS__
       steps:
         - validateSign
         - checkCrossNetworkRequester
         - validateSchema
-        - WeatherObservation
-        - MandiPrice
-        - KnowledgeAdvisory
-        - AgricultureFacility
+__PROVIDER_STEP_IDS__
         - sign
 
   # oanProviderPublish: the catalogue publishes at /publish; routed to

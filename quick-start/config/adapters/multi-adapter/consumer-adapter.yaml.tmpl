@@ -103,12 +103,9 @@ modules:
           config:
             routingConfig: /app/config/routing-consumer.yaml
 
-      # Signing and signature validation are OFF: this tier accepts unsigned
-      # traffic and forwards unsigned. Turning it back on means adding the step
-      # names here AND on the other side of the hop at the same time.
-      #
-      # No validateSign either way: the experience app calling this is inside
-      # the trust boundary, so there is no network signature to check inbound.
+      # We sign what we forward, and check nothing inbound: the experience
+      # app calling this is inside the trust boundary, so there is no network
+      # signature to check. The tier it forwards to does check ours.
       steps:
         - validateSchema
         - addRoute

@@ -165,71 +165,17 @@ modules:
         # Auth is per provider. A served provider with no block is refused at
         # startup. Credentials are never values here -- the block names the
         # environment variable.
+        # One entry per provider the registry holds a binding for, assembled
+        # from config/adapters/providers/<provider>.yaml.tmpl. A provider that
+        # was never registered contributes nothing here and answers nothing.
         providerSteps:
-          - id: WeatherObservation
-            config:
-              bindingKeys: "__MAUSAMGRAM_BINDING_KEY__"
-              # header, not basic: IMD issues one opaque token, and basic would
-              # build the header itself from a username and password pair.
-              __MAUSAMGRAM_PARTICIPANT_ID__:
-                authScheme: header
-                headerName: Authorization
-                headerValueEnv: MAUSAMGRAM_AUTH
-
-          - id: MandiPrice
-            config:
-              bindingKeys: "__AGMARKNET_BINDING_KEY__"
-              # Agmarknet issues short-lived tokens. The field names are this
-              # provider's spelling, not a standard. tokenTtl is an estimate --
-              # the response carries no expiry -- and a 401 drops the held token.
-              __AGMARKNET_PARTICIPANT_ID__:
-                authScheme: tokenQuery
-                tokenUrl: "__AGMARKNET_TOKEN_URL__"
-                tokenUserField: access_name
-                tokenUserEnv: AGMARKNET_ACCESS_NAME
-                tokenSecretField: password
-                tokenSecretEnv: AGMARKNET_PASSWORD
-                tokenResponseField: token
-                queryName: token
-                tokenTtl: 10m
-
-          - id: KnowledgeAdvisory
-            config:
-              bindingKeys: "__VISTAAR_BINDING_KEY__"
-              __VISTAAR_PARTICIPANT_ID__:
-                authScheme: oauth2
-                tokenUrl: "__VISTAAR_TOKEN_URL__"
-                clientIdEnv: VISTAAR_CLIENT_ID
-                clientSecretEnv: VISTAAR_CLIENT_SECRET
-              # A retrieval answer is larger than a price row: four passages
-              # measured 15.7 KB against the live corpus.
-              maxResponseBytes: 1048576
-
-          - id: AgricultureFacility
-            config:
-              bindingKeys: "__POCRA_BINDING_KEY__"
-              __POCRA_PARTICIPANT_ID__:
-                authScheme: none
-              # Must stay 1. POCRA answers 200 with an empty catalogue after
-              # roughly twenty calls in a few minutes. That is indistinguishable
-              # from a genuine "nothing nearby", so raising this risks telling a
-              # farmer there is no facility when there is.
-              searchConcurrency: 1
-
-      # Signing and signature validation are OFF: validateSign and signAck are
-      # absent below, so this tier accepts unsigned traffic and answers
-      # unsigned. Turning it back on means adding the step names here AND on the
-      # other side of the hop at the same time.
-      #
+__PROVIDER_STEPS__
       # A plugin declared above but missing from this list is loaded and never runs.
       steps:
         - validateSign
         - checkCrossNetworkRequester
         - validateSchema
-        - WeatherObservation
-        - MandiPrice
-        - KnowledgeAdvisory
-        - AgricultureFacility
+__PROVIDER_STEP_IDS__
         - sign
 
   # The outbound leg: this provider's catalogue system publishing to the network.

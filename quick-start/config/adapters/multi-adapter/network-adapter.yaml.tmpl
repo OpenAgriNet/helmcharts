@@ -149,12 +149,9 @@ modules:
           config:
             routingConfig: /app/config/routing-network.yaml
 
-      # Signing and signature validation are OFF: this tier accepts unsigned
-      # traffic and forwards unsigned. Turning it back on means adding the step
-      # names here AND on the other side of the hop at the same time.
-      #
-      # validateSchema is not listed either, so this tier enforces no payload
-      # shape at all -- it only routes.
+      # This tier is a door: it checks the signature and the agreement, then
+      # routes. validateSchema is not listed, so it enforces no payload shape
+      # at all -- the tier that answers does that.
       steps:
         - validateSign
         - checkCrossNetworkRequester
