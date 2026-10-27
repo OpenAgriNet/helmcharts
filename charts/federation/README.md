@@ -61,6 +61,12 @@ pack that is not there.
 No key is needed. Admission reads their **public** documents and writes a row
 in our registry; nothing here signs.
 
+**A `requester` agreement needs our own document first.** It covers the packs
+in the file the other network reads, not the rows in our registry — a row
+exists the moment a provider is registered, where the document is what anyone
+has been told. The publish Job runs at an earlier hook weight, so a normal
+`helm upgrade` does both in order.
+
 ## What this chart does not do
 
 It does not open a path for anything but the three documents. The server
