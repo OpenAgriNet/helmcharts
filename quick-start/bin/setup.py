@@ -653,11 +653,6 @@ def render(identities):
                 ("__AGMARKNET_PARTICIPANT_ID__", env("AGMARKNET_PARTICIPANT_ID")),
                 ("__VISTAAR_PARTICIPANT_ID__", env("VISTAAR_PARTICIPANT_ID")),
                 ("__POCRA_PARTICIPANT_ID__", env("POCRA_PARTICIPANT_ID")),
-                # Who the network adapter's publish sweep publishes AS: the
-                # provider's identity, which the network template has no prefix
-                # of its own for -- and TO: the discovery service.
-                ("__PROVIDER_PUBLISH_ID__", identities["provider"]["participantId"]),
-                ("__DISCOVERY_PUBLISH_ID__", env("DISCOVERY_SUBSCRIBER_ID")),
                 # Telemetry. One switch drives all three signals: with every
                 # one false the plugin builds no exporter and never dials, so
                 # a stack running without the observability profile stays

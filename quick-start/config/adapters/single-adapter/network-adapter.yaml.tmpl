@@ -49,8 +49,9 @@ plugins:
       dbDsn: "postgres://discovery:discovery@discovery-postgres:5432/catalogcrawler?sslmode=disable"
       # Where built catalogs are POSTed: this process's own /publish module.
       discoveryPushUrl: "http://localhost:9201/publish"
-      participantId: "__PROVIDER_PUBLISH_ID__"
-      receiverId: "__DISCOVERY_PUBLISH_ID__"
+      # Who the catalogs are published AS (context.senderId) and TO (receiverId).
+      participantId: "__PROVIDER_SUBSCRIBER_ID__"
+      receiverId: "discovery.oan.dev"
       publishPipelines: "true"
       publishEnabled: "true"
       catalogIntervalSeconds: "60"
