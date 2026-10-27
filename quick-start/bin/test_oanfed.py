@@ -365,13 +365,23 @@ class Admission(Base):
         o.open_registry = lambda: self.ours
         o.fetcher_from = lambda _args: fetcher
         self.publish(revision=1)
+        # OUR published document, in its own directory: self.dir's .well-known
+        # is what the stub fetcher serves as the PEER's. A requester agreement
+        # covers what we publish, so admit reads this one.
+        self.ours_dir = self.dir / "own"
+        (self.ours_dir / ".well-known").mkdir(parents=True, exist_ok=True)
+        (self.ours_dir / ".well-known" / "schema-packs.json").write_text(
+            json.dumps({"schemaPacks": [OUR_PACK]}))
 
     def tearDown(self):
         o.open_registry, o.fetcher_from = self._real_open, self._real_fetcher
         super().tearDown()
 
     def admit(self, direction="source", packs=PEER_PACK, network_id=NETWORK):
-        o.cmd_admit(SimpleNamespace(network_id=network_id, direction=direction, schema_packs=packs))
+        # out is where setUp's publish() wrote .well-known: a requester
+        # agreement covers what that document says, not our registry's rows.
+        o.cmd_admit(SimpleNamespace(network_id=network_id, direction=direction,
+                                    schema_packs=packs, out=str(self.ours_dir)))
 
     def refresh(self):
         o.cmd_refresh(SimpleNamespace(network_id=NETWORK))

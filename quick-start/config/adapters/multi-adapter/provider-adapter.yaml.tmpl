@@ -165,9 +165,8 @@ modules:
         # Auth is per provider. A served provider with no block is refused at
         # startup. Credentials are never values here -- the block names the
         # environment variable.
-        # One entry per provider the registry holds a binding for, assembled
-        # from config/adapters/providers/<provider>.yaml.tmpl. A provider that
-        # was never registered contributes nothing here and answers nothing.
+        # One per provider the registry holds a binding for, assembled from
+        # config/adapters/providers/<provider>.yaml.tmpl.
         providerSteps:
 __PROVIDER_STEPS__
       # A plugin declared above but missing from this list is loaded and never runs.

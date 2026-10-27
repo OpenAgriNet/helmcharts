@@ -118,10 +118,8 @@ die()   { printf '\033[1;31mstack: %s\033[0m\n' "$1" >&2; exit 1; }
 
 # -------------------------------------------------------------- preflight
 
-# Checked before anything starts, not when it is first needed. Step 1 blocks on
-# the registry's healthcheck, so a missing python3 or an unimportable
-# `cryptography` would surface minutes in, after a wait that had nothing to do
-# with the problem. These take a millisecond each.
+# Checked up front, not when first needed: step 1 blocks on a healthcheck, so a
+# missing python3 would otherwise surface minutes later.
 preflight() {
     [ -f .env ] || die ".env is missing -- cp .env.example .env, then change every credential in it"
 
@@ -150,14 +148,8 @@ preflight() {
 
 # ------------------------------------------------------------------- up
 
-# The containers, and only the containers. Nothing is written to the registry
-# and no adapter is started: an adapter's config is a bind-mounted file that
-# does not exist until `make configure-adapter` renders it, and Docker answers
-# a missing bind-mount source by creating a DIRECTORY there.
-#
-# So `up` leaves you with a registry to register into. What goes in it, and in
-# what order, is make keys -> make register-network -> make register-provider
-# -> make configure-adapter, which is also what starts the adapters.
+# Containers only. No adapter starts here: its config does not exist until
+# `make configure-adapter` renders it, and Docker would make a directory there.
 up() {
     preflight
     up_registry_tier 3
@@ -178,9 +170,7 @@ up() {
     done_banner
 }
 
-# Step 1 only. Nothing publishes on a routable interface and nothing needs
-# 16 GB -- this is the stack you can actually exercise, which is the reason the
-# profiles exist in the first place.
+# Step 1 only. Nothing public, no ClickHouse -- the stack you can exercise.
 up_core() {
     preflight
     up_registry_tier 1
@@ -191,24 +181,17 @@ up_core() {
 #
 # Each takes the step total so the numbering reads correctly in both.
 
-# Naming registry and discovery also starts sunbird-registry-postgres and
-# discovery-postgres: both are depends_on with condition: service_healthy, so compose
-# blocks here until they pass their healthchecks rather than racing ahead.
+# Naming these two also starts their Postgres: both are depends_on with
+# condition: service_healthy, so compose blocks until they are ready.
 #
-# discovery belongs in this step and not in step 3. It would be dragged in
-# anyway by network-adapter's depends_on, but then a discovery-postgres that failed
-# to come up would surface as an adapter problem three steps later.
-#
-# No --wait. It would only add a second wait on the registry's own healthcheck,
-# and setup.py already polls with an error message that says what to check.
+# discovery belongs here, not with the adapters -- a failed discovery-postgres
+# would otherwise surface as an adapter problem three steps later.
 up_registry_tier() {
     step 1 "$1" "registry and discovery (also starts sunbird-registry-postgres, discovery-postgres)"
     docker compose up -d sunbird-registry-service discovery-service
 
-    # `up -d` waits for this service's DEPENDENCIES to be healthy, never for the
-    # service itself, so step 2 would otherwise race the registry's first boot
-    # and die on a connection reset. It used to wait by accident, through a
-    # depends_on that is gone.
+    # `up -d` waits for a service's DEPENDENCIES, never the service itself, so
+    # without this the next step races the registry's first boot.
     info "waiting for the registry to answer"
     local waited=0
     until [ "$(docker inspect -f '{{.State.Health.Status}}' "$(container sunbird-registry-service)" 2>/dev/null)" = healthy ]; do
@@ -218,16 +201,10 @@ up_registry_tier() {
     done
 }
 
-# Started last, and only by configure_adapter: before it runs there is no
-# config file to mount.
+# Started only by configure_adapter: before that there is no config to mount.
 up_adapters() {
-    # The mocks are NOT started. All four capabilities point at real external
-    # upstreams, so starting them would pull two images and run two containers
-    # nothing calls. They are still defined in docker-compose.yml, so
-    # `docker compose up -d mock-imd mock-agmarknet` brings them up for anyone
-    # debugging a mapping without the real credentials -- but that also needs a
-    # new participant id and base URL in .env plus a fresh make register-provider,
-    # because the registry cannot repoint an existing row.
+    # The mocks are NOT started: every capability points at a real upstream.
+    # `docker compose up -d mock-imd mock-agmarknet` brings them up by hand.
     check_mode
     local f
     # `up` starts the requested mode, not the running one.
@@ -435,15 +412,10 @@ restart_edge() {
 
 # ------------------------------------------------- filling the registry
 #
-# Four steps rather than one, because all four CREATE ONLY: a row that exists
-# is left alone, never overwritten. A wrong value is corrected with a PUT, not
-# by re-running, so doing one provider at a time keeps that to one provider.
-#
-# Idempotent in that sense -- anything already there is left alone and said so.
+# All four CREATE ONLY: an existing row is left alone, never overwritten. A
+# wrong value is corrected with a PUT, so one provider at a time limits it.
 
-# The network's own keypair. Generated once and reused -- the private halves
-# never leave keys/keys.json, and the public half is what register-network
-# publishes.
+# Generated once and reused. The private halves never leave keys/keys.json.
 keys() {
     preflight
     step 1 1 "keys/keys.json"
@@ -458,9 +430,7 @@ register_network() {
     python3 bin/setup.py register-network
 }
 
-# One upstream, its binding and its capability schema.
-#
-#   make register-provider PROVIDER=mausamgram
+# One upstream, its binding and its schema. PROVIDER=mausamgram.
 register_provider() {
     preflight
     [ -n "${PROVIDER:-}" ] \
@@ -469,12 +439,8 @@ register_provider() {
     python3 bin/setup.py register-provider "$PROVIDER"
 }
 
-# The two settings that decide what gets rendered and what gets started. Asked
-# rather than passed as a variable, because an operator reads a question and
-# guesses a flag.
-#
-# Neither is asked when it was given as an environment variable, or when there
-# is no terminal to answer from -- CI and scripts keep working off .env alone.
+# Asked rather than passed as a flag. Skipped when given as an environment
+# variable, or when there is no terminal -- CI keeps working off .env.
 
 ask_mode() {
     if [ -n "$MODE_GIVEN" ] || [ ! -t 0 ]; then return 0; fi
@@ -513,10 +479,8 @@ ask_crawler() {
     dotenv_set FEDERATION_CRAWL_PEERS "$crawl"
 }
 
-# Render the adapter configs from what the registry now holds, then start the
-# adapters. One command, because a rendered config nothing picked up is a
-# change that silently did not take effect -- which is exactly what the old
-# `make setup` did.
+# Render from what the registry holds, then start the adapters. One command,
+# because a rendered config nothing picked up is a change that did nothing.
 configure_adapter() {
     preflight
     ask_mode
@@ -528,15 +492,11 @@ configure_adapter() {
     printf '\n\033[1;32m==> adapters are up\033[0m\n'
 }
 
-# Generate the federation documents into .well-known/ and serve them through NPM
-# (npm-custom/server_proxy.conf). Each run publishes the next revision.
-# Admitting a peer, and the three things that follow from it. Each is one call
-# to oanfed.py with the flags filled from .env, so an operator names only the
-# peer and what was agreed.
+# Sign the federation documents into .well-known/ and admit another network.
+# Each run of host-descriptor publishes the next revision.
 #
-# PEER, DIRECTION and PACKS come from the environment: make passes them through.
-# RESOLVE and CA_FILE are for two networks on one machine, where the peer's name
-# does not resolve and its certificate is signed by a local CA.
+# PEER, DIRECTION and PACKS come from the environment. RESOLVE and CA_FILE are
+# for two networks on one machine, behind a local CA.
 peer_access() {
     printf '%s' "${RESOLVE:+--resolve $RESOLVE} ${CA_FILE:+--ca-file $CA_FILE} ${SCHEME:+--scheme $SCHEME}"
 }
@@ -556,11 +516,12 @@ admit() {
     preflight
     need_peer admit
     need_direction
-    [ -n "${PACKS:-}" ] || die "which packs? PACKS is a comma-separated list of pack URLs"
+    # With none, oanfed lists what this direction can cover and refuses.
+    #   PACKS=all   everything they publish today, or a comma-separated subset
     step 1 1 "bin/oanfed.py admit -- $DIRECTION, $PEER"
     # shellcheck disable=SC2046
     python3 bin/oanfed.py admit --network-id "$PEER" --direction "$DIRECTION" \
-        --schema-packs "$PACKS" $(peer_access)
+        --schema-packs "${PACKS:-}" --out . $(peer_access)
 }
 
 refresh_peer() {
@@ -657,6 +618,8 @@ bin/stack.sh <command>
   host-descriptor  sign the descriptor, JWKS and schema packs into .well-known/
                    and serve them through nginx-proxy-manager (public, 80/443)
   admit            admit a peer in one direction   PEER= DIRECTION= PACKS=
+                   PACKS is `all` or a comma-separated subset; omit it to be
+                   shown what this direction can cover
   refresh          re-read an admitted peer's documents            PEER=
   suspend          withdraw one direction          PEER= DIRECTION=
   verify           fetch and check a peer's documents, changing nothing   PEER=
