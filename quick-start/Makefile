@@ -40,17 +40,8 @@ observability: ; @$(STACK) observability
 
 # ------------------------------------------------ filling the registry
 #
-# In order. Each is idempotent, so a re-run after fixing one value changes
-# only what was wrong.
-#
-#   make keys
-#   make register-network
-#   make register-provider PROVIDER=mausamgram
-#   make configure-adapter
-#
-# One provider at a time on purpose: this registry cannot update a record, so a
-# wrong base URL burns that participant id permanently. Registering them singly
-# keeps the damage to one provider.
+# In order: keys, register-network, register-provider PROVIDER=, then
+# configure-adapter. One provider at a time keeps a wrong value to one provider.
 
 keys:              ; @$(STACK) keys
 register-network:  ; @$(STACK) register-network
@@ -58,16 +49,11 @@ register-network:  ; @$(STACK) register-network
 # PROVIDER is one of mausamgram, agmarknet, vistaar, pocra.
 register-provider: ; @$(STACK) register-provider
 
-# Renders the adapter configs from the bindings the registry holds, then starts
-# the adapters -- the two together, because a rendered config nothing picked up
-# is a change that silently did not take effect.
+# Renders from the registry's bindings, then starts the adapters -- together,
+# because a rendered config nothing picked up did nothing.
 #
-# Asks for the deployment mode (default single-adapter) and whether to crawl
-# other networks, and writes both back to .env. To answer up front, or from a
-# script:
-#
-#   NETWORK_ADAPTER_DEPLOYMENT_MODE=multi-adapter FEDERATION_CRAWL_PEERS=on \
-#       make configure-adapter
+# Asks for the mode and the crawler, writing both to .env. Answer up front with
+# NETWORK_ADAPTER_DEPLOYMENT_MODE= and FEDERATION_CRAWL_PEERS=.
 configure-adapter: ; @$(STACK) configure-adapter
 
 # ------------------------------------------------------------------ the rest
@@ -75,13 +61,10 @@ configure-adapter: ; @$(STACK) configure-adapter
 # Generate and serve the federation documents. Re-run when the entry changes.
 host-descriptor: ; @$(STACK) host-descriptor
 
-# Admitting another network, one direction at a time. Run it both ways for a
-# pair: admission is our own local decision and says nothing about theirs.
+# One direction at a time, and ours says nothing about theirs -- run it both
+# ways for a pair. RESOLVE and CA_FILE are for two networks on one machine.
 #
-#   make admit PEER=net-b.oan.local DIRECTION=source PACKS=https://.../attributes.yaml
-#
-# RESOLVE and CA_FILE are for two networks on one machine, where the peer's
-# name does not resolve and its certificate comes from a local CA.
+#   make admit PEER=net-b.oan.local DIRECTION=source PACKS=all
 admit:         ; @$(STACK) admit
 refresh:       ; @$(STACK) refresh
 suspend:       ; @$(STACK) suspend

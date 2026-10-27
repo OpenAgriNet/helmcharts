@@ -49,12 +49,8 @@ plugins:
       retry_wait_max: 500ms
       maxResponseBytes: 1048576
 
-  # The crawler. One per deployment and app-level, because it is a background
-  # pass rather than something a request reaches.
-  #
-  # No dbDsn: a database is only needed by work that keeps a record between
-  # passes, and crawling other networks keeps none. Publish pipelines do, and
-  # add it when they arrive.
+  # The crawler: a background pass, not something a request reaches.
+  # No dbDsn -- nothing here keeps a record between runs.
   crawler:
     id: catalogcrawler
     config:
@@ -80,10 +76,8 @@ plugins:
       federationIntent: '__FEDERATION_INTENT__'
 
 modules:
-  # consumer-adapter: this deployment's OWN callers, never another network's --
-  # it checks no signature. Not public: the edge denies /consumer. The app calls
-  # /consumer/<action>; discover goes to /network, transactions to /provider
-  # (routing-network-adapter-consumer.yaml).
+  # consumer-adapter: our own app, never another network's. Checks no
+  # signature, so the edge never exposes it.
   - name: consumer-adapter
     path: /consumer/
     handler:
@@ -141,10 +135,8 @@ modules:
         - addRoute
         - sign
 
-  # network-adapter: the door another network calls. PUBLIC, and the one
-  # NETWORK_BASE_URL names, so the descriptor advertises a path that checks the
-  # signature and the agreement. Forwards discover and publish to discovery
-  # (routing-network.yaml).
+  # network-adapter: the door another network calls. Checks the signature and
+  # the agreement, then forwards discover and publish to discovery.
   - name: network-adapter
     path: /network/
     handler:
@@ -204,9 +196,8 @@ modules:
         - checkCrossNetworkRequester
         - addRoute
 
-  # oanProvider: answers from the upstream APIs itself (no router). PUBLIC --
-  # another network's select lands here, and it checks the signature and the
-  # agreement before answering.
+  # oanProvider: another network's select lands here. Checks the signature and
+  # the agreement, then answers from the upstream APIs.
   - name: oanProvider
     path: /provider/
     handler:
@@ -263,9 +254,8 @@ modules:
             negativeTTL: 1m
             maxMappingBytes: 262144
             maxCacheEntries: 200
-        # One entry per provider the registry holds a binding for, assembled
-        # from config/adapters/providers/<provider>.yaml.tmpl. A provider that
-        # was never registered contributes nothing here and answers nothing.
+        # One per provider the registry holds a binding for, assembled from
+        # config/adapters/providers/<provider>.yaml.tmpl.
         providerSteps:
 __PROVIDER_STEPS__
       steps:

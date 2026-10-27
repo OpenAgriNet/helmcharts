@@ -103,26 +103,12 @@ def is_placeholder(value):
 PLACEHOLDER_WHY = """\
   Fill it in in .env, then re-run. Nothing has been written yet.
 
-  This is refused rather than passed through because these commands create
-  only: a placeholder written now is not corrected by re-running. Fixing it
-  afterwards means a PUT against the stored row, which is a deliberate act
-  nobody is prompted to perform -- so the wrong value sits there being used."""
+  Refused rather than passed through: these commands create only, so a
+  placeholder written now is not corrected by re-running."""
 
 
-# Each provider this stack can serve, keyed by the name `register-provider`
-# takes. The prefix is the .env variable family; everything else is what the
-# registry rows need and the fragment in config/adapters/providers/ cannot
-# carry -- the display name, the capability's own name and version, and the
-# HTTP method the upstream answers.
-#
-# method is per provider because it is the provider's contract, not a network
-# convention: Mausamgram and Agmarknet answer a GET whose query the mapping
-# builds, while the knowledge provider and POCRA take a POST with a JSON body.
-#
-# The capability name and version are per capability rather than one setting
-# for all of them, because a capability can move to v0.2 while the others stay
-# -- that is the point of versioning the packs separately. The display name
-# mirrors the pack's own info.title, minus its "OpenAgriNet -" framing.
+# Every provider this stack can serve, keyed by the name register-provider
+# takes. method is the provider's contract: some answer a GET, some a POST.
 PROVIDERS = {
     "mausamgram": {
         "prefix": "MAUSAMGRAM", "name": "IMD Mausamgram NWP",
@@ -158,12 +144,8 @@ def network_requirements():
 
 
 def provider_requirements(name):
-    """What that one provider needs filled in before anything is written.
-
-    Its credential variables are in the list even though no credential is ever
-    stored in the registry: they are rendered into the adapter config by name,
-    and finding a placeholder there AFTER the provider is registered means the
-    row cannot be corrected -- this registry has no update."""
+    """What this provider needs filled in before anything is written. Its
+    credential variables are here too, so a placeholder is caught before the row."""
     p = PROVIDERS[name]
     keys = [f"{p['prefix']}_{s}" for s in
             ("PARTICIPANT_ID", "CAPABILITY", "BASE_URL", "MAPPING_URL")]
@@ -413,11 +395,8 @@ def ensure_participant(participant_id, payload):
 
 
 def register_network(identity):
-    """Our own entry: one node, shared by all three adapters.
-
-    The registry is not reachable from outside this stack -- no published port
-    beyond loopback and no proxy host in front of it -- so this is the only
-    place it can be written from."""
+    """Our own entry: one node, shared by all three adapters. The registry is
+    loopback-only, so this is the only place it can be written from."""
     wait_for_registry()
     print("registry: our network identity")
     ensure_participant(identity["participantId"],
@@ -431,16 +410,9 @@ def register_network(identity):
 
 
 def register_provider(name):
-    """One upstream, the capability it answers, and what that capability means.
-
-    Three rows, written together because a provider with no binding answers
-    nothing and a binding naming no schema resolves to no pack. Nothing here is
-    a mock: every base URL comes from .env and the stack needs egress to it.
-
-    Repointing one later takes a NEW participant id -- the registry cannot
-    update a row and its delete is soft and keeps the unique index, so an id
-    seeded against one base URL keeps that base URL for good. A re-run with the
-    same id prints "already present" and changes nothing."""
+    """One upstream, its binding and its schema. Three rows together: a provider
+    with no binding answers nothing, and a binding with no schema resolves to
+    no pack. A re-run with the same id changes nothing."""
     p = PROVIDERS[name]
     require(provider_requirements(name))
     wait_for_registry()
@@ -493,17 +465,8 @@ def key_osid(identity):
 
 
 def registered_providers():
-    """Which providers the registry actually holds a binding for.
-
-    The rows are the source of truth, not .env: a provider named in .env but
-    never registered answers nothing, and rendering a block for it would give
-    the adapter a capability the registry cannot resolve. The participant id is
-    what ties a row back to a provider, since that is the half of the binding
-    key .env supplies.
-
-    Returns one entry per row, carrying the binding key as the REGISTRY spells
-    it -- so the key the adapter is configured with and the key it is called
-    with are the same string by construction."""
+    """The providers the registry holds a binding for, carrying the key as the
+    REGISTRY spells it -- so the adapter and the caller use the same string."""
     by_participant = {env(f"{p['prefix']}_PARTICIPANT_ID", ""): name
                       for name, p in PROVIDERS.items()}
     found = []
@@ -518,12 +481,8 @@ def registered_providers():
 
 
 def provider_steps(providers):
-    """The providerSteps entries and their names, assembled from the fragments.
-
-    One fragment per provider, because the auth block differs per provider and
-    is the one thing the registry deliberately does not hold -- it stores no
-    credential, so the shape of the call lives here and the secret stays in the
-    environment."""
+    """The providerSteps entries and their names, one fragment per provider --
+    the auth shape is the one thing the registry does not hold."""
     blocks, ids = [], []
     for name, binding, participant in providers:
         fragment = (ADAPTERS / "providers" / f"{name}.yaml.tmpl").read_text()
@@ -585,13 +544,8 @@ def configure_adapter(identity):
                 # and reach the adapter through its environment.
                 ("__AGMARKNET_TOKEN_URL__", env("AGMARKNET_TOKEN_URL", "")),
                 ("__VISTAAR_TOKEN_URL__", env("VISTAAR_TOKEN_URL", "")),
-                # The crawler. Only the network-adapter templates carry these;
-                # replacing a placeholder no template holds costs nothing.
-                #
-                # Where a crawled catalog is published: the network tier's
-                # own publish action, the same address in both modes now that
-                # the mount is /network/ in each. A crawled catalog takes the
-                # same path as a local one.
+                # The crawler, on the network-adapter templates only. A
+                # crawled catalog is published the same way a local one is.
                 ("__DISCOVERY_PUSH_URL__", "http://localhost:9201/network/publish"),
                 # on/off in .env, true/false in the config.
                 ("__FEDERATION_ENABLED__",

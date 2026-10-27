@@ -523,6 +523,9 @@ def cmd_verify(args):
     print(f"  discovery  {(descriptor.get('services') or {}).get('discovery')}")
     print(f"  keys       {len(keyset.get('keys', []))} published")
     print(f"  packs      {len(packs)} at {descriptor['schemaPacks']}")
+    for pack in packs:
+        print(f"    {pack}")
+    print("  these are what you may name in PACKS when you admit them as a source.")
     print("  this proves the documents are self-consistent, NOT that the network "
           "should be trusted -- admission is that decision")
     return 0
@@ -575,13 +578,8 @@ class Registry(ReadOnlyRegistry):
 
 
 def open_registry():
-    """Our registry, and our own id.
-
-    From the environment when it carries both: a cluster Job has no .env and no
-    setup.py beside it. Otherwise from quick-start's setup.py, which is where
-    the address and the id already live for a compose stack.
-
-    Reached from inside the deployment only, so no credential either way."""
+    """Our registry and our own id, from the environment when it carries both --
+    a cluster Job has no .env -- otherwise from quick-start's setup.py."""
     url, own = os.environ.get("REGISTRY_URL"), os.environ.get("BECKN_NETWORK_ID")
     if url and own:
         return Registry(url, own)
@@ -666,16 +664,44 @@ def file_peer(registry, descriptor, keyset):
     return stored
 
 
+def our_schema_packs(args):
+    """The packs WE publish, from the document another network reads -- not our
+    registry, which holds a row before anyone has been told about it."""
+    path = pathlib.Path(args.out) / ".well-known" / "schema-packs.json"
+    if not path.is_file():
+        raise FederationError(
+            f"{path} does not exist, so this network publishes nothing to agree about.\n"
+            f"  Run `make host-descriptor` first: a requester agreement covers the packs\n"
+            f"  in the document the other network reads, not the rows in our registry.")
+    try:
+        served = json.loads(path.read_text()).get("schemaPacks")
+    except json.JSONDecodeError as err:
+        raise FederationError(f"parsing {path}: {err}") from err
+    return validate_schema_packs(served)
+
+
 def cmd_admit(args):
     """Admit a peer in one direction, after fetching and verifying its documents."""
     descriptor, keyset, published = fetcher_from(args).fetch(args.network_id)
     if descriptor["status"] != "Active":
         raise FederationError(f"{args.network_id} declares itself {descriptor['status']}")
-    packs = sorted({p.strip() for p in args.schema_packs.split(",") if p.strip()})
-    if not packs:
-        raise FederationError("name at least one schema pack the agreement covers")
     registry = peer_registry(args.network_id)
-    offered = published if args.direction == "source" else registry.schema_packs()
+    # What can be agreed here, and both sides are a DOCUMENT: theirs when we
+    # read from them, ours when they ask us.
+    offered = published if args.direction == "source" else our_schema_packs(args)
+
+    packs = sorted({p.strip() for p in args.schema_packs.split(",") if p.strip()})
+    if packs == ["all"]:
+        # A snapshot: what they publish TODAY. Re-run to take in a new pack,
+        # because an agreement that silently widened would not be one.
+        packs = sorted(offered)
+        print(f"all: {len(packs)} pack(s) {args.network_id} publishes today")
+    if not packs:
+        whose = args.network_id if args.direction == "source" else "this network"
+        lines = [f"name the packs this agreement covers, or `all` for every one of them.",
+                 f"", f"  {whose} publishes {len(offered)}:"]
+        lines += [f"    {p}" for p in sorted(offered)] or ["    (none)"]
+        raise FederationError("\n".join(lines))
     outside = sorted(set(packs) - set(offered))
     if outside:
         whose = args.network_id if args.direction == "source" else "this network"
@@ -783,7 +809,11 @@ def main(argv=None):
     admit.add_argument("--network-id", required=True, help="the peer, by its domain")
     admit.add_argument("--direction", required=True, choices=DIRECTIONS,
                        help="source: we read from it; requester: it may read from us")
-    admit.add_argument("--schema-packs", required=True,
+    admit.add_argument("--out", default=".",
+                       help="where host-descriptor wrote .well-known/. A requester "
+                            "agreement covers the packs in that document, not the "
+                            "rows in our registry")
+    admit.add_argument("--schema-packs", default="",
                        help="comma-separated pack URLs the agreement covers")
     add_peer_access(admit)
     admit.set_defaults(run=cmd_admit)

@@ -47,12 +47,8 @@ plugins:
       retry_wait_max: 500ms
       maxResponseBytes: 1048576
 
-  # The crawler. One per deployment and app-level, because it is a background
-  # pass rather than something a request reaches.
-  #
-  # No dbDsn: a database is only needed by work that keeps a record between
-  # passes, and crawling other networks keeps none. Publish pipelines do, and
-  # add it when they arrive.
+  # The crawler: a background pass, not something a request reaches.
+  # No dbDsn -- nothing here keeps a record between runs.
   crawler:
     id: catalogcrawler
     config:
@@ -149,9 +145,8 @@ modules:
           config:
             routingConfig: /app/config/routing-network.yaml
 
-      # This tier is a door: it checks the signature and the agreement, then
-      # routes. validateSchema is not listed, so it enforces no payload shape
-      # at all -- the tier that answers does that.
+      # A door: checks the signature and the agreement, then routes. No
+      # validateSchema -- the tier that answers does that.
       steps:
         - validateSign
         - checkCrossNetworkRequester

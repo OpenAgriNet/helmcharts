@@ -103,9 +103,8 @@ modules:
           config:
             routingConfig: /app/config/routing-consumer.yaml
 
-      # We sign what we forward, and check nothing inbound: the experience
-      # app calling this is inside the trust boundary, so there is no network
-      # signature to check. The tier it forwards to does check ours.
+      # We sign what we forward and check nothing inbound: our own app calls
+      # this. The tier it forwards to does check our signature.
       steps:
         - validateSchema
         - addRoute
