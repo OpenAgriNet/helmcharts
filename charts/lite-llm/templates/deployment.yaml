@@ -1,0 +1,82 @@
+apiVersion: {{ include "common.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include "model-gateway.fullname" . }}
+  labels:
+    {{- include "model-gateway.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "model-gateway.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "model-gateway.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/env-config: {{ include "common.checksumAnnotation" . }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- /* A rolling update cuts whatever a terminating pod is still writing,
+             and the composer's answer is streamed token by token. The grace
+             period lets an answer in flight finish rather than stopping
+             mid-sentence in front of a farmer. */}}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- if .Values.serviceAccount.enabled }}
+      serviceAccountName: {{ include "model-gateway.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- end }}
+      {{- with (include "common.imagePullSecrets" . | trim) }}
+      {{- . | nindent 6 }}
+      {{- end }}
+      {{- with (include "common.podSecurityContext" .) }}
+      securityContext:
+        {{- . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ include "model-gateway.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with (include "common.securityContext" .) }}
+          securityContext:
+            {{- . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          env:
+            {{- include "model-gateway.env" . | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "model-gateway.envConfigMapName" . }}
+            {{- range .Values.envFromSecrets }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
+          {{- with (include "common.probes" . | trim) }}
+          {{- . | nindent 10 }}
+          {{- end }}
+          resources:
+            {{- include "common.resources" . | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

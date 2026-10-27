@@ -1,0 +1,48 @@
+# Enough for `helm lint --strict` and `helm template` to render everything.
+# Secret names here are fictional: the chart only references Secrets, never
+# renders them.
+database:
+  urlSecret:
+    name: model-gateway-db-app
+masterKeySecret:
+  name: model-gateway-master-key
+saltKeySecret:
+  name: model-gateway-salt-key
+
+redis:
+  host: model-gateway-redis
+
+credentials:
+  - name: azure-oan
+    description: Azure OpenAI, OAN account
+    secretName: model-gateway-azure
+    keys:
+      api_key: AZURE_OPENAI_API_KEY
+    values:
+      api_base: https://example.services.ai.azure.com/openai/v1
+
+models:
+  - name: dss-intent
+    model: openai/gpt-5.6-luna
+    credential: azure-oan
+    inputCostPerToken: 0.00000015
+    outputCostPerToken: 0.00000060
+  - name: dss-moderation
+    model: openai/gpt-5.6-luna
+    credential: azure-oan
+    inputCostPerToken: 0.00000015
+    outputCostPerToken: 0.00000060
+  - name: dss-planner
+    model: openai/gpt-5.6-luna
+    credential: azure-oan
+    inputCostPerToken: 0.00000015
+    outputCostPerToken: 0.00000060
+  - name: dss-composer
+    model: openai/gpt-5.6-luna
+    credential: azure-oan
+    inputCostPerToken: 0.00000015
+    outputCostPerToken: 0.00000060
+
+otel:
+  enabled: true
+  endpoint: http://otel-collector:4318/v1/traces

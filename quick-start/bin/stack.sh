@@ -3,7 +3,7 @@
 # Bring the stack up in the order it has to come up in, and take it back down.
 #
 #     bin/stack.sh up            the whole stack, in the order it has to start
-#     bin/stack.sh up-core       the same minus the gateway and hyperdx
+#     bin/stack.sh up-core       the same minus the gateway and observability
 #     bin/stack.sh down          stop everything, keep the data
 #     bin/stack.sh destroy       stop everything, DELETE the data
 #
@@ -30,11 +30,57 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-# Both optional profiles, named explicitly. This matters for `down`: compose
+# Every optional profile, named explicitly. This matters for `down`: compose
 # only acts on services whose profile is active, so a plain `docker compose
-# down` leaves the gateway and hyperdx containers running and then reports
-# success. Naming them on teardown is what makes "down" mean down.
-PROFILES=(--profile reverse-proxy --profile observability)
+# down` leaves the gateway, observability and multi-adapter containers running
+# and then reports success. Naming them on teardown is what makes "down" mean down.
+PROFILES=(--profile reverse-proxy --profile observability --profile multi-adapter)
+
+# Deployment mode for `up`: NETWORK_ADAPTER_DEPLOYMENT_MODE from the shell, else .env, else
+# single-adapter (ADR-0001).
+# Other commands keep the running mode so depends_on never swaps network-adapter's config.
+
+# A key's value in .env (quotes, inline comment and CR stripped); empty if absent.
+dotenv_get() {
+    local v
+    v=$(grep -E "^$1=" .env 2>/dev/null | tail -1 | cut -d= -f2-) || true
+    v=${v%%#*}
+    printf '%s' "$v" | tr -d '"'"'"' \t\r'
+}
+
+# Running mode, from the config network-adapter mounts; empty if not running.
+running_mode() {
+    [ "$(docker inspect -f '{{.State.Running}}' network-adapter 2>/dev/null)" = true ] || return 0
+    case "$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/app/config/adapter.yaml"}}{{.Source}}{{end}}{{end}}' network-adapter 2>/dev/null)" in
+        */multi-adapter/*) echo multi-adapter ;;
+        *) echo single-adapter ;;
+    esac
+}
+
+MODE="${NETWORK_ADAPTER_DEPLOYMENT_MODE:-$(dotenv_get NETWORK_ADAPTER_DEPLOYMENT_MODE)}"
+MODE="${MODE:-single-adapter}"
+case "$MODE" in single|multi) MODE="$MODE-adapter" ;; esac   # old values still accepted
+RUNNING_MODE="$(running_mode)"
+
+# compose mounts config/adapters/<mode>/network-adapter.yaml from this variable.
+export NETWORK_ADAPTER_DEPLOYMENT_MODE="${RUNNING_MODE:-$MODE}"
+check_mode() {
+    case "$MODE" in single-adapter|multi-adapter) ;; *) die "NETWORK_ADAPTER_DEPLOYMENT_MODE must be single-adapter or multi-adapter, not '$MODE'" ;; esac
+}
+
+adapters_for() { # $1 mode
+    case "$1" in
+        single-adapter) echo network-adapter ;;
+        multi-adapter)  echo provider-adapter network-adapter consumer-adapter ;;
+    esac
+}
+# The rendered config files (config/adapters/<path>.yaml) a deployment mode mounts.
+configs_for() { # $1 mode
+    case "$1" in
+        single-adapter) echo single-adapter/network-adapter ;;
+        multi-adapter)  echo multi-adapter/provider-adapter multi-adapter/network-adapter multi-adapter/consumer-adapter ;;
+    esac
+}
 
 # ------------------------------------------------------------------ output
 
@@ -62,18 +108,31 @@ preflight() {
 
     python3 -c 'import cryptography' >/dev/null 2>&1 \
         || die "the python 'cryptography' package is missing -- pip install cryptography"
+
+    # Grafana's alerting mount is ./config/grafana/alerting-<this value>, and
+    # only alerting-true and alerting-false exist. Anything else (True, 1, yes)
+    # is not an error to Docker: it creates an empty alerting-True/ and Grafana
+    # silently loads no rules. The shell environment wins over .env, as it does
+    # for compose.
+    local alerting="${GRAFANA_ALERTING_ENABLED:-$(sed -n 's/^GRAFANA_ALERTING_ENABLED=//p' .env | tail -n 1 | tr -d "\"'")}"
+    case "${alerting:-true}" in
+        true|false) ;;
+        *) die "GRAFANA_ALERTING_ENABLED must be exactly true or false, not '$alerting'" ;;
+    esac
 }
 
 # ------------------------------------------------------------------- up
 
 # The full stack, in the order the compose file's own header documents. Five
-# steps rather than three: the gateway and hyperdx are behind profiles, which
-# means they are opt-in for compose, but "opt-in" and "not part of bringing the
-# stack up" are different claims and only the first one is true.
+# steps rather than three: the gateway and the observability profile are
+# behind profiles, which means they are opt-in for compose, but "opt-in" and
+# "not part of bringing the stack up" are different claims and only the first
+# one is true.
 #
 # `up-core` below is the same thing minus steps 4 and 5, for when you want
 # neither a public port nor ClickHouse's memory.
 up() {
+    check_mode
     preflight
     up_registry_tier 5
     up_setup         5
@@ -85,10 +144,11 @@ up() {
     step 4 5 "nginx-proxy-manager -- the public edge (80 and 443, all interfaces)"
     docker compose --profile reverse-proxy up -d nginx-proxy-manager
 
-    # ClickStack. Heaviest thing here by a wide margin: ClickHouse alone wants
-    # 2-4 GB, which is what takes this VM from 8 GB to 16 GB.
-    step 5 5 "hyperdx -- ClickStack (OTLP ingest, ClickHouse, UI)"
-    docker compose --profile observability up -d hyperdx
+    # ClickHouse, the collector, and Grafana. Heaviest thing here by a wide
+    # margin: ClickHouse alone wants 2-4 GB, which is what takes this VM from
+    # 8 GB to 16 GB.
+    step 5 5 "clickhouse, otel-collector, grafana -- OTLP ingest, storage, UI"
+    docker compose --profile observability up -d clickhouse otel-collector grafana
 
     done_banner
 }
@@ -97,6 +157,7 @@ up() {
 # 16 GB -- this is the stack you can actually exercise, which is the reason the
 # profiles exist in the first place.
 up_core() {
+    check_mode
     preflight
     up_registry_tier 3
     up_setup         3
@@ -125,7 +186,7 @@ up_registry_tier() {
 }
 
 # Generates the adapter keypairs, registers the three adapter identities, and
-# renders config/adapters/{provider,network,consumer}.yaml from the .tmpl files
+# renders config/adapters/{multi-adapter,single-adapter}/*.yaml from the .tmpl files
 # beside them. Safe to re-run: keys come from keys/keys.json once it exists,
 # and participants already registered are left alone.
 up_setup() {
@@ -142,8 +203,33 @@ up_adapters() {
     # debugging a mapping without the real credentials -- but that also needs a
     # new participant id and base URL in .env plus a setup.py re-run, because
     # the registry cannot repoint an existing row.
-    step 3 "$1" "adapters (provider, network, consumer)"
-    docker compose up -d provider-adapter network-adapter consumer-adapter
+    check_mode
+    local f
+    # `up` starts the requested mode, not the running one.
+    NETWORK_ADAPTER_DEPLOYMENT_MODE="$MODE"
+    step 3 "$1" "adapters, mode $MODE ($(adapters_for "$MODE"))"
+    # A pre-merge stack's network-adapter container (service network-adapter-layer)
+    # is unknown to compose and would clash by name.
+    if [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' network-adapter 2>/dev/null)" = network-adapter-layer ]; then
+        docker rm -f network-adapter >/dev/null
+    fi
+    # Single runs network-adapter alone: remove the multi-only adapters.
+    if [ "$MODE" = single-adapter ]; then
+        docker compose --profile multi-adapter rm -sf provider-adapter consumer-adapter >/dev/null 2>&1 || true
+    fi
+    # Never let compose create a directory where a bind-mounted config belongs.
+    for f in $(configs_for "$MODE"); do
+        [ -f "config/adapters/$f.yaml" ] \
+            || die "config/adapters/$f.yaml was not rendered (a directory there? rm -r it, then re-run)"
+    done
+    # shellcheck disable=SC2046
+    docker compose --profile multi-adapter up -d --force-recreate $(adapters_for "$MODE")
+    # NPM resolves adapter names when nginx loads and caches the addresses, so
+    # a recreated or switched adapter 502s through it until it restarts.
+    if [ "$(docker inspect -f '{{.State.Running}}' nginx-proxy-manager 2>/dev/null)" = true ]; then
+        info "restarting nginx-proxy-manager so it re-resolves the adapter addresses"
+        docker compose --profile reverse-proxy restart nginx-proxy-manager >/dev/null
+    fi
 }
 
 done_banner() {
@@ -192,7 +278,8 @@ This deletes every named volume in the project:
                    it up, the click-through starts over.
   sunbird-registry-postgres-data    the registry's Postgres: participants, keys, schemas.
   discovery-postgres-data   the discovery catalogue.
-  hyperdx-clickhouse-data     collected telemetry.
+  clickhouse-data     collected telemetry.
+  grafana-data        Grafana's own settings and dashboards (not telemetry).
 
 keys/keys.json is NOT deleted, and should not be -- it is what lets setup.py
 re-register the adapters under their existing identities on the next `up`.
@@ -211,7 +298,7 @@ WARN
 # ------------------------------------------------------- optional tiers
 
 # Separate targets rather than part of `up` because neither is needed to
-# exercise the stack, and hyperdx (ClickHouse) alone wants 2-4 GB.
+# exercise the stack, and ClickHouse alone wants 2-4 GB.
 reverse_proxy() {
     preflight
     step 1 1 "nginx-proxy-manager -- publishes 80 and 443 on ALL interfaces"
@@ -228,9 +315,9 @@ NEXT
 
 observability() {
     preflight
-    step 1 1 "hyperdx -- ClickStack (OTLP ingest, ClickHouse, UI)"
-    docker compose --profile observability up -d hyperdx
-    info "UI on 127.0.0.1:8085. There is no login in front of it -- keep it on loopback."
+    step 1 1 "clickhouse, otel-collector, grafana -- OTLP ingest, storage, UI"
+    docker compose --profile observability up -d clickhouse otel-collector grafana
+    info "UI on 127.0.0.1:8085. Grafana has its own login (GF_SECURITY_ADMIN_USER/PASSWORD) -- change it before exposing this, and keep it on loopback or behind an NPM Access List regardless."
 }
 
 # ------------------------------------------------------------------ pull
@@ -282,7 +369,6 @@ NEXT
 # It also excludes nginx-proxy-manager, whose routing table lives in a SQLite
 # database rather than in anything a restart would re-read. `restart-edge` is
 # the separate target for the one case that does need it.
-APP_SERVICES=(registry discovery provider-adapter network-adapter consumer-adapter)
 
 # `restart`, not `up -d --force-recreate`. A restart keeps the container and
 # therefore its address, so NPM's cached proxy_pass targets stay valid -- a
@@ -294,10 +380,13 @@ APP_SERVICES=(registry discovery provider-adapter network-adapter consumer-adapt
 # up is a changed image or a changed environment, both of which need the
 # container recreated -- use `make up` for those.
 restart_app() {
-    step 1 1 "restarting registry, discovery and the three adapters"
+    [ -n "$RUNNING_MODE" ] && MODE=$RUNNING_MODE
+    check_mode
+    step 1 1 "restarting registry, discovery and the $MODE-mode adapters"
     info "keycloak, both databases and the edge are left alone"
-    docker compose restart "${APP_SERVICES[@]}"
-    docker compose ps --format 'table {{.Service}}\t{{.Status}}'
+    # shellcheck disable=SC2046
+    docker compose --profile multi-adapter restart sunbird-registry-service discovery-service $(adapters_for "$MODE")
+    docker compose --profile multi-adapter ps --format 'table {{.Service}}\t{{.Status}}'
 }
 
 # ----------------------------------------------------------------- misc
@@ -325,13 +414,16 @@ usage() {
 bin/stack.sh <command>
 
   up             the whole stack: registry+discovery -> setup.py -> adapters
-                 -> gateway (public, 80/443) -> hyperdx (wants 16 GB)
+                 (network-adapter, or all three in multi-adapter)
+                 -> gateway (public, 80/443) -> observability (wants 16 GB)
   up-core        steps 1-3 only. Nothing public, no ClickHouse.
+                 (without a flag: MODE, else NETWORK_ADAPTER_DEPLOYMENT_MODE in
+                 .env, else single-adapter; restart follows the running mode)
   down           stop everything, keep the data
   destroy        stop everything and DELETE every volume
   setup          re-run bin/setup.py only
   reverse-proxy  start nginx-proxy-manager on its own (public, 80/443)
-  observability  start hyperdx on its own
+  observability  start clickhouse, otel-collector and grafana on their own
   pull           git pull, fixing the npm-custom ownership first
   restart        restart registry, discovery and the adapters only
   restart-edge   restart NPM after recreating an adapter (fixes a 502)
@@ -341,6 +433,8 @@ bin/stack.sh <command>
 USAGE
 }
 
+# Every command takes no arguments except logs; an extra one is a mistake, not a mode.
+[ $# -le 1 ] || [ "${1:-}" = logs ] || { usage; die "unexpected argument: $2"; }
 case "${1:-}" in
     up)             up ;;
     up-core)        up_core ;;

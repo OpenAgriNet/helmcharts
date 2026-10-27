@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "model-gateway.fullname" . }}-test-connection"
+  labels:
+    {{- include "model-gateway.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: readiness
+      image: {{ printf "%s:%s" .Values.reconcile.image.repository .Values.reconcile.image.tag | quote }}
+      command:
+        - python
+        - -c
+        - |
+          import json, urllib.request
+          url = "{{ include "model-gateway.internalURL" . }}/health/readiness"
+          with urllib.request.urlopen(url, timeout=10) as r:
+              body = json.load(r)
+          print(body)
+          assert body.get("status") == "healthy", body
+          assert body.get("db") == "connected", "the gateway is up but its database is not"

@@ -10,6 +10,8 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`template`](charts/template) | application | Complete, working starter chart built on `common`. Copy it to bootstrap a service chart. |
 | [`postgresql-cnpg`](charts/postgresql-cnpg) | application | CloudNativePG-managed PostgreSQL cluster. One release per database. Requires the CNPG operator. |
 | [`postgresql-migration`](charts/postgresql-migration) | application | Flyway migrations as a Job. Creates the per-service databases and applies versioned SQL. |
+| [`qdrant`](charts/qdrant) | application | Single-node Qdrant — shared vector-index infrastructure. Currently used by `knowledge-provider` as its DEV vector store. |
+| [`minio`](charts/minio) | application | Single-node MinIO — shared blob-storage infrastructure. Currently used by `knowledge-provider`. |
 | [`keycloak`](charts/keycloak) | application | Auth for the registry, on the Sunbird RC Keycloak image. Imports the realm the registry expects. |
 | [`registry`](charts/registry) | application | The OAN participant registry, on Sunbird RC core. Needs `postgresql-cnpg` and `keycloak`. |
 | [`discovery`](charts/discovery) | application | The OAN Beckn discover-and-publish service. Needs `postgresql-cnpg` **with pgvector**. |
@@ -22,6 +24,9 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`openbao`](charts/openbao) | application | The secret store. The official `openbao` chart 0.29.6 (OpenBao v2.6.3) committed whole and unmodified; OAN's settings are in `examples/openbao.dev.yaml` (one pod) and `examples/openbao.prod.yaml` (three-pod raft cluster). |
 | [`openbao-cluster-secret-store`](charts/openbao-cluster-secret-store) | application | The `ClusterSecretStore` that lets External Secrets Operator read OpenBao, logging in with Kubernetes auth. |
 | [`openbao-secrets`](charts/openbao-secrets) | application | One `ExternalSecret` per credential: pulls `oan/<env>/<name>` from OpenBao into a Secret and mirrors it, via Reflector, to the namespaces that read it. |
+| [`grafana`](charts/grafana) | application | Grafana — dashboards and Explore over the OTel data in ClickHouse. The official `grafana` chart 13.2.6 (Grafana 13.2.2, from `grafana-community`) committed whole and unmodified. |
+| [`opentelemetry-collector`](charts/opentelemetry-collector) | application | The OTel Collector — receives OTLP from the services and collects pod logs and kubelet metrics, writing all of it to ClickHouse. The official `opentelemetry-collector` chart 0.173.1 (collector 0.160.0) committed whole and unmodified. |
+| [`grafana-provisioning`](charts/grafana-provisioning) | application | OAN's Grafana content — the OAN Alerts, discovery overview, Network API, Providers and Infra dashboards, the functional alert rules and Slack routing — as ConfigMaps the `grafana` chart's sidecars load. The same files as the quick-start. |
 
 ## How they fit together
 
@@ -31,6 +36,8 @@ charts/
 ├── template/        # starter chart — copy this to build a service chart
 ├── postgresql-cnpg/     # data store
 ├── postgresql-migration/# schema migrations (Flyway Job)
+├── qdrant/               # shared vector-index infrastructure
+├── minio/                # shared blob-storage infrastructure
 ├── keycloak/            # auth for the registry
 ├── registry/            # the participant registry
 ├── registry-seed/       # seeds it, as a Job
@@ -43,14 +50,18 @@ charts/
 ├── openbao/             # the secret store — vendored upstream
 ├── openbao-cluster-secret-store/ # how ESO reads it
 └── openbao-secrets/     # what ESO reads from it
+└── grafana/             # dashboards over ClickHouse — vendored upstream
+├── opentelemetry-collector/ # telemetry into ClickHouse — vendored upstream
+└── grafana-provisioning/ # dashboards and alerts for grafana, loaded by its sidecars
 ```
 
 Every chart depends on `common` via `file://../common`, except `clickstack`,
-`kong`, `cert-manager` and `openbao`: all four are official upstream charts committed
-unmodified, so they carry neither the dependency nor the conventions. Each
-README lists what that leaves to override. `cert-manager-issuers` also skips it,
-for a different reason — it renders two custom resources and no workload, so
-none of the library's helpers apply.
+`kong`, `cert-manager`, `openbao`, `langfuse`, `grafana` and `opentelemetry-collector`: all seven are
+official upstream charts committed unmodified, so they carry neither the
+dependency nor the conventions. Each README lists what that leaves to override.
+`cert-manager-issuers` and `grafana-provisioning` also skip it, for a different
+reason — they render configuration and no workload, so none of the library's
+helpers apply.
 
 ## The registry stack
 
