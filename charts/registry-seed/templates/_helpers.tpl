@@ -65,7 +65,9 @@ new id. That makes a render-time refusal much cheaper than a successful write.
        the shape <...>/publish/<source>.yaml, pinned to a commit SHA. A branch URL
        is refused unless allowUnpinnedPipeline is set, because every push to a
        branch then changes what the running adapters execute -- and this registry
-       cannot be corrected afterwards. */}}
+       cannot be corrected afterwards. The shape regex mirrors PublishMappingPath in
+       charts/registry/files/schemas/ProviderSchema.json, minus its (?!.*\.\.)
+       guard (Go regexp has no lookahead); change the two together. */}}
 {{- if .publishPipelineUrl }}
 {{- if not (regexMatch "^https://[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%%-]+)*/publish/[A-Za-z0-9._~%%-]+\\.ya?ml$" .publishPipelineUrl) }}
 {{- fail (printf "%s: binding %q publishPipelineUrl %q is not an https URL of the form <...>/publish/<source>.yaml, which is what the registry's ProviderSchema accepts for a publish action" $root.Chart.Name .capability .publishPipelineUrl) }}
