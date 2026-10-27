@@ -9,7 +9,7 @@
 
     "SchemaRegistry": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": ["capabilityCode", "name", "version", "schemaUrl", "status"],
       "properties": {
         "capabilityCode": { "$ref": "#/definitions/CapabilityCode" },
