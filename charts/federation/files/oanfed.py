@@ -523,6 +523,9 @@ def cmd_verify(args):
     print(f"  discovery  {(descriptor.get('services') or {}).get('discovery')}")
     print(f"  keys       {len(keyset.get('keys', []))} published")
     print(f"  packs      {len(packs)} at {descriptor['schemaPacks']}")
+    for pack in packs:
+        print(f"    {pack}")
+    print("  these are what you may name in PACKS when you admit them as a source.")
     print("  this proves the documents are self-consistent, NOT that the network "
           "should be trusted -- admission is that decision")
     return 0
@@ -671,11 +674,25 @@ def cmd_admit(args):
     descriptor, keyset, published = fetcher_from(args).fetch(args.network_id)
     if descriptor["status"] != "Active":
         raise FederationError(f"{args.network_id} declares itself {descriptor['status']}")
-    packs = sorted({p.strip() for p in args.schema_packs.split(",") if p.strip()})
-    if not packs:
-        raise FederationError("name at least one schema pack the agreement covers")
     registry = peer_registry(args.network_id)
+    # What CAN be agreed in this direction: their packs when we read from them,
+    # ours when they ask us. Worked out before the packs are read, so naming
+    # none can list them rather than just refusing.
     offered = published if args.direction == "source" else registry.schema_packs()
+
+    packs = sorted({p.strip() for p in args.schema_packs.split(",") if p.strip()})
+    if packs == ["all"]:
+        # A snapshot, not a standing agreement: what they publish TODAY. An
+        # agreement that silently widened when they added a pack would not be
+        # much of an agreement -- re-run this to take in a new one.
+        packs = sorted(offered)
+        print(f"all: {len(packs)} pack(s) {args.network_id} publishes today")
+    if not packs:
+        whose = args.network_id if args.direction == "source" else "this network"
+        lines = [f"name the packs this agreement covers, or `all` for every one of them.",
+                 f"", f"  {whose} publishes {len(offered)}:"]
+        lines += [f"    {p}" for p in sorted(offered)] or ["    (none)"]
+        raise FederationError("\n".join(lines))
     outside = sorted(set(packs) - set(offered))
     if outside:
         whose = args.network_id if args.direction == "source" else "this network"
