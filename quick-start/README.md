@@ -242,8 +242,9 @@ Guidelines:
    `make restart`, `make down`, `make ps` and `make logs` follow the running mode.
 3. **Keep the adapter ports on `127.0.0.1`.** `/consumer/` and `/publish` take
    unsigned calls by design — their caller is this deployment's own app.
-   `server_proxy.conf` denies both on every proxy host. `/network/` and
-   `/provider/` are the two public doors, and both check the signature and the
+   `server_proxy.conf` denies every mount by name. The two that another network
+   may reach, `/network/` and `/provider/`, are reached through the proxy host's
+   rewrite from `/discover` and `/select`, and both check the signature and the
    agreement.
 4. **After switching, re-point the proxy hosts** (Appendix B): single serves
    everything from `network-adapter:9201`.
@@ -252,16 +253,17 @@ In single mode, `network-adapter` runs four modules from
 `config/adapters/single-adapter/network-adapter.yaml.tmpl`. Each is an exact copy of its tier
 template's module; only the module name, path and routing file differ:
 
-| Module | Path | Public | Routes to |
+| Module | Mount | Called from outside as | Routes to |
 |---|---|---|---|
-| `consumer-adapter` | `/consumer/<action>` | no | discover to `/network`, transactions to `/provider` |
-| `network-adapter` | `/network/<action>` | **yes** | discovery |
-| `oanProvider` | `/provider/<action>` | **yes** | answers itself from the upstream APIs |
-| `oanProviderPublish` | `/publish` | no | `/network/publish` |
+| `consumer-adapter` | `/consumer/<action>` | never | discover to `/network`, transactions to `/provider` |
+| `network-adapter` | `/network/<action>` | `/discover` | discovery |
+| `oanProvider` | `/provider/<action>` | `/select`, `/init`, … | answers itself from the upstream APIs |
+| `oanProviderPublish` | `/publish` | never | `/network/publish` |
 
-Multi mode uses the same three paths, one per container. `NETWORK_BASE_URL`
-ends in `/network` either way, so the descriptor advertises a door that checks
-the caller.
+Multi mode uses the same three mounts, one per container. The mount names never
+appear in a public URL — the proxy host rewrites `/discover` onto `/network/`
+and the transaction actions onto `/provider/` (Appendix B, ADR-0002), so
+`NETWORK_BASE_URL` carries no path.
 
 **Upgrading an older stack:** the `network-adapter-layer` service and
 `COMPOSE_PROFILES=network` are gone. `make up` cleans up the old container
@@ -440,12 +442,39 @@ Either way, one `.env` line carries it:
 
 ```
 BECKN_NETWORK_ID=oan.example.org
-NETWORK_BASE_URL=https://oan.example.org/network
+NETWORK_BASE_URL=https://oan.example.org
 ```
 
 That value is what another network stores when it admits you, and what a
 catalog's `bppUri` tells a caller to POST to. The registry and discovery are
 reached at `localhost` in every environment and are never published.
+
+**No path on it.** Another network calls `/discover` and `/select`, the names
+it has always used. The mount that serves each — `/network/`, `/provider/` —
+is ours, and the proxy host puts it in front (ADR-0002).
+
+### The one Advanced-tab rule each proxy host needs
+
+`server_proxy.conf` cannot do this, because it is included in every server
+block and the upstream differs per host. Paste this into the host's **Advanced**
+tab, where the upstream is known:
+
+```nginx
+location = /discover {
+    proxy_pass http://network-adapter:9201/network/discover;
+}
+
+location ~ ^/(select|init|confirm|status)$ {
+    proxy_pass http://network-adapter:9201/provider$request_uri;
+}
+```
+
+In multi mode the second block points at `http://provider-adapter:9200` instead
+— that is the whole difference, and it is why this cannot be shared.
+
+Without it `/discover` reaches no mount and answers 404, which is the loud
+failure. The quiet one it replaces was worse: `/discover` used to land on the
+consumer tier, which checks no signature and no admission.
 
 ### The adapters, through Nginx Proxy Manager
 
