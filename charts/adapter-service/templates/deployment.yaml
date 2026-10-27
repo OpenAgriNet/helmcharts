@@ -214,6 +214,11 @@ spec:
             - name: config
               mountPath: {{ include "adapter-service.configDir" . }}
               readOnly: true
+            {{- if .Values.schemaPacks }}
+            - name: schema-packs
+              mountPath: {{ include "adapter-service.schemaPacksDir" . }}
+              readOnly: true
+            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -242,6 +247,16 @@ spec:
         - name: config
           emptyDir:
             sizeLimit: 1Mi
+        {{- if .Values.schemaPacks }}
+        - name: schema-packs
+          configMap:
+            name: {{ include "adapter-service.fullname" . }}-config
+            items:
+              {{- range $path := keys .Values.schemaPacks | sortAlpha }}
+              - key: {{ $path | replace "/" "__" }}
+                path: {{ $path }}
+              {{- end }}
+        {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

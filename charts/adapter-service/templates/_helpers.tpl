@@ -177,3 +177,27 @@ therefore needs a rollout restart -- which the NOTES print.
 {{- define "adapter-service.configChecksum" -}}
 {{- include (print $.Template.BasePath "/configmap.yaml") . | sha256sum -}}
 {{- end }}
+
+{{/*
+Where the schema packs from `schemaPacks` are mounted, and so what
+extendedSchema_localSchemaPath is set to.
+*/}}
+{{- define "adapter-service.schemaPacksDir" -}}
+/app/schemas
+{{- end }}
+
+{{/*
+The adapter config, with the schema validator pointed at the mounted packs when
+`schemaPacks` is set, and unchanged when it is not.
+
+Added here rather than written into the config files: a local path also lets the
+validator read file references, so it is on only for an environment that ships a
+pack. The key goes in after extendedSchema_enabled, at its own indent.
+*/}}
+{{- define "adapter-service.withSchemaPacks" -}}
+{{- if .ctx.Values.schemaPacks -}}
+{{- regexReplaceAll "(?m)^( *)extendedSchema_enabled: \"true\"$" .cfg (printf "${1}extendedSchema_enabled: \"true\"\n${1}extendedSchema_localSchemaPath: %s" (include "adapter-service.schemaPacksDir" .ctx)) -}}
+{{- else -}}
+{{- .cfg -}}
+{{- end -}}
+{{- end }}
