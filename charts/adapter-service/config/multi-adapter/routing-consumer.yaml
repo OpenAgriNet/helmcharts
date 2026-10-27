@@ -29,5 +29,4 @@ routingRules:
       - select
       - init
       - confirm
-      - support
       - status
