@@ -2,10 +2,10 @@
 
     python3 -m unittest quick-start/bin/test_oanfed.py
 
-No network, no registry: the registry is a stub returning one entry.
+No network, no registry: the registry is a stub holding one entry.
 """
 
-import base64, copy, json, os, pathlib, sys, tempfile, unittest
+import base64, copy, json, os, pathlib, shutil, sys, tempfile, unittest
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
@@ -26,12 +26,16 @@ def raw_public(private):
 
 class StubRegistry:
     entry = None
-
-    def __init__(self, *_):
-        pass
+    own_id = NETWORK
+    fail_update = False
 
     def participant(self, participant_id):
         return self.entry if participant_id == self.entry["participantId"] else None
+
+    def update(self, record):
+        if StubRegistry.fail_update:
+            raise o.FederationError("registry PUT returned 500")
+        StubRegistry.entry = record
 
     def schema_packs(self):
         return ["https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1"]
@@ -46,12 +50,18 @@ class Base(unittest.TestCase):
             "baseUrl": f"https://{NETWORK}/network",
             "keys": [self.registry_key(self.traffic)],
         }
-        self._real = o.ReadOnlyRegistry
-        o.ReadOnlyRegistry = StubRegistry
+        StubRegistry.own_id, StubRegistry.fail_update = NETWORK, False
+        self._real = o.open_registry
+        o.open_registry = StubRegistry
+        self._env = dict(os.environ)
+        os.environ["NETWORK_OPERATOR_NAME"] = "Network A Operator"
+        os.environ.pop("FEDERATION_PROJECTION_TTL", None)
         self.key_file = self.write_key(self.traffic, self.dir / "keys" / "keys.json")
 
     def tearDown(self):
-        o.ReadOnlyRegistry = self._real
+        o.open_registry = self._real
+        os.environ.clear()
+        os.environ.update(self._env)
 
     @staticmethod
     def write_key(private, path):
@@ -69,12 +79,9 @@ class Base(unittest.TestCase):
         return {"alg": "ed25519", "status": "active", "validFrom": "2026-01-01T00:00:00Z",
                 "key": base64.b64encode(raw_public(private)).decode(), "osid": KEY_ID, **extra}
 
-    def publish(self, revision=1, **overrides):
-        args = SimpleNamespace(
-            network_id=NETWORK, registry_url="http://registry", registry_timeout=1,
-            operator="", revision=revision, operating_profile="OAN/v0.1,Beckn/v2",
-            status="Active", projection_ttl=None, out=str(self.dir),
-            keys=str(self.key_file))
+    def publish(self, **overrides):
+        args = SimpleNamespace(operating_profile="OAN/v0.1,Beckn/v2", status="Active",
+                               out=str(self.dir), keys=str(self.key_file))
         vars(args).update(overrides)
         o.cmd_publish(args)
         well_known = self.dir / ".well-known"
@@ -150,13 +157,15 @@ class Publish(Base):
             self.publish()
         self.assertFalse((self.dir / ".well-known" / "openagrinet").exists())
 
-    def test_key_id_is_taken_from_our_key_during_a_rotation(self):
-        # Two keys on the entry: only the one we sign with names the documents.
+    def test_every_registered_key_is_published_during_a_rotation(self):
+        # Two keys on the entry: ours signs, both are published, so a peer
+        # holding either still verifies.
         other = Ed25519PrivateKey.generate()
         StubRegistry.entry["keys"].insert(0, self.registry_key(other, osid="1-next-key"))
         descriptor, keyset = self.publish()
         self.assertEqual(descriptor["signature"]["keyId"], KEY_ID)
-        self.assertEqual([k["kid"] for k in keyset["keys"]], [KEY_ID])
+        self.assertEqual({k["kid"] for k in keyset["keys"]}, {"1-next-key", KEY_ID})
+        o.verify(descriptor, keyset)
 
     def test_readable_key_is_refused(self):
         os.chmod(self.key_file, 0o644)
@@ -177,17 +186,48 @@ class Publish(Base):
         with self.assertRaisesRegex(o.FederationError, "no readable signingPrivate"):
             self.publish(keys=str(bad))
 
-    def test_revision_must_increase(self):
-        self.publish(3)
-        for revision in (3, 2):
-            with self.assertRaisesRegex(o.FederationError, "does not increase"):
-                self.publish(revision)
+    def test_revision_counts_up_and_is_kept_on_the_entry(self):
+        self.assertEqual([self.publish()[0]["revision"] for _ in range(3)], [1, 2, 3])
+        self.assertEqual(StubRegistry.entry["revision"], 3)
+
+    def test_losing_well_known_does_not_restart_the_revision(self):
+        self.publish()
+        self.publish()
+        shutil.rmtree(self.dir / ".well-known")
+        self.assertEqual(self.publish()[0]["revision"], 3)
+
+    def test_a_revision_only_on_disk_keeps_counting(self):
+        # Published before the entry held the revision.
+        self.publish()
+        del StubRegistry.entry["revision"]
+        self.assertEqual(self.publish()[0]["revision"], 2)
+
+    def test_registry_write_failing_publishes_nothing(self):
+        StubRegistry.fail_update = True
+        with self.assertRaisesRegex(o.FederationError, "PUT"):
+            self.publish()
+        self.assertFalse((self.dir / ".well-known").exists())
 
     def test_corrupt_published_descriptor_is_not_read_as_revision_zero(self):
-        self.publish(5)
+        self.publish()
         (self.dir / ".well-known" / "openagrinet").write_text("{")
         with self.assertRaises(o.FederationError):
-            self.publish(1)
+            self.publish()
+
+    def test_operator_is_the_configured_organisation(self):
+        self.assertEqual(self.publish()[0]["operator"], {"name": "Network A Operator"})
+        for unset in ("", "<organisation that operates this network>"):
+            os.environ["NETWORK_OPERATOR_NAME"] = unset
+            with self.subTest(unset=unset), \
+                    self.assertRaisesRegex(o.FederationError, "NETWORK_OPERATOR_NAME"):
+                self.publish()
+
+    def test_projection_ttl_comes_from_the_environment(self):
+        os.environ["FEDERATION_PROJECTION_TTL"] = "30"
+        self.assertEqual(self.publish()[0]["projectionTtl"], 30)
+        os.environ["FEDERATION_PROJECTION_TTL"] = "soon"
+        with self.assertRaisesRegex(o.FederationError, "not a number"):
+            self.publish()
 
     def test_only_usable_registry_keys_can_sign(self):
         revoked, expired, upcoming = (Ed25519PrivateKey.generate() for _ in range(3))
@@ -198,7 +238,7 @@ class Publish(Base):
             self.registry_key(upcoming, validFrom=future),
             {"alg": "x25519", "status": "active", "key": base64.b64encode(b"e" * 32).decode()},
         ]
-        self.assertEqual(o.registered_signing_keys(StubRegistry.entry),
+        self.assertEqual(list(o.registered_signing_keys(StubRegistry.entry)),
                          [raw_public(self.traffic), raw_public(upcoming)])
         for private in (revoked, expired):
             with self.subTest(private=private), \
@@ -215,11 +255,11 @@ class Publish(Base):
     def test_registry_expiry_without_timezone_is_read_as_utc(self):
         StubRegistry.entry["keys"] = [self.registry_key(self.traffic,
                                                         validUntil="2020-01-01T00:00:00")]
-        self.assertEqual(o.registered_signing_keys(StubRegistry.entry), [])
+        self.assertEqual(len(o.registered_signing_keys(StubRegistry.entry)), 0)
 
     def test_the_same_registry_key_twice_still_signs(self):
         StubRegistry.entry["keys"].append(self.registry_key(self.traffic))
-        self.assertEqual(o.registered_signing_keys(StubRegistry.entry), [raw_public(self.traffic)])
+        self.assertEqual(list(o.registered_signing_keys(StubRegistry.entry)), [raw_public(self.traffic)])
         _, keyset = self.publish()
         self.assertEqual(len(keyset["keys"]), 1)
 
@@ -231,7 +271,7 @@ class Publish(Base):
                 self.assertEqual(len(o.registered_signing_keys(StubRegistry.entry)), 1)
         StubRegistry.entry["keys"] = [self.registry_key(self.traffic,
                                                         validUntil="2020-01-01T00:00:00.123456789Z")]
-        self.assertEqual(o.registered_signing_keys(StubRegistry.entry), [])
+        self.assertEqual(len(o.registered_signing_keys(StubRegistry.entry)), 0)
 
     def test_key_path_that_is_a_folder_says_so(self):
         folder = self.dir / "keys-folder"
@@ -251,8 +291,21 @@ class Publish(Base):
         self.assertFalse((self.dir / ".well-known" / "openagrinet").exists())
 
     def test_unregistered_network_is_refused(self):
+        StubRegistry.own_id = "other.example.org"
         with self.assertRaisesRegex(o.FederationError, "not in this registry"):
-            self.publish(network_id="other.example.org")
+            self.publish()
+
+
+class PeerAccess(unittest.TestCase):
+    def test_only_verify_can_fetch_over_http(self):
+        # Without --scheme a command fetches over https; only verify takes it.
+        bare = SimpleNamespace(ca_file="", resolve="", timeout=1)
+        self.assertEqual(o.fetcher_from(bare).scheme, "https")
+        import argparse, contextlib, io
+        parser = argparse.ArgumentParser()
+        o.add_peer_access(parser)
+        with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+            parser.parse_args(["--scheme", "http"])
 
 
 class Verify(Base):

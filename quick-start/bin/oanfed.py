@@ -377,9 +377,9 @@ def _registry_time(value):
 
 
 def registered_signing_keys(entry, now=None):
-    """The entry's active, unexpired Ed25519 keys, including ones not valid yet."""
+    """The entry's active, unexpired Ed25519 keys, including ones not valid yet, each to its osid."""
     now = now or datetime.now(timezone.utc)
-    usable = []
+    usable = {}
     for k in entry.get("keys") or []:
         if str(k.get("alg", "")).lower() != "ed25519" or k.get("status", "active") != "active":
             continue
@@ -398,9 +398,43 @@ def registered_signing_keys(entry, now=None):
             raise FederationError(f"registry key {name} is not base64") from err
         if len(raw) != 32:
             raise FederationError(f"registry key {name} is not a 32-byte Ed25519 key")
-        if raw not in usable:
-            usable.append(raw)
+        usable.setdefault(raw, k.get("osid"))
     return usable
+
+
+class Registry(ReadOnlyRegistry):
+    """Our registry, with the admin token writes need."""
+
+    def __init__(self, url, token, own_id, timeout=30):
+        super().__init__(url, timeout)
+        self.token, self.own_id = token, own_id
+
+    def update(self, record):
+        body = {k: v for k, v in record.items() if not k.startswith("os")}
+        self._write("PUT", f"Participant/{record['osid']}", body)
+
+    def _write(self, method, path, body):
+        request = urllib.request.Request(
+            f"{self.url}/api/v1/{path}", method=method, data=json.dumps(body).encode(),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.token}"})
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                result = json.load(response)
+        except urllib.error.HTTPError as err:
+            raise FederationError(f"registry {method} {path} returned {err.code}: "
+                                  f"{err.read().decode()[:200]}") from err
+        except Exception as err:
+            raise FederationError(f"reaching the registry at {self.url}: {err}") from err
+        params = result.get("params", {}) if isinstance(result, dict) else {}
+        if params.get("status") != "SUCCESSFUL":
+            raise FederationError(f"registry {method} {path} failed: {params.get('errmsg', result)}")
+
+
+def open_registry():
+    """Our registry, signed in with the admin from .env, as setup.py does."""
+    import setup
+    setup.load_dotenv()
+    return Registry(setup.registry_url(), setup.token(), setup.env("BECKN_NETWORK_ID"))
 
 
 def last_published_revision(path):
@@ -424,64 +458,73 @@ def cmd_publish(args):
     """Generate and sign this network's documents from its registry entry.
 
     --keys must hold the entry's active key: it signs both the descriptor and traffic.
+    The revision lives on the entry, so losing .well-known/ never sends it backwards.
     """
     out = pathlib.Path(args.out) / ".well-known"
     descriptor_path, jwks_path = out / "openagrinet", out / "jwks.json"
     packs_path = out / "schema-packs.json"
 
-    held = last_published_revision(descriptor_path)
-    if args.revision <= held:
-        raise FederationError(
-            f"revision {args.revision} does not increase on the published {held}; "
-            f"every peer holding {held} would refuse it")
-
-    registry = ReadOnlyRegistry(args.registry_url, args.registry_timeout)
-    entry = registry.participant(args.network_id)
+    registry = open_registry()
+    network_id = registry.own_id
+    entry = registry.participant(network_id)
     if entry is None:
         raise FederationError(
-            f"{args.network_id} is not in this registry -- seed it first, "
-            f"then publish from it")
+            f"{network_id} is not in this registry -- seed it first, then publish from it")
+
+    operator = os.environ.get("NETWORK_OPERATOR_NAME", "").strip()
+    if not operator or operator.startswith("<"):
+        raise FederationError(
+            "NETWORK_OPERATOR_NAME is not set in .env -- name the organisation "
+            "responsible for this network")
+    ttl = os.environ.get("FEDERATION_PROJECTION_TTL", "").strip()
 
     registered = registered_signing_keys(entry)
     if not registered:
         raise FederationError(
-            f"{args.network_id} has no active Ed25519 key in the registry to sign with")
+            f"{network_id} has no active Ed25519 key in the registry to sign with")
+    unnamed = [b64url(raw) for raw, osid in registered.items() if not osid]
+    if unnamed:
+        raise FederationError(f"{network_id}'s registry key {unnamed[0]} has no osid")
 
     network_key = load_signing_key(args.keys)
     if public_of(network_key) not in registered:
         raise FederationError(
-            f"{args.keys} is not an active key registered for {args.network_id}; "
+            f"{args.keys} is not an active key registered for {network_id}; "
             f"publishing it would sign the descriptor with one key and traffic with another")
+    key_id = registered[public_of(network_key)]
+
+    # The disk copy is read too, so a stack that published before the registry
+    # held the revision keeps counting up from it.
+    revision = max(entry.get("revision") or 0, last_published_revision(descriptor_path)) + 1
 
     base_url = entry.get("baseUrl", "").rstrip("/")
-    # Matched by bytes: during a rotation the entry holds several keys.
-    ours = [k for k in entry.get("keys") or []
-            if str(k.get("key", "")).removeprefix("base64:") == base64.b64encode(public_of(network_key)).decode()]
-    key_id = (ours[0].get("osid") if ours else None) or ""
-    if not key_id:
-        raise FederationError(f"{args.network_id}'s registry key has no osid")
-    network_jwk = jwk(public_of(network_key), key_id)
-
     descriptor = {
         "version": DESCRIPTOR_VERSION,
         "networkId": entry["participantId"],
         "name": entry.get("name") or entry["participantId"],
-        "operator": {"name": args.operator or entry.get("name") or entry["participantId"]},
-        "revision": args.revision,
+        "operator": {"name": operator},
+        "revision": revision,
         "status": args.status,
         "issuedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "operatingProfile": [p.strip() for p in args.operating_profile.split(",") if p.strip()],
         "schemaPacks": f"https://{entry['participantId']}{WELL_KNOWN_SCHEMA_PACKS}",
         "services": {"discovery": f"{base_url}/discover"},
     }
-    if args.projection_ttl is not None:
-        descriptor["projectionTtl"] = args.projection_ttl
+    if ttl:
+        try:
+            descriptor["projectionTtl"] = int(ttl)
+        except ValueError as err:
+            raise FederationError(f"FEDERATION_PROJECTION_TTL {ttl!r} is not a number") from err
 
     packs = validate_schema_packs(registry.schema_packs())
     signed = sign(descriptor, network_key, key_id)
-    keyset = {"keys": [network_jwk]}
+    # Every usable key, so a peer still holding the previous one verifies through a rotation.
+    keyset = {"keys": [jwk(raw, osid) for raw, osid in registered.items()]}
     # Checked as a peer would, before anything is written.
     verify(signed, keyset)
+
+    # Recorded before publishing: a failure after this skips a revision, never repeats one.
+    registry.update({**entry, "revision": revision})
 
     # Descriptor last, so it never names a key not yet published.
     out.mkdir(parents=True, exist_ok=True)
@@ -489,11 +532,11 @@ def cmd_publish(args):
     write_atomically(jwks_path, keyset)
     write_atomically(descriptor_path, signed)
 
-    print(f"{args.network_id}: descriptor written at revision {args.revision}")
+    print(f"{network_id}: descriptor written at revision {revision}")
     print(f"  descriptor  {descriptor_path}")
-    print(f"  keys        {jwks_path}")
+    print(f"  keys        {jwks_path} ({len(keyset['keys'])})")
     print(f"  packs       {packs_path} ({len(packs)})")
-    print(f"  key         {network_jwk['kid']}")
+    print(f"  signed by   {key_id}")
     return 0
 
 
@@ -511,7 +554,8 @@ def cmd_verify(args):
 
 
 def fetcher_from(args):
-    return Fetcher(scheme=args.scheme, ca_file=args.ca_file or None,
+    # Only verify takes --scheme: anything that writes a peer into the registry is https.
+    return Fetcher(scheme=getattr(args, "scheme", "https"), ca_file=args.ca_file or None,
                    resolve=args.resolve or None, timeout=args.timeout)
 
 
@@ -519,8 +563,6 @@ def fetcher_from(args):
 
 def add_peer_access(parser):
     """How an operator reaches a peer's documents."""
-    parser.add_argument("--scheme", default="https",
-                        help="http only for a stack with no certificates at all")
     parser.add_argument("--ca-file", default="",
                         help="verify the peer's certificate against the CAs in this PEM file")
     parser.add_argument("--resolve", default="",
@@ -534,24 +576,10 @@ def main(argv=None):
     commands = parser.add_subparsers(dest="command", required=True)
 
     publish = commands.add_parser("publish", help="generate and sign this network's documents")
-    publish.add_argument("--network-id", required=True,
-                         help="this network's DNS domain, which is its identity")
-    publish.add_argument("--registry-url", required=True,
-                         help="this network's own registry, which holds the entry "
-                              "this descriptor is generated FROM")
-    publish.add_argument("--registry-timeout", type=float, default=30,
-                         help="per-request timeout for the registry")
-    publish.add_argument("--operator", default="",
-                         help="organisation answering for this network; "
-                              "defaults to the registered name")
-    publish.add_argument("--revision", type=int, required=True,
-                         help="descriptor revision; must increase on every republish")
     publish.add_argument("--operating-profile", default="OAN/v0.1,Beckn/v2",
                          help="comma-separated version stack")
     publish.add_argument("--status", default="Active", choices=DESCRIPTOR_STATUSES,
                          help="what this network declares itself to be")
-    publish.add_argument("--projection-ttl", type=int, default=None,
-                         help="seconds a peer may keep what it crawls; omit to let peers decide")
     publish.add_argument("--out", required=True, help="directory to write .well-known/ into")
     publish.add_argument("--keys", required=True,
                          help="the keys.json setup.py writes; its signing key signs the "
@@ -561,6 +589,8 @@ def main(argv=None):
 
     verify_cmd = commands.add_parser("verify", help="fetch and check another network's documents")
     verify_cmd.add_argument("--network-id", required=True, help="the peer to check")
+    verify_cmd.add_argument("--scheme", default="https",
+                            help="http only for a stack with no certificates at all")
     add_peer_access(verify_cmd)
     verify_cmd.set_defaults(run=cmd_verify)
 

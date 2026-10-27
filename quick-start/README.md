@@ -654,9 +654,13 @@ which the descriptor's `schemaPacks` links to as one URL rather than listing.
 NPM then serves all three (`npm-custom/server_proxy.conf`); the command checks
 they are live, which needs a proxy host for the networkId (Appendix B). Re-run
 it whenever the row changes -- each run publishes the next revision, and another
-network refuses one that does not increase. `FEDERATION_PROJECTION_TTL` in `.env`, if
-set, is published as how long another network may keep what it crawls from
-this one.
+network refuses one that does not increase. The revision is kept on the row
+itself, so a lost `.well-known/` or a new host carries on counting instead of
+starting again at 1. The JWKS lists every active key on the row, so a peer
+holding the previous key still verifies during a rotation.
+`NETWORK_OPERATOR_NAME` in `.env` is required: it is published as the
+organisation responsible for the network. `FEDERATION_PROJECTION_TTL`, if set, is
+published as how long another network may keep what it crawls from this one.
 
 **Four `upstream` rows, one per provider** — an ordinary HTTP API this
 deployment calls. It signs nothing, so it needs no role and no keys. Holds a
