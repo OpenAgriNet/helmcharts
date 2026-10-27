@@ -12,10 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (no method or path). On a binding that already exists the Job adds or
   repoints that one action with a PUT of the whole record; every other write is
   still create-only. Needs registry 0.5.0+.
-- `allowUnpinnedPipeline` (default `false`): the render refuses a
-  `publishPipelineUrl` that is not an https `<...>/publish/<source>.yaml` pinned to
-  a 40-hex commit SHA, since a branch URL changes what production executes on every
-  push.
 
 ## [0.1.1] - 2026-09-20
 
