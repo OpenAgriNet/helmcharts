@@ -11,10 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A binding may list its `actions` instead of carrying one `path` and
   `mappingUrl`, so a capability that answers more than `select` can be seeded.
   The single-select form is unchanged.
-- A schema row may set `packFolder` and `packRef`, so a pack under
-  network-specs' `api-schemas/` folder, or on a ref other than `schemaPackRef`,
-  gets the right `schemaUrl`. Both default to what they were: `schema` and
-  `schemaPackRef`.
 
 ## [0.1.1] - 2026-09-20
 
