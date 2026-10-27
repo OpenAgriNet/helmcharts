@@ -42,8 +42,10 @@ plugins:
 
 modules:
   - name: consumer-adapter
-    # A subtree: every action lands here and the payload says which one it is.
-    path: /
+    # A subtree: the mount path is stripped and what remains is the action.
+    # NEVER on an Ingress -- this tier checks no signature and no agreement,
+    # because its caller is this deployment's own app.
+    path: /consumer/
     handler:
       type: std
       # bap because this adapter SENDS. role sets direction, not participant type.

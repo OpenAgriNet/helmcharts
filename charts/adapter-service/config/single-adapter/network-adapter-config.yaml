@@ -1,4 +1,4 @@
-# Single mode: consumer at /, /publish, /_internal/network/, /_internal/provider/ in one
+# Single mode: consumer at /, /publish, /network/, /provider/ in one
 # process. Each module mirrors its tier file; keys are filled in at pod start (ADR-0001).
 appName: "network-adapter"
 
@@ -83,10 +83,11 @@ plugins:
       federationIntent: '__FEDERATION_INTENT__'
 
 modules:
-  # consumer: unsigned app calls at / (the catch-all mount, on purpose: see ADR-0001);
-  # discover to /_internal/network, transactions to /_internal/provider.
+  # consumer: unsigned calls from this deployment's own app. NEVER on an
+  # Ingress -- it checks no signature and no agreement. discover goes to
+  # /network, transactions to /provider.
   - name: consumer-adapter
-    path: /
+    path: /consumer/
     handler:
       type: std
       role: bap
@@ -149,10 +150,12 @@ modules:
         - addRoute
         - sign
 
-  # network: verifies the caller, forwards discover and publish to discovery.
-  # Internal: never expose it on an Ingress.
+  # network: the door another network calls, and the one the Network
+  # Descriptor advertises. Expose it. It checks the signature and that we
+  # agreed to answer the caller, then forwards discover and publish to
+  # discovery.
   - name: network-adapter
-    path: /_internal/network/
+    path: /network/
     handler:
       type: std
       role: bpp
@@ -217,10 +220,12 @@ modules:
         - checkCrossNetworkRequester
         - addRoute
 
-  # provider: verifies the caller and answers from the upstream APIs (no router);
-  # upstream credentials come from envFromSecrets: provider-upstream.
+  # provider: the other public door -- another network's select lands here. It
+  # checks the signature and the agreement, then answers from the upstream APIs
+  # (no router); upstream credentials come from envFromSecrets:
+  # provider-upstream.
   - name: oanProvider
-    path: /_internal/provider/
+    path: /provider/
     handler:
       type: std
       role: bpp
@@ -399,7 +404,7 @@ modules:
         - MandiPrice
         - KnowledgeAdvisory
         - AgricultureFacility
-        - Grievance
+        - sign
 
   # provider-publish: the catalogue system publishes at /publish, signed as the
   # provider. No validateSign: never expose it on an Ingress.

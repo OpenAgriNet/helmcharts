@@ -17,14 +17,14 @@ routingRules:
   - version: "2.0.0"
     targetType: url
     target:
-      url: http://network-adapter.network-adapter.svc.cluster.local:9201
+      url: http://network-adapter.network-adapter.svc.cluster.local:9201/network
     endpoints:
       - discover
 
   - version: "2.0.0"
     targetType: url
     target:
-      url: http://provider-adapter.provider-adapter.svc.cluster.local:9200
+      url: http://provider-adapter.provider-adapter.svc.cluster.local:9200/provider
     endpoints:
       - select
       - init

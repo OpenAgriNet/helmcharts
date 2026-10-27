@@ -91,8 +91,9 @@ plugins:
 
 modules:
   - name: network-adapter
-    # A subtree: every action lands here and the payload says which one it is.
-    path: /
+    # A subtree: the mount path is stripped and what remains is the action.
+    # PUBLIC, and the path the Network Descriptor advertises.
+    path: /network/
     handler:
       type: std
       # bpp because this adapter RECEIVES. role sets direction, not participant type.

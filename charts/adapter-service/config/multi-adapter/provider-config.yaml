@@ -47,10 +47,11 @@ plugins:
 
 modules:
   - name: oanProvider
-    # "/" with the trailing slash is a prefix match, so every action lands here.
-    # The action comes from the URL, not the payload: the mount path is stripped
-    # and what remains ("select", "discover") is what routing matches on.
-    path: /
+    # A prefix match, so every action lands here. The action comes from the
+    # URL, not the payload: the mount path is stripped and what remains
+    # ("select", "discover") is what routing matches on. PUBLIC -- another
+    # network's select arrives here.
+    path: /provider/
     handler:
       type: std
       role: bpp
@@ -230,6 +231,7 @@ modules:
         - MandiPrice
         - KnowledgeAdvisory
         - AgricultureFacility
+        - sign
 
   # The outbound leg: this provider's catalogue system publishing to the network.
   #
