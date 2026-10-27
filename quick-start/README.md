@@ -460,17 +460,28 @@ block and the upstream differs per host. Paste this into the host's **Advanced**
 tab, where the upstream is known:
 
 ```nginx
-location = /discover {
-    proxy_pass http://network-adapter:9201/network/discover;
+# Discovery and publish are answered by the network tier.
+location ~ ^/(discover|publish)$ {
+    proxy_pass http://network-adapter:9201/network$request_uri;
 }
 
-location ~ ^/(select|init|confirm|status)$ {
+# Every other request action another network sends. The list is the Beckn v2
+# spec's request paths minus discover and the on_* callbacks: a callback comes
+# back to whoever SENT the request, so it belongs to the consumer tier, which
+# is not public.
+location ~ ^/(select|init|confirm|status|track|cancel|update|rate|support)$ {
     proxy_pass http://network-adapter:9201/provider$request_uri;
 }
 ```
 
-In multi mode the second block points at `http://provider-adapter:9200` instead
-— that is the whole difference, and it is why this cannot be shared.
+In multi mode the second block points at `http://provider-adapter:9200`
+instead — that is the whole difference, and it is why this cannot be shared.
+
+**Only `select` answers today.** `ensure_binding` writes one action per
+`ProviderSchema` row and that action is `select`, so the other eight reach the
+provider mount and find no binding. They are routed anyway because the path
+belongs to the network either way: a 404 from the mount that would serve it
+says "not bound yet", where no route at all says "wrong address".
 
 Without it `/discover` reaches no mount and answers 404, which is the loud
 failure. The quiet one it replaces was worse: `/discover` used to land on the
