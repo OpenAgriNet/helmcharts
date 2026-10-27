@@ -166,7 +166,7 @@ class Publish(Base):
             self.publish(keys=str(other))
 
     def test_missing_or_unreadable_keys_file_fails_cleanly(self):
-        with self.assertRaisesRegex(o.FederationError, "run setup.py first"):
+        with self.assertRaisesRegex(o.FederationError, "run `make keys` first"):
             self.publish(keys=str(self.dir / "absent.json"))
         bad = self.dir / "keys" / "bad.json"
         bad.write_text("{}")
@@ -233,7 +233,7 @@ class Publish(Base):
     def test_key_path_that_is_a_folder_says_so(self):
         folder = self.dir / "keys-folder"
         folder.mkdir()
-        with self.assertRaisesRegex(o.FederationError, "run setup.py first"):
+        with self.assertRaisesRegex(o.FederationError, "run `make keys` first"):
             self.publish(keys=str(folder))
 
     def test_no_usable_traffic_key_is_refused(self):
@@ -335,9 +335,12 @@ class OurRegistry:
 
     def create(self, record):
         record = copy.deepcopy(record)
-        # The registry mints the entry's osid; a caller never supplies one. Keys
-        # keep whatever osid they were filed with, which is what a verifier matches.
+        # Sunbird prepends "1-" to every osid it stores, including one supplied
+        # for a nested key -- measured against a live registry, where passing a
+        # kid whole produced 1-1-<uuid> and resolved to no key.
         record["osid"] = "1-" + (record.pop("osid", None) or str(uuid.uuid4()))
+        for key in record.get("keys") or []:
+            key["osid"] = "1-" + (key.pop("osid", None) or str(uuid.uuid4()))
         self.rows[record["participantId"]] = record
 
     def update(self, record):

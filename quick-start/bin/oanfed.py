@@ -98,7 +98,7 @@ def load_signing_key(path):
     """This network's private key, from setup.py's keys.json; refused if others can read it."""
     path = pathlib.Path(path)
     if not path.is_file():
-        raise FederationError(f"{path} does not exist; run setup.py first")
+        raise FederationError(f"{path} does not exist; run `make keys` first")
     if path.stat().st_mode & 0o077:
         raise FederationError(
             f"{path} is readable by group or others; chmod 600 it before signing with it")
@@ -625,7 +625,12 @@ def file_peer(registry, descriptor, keyset):
     kid, facts = peer_record(descriptor, keyset)
     held = registry.participant(facts["participantId"])
     if held is None:
-        registry.create(facts)
+        # Sunbird keeps a supplied osid only without its "1-" prefix, and only
+        # on create: it prepends one itself, so passing the kid whole stores
+        # 1-1-<uuid> and no signature naming the kid resolves.
+        created = {**facts, "keys": [{**facts["keys"][0],
+                                      "osid": kid.removeprefix("1-")}]}
+        registry.create(created)
     else:
         if descriptor["revision"] < (held.get("revision") or 0):
             raise FederationError(
