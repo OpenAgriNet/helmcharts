@@ -514,12 +514,22 @@ extraVolumeMounts: []
 extraEnv: []
 envFromSecrets: []
 
-# Single mode only: one key Secret per tier (six keys each, as under keys.existingSecret),
-# named as openbao-secrets creates them. routing.config and handler.* are unused.
+# Single mode only: which Secret each tier's placeholders are filled from.
+#
+# ALL THREE POINT AT THE SAME SECRET by default, because a network has ONE
+# identity. Another network admits a network, not three adapters, and the
+# Network Descriptor names one id and one keyId -- so a tier signing with a
+# different key signs with one that descriptor never mentions.
+#
+# They remain three settings because an existing deployment seeded three
+# participants before the modes were merged, and pointing each tier at its own
+# Secret is how it keeps working until those identities are retired.
+#
+# routing.config and handler.* are unused.
 adapterKeys:
-  consumer-adapter: consumer-adapter-keys
+  consumer-adapter: network-adapter-keys
   network-adapter: network-adapter-keys
-  provider-adapter: provider-adapter-keys
+  provider-adapter: network-adapter-keys
   # The provider tier's upstream credentials, loaded as env vars in single-adapter mode.
   upstreamSecret: provider-upstream
   # Extra placeholders, as "<tier>/<key in that tier's Secret>", e.g.
