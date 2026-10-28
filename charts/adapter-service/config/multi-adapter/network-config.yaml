@@ -45,7 +45,7 @@ plugins:
   # catalogs to the provider adapter's /publish, which signs them as the provider and sends them on
   # to discovery. Needs a crawler-capable image, the run log database (its DSN
   # is a key in the keys Secret, see crawler.dbDsnKey) and the pipeline's
-  # inputs as env (MANDI_*, APP_NETWORK_ID). Remove both blocks to turn it off.
+  # inputs as env (MANDI_*, APP_NETWORK_ID, AGMARKNET_*). Remove both blocks to turn it off.
   # This registry block is the crawler's own lookup; the modules' is separate.
   registry:
     id: sunbirdRegistry
@@ -64,12 +64,15 @@ plugins:
       receiverId: "discovery.oan.dev"
       publishPipelines: "true"
       publishEnabled: "true"
-      catalogIntervalSeconds: "3600"
+      # Every 6 hours.
+      catalogIntervalSeconds: "21600"
       # The chart mounts an emptyDir here (read-only root filesystem).
       publishCatalogOutputDir: "/tmp/catalogs"
-      # Per-pipeline overrides, by metadata.name. Agmarknet data lags 1-3 weeks:
-      # a relative window, not the pipeline's default (yesterday).
+      # Per-pipeline overrides, by metadata.name. Once a day, OnDemand catalogs
+      # only. Agmarknet data lags 1-3 weeks: a relative window, not the
+      # pipeline's default (yesterday).
       publish.mandi-price.schedule: "0 13 * * *"
+      publish.mandi-price.mode: "onDemand"
       publish.mandi-price.fromDate: "21 days ago"
 
 modules:

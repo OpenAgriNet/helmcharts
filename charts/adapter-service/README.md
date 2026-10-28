@@ -102,10 +102,11 @@ It needs, outside this chart:
 - its own run log database (PostgreSQL), not discovery's: e.g. a `catalogcrawler`
   database and role on the shared `postgres` cluster. Its DSN goes under
   `crawler.dbDsnKey` in the keys Secret (the network tier's Secret in single mode);
-- the pipeline's inputs as env: `MANDI_API_URI`, `MANDI_TOKEN_USER`,
-  `MANDI_TOKEN_SECRET`, `MANDI_PARTICIPANT_ID`, `APP_NETWORK_ID`. The credentials
-  are the provider's Agmarknet ones; map them with `extraEnv` `secretKeyRef`s
-  into the provider's upstream Secret rather than copying them into a new one.
+- the pipeline's inputs as env: `MANDI_API_URI`, `MANDI_PARTICIPANT_ID`,
+  `APP_NETWORK_ID`, and the provider's Agmarknet credentials
+  `AGMARKNET_ACCESS_NAME` and `AGMARKNET_PASSWORD`. Single mode already has those
+  two from the provider's upstream Secret; in multi mode map them with `extraEnv`
+  `secretKeyRef`s into that Secret rather than copying them into a new one.
 
 To run without it, remove both blocks from the config file (or from `config`).
 
