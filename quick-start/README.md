@@ -67,6 +67,10 @@ make admit PEER=<their-host> DIRECTION=source PACKS=all
 is its own decision, so a pair that reads from each other needs four admits
 across the two networks.
 
+For another network to reach you, paste
+`config/reverse-proxy/npm-advanced/network.conf` into the network proxy host's
+Advanced tab. Without it `/discover` is a 404 and they collect nothing.
+
 To run two networks on one machine, set `STACK_NAME` and `STACK_PREFIX` in the
 second one's `.env`, along with its own ports and `BECKN_NETWORK_ID`.
 
