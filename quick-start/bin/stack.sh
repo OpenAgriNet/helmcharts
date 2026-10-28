@@ -130,8 +130,6 @@ preflight() {
         true|false) ;;
         *) die "GRAFANA_ALERTING_ENABLED must be exactly true or false, not '$alerting'" ;;
     esac
-
-    mkdir -p .well-known  # before Docker can create it root-owned
 }
 
 # ------------------------------------------------------------------- up

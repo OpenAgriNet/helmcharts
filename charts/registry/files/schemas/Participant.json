@@ -19,7 +19,8 @@
         "participantId",
         "name",
         "type",
-        "status"
+        "status",
+        "baseUrl"
       ],
       "properties": {
         "participantId": {
@@ -39,74 +40,22 @@
           "$ref": "#/definitions/Status"
         },
         "baseUrl": {
-          "description": "The base something is appended to: a Beckn action for a node, a binding's path for an upstream. https for a node, since that is its wire identity; an upstream may be plaintext, because nothing in the registry is sent to it. A peer network may omit it and give discoveryUrl instead.",
+          "description": "The base something is appended to: a Beckn action for a node, a binding's path for an upstream. https for a node, since that is its wire identity; an upstream may be plaintext, because nothing in the registry is sent to it.",
           "type": "string",
           "maxLength": 2000,
           "pattern": "^https?://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*$"
         },
-        "discoveryUrl": {
-          "description": "A peer's discover endpoint, as its Descriptor states. Called as is. Required with federationRole.",
-          "type": "string",
-          "maxLength": 2000,
-          "pattern": "^https://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*$"
-        },
         "role": {
           "description": "What this party does on the network. consumer asks. provider answers. network exposes publish and discover, answering discover from published catalogs. Required on a node. Permitted on an upstream, where nothing reads it.",
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": {
-            "$ref": "#/definitions/Role"
-          }
-        },
-        "federationRole": {
-          "description": "What we agreed with this peer, by direction. Absent outside federation.",
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "source": {
-              "description": "We consume the listed packs from this peer.",
-              "$ref": "#/definitions/FederationAdmission"
-            },
-            "requester": {
-              "description": "This peer may request the listed packs from us.",
-              "allOf": [
-                {
-                  "$ref": "#/definitions/FederationAdmission"
-                },
-                {
-                  "not": {
-                    "required": [
-                      "projectionTtl"
-                    ]
-                  }
-                }
-              ]
-            },
-            "osid": {
-              "type": "string"
-            },
-            "osCreatedAt": {
-              "type": "string"
-            },
-            "osUpdatedAt": {
-              "type": "string"
-            },
-            "osCreatedBy": {
-              "type": "string"
-            },
-            "osUpdatedBy": {
-              "type": "string"
-            }
-          }
-        },
-        "revision": {
-          "description": "Descriptor revision. On our own entry, the last one we published; on a peer, the latest we verified. Only increases.",
-          "type": "integer",
-          "minimum": 1
+          "type": "string",
+          "enum": [
+            "consumer",
+            "provider",
+            "network"
+          ]
         },
         "keys": {
-          "description": "Plural for rotation: an overlap where old and new are both valid. The sender names which it used in the Authorization header, by keyId when set, otherwise by osid. Required on a node, since a node's signatures are verified against them. Permitted on an upstream, which does not sign anything this stack verifies.",
+          "description": "Plural for rotation: an overlap where old and new are both valid. The sender names which it used by osid in the Authorization header. Required on a node, since a node's signatures are verified against them. Permitted on an upstream, which does not sign anything this stack verifies.",
           "type": "array",
           "minItems": 1,
           "maxItems": 8,
@@ -142,149 +91,19 @@
               "baseUrl": {
                 "pattern": "^https://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*$"
               }
-            },
-            "anyOf": [
-              {
-                "required": [
-                  "baseUrl"
-                ]
-              },
-              {
-                "required": [
-                  "discoveryUrl"
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "description": "An upstream is reached at its baseUrl.",
-          "if": {
-            "properties": {
-              "type": {
-                "const": "upstream"
-              }
-            },
-            "required": [
-              "type"
-            ]
-          },
-          "then": {
-            "required": [
-              "baseUrl"
-            ]
-          }
-        },
-        {
-          "description": "An admitted peer is reached at its discoveryUrl.",
-          "if": {
-            "required": [
-              "federationRole"
-            ]
-          },
-          "then": {
-            "required": [
-              "discoveryUrl"
-            ]
+            }
           }
         }
       ]
     },
-    "FederationAdmission": {
-      "description": "One admitted direction.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "schemaPacks",
-        "descriptorRevision",
-        "admittedAt"
-      ],
-      "properties": {
-        "descriptorRevision": {
-          "description": "The Descriptor revision this direction was admitted against.",
-          "type": "integer",
-          "minimum": 1
-        },
-        "admittedAt": {
-          "description": "When this direction was admitted.",
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "description": "When this admission was last changed.",
-          "type": "string",
-          "format": "date-time"
-        },
-        "schemaPacks": {
-          "description": "Schema pack URLs admitted in this direction.",
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 64,
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "maxLength": 2000,
-            "pattern": "^https://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*/?$"
-          }
-        },
-        "status": {
-          "description": "suspended withdraws this direction and keeps its record.",
-          "type": "string",
-          "enum": [
-            "active",
-            "suspended"
-          ],
-          "default": "active"
-        },
-        "suspendedAt": {
-          "description": "When this direction was last suspended.",
-          "type": "string",
-          "format": "date-time"
-        },
-        "projectionTtl": {
-          "description": "Seconds the peer lets us keep its crawled data, as its Descriptor states. 0 means no retention: query live. A projectionTtl at the entry's root is legacy and ignored once readers move here (ADR-0002, #102).",
-          "type": "integer",
-          "minimum": 0
-        },
-        "osid": {
-          "type": "string"
-        },
-        "osCreatedAt": {
-          "type": "string"
-        },
-        "osUpdatedAt": {
-          "type": "string"
-        },
-        "osCreatedBy": {
-          "type": "string"
-        },
-        "osUpdatedBy": {
-          "type": "string"
-        }
-      },
-      "if": {
-        "properties": {
-          "status": {
-            "const": "suspended"
-          }
-        },
-        "required": [
-          "status"
-        ]
-      },
-      "then": {
-        "required": [
-          "suspendedAt"
-        ]
-      }
-    },
     "PublicKey": {
-      "description": "A public key, held as material: it is public, so there is nothing to protect. A sender names it in the Authorization header by keyId when set, otherwise by osid. alg carries the purpose: ed25519 signs, x25519 encrypts.",
+      "description": "A public key, held as material: it is public, so there is nothing to protect. Identified by the osid the registry assigns on write -- which is what a sender names in the Authorization header, and so the only id a verifier can look up. alg carries the purpose: ed25519 signs, x25519 encrypts.",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "alg",
         "key",
+        "validFrom",
         "status"
       ],
       "properties": {
@@ -303,8 +122,7 @@
         },
         "validFrom": {
           "type": "string",
-          "format": "date-time",
-          "description": "Absent on a peer's key, whose lifetime is its JWKS."
+          "format": "date-time"
         },
         "validUntil": {
           "description": "Absent means open-ended. Overlap with the next key's validFrom is the rotation window.",
@@ -318,28 +136,6 @@
             "active",
             "revoked"
           ]
-        },
-        "keyId": {
-          "description": "The kid a peer signs with, from its JWKS. Our own keys omit it and are named by osid.",
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 256,
-          "pattern": "^\\S+$"
-        },
-        "osid": {
-          "type": "string"
-        },
-        "osCreatedAt": {
-          "type": "string"
-        },
-        "osUpdatedAt": {
-          "type": "string"
-        },
-        "osCreatedBy": {
-          "type": "string"
-        },
-        "osUpdatedBy": {
-          "type": "string"
         }
       }
     },
@@ -362,14 +158,6 @@
       "enum": [
         "node",
         "upstream"
-      ]
-    },
-    "Role": {
-      "type": "string",
-      "enum": [
-        "consumer",
-        "provider",
-        "network"
       ]
     }
   },
