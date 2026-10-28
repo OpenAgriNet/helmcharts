@@ -414,7 +414,16 @@ class Registry(ReadOnlyRegistry):
         super().__init__(url, timeout)
         self.token, self.own_id = token, own_id
 
+    def by_osid(self, osid):
+        return self._search("Participant", {"osid": {"eq": osid}})
+
+    def create(self, record):
+        self._write("POST", "Participant", record)
+
     def update(self, record):
+        if record.get("federationRole") == {}:
+            raise FederationError("refusing to write an empty federationRole: the registry "
+                                  "would clear every direction")
         body = {k: v for k, v in record.items() if not k.startswith("os")}
         self._write("PUT", f"Participant/{record['osid']}", body)
 
@@ -571,47 +580,6 @@ DIRECTIONS = ("source", "requester")
 RECORD_ID = re.compile(r"1-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 
 
-class Registry(ReadOnlyRegistry):
-    """Our registry, with the admin token writes need."""
-
-    def __init__(self, url, token, own_id, timeout=30):
-        super().__init__(url, timeout)
-        self.token, self.own_id = token, own_id
-
-    def by_osid(self, osid):
-        return self._search("Participant", {"osid": {"eq": osid}})
-
-    def create(self, record):
-        self._write("POST", "Participant", record)
-
-    def update(self, record):
-        body = {k: v for k, v in record.items() if not k.startswith("os")}
-        self._write("PUT", f"Participant/{record['osid']}", body)
-
-    def _write(self, method, path, body):
-        request = urllib.request.Request(
-            f"{self.url}/api/v1/{path}", method=method, data=json.dumps(body).encode(),
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.token}"})
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                result = json.load(response)
-        except urllib.error.HTTPError as err:
-            raise FederationError(f"registry {method} {path} returned {err.code}: "
-                                  f"{err.read().decode()[:200]}") from err
-        except Exception as err:
-            raise FederationError(f"reaching the registry at {self.url}: {err}") from err
-        params = result.get("params", {}) if isinstance(result, dict) else {}
-        if params.get("status") != "SUCCESSFUL":
-            raise FederationError(f"registry {method} {path} failed: {params.get('errmsg', result)}")
-
-
-def open_registry():
-    """Our registry, signed in with the admin from .env, as setup.py does."""
-    import setup
-    setup.load_dotenv()
-    return Registry(setup.registry_url(), setup.token(), setup.env("BECKN_NETWORK_ID"))
-
-
 def peer_registry(network_id):
     """Our registry, refusing our own id: our entry is never a peer."""
     registry = open_registry()
@@ -701,8 +669,11 @@ def cmd_admit(args):
     roles = dict(entry.get("federationRole") or {})
     held = roles.get(args.direction) or {}
     now = now_utc()
+    # status is written every time: the registry keeps fields an update leaves out,
+    # so re-admitting a suspended direction must say it is active again.
     roles[args.direction] = {**held, "schemaPacks": packs, "descriptorRevision": descriptor["revision"],
-                             "admittedAt": held.get("admittedAt", now), "updatedAt": now}
+                             "admittedAt": held.get("admittedAt", now), "updatedAt": now,
+                             "status": "active"}
     registry.update({**entry, "federationRole": roles})
     print(f"admitted {args.network_id} as {args.direction} at revision {descriptor['revision']}, "
           f"covering {len(packs)} pack(s); filed under {entry['osid']}")
@@ -728,20 +699,22 @@ def cmd_refresh(args):
 
 
 def cmd_suspend(args):
-    """Withdraw one direction of a peer's admission. Re-admitting is the only way back."""
+    """Suspend one direction of a peer's admission. Admitting it again restores it."""
     registry = peer_registry(args.network_id)
     entry = registry.participant(args.network_id)
-    roles = (entry or {}).get("federationRole") or {}
-    if args.direction not in roles:
+    roles = dict((entry or {}).get("federationRole") or {})
+    held = roles.get(args.direction)
+    if not held:
         raise FederationError(f"{args.network_id} is not admitted as {args.direction}")
-    kept = {d: v for d, v in roles.items() if d in DIRECTIONS and d != args.direction}
-    # The registry merges objects on update, so a direction is only dropped by clearing all.
-    registry.update({**entry, "federationRole": {}})
-    if kept:
-        registry.update({**registry.participant(args.network_id), "federationRole": kept})
-    left = (registry.participant(args.network_id).get("federationRole") or {})
-    if args.direction in left:
-        raise FederationError(f"the registry still holds {args.network_id} as {args.direction}")
+    if held.get("status") == "suspended":
+        raise FederationError(f"{args.network_id} is already suspended as {args.direction}")
+    now = now_utc()
+    # One write to this direction only; the record stays, so nothing is lost if it fails.
+    roles[args.direction] = {**held, "status": "suspended", "suspendedAt": now, "updatedAt": now}
+    registry.update({**entry, "federationRole": roles})
+    stored = ((registry.participant(args.network_id) or {}).get("federationRole") or {})
+    if (stored.get(args.direction) or {}).get("status") != "suspended":
+        raise FederationError(f"the registry did not store {args.network_id} as suspended")
     print(f"suspended {args.network_id} as {args.direction}")
     return 0
 
@@ -796,7 +769,7 @@ def main(argv=None):
     add_peer_access(refresh)
     refresh.set_defaults(run=cmd_refresh)
 
-    suspend = commands.add_parser("suspend", help="withdraw one direction of a peer's admission")
+    suspend = commands.add_parser("suspend", help="suspend one direction of a peer's admission; admit restores it")
     suspend.add_argument("--network-id", required=True, help="the peer, by its domain")
     suspend.add_argument("--direction", required=True, choices=DIRECTIONS)
     suspend.set_defaults(run=cmd_suspend)
