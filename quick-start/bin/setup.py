@@ -432,7 +432,7 @@ def seed(identities):
             ("provider", "OAN provider layer adapter", "provider")):
         identity = identities[role]
         ensure_participant(bearer, identity["participantId"],
-                           node(identity["participantId"], name, network_role,
+                           node(identity["participantId"], name, [network_role],
                                 env(f"{role.upper()}_BASE_URL"),
                                 identity["signingPublic"]))
 
