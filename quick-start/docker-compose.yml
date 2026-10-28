@@ -636,6 +636,12 @@ services:
       # configuration fault, not a transient one, so it is not retried.
       VISTAAR_CLIENT_ID: ${VISTAAR_CLIENT_ID}
       VISTAAR_CLIENT_SECRET: ${VISTAAR_CLIENT_SECRET}
+      # PM-KISAN's envelope keys and tokens, read at call time; unset leaves the
+      # stack running and PM-KISAN calls failing with a configuration error.
+      PMKISAN_GRIEVANCE_KEY: ${PMKISAN_GRIEVANCE_KEY:-}
+      PMKISAN_GRIEVANCE_IV: ${PMKISAN_GRIEVANCE_IV:-}
+      PMKISAN_SERVICE_TOKEN: ${PMKISAN_SERVICE_TOKEN:-}
+      PMKISAN_OTP_TOKEN: ${PMKISAN_OTP_TOKEN:-}
     volumes:
       - ./config/adapters/multi-adapter/provider-adapter.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/multi-adapter/routing-provider.yaml:/app/config/routing-provider.yaml:ro
@@ -663,6 +669,12 @@ services:
       MOCKAGMARKNET_TOKEN: ${MOCKAGMARKNET_TOKEN:-local-mandi-token}
       VISTAAR_CLIENT_ID: ${VISTAAR_CLIENT_ID}
       VISTAAR_CLIENT_SECRET: ${VISTAAR_CLIENT_SECRET}
+      # PM-KISAN's envelope keys and tokens, read at call time; unset leaves the
+      # stack running and PM-KISAN calls failing with a configuration error.
+      PMKISAN_GRIEVANCE_KEY: ${PMKISAN_GRIEVANCE_KEY:-}
+      PMKISAN_GRIEVANCE_IV: ${PMKISAN_GRIEVANCE_IV:-}
+      PMKISAN_SERVICE_TOKEN: ${PMKISAN_SERVICE_TOKEN:-}
+      PMKISAN_OTP_TOKEN: ${PMKISAN_OTP_TOKEN:-}
     volumes:
       - ./config/adapters/${NETWORK_ADAPTER_DEPLOYMENT_MODE:-single-adapter}/network-adapter.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/multi-adapter/routing-network.yaml:/app/config/routing-network.yaml:ro

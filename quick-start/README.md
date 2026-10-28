@@ -1062,7 +1062,18 @@ Three things that bite when writing a payload:
 `config/mappings/` holds the two this deployment uses, and `MAUSAMGRAM_MAPPING_URL` /
 `AGMARKNET_MAPPING_URL` point at **this repo's own copies** over GitHub's raw CDN —
 so the file a reader reviews and the file the adapter fetches are one file.
-`config/mappings/pmfby/` and `config/mappings/pmkisan/` are only hosted here, for the cluster's registry seed; this stack does not run PMFBY or PM-KISAN. They are copies of network-adapter's `config/mappings/`, so change them there first.
+`config/mappings/pmfby/` and `config/mappings/pmkisan/` are copies of network-adapter's `config/mappings/`, so change them there first. PMFBY's are only hosted here, for the cluster's registry seed; this stack does not run PMFBY.
+
+PM-KISAN is optional. There is no public PM-KISAN to default to, so `make setup` seeds it only when `.env` sets `PMKISAN_BASE_URL`:
+
+| Variable | What |
+|---|---|
+| `PMKISAN_BASE_URL` | Grievance service: the `pmkisan` participant's `baseUrl`. Setting it turns PM-KISAN on. |
+| `PMKISAN_CHATBOT_BASE_URL` | Chatbot service, service path included (`…/services/chatbotservice.asmx`): the SchemeApplication binding's `baseUrl`, and where grievance asks for its OTP. Required once the one above is set. |
+| `PMKISAN_MAPPING_BASE_URL` | Optional. Defaults to this repo's `development` copies over GitHub's raw CDN. |
+| `PMKISAN_GRIEVANCE_KEY`, `PMKISAN_GRIEVANCE_IV`, `PMKISAN_SERVICE_TOKEN`, `PMKISAN_OTP_TOKEN` | Envelope key, nonce and tokens, issued by PM-KISAN. Read at call time, so the stack starts without them. |
+
+The registry rows are created only when absent, like every other row here, and no schema row is written for Grievance or SchemeApplication until their packs are on the `SCHEMA_PACK_REF` ref (they are published, but not on `main`). The adapter image must be `0.2.0-RC1` or later.
 
 Each has two halves: the request half turns the Beckn payload into what the
 upstream expects, the response half turns the answer into resources. The mandi

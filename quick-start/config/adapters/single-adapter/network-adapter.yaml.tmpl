@@ -243,12 +243,56 @@ modules:
               __POCRA_PARTICIPANT_ID__:
                 authScheme: none
               searchConcurrency: 1
+          # PM-KISAN: one participant, two capabilities on different hosts (the
+          # SchemeApplication binding carries its own baseUrl in the registry).
+          # Keys and tokens are read from the environment at call time, so the
+          # stack starts without them; setup.py seeds PM-KISAN only when
+          # PMKISAN_BASE_URL is set. Same settings as the cluster chart.
+          - id: Grievance
+            config:
+              bindingKeys: "pmkisan|openagrinet:Grievance,pmkisan|openagrinet:SchemeApplication"
+              providerIdAt: "message.contract.commitments[].offer.provider.id, message.support.channels[].provider.id"
+              capabilityCodeAt: "message.contract.commitments[].commitmentAttributes.@type, message.support.channels[].@type"
+              pmkisan:
+                authScheme: none
+              "pmkisan|openagrinet:Grievance":
+                envelope: aesGcm
+                envelopeKeyEnv: PMKISAN_GRIEVANCE_KEY
+                envelopeNonceEnv: PMKISAN_GRIEVANCE_IV
+                envelopeTokenEnv: PMKISAN_SERVICE_TOKEN
+                envelopeTokenField: TokenNo
+                envelopeRequestField: EncryptedRequest
+                envelopeResponsePaths: "d.output,output"
+                otpEnvelope: aesCbcKeyInBand
+                otpBindingKey: "pmkisan|openagrinet:SchemeApplication"
+                otpTokenEnv: PMKISAN_OTP_TOKEN
+                otpTokenField: Token
+                otpRequestField: EncryptedRequest
+                otpResponsePaths: "d.output,output"
+                otpActions: init
+                otpVerifyPath: /ChatbotOTPVerified
+                otpVerifyActions: "support,status"
+                otpVerifyTimeoutMs: "10000"
+              "pmkisan|openagrinet:SchemeApplication":
+                envelope: aesCbcKeyInBand
+                envelopeTokenEnv: PMKISAN_OTP_TOKEN
+                envelopeTokenField: Token
+                envelopeRequestField: EncryptedRequest
+                envelopeResponsePaths: "d.output,output"
+                otpVerifyPath: /ChatbotOTPVerified
+                otpVerifyActions: status
+                otpVerifyTimeoutMs: "10000"
+                followUpPath: /ChatbotBeneficiaryStatus
+                followUpField: _beneficiaryStatus
+                followUpActions: status
+                followUpTimeoutMs: "10000"
       steps:
         - validateSchema
         - WeatherObservation
         - MandiPrice
         - KnowledgeAdvisory
         - AgricultureFacility
+        - Grievance
 
   # oanProviderPublish: the catalogue publishes at /publish; routed to
   # /_internal/network/publish (routing-network-adapter-provider.yaml).
