@@ -20,6 +20,7 @@ routingRules:
       url: http://network-adapter.network-adapter.svc.cluster.local:9201/network
     endpoints:
       - discover
+      - publish
 
   - version: "2.0.0"
     targetType: url
