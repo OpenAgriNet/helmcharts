@@ -298,6 +298,11 @@ ingress:
   annotations: {}
   hosts: []
   tls: []
+  # Single-adapter mode only: lets /publish be an ingress path. Off by default,
+  # and for a throwaway environment only. The publish module signs as the
+  # provider without checking who calls it, so a public /publish lets anyone
+  # publish catalogues under the provider's name.
+  allowPublicPublish: false
 
 # ---------------------------------------------------------------------------
 # Wait for the upstreams before starting.

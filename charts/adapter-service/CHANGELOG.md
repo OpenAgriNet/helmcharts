@@ -7,6 +7,12 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ## [0.8.0] - 2026-10-28
 
+### Added
+- `ingress.allowPublicPublish` (default `false`): in single-adapter mode, lets
+  `/publish` be an ingress path. The publish module signs as the provider
+  without authenticating its caller, so this is for throwaway environments
+  only. `/` and `/_internal*` stay refused.
+
 ### Changed
 - **BREAKING.** Mandi prices call the real Agmarknet again: `agmarknet` is back
   on `authScheme: tokenQuery` in both modes, in place of the no-auth setting
