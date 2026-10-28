@@ -462,10 +462,22 @@ class Admission(Base):
         self.admit(direction="requester", packs=OUR_PACK)
         self.suspend("requester")
         self.assertEqual(list(self.held()["federationRole"]), ["source"])
+        self.assertEqual(self.held()["status"], "active",
+                         "one direction left, so the network is still dealt with")
         self.suspend("source")
         self.assertNotIn("federationRole", self.held())
+        self.assertEqual(self.held()["status"], "inactive",
+                         "nothing agreed in either direction, so the network is switched off")
         with self.assertRaisesRegex(o.FederationError, "not admitted"):
             self.refresh()
+
+    def test_admitting_again_brings_a_suspended_network_back(self):
+        self.admit()
+        self.suspend("source")
+        self.assertEqual(self.held()["status"], "inactive")
+        self.admit()
+        self.assertEqual(self.held()["status"], "active")
+        self.assertEqual(list(self.held()["federationRole"]), ["source"])
 
     def test_our_own_id_and_inactive_peers_are_refused(self):
         with self.assertRaisesRegex(o.FederationError, "is this network"):
