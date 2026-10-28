@@ -57,7 +57,7 @@ database:
 # and set existingConfigMap below. Note this URL tracks `main` and so pins
 # nothing.
 becknSpec:
-  url: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/main/api/v2.0.0/beckn.yaml
+  url: https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml
   existingConfigMap: ""
 
 # Semantic search stays off until an Ollama deployment exists (A5). Discover

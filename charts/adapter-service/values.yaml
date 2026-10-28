@@ -242,7 +242,7 @@ routing:
 # can fail on the request path.
 # ---------------------------------------------------------------------------
 becknSpec:
-  url: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+  url: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml"
   cacheTTL: "3600"
   extendedSchema:
     enabled: false

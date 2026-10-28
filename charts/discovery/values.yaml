@@ -191,7 +191,7 @@ database:
 # ---------------------------------------------------------------------------
 becknSpec:
   # VALIDATION_SPEC_URL. Upstream is
-  #   https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/main/api/v2.0.0/beckn.yaml
+  #   https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml
   # which tracks `main` and therefore pins nothing. Prefer a pinned URL, or the
   # ConfigMap below, for a reproducible boot.
   url: ""
