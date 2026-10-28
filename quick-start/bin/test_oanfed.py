@@ -479,6 +479,27 @@ class Admission(Base):
         self.assertEqual(self.held()["status"], "active")
         self.assertEqual(list(self.held()["federationRole"]), ["source"])
 
+    def test_a_failed_restore_says_the_record_is_bare(self):
+        self.admit()
+        self.admit(direction="requester", packs=OUR_PACK)
+
+        # Fails the restore, not the clear: the window this guards is the one
+        # between the two writes.
+        writes = []
+        real = self.ours.update
+
+        def failing(record):
+            writes.append(record)
+            if len(writes) > 1:
+                raise o.FederationError("registry PUT returned 503")
+            return real(record)
+
+        self.ours.update = failing
+        with self.assertRaisesRegex(o.FederationError, "no admission at all"):
+            self.suspend("requester")
+        self.ours.update = real
+        self.assertNotIn("federationRole", self.held())
+
     def test_our_own_id_and_inactive_peers_are_refused(self):
         with self.assertRaisesRegex(o.FederationError, "is this network"):
             o.cmd_suspend(SimpleNamespace(network_id=OurRegistry.own_id, direction="source"))

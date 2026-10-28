@@ -745,15 +745,23 @@ def cmd_suspend(args):
     if args.direction not in roles:
         raise FederationError(f"{args.network_id} is not admitted as {args.direction}")
     kept = {d: v for d, v in roles.items() if d in DIRECTIONS and d != args.direction}
-    # The registry merges objects on update, so a direction is only dropped by clearing all.
+    # The registry merges objects on update, so a direction is only dropped by
+    # clearing all. That leaves a window with nothing admitted, and a failure
+    # inside it has to say so rather than surface as the write's own error.
     registry.update({**entry, "federationRole": {}})
-    if kept:
-        registry.update({**registry.participant(args.network_id), "federationRole": kept})
-    else:
-        # Nothing agreed either way, so stop dealing with them at all: an inactive
-        # participant is refused when its signature is checked, before any
-        # federation rule is read. Admitting again sets it back to active.
-        registry.update({**registry.participant(args.network_id), "status": "inactive"})
+    try:
+        if kept:
+            registry.update({**registry.participant(args.network_id), "federationRole": kept})
+        else:
+            # Nothing agreed either way, so stop dealing with them at all: an inactive
+            # participant is refused when its signature is checked, before any
+            # federation rule is read. Admitting again sets it back to active.
+            registry.update({**registry.participant(args.network_id), "status": "inactive"})
+    except Exception as err:
+        raise FederationError(
+            f"{args.network_id} now has no admission at all: clearing it worked, "
+            f"{'putting back ' + ', '.join(sorted(kept)) if kept else 'switching it off'} "
+            f"did not.\n  Re-admit it in the directions you meant to keep.\n  {err}") from err
     left = (registry.participant(args.network_id).get("federationRole") or {})
     if args.direction in left:
         raise FederationError(f"the registry still holds {args.network_id} as {args.direction}")
