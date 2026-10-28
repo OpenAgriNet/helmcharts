@@ -235,17 +235,7 @@ def token():
 def post(entity, payload, bearer):
     # No {"EntityName": {...}} wrapper: this registry takes the record itself,
     # and a wrapper comes back as "extraneous key [...] is not permitted".
-    return write("POST", entity, payload, bearer)
-
-
-def put(entity, osid, payload, bearer):
-    # The registry re-validates the MERGED record on a PUT, so the whole
-    # record goes back, osid and all.
-    return write("PUT", f"{entity}/{osid}", payload, bearer)
-
-
-def write(method, path, payload, bearer):
-    req = urllib.request.Request(f"{registry_url()}/api/v1/{path}", method=method,
+    req = urllib.request.Request(f"{registry_url()}/api/v1/{entity}", method="POST",
                                  data=json.dumps(payload).encode(),
                                  headers={"Content-Type": "application/json",
                                           "Authorization": f"Bearer {bearer}"})
@@ -265,6 +255,20 @@ def write(method, path, payload, bearer):
             sys.exit(f"setup: the registry refused a write -- HTTP {e.code}: {detail}\n"
                      f"  A 401 here usually means the token was minted for a different\n"
                      f"  issuer than the registry validates against.")
+
+
+def put(entity, osid, payload, bearer):
+    # Sunbird RC re-validates the whole record on a PUT, so all of it goes back.
+    req = urllib.request.Request(f"{registry_url()}/api/v1/{entity}/{osid}", method="PUT",
+                                 data=json.dumps(payload).encode(),
+                                 headers={"Content-Type": "application/json",
+                                          "Authorization": f"Bearer {bearer}"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        sys.exit(f"setup: the registry refused an update -- HTTP {e.code}: "
+                 f"{e.read().decode(errors='replace').strip()[:200] or '(empty body)'}")
 
 
 def search(entity, filters):
@@ -333,7 +337,7 @@ def upstream(participant_id, name, base_url):
 
 
 def ensure_binding(bearer, participant_id, capability, path, mapping_url,
-                   method="GET", publish_url=None):
+                   method="GET"):
     """Create a capability binding only when absent.
 
     actions is a list, not a map: the registry treats every nested object as an
@@ -346,66 +350,39 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url,
     method is a parameter because it is the provider's contract, not a network
     convention: Mausamgram and Agmarknet answer a GET whose query the mapping
     builds, while the knowledge provider and POCRA take a POST with a JSON body.
-    The adapter reads it from this row, so nothing about it is compiled in.
-
-    publish_url, when given, adds a `publish` action: the pipeline file the
-    network adapter's catalog crawler runs for this binding. The schema needs
-    a method and path on every action; the crawler reads only `mappings`."""
+    The adapter reads it from this row, so nothing about it is compiled in."""
     binding = f"{participant_id}|{capability}"
-    rows = search("ProviderSchema", {"bindingKey": {"eq": binding}})
-    if rows:
+    if search("ProviderSchema", {"bindingKey": {"eq": binding}}):
         print(f"  {binding}: already present")
-        if publish_url:
-            ensure_publish_action(bearer, binding, rows[0], publish_url)
         return
-    actions = [{"action": "select", "method": method, "path": path,
-                "mappings": mapping_url, "timeoutMs": 15000, "retryMax": 2,
-                "status": "active"}]
-    if publish_url:
-        actions.append(publish_action(publish_url))
     result = post("ProviderSchema", {
         "bindingKey": binding, "participantId": participant_id,
         "capabilityCode": capability, "status": "active",
-        "actions": actions}, bearer)
+        "actions": [{"action": "select", "method": method, "path": path,
+                     "mappings": mapping_url,
+                     "timeoutMs": 15000, "retryMax": 2,
+                     "status": "active"}]}, bearer)
     print(f"  {binding}: {result['params']['status']} "
           f"{result['params'].get('errmsg', '')[:160]}")
 
 
-def publish_action(url):
-    return {"action": "publish", "method": "POST", "path": "/publish",
-            "mappings": url, "status": "active"}
-
-
-def ensure_publish_action(bearer, binding, record, url):
-    """Make an existing binding's publish action name `url`.
-
-    The one update this script makes: a row seeded before it had a publish
-    action keeps the row it was given, so the action is added or repointed in
-    place. Needs the ProviderSchema.json that admits publish."""
-    actions = record.setdefault("actions", [])
-    current = next((a for a in actions if a.get("action") == "publish"), None)
-    if current and current.get("mappings") == url and current.get("status") == "active":
-        print(f"  {binding} publish: already names {url}")
+def ensure_publish_action(bearer, participant_id, capability, url):
+    """Add or repoint the `publish` action the catalog crawler runs on a binding."""
+    binding = f"{participant_id}|{capability}"
+    rows = search("ProviderSchema", {"bindingKey": {"eq": binding}})
+    if not rows:
         return
-    if current:
-        current.update(publish_action(url))
-    else:
-        actions.append(publish_action(url))
-    params = put("ProviderSchema", record["osid"], record, bearer).get("params", {})
-    if params.get("status") != "SUCCESSFUL":
-        sys.exit(f"setup: the registry refused the publish action for {binding}: "
-                 f"{params.get('errmsg', params)}\n"
-                 f"  It needs the ProviderSchema.json that admits publish:\n"
-                 f"    docker compose restart sunbird-registry-service")
-    print(f"  {binding} publish: SUCCESSFUL -> {url}")
-
-
-# The Mandi publish pipeline the network adapter's catalog crawler runs, pinned
-# to a network-adapter commit so a push to a branch never changes what runs.
-MANDI_PUBLISH_PIPELINE_URL = (
-    "https://raw.githubusercontent.com/OpenAgriNet/network-adapter/"
-    "37f5a09ad7439f8bb4e5fd262d6250bf3ec48de0/"
-    "pkg/plugin/implementation/MandiPrice/publish/agmarknet.yaml")
+    record = rows[0]
+    actions = record.get("actions", [])
+    if any(a.get("action") == "publish" and a.get("mappings") == url for a in actions):
+        print(f"  {binding} publish: already present")
+        return
+    record["actions"] = [a for a in actions if a.get("action") != "publish"] + [
+        {"action": "publish", "method": "POST", "path": "/publish",
+         "mappings": url, "status": "active"}]
+    result = put("ProviderSchema", record["osid"], record, bearer)
+    print(f"  {binding} publish: {result['params']['status']} "
+          f"{result['params'].get('errmsg', '')[:160]}")
 
 
 # The four capability schemas, keyed by the .env variable each capability code
@@ -537,12 +514,13 @@ def seed(identities):
     print("registry: four capability bindings")
     ensure_binding(bearer, weather, env("MAUSAMGRAM_CAPABILITY"),
                    env("MAUSAMGRAM_PATH", "/get-daily"), env("MAUSAMGRAM_MAPPING_URL"))
-    # Agmarknet also carries the Mandi publish pipeline (MANDI_PUBLISH_PIPELINE_URL).
     ensure_binding(bearer, mandi, env("AGMARKNET_CAPABILITY"),
                    env("AGMARKNET_PATH", "/v1/fetch-agmarknet-vistaar"),
-                   env("AGMARKNET_MAPPING_URL"),
-                   publish_url=env("AGMARKNET_PUBLISH_PIPELINE_URL",
-                                   MANDI_PUBLISH_PIPELINE_URL))
+                   env("AGMARKNET_MAPPING_URL"))
+    # Optional: the pipeline the network adapter's catalog crawler runs (README, Appendix O).
+    if env("AGMARKNET_PUBLISH_PIPELINE_URL", ""):
+        ensure_publish_action(bearer, mandi, env("AGMARKNET_CAPABILITY"),
+                              env("AGMARKNET_PUBLISH_PIPELINE_URL"))
     ensure_binding(bearer, knowledge, env("VISTAAR_CAPABILITY"),
                    env("VISTAAR_PATH"), env("VISTAAR_MAPPING_URL"),
                    method="POST")

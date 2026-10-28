@@ -1201,8 +1201,8 @@ the provider and sends them to discovery.
 - Config: the `registry` and `crawler` blocks in
   `config/adapters/{single,multi}-adapter/network-adapter.yaml.tmpl`.
 - Run log: `crawler-postgres`, its own container and volume.
-- Publish action: added to the Agmarknet binding by `bin/setup.py`
-  (override with `AGMARKNET_PUBLISH_PIPELINE_URL`).
+- Publish action: added to the Agmarknet binding by `bin/setup.py` from
+  `AGMARKNET_PUBLISH_PIPELINE_URL` in `.env`; unset, nothing publishes.
 - Pipeline inputs: the `AGMARKNET_*` values and `BECKN_NETWORK_ID` from `.env`.
 
 On a stack that already exists:
