@@ -130,8 +130,14 @@ REQUIRED = [
 
 def preflight():
     """Refuse to touch the registry while any required value is unfilled."""
-    missing = [k for k in REQUIRED if os.environ.get(k) is None]
-    unfilled = [k for k in REQUIRED
+    required = list(REQUIRED)
+    # PM-KISAN is optional, but once its grievance host is set its chatbot
+    # host is needed too: the OTP and application status are on it.
+    pmkisan = os.environ.get("PMKISAN_BASE_URL", "").strip()
+    if pmkisan and not is_placeholder(pmkisan):
+        required.append("PMKISAN_CHATBOT_BASE_URL")
+    missing = [k for k in required if os.environ.get(k) is None]
+    unfilled = [k for k in required
                 if os.environ.get(k) is not None
                 and is_placeholder(os.environ[k])]
     if not missing and not unfilled:
@@ -352,6 +358,63 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url,
           f"{result['params'].get('errmsg', '')[:160]}")
 
 
+def ensure_actions_binding(bearer, participant_id, capability, actions,
+                           base_url=None):
+    """Create a binding that answers more than select, only when absent.
+
+    Each entry of actions is (action, path, mapping_url, timeout_ms,
+    retry_max), all POST. base_url, when given, is this capability's host in
+    place of its participant's -- PM-KISAN's application status is on its
+    chatbot service, not its grievance one."""
+    binding = f"{participant_id}|{capability}"
+    if search("ProviderSchema", {"bindingKey": {"eq": binding}}):
+        print(f"  {binding}: already present")
+        return
+    record = {"bindingKey": binding, "participantId": participant_id,
+              "capabilityCode": capability, "status": "active",
+              "actions": [{"action": action, "method": "POST", "path": path,
+                           "mappings": mapping_url, "timeoutMs": timeout_ms,
+                           "retryMax": retry_max, "status": "active"}
+                          for action, path, mapping_url, timeout_ms, retry_max
+                          in actions]}
+    if base_url:
+        record["baseUrl"] = base_url
+    result = post("ProviderSchema", record, bearer)
+    print(f"  {binding}: {result['params']['status']} "
+          f"{result['params'].get('errmsg', '')[:160]}")
+
+
+def seed_pmkisan(bearer):
+    """PM-KISAN: one participant, two capabilities, the same rows as the
+    cluster's registry seed. Optional: skipped unless PMKISAN_BASE_URL is set,
+    since there is no public PM-KISAN to default to. Point both URLs at a mock
+    or at staging; the mappings are this repo's copies.
+
+    No capability schema rows yet: the Grievance and SchemeApplication packs
+    are not on network-specs main, and SCHEMA_PACK_REF names one ref for every
+    pack."""
+    grievance_host = os.environ.get("PMKISAN_BASE_URL", "").strip()
+    if not grievance_host or is_placeholder(grievance_host):
+        print("registry: PM-KISAN skipped (PMKISAN_BASE_URL is not set)")
+        return
+    chatbot_host = env("PMKISAN_CHATBOT_BASE_URL")
+    mappings = env("PMKISAN_MAPPING_BASE_URL",
+                   "https://raw.githubusercontent.com/OpenAgriNet/helmcharts/"
+                   "development/quick-start/config/mappings/pmkisan").rstrip("/")
+    print("registry: PM-KISAN")
+    ensure_participant(bearer, "pmkisan",
+                       upstream("pmkisan", "PM-KISAN", grievance_host))
+    # init sends an OTP and support lodges a grievance: neither is retried.
+    ensure_actions_binding(bearer, "pmkisan", "openagrinet:Grievance", (
+        ("init", "/ChatbotOTP", f"{mappings}/grievance.init.yaml", 20000, 0),
+        ("support", "/LodgeGrievance", f"{mappings}/grievance.support.yaml", 30000, 0),
+        ("status", "/GrievanceStatusCheck", f"{mappings}/grievance.status.yaml", 30000, 2)))
+    ensure_actions_binding(bearer, "pmkisan", "openagrinet:SchemeApplication", (
+        ("init", "/ChatbotOTP", f"{mappings}/application-status.init.yaml", 20000, 0),
+        ("status", "/ChatbotUserDetails", f"{mappings}/application-status.status.yaml", 30000, 0)),
+        base_url=chatbot_host)
+
+
 # The four capability schemas, keyed by the .env variable each capability code
 # comes from so the code itself is never written twice.
 #
@@ -505,6 +568,8 @@ def seed(identities):
     ref = env("SCHEMA_PACK_REF", "main")
     for var, name, version in CAPABILITY_SCHEMAS:
         ensure_capability_schema(bearer, env(var), name, version, ref)
+
+    seed_pmkisan(bearer)
 
 
 def key_osids(identities):

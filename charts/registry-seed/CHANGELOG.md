@@ -5,6 +5,20 @@ All notable changes to the `registry-seed` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-10-26
+
+### Added
+- A binding may list its `actions` instead of carrying one `path` and
+  `mappingUrl`, so a capability that answers more than `select` can be seeded.
+  The single-select form is unchanged. A binding that carries both forms is
+  refused at render, since the flat fields would otherwise be dropped.
+- `retryMax` defaults by action: 2 for `select`, `status`, `track` and `discover`,
+  0 for any other, so an action that files something is not repeated unasked.
+- A binding may carry its own `baseUrl`, written to the `ProviderSchema` row, for
+  a capability served from another host than its participant's. PM-KISAN's
+  application status is on its chatbot service, not its grievance portal. Needs
+  the `registry` chart's 0.5.0 schema.
+
 ## [0.1.1] - 2026-09-20
 
 ### Fixed

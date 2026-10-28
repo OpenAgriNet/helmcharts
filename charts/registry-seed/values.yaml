@@ -124,6 +124,20 @@ upstreams: []
 #
 # method is the provider's contract, not a network convention: some answer a GET
 # whose query the mapping builds, others take a POST with a JSON body.
+#
+# A binding is one action. Written flat, as the first example below, it is the
+# select action. A capability that answers more than one action - grievance
+# answers support and status - lists them under `actions`, with path, method,
+# mappingUrl, timeoutMs and retryMax on each entry rather than on the binding.
+# The two forms do not mix: a binding either is flat or has `actions`.
+#
+# It is a list and not a map keyed by action name because the registry treats
+# every nested object as an entity and gives it an osid, which a map cannot
+# carry.
+#
+# baseUrl is optional: the host this capability is called on, when it is not
+# the participant's. PM-KISAN is one participant whose grievance portal and
+# chatbot service are different hosts.
 # ---------------------------------------------------------------------------
 bindings: []
   # - participantId: mausamgram
@@ -133,6 +147,39 @@ bindings: []
   #   mappingUrl: https://raw.githubusercontent.com/...
   #   timeoutMs: 15000
   #   retryMax: 2
+  #
+  # retryMax defaults to 2 for select, status, track and discover, and to 0 for any other action.
+  # - participantId: pmfby
+  #   capability: openagrinet:Grievance
+  #   actions:
+  #     - action: support
+  #       path: /krphapi/FGMS/AddKRPHNCIPGrievenceSupportTicket
+  #       method: POST
+  #       mappingUrl: https://raw.githubusercontent.com/...
+  #       timeoutMs: 30000
+  #       # A retried support filing opens a second ticket.
+  #       retryMax: 0
+  #     - action: status
+  #       path: /krphapi/FGMS/GetGrievenceTicketsStatus
+  #       method: POST
+  #       mappingUrl: https://raw.githubusercontent.com/...
+  #       timeoutMs: 30000
+  #       retryMax: 2
+  #
+  # PM-KISAN: the participant's baseUrl is the grievance portal; application
+  # status is on the chatbot service, and so is the OTP grievance asks for.
+  # - participantId: pmkisan
+  #   capability: openagrinet:Grievance
+  #   actions:
+  #     - { action: init,    path: /ChatbotOTP,           method: POST, mappingUrl: https://raw.githubusercontent.com/..., timeoutMs: 20000 }
+  #     - { action: support, path: /LodgeGrievance,       method: POST, mappingUrl: https://raw.githubusercontent.com/..., timeoutMs: 30000 }
+  #     - { action: status,  path: /GrievanceStatusCheck, method: POST, mappingUrl: https://raw.githubusercontent.com/..., timeoutMs: 30000 }
+  # - participantId: pmkisan
+  #   capability: openagrinet:SchemeApplication
+  #   baseUrl: https://pmkisan.gov.in/services/chatbotservice.asmx
+  #   actions:
+  #     - { action: init,   path: /ChatbotOTP,         method: POST, mappingUrl: https://raw.githubusercontent.com/..., timeoutMs: 20000 }
+  #     - { action: status, path: /ChatbotUserDetails, method: POST, mappingUrl: https://raw.githubusercontent.com/..., timeoutMs: 30000, retryMax: 0 }
 
 # ---------------------------------------------------------------------------
 # What each capability MEANS - a different question from who serves it.

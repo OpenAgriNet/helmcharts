@@ -22,12 +22,47 @@ upstreams:
   - participantId: mausamgram
     name: IMD Mausamgram NWP
     baseUrl: https://example.invalid
+  - participantId: pmfby
+    name: PMFBY grievance
+    baseUrl: https://example.invalid
+  - participantId: pmkisan
+    name: PM-KISAN
+    baseUrl: https://example.invalid
 bindings:
+  # Both binding forms, so the render covers both branches: the flat one, which
+  # is a single select, and the multi-action one.
   - participantId: mausamgram
     capability: openagrinet:WeatherObservation
     path: /get-daily
     method: GET
     mappingUrl: https://example.invalid/mapping.yaml
+  - participantId: pmfby
+    capability: openagrinet:Grievance
+    actions:
+      - action: support
+        path: /add-ticket
+        method: POST
+        mappingUrl: https://example.invalid/grievance.support.yaml
+        timeoutMs: 30000
+        retryMax: 0
+      - action: status
+        path: /ticket-status
+        method: POST
+        mappingUrl: https://example.invalid/grievance.status.yaml
+  # A binding on another host than its participant's.
+  - participantId: pmkisan
+    capability: openagrinet:SchemeApplication
+    baseUrl: https://chatbot.example.invalid/services/chatbotservice.asmx
+    actions:
+      - action: init
+        path: /ChatbotOTP
+        method: POST
+        mappingUrl: https://example.invalid/application-status.init.yaml
+      - action: status
+        path: /ChatbotUserDetails
+        method: POST
+        mappingUrl: https://example.invalid/application-status.status.yaml
+        retryMax: 0
 schemas:
   - capability: openagrinet:WeatherObservation
     name: Weather Observation

@@ -5,6 +5,17 @@ All notable changes to the `registry` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-10-27
+
+### Added
+- `ProviderSchema` takes an optional `baseUrl`: the host one capability is
+  called on, in place of its participant's. PM-KISAN is one participant whose
+  grievance portal and chatbot service are different hosts.
+
+### Fixed
+- `SchemaRegistry.schemaUrl` accepts a network-specs ref with a dot in it, such
+  as a `v0.1` tag. It was refused before.
+
 ## [0.4.1] - 2026-09-27
 
 ### Changed
