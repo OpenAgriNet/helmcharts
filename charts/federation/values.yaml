@@ -96,6 +96,9 @@ serviceAccount:
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 101
+  # A secret volume is owned by root, so without a group the publish Job cannot
+  # read the key it signs with. fsGroup is what gives the file a readable group.
+  fsGroup: 101
   seccompProfile: {type: RuntimeDefault}
 
 securityContext:

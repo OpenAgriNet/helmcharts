@@ -77,7 +77,8 @@ spec:
         - name: keys
           secret:
             secretName: {{ .Values.keys.existingSecret.name }}
-            defaultMode: 0400
+            # Group, not owner: the file is root-owned and the container is not root.
+            defaultMode: 0440
         - name: tmp
           emptyDir: {}
       {{- with .Values.nodeSelector }}
