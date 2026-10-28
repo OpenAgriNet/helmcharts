@@ -1,6 +1,6 @@
 [
   {
-    "name": "a peer admitted as a source is reached at its discoveryUrl, with no baseUrl",
+    "name": "a peer admitted as a source is reached at its baseUrl",
     "valid": true,
     "participant": {
       "participantId": "net-a.example.org",
@@ -10,7 +10,6 @@
       "role": [
         "network"
       ],
-      "discoveryUrl": "https://net-a.example.org/discover",
       "keys": [
         {
           "alg": "ed25519",
@@ -27,12 +26,13 @@
           "descriptorRevision": 1,
           "admittedAt": "2026-10-28T00:00:00Z"
         }
-      }
+      },
+      "baseUrl": "https://net-a.example.org/discover"
     }
   },
   {
-    "name": "federationRole may be empty: suspend leaves the key behind with nothing under it",
-    "valid": true,
+    "name": "federationRole may not be empty: a direction is removed, not emptied",
+    "valid": false,
     "participant": {
       "participantId": "net-a.example.org",
       "name": "Net A",
@@ -41,7 +41,6 @@
       "role": [
         "network"
       ],
-      "discoveryUrl": "https://net-a.example.org/discover",
       "keys": [
         {
           "alg": "ed25519",
@@ -50,7 +49,8 @@
           "key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
         }
       ],
-      "federationRole": {}
+      "federationRole": {},
+      "baseUrl": "https://net-a.example.org/discover"
     }
   },
   {
@@ -105,7 +105,7 @@
     }
   },
   {
-    "name": "projectionTtl belongs to source: how long we may keep what we crawled",
+    "name": "projectionTtl is the participant's: how long we may keep what we crawled",
     "valid": true,
     "participant": {
       "participantId": "net-a.example.org",
@@ -115,7 +115,6 @@
       "role": [
         "network"
       ],
-      "discoveryUrl": "https://net-a.example.org/discover",
       "keys": [
         {
           "alg": "ed25519",
@@ -130,14 +129,15 @@
             "https://net-a.example.org/packs/MandiPrice/v0.1/attributes.yaml"
           ],
           "descriptorRevision": 1,
-          "admittedAt": "2026-10-28T00:00:00Z",
-          "projectionTtl": 3600
+          "admittedAt": "2026-10-28T00:00:00Z"
         }
-      }
+      },
+      "baseUrl": "https://net-a.example.org/discover",
+      "projectionTtl": 3600
     }
   },
   {
-    "name": "projectionTtl on requester is refused: it is the peer's retention, not ours",
+    "name": "projectionTtl inside a direction is refused: it belongs to the participant",
     "valid": false,
     "participant": {
       "participantId": "net-a.example.org",
@@ -147,7 +147,6 @@
       "role": [
         "network"
       ],
-      "discoveryUrl": "https://net-a.example.org/discover",
       "keys": [
         {
           "alg": "ed25519",
@@ -163,9 +162,10 @@
           ],
           "descriptorRevision": 1,
           "admittedAt": "2026-10-28T00:00:00Z",
-          "projectionTtl": 60
+          "projectionTtl": 3600
         }
-      }
+      },
+      "baseUrl": "https://net-a.example.org/discover"
     }
   },
   {
@@ -179,7 +179,6 @@
       "role": [
         "network"
       ],
-      "discoveryUrl": "https://net-a.example.org/discover",
       "keys": [
         {
           "alg": "ed25519",
@@ -194,14 +193,15 @@
             "https://net-a.example.org/packs/MandiPrice/v0.1/attributes.yaml"
           ],
           "descriptorRevision": 1,
-          "admittedAt": "2026-10-28T00:00:00Z",
-          "projectionTtl": 0
+          "admittedAt": "2026-10-28T00:00:00Z"
         }
-      }
+      },
+      "baseUrl": "https://net-a.example.org/discover",
+      "projectionTtl": 0
     }
   },
   {
-    "name": "a suspended admission must say when it was suspended",
+    "name": "a status inside a direction is refused: there is no per-direction lifecycle",
     "valid": false,
     "participant": {
       "participantId": "net-a.example.org",
@@ -211,7 +211,6 @@
       "role": [
         "network"
       ],
-      "discoveryUrl": "https://net-a.example.org/discover",
       "keys": [
         {
           "alg": "ed25519",
@@ -229,11 +228,12 @@
           "admittedAt": "2026-10-28T00:00:00Z",
           "status": "suspended"
         }
-      }
+      },
+      "baseUrl": "https://net-a.example.org/discover"
     }
   },
   {
-    "name": "a suspended admission with suspendedAt is accepted",
+    "name": "a direction removed from federationRole leaves the other standing",
     "valid": true,
     "participant": {
       "participantId": "net-a.example.org",
@@ -243,7 +243,6 @@
       "role": [
         "network"
       ],
-      "discoveryUrl": "https://net-a.example.org/discover",
       "keys": [
         {
           "alg": "ed25519",
@@ -258,11 +257,10 @@
             "https://net-a.example.org/packs/MandiPrice/v0.1/attributes.yaml"
           ],
           "descriptorRevision": 1,
-          "admittedAt": "2026-10-28T00:00:00Z",
-          "status": "suspended",
-          "suspendedAt": "2026-10-28T09:00:00Z"
+          "admittedAt": "2026-10-28T00:00:00Z"
         }
-      }
+      },
+      "baseUrl": "https://net-a.example.org/discover"
     }
   },
   {
@@ -276,7 +274,6 @@
       "role": [
         "network"
       ],
-      "discoveryUrl": "https://net-a.example.org/discover",
       "keys": [
         {
           "alg": "ed25519",
@@ -291,7 +288,8 @@
           "descriptorRevision": 1,
           "admittedAt": "2026-10-28T00:00:00Z"
         }
-      }
+      },
+      "baseUrl": "https://net-a.example.org/discover"
     }
   },
   {
@@ -305,7 +303,6 @@
       "role": [
         "network"
       ],
-      "discoveryUrl": "https://net-a.example.org/discover",
       "keys": [
         {
           "alg": "ed25519",
@@ -322,7 +319,8 @@
           "descriptorRevision": 1,
           "admittedAt": "2026-10-28T00:00:00Z"
         }
-      }
+      },
+      "baseUrl": "https://net-a.example.org/discover"
     }
   },
   {
@@ -336,7 +334,6 @@
       "role": [
         "network"
       ],
-      "discoveryUrl": "https://net-a.example.org/discover",
       "keys": [
         {
           "alg": "ed25519",
@@ -355,12 +352,13 @@
           "osid": "1-abc"
         },
         "osid": "1-def"
-      }
+      },
+      "baseUrl": "https://net-a.example.org/discover"
     }
   },
   {
-    "name": "an osid the registry did not write is refused when it is not a string",
-    "valid": false,
+    "name": "the registry's own osid passes back whatever type it carries",
+    "valid": true,
     "participant": {
       "participantId": "net-a.example.org",
       "name": "Net A",
@@ -369,7 +367,6 @@
       "role": [
         "network"
       ],
-      "discoveryUrl": "https://net-a.example.org/discover",
       "keys": [
         {
           "alg": "ed25519",
@@ -387,19 +384,19 @@
           "admittedAt": "2026-10-28T00:00:00Z"
         },
         "osid": 7
-      }
+      },
+      "baseUrl": "https://net-a.example.org/discover"
     }
   },
   {
-    "name": "role as a bare string is refused: 0.4.1 rows need the migration in the CHANGELOG",
-    "valid": false,
+    "name": "role as a bare string is accepted: an older row still reads",
+    "valid": true,
     "participant": {
       "participantId": "net-a.example.org",
       "name": "Net A",
       "type": "node",
       "status": "active",
       "role": "network",
-      "discoveryUrl": "https://net-a.example.org/discover",
       "keys": [
         {
           "alg": "ed25519",
@@ -416,7 +413,8 @@
           "descriptorRevision": 1,
           "admittedAt": "2026-10-28T00:00:00Z"
         }
-      }
+      },
+      "baseUrl": "https://net-a.example.org/discover"
     }
   },
   {

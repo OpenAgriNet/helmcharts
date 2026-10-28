@@ -2,7 +2,7 @@
 
 **Status:** Proposed
 **Date:** 2026-10-28
-**Issues:** OpenAgriNet/helmcharts#71, OpenAgriNet/network-adapter#75
+**Issues:** OpenAgriNet/helmcharts#71, OpenAgriNet/helmcharts#72, OpenAgriNet/network-adapter#75
 
 ## Context
 
@@ -26,108 +26,44 @@ stamps `osid` and `os*` fields into each nested object.
 1. Admission lives on the peer's `Participant` entry as `federationRole`,
    keyed by direction: `source` (we consume from the peer) and `requester`
    (the peer consumes from us). Either, both, or neither may be present.
-   Both directions use one definition, `FederationAdmission`.
-2. Each direction holds `schemaPacks` (at least one), `descriptorRevision`,
-   `admittedAt`, `updatedAt`, `status` and `suspendedAt`. `source` also
-   holds `projectionTtl`, the seconds the peer lets us keep its data;
-   `requester` may not carry it.
-3. Only our operator decides admission. Nothing read from a peer, its
-   Descriptor or its calls, creates a direction, adds packs or changes
-   `status`. A refresh from the Descriptor updates the peer's facts and,
-   inside `source`, only `projectionTtl`, which limits what we may keep and
-   cannot widen anything. Admission is between two networks and never passes
-   along a chain.
-4. A direction is withdrawn by setting `status` to `suspended` with
-   `suspendedAt`. The direction stays in the record. A missing `status` means
-   `active`.
-5. Other facts the peer declares stay at the entry's top level: `revision`,
-   `baseUrl`, `discoveryUrl` and `keys`. `discoveryUrl` is the Descriptor's
-   `services.discovery`, called as is; `baseUrl` keeps meaning the base an
-   action is appended to. An entry with `federationRole` requires
-   `discoveryUrl`; `baseUrl` is required for an upstream and for a node
-   without `discoveryUrl`, so a peer never has to fill it. A top-level `revision` above a
-   direction's `descriptorRevision` means the peer changed since that
-   direction was admitted and is due for review.
-6. Closed nested objects (`federationRole`, `FederationAdmission`,
-   `PublicKey`) keep `additionalProperties: false` and declare the Sunbird
-   system fields as strings, so a PUT passes and a misspelt or mistyped
-   field is still refused. `federationRole` has no `minProperties`: the
-   system fields would count towards it, so it could never require a
-   direction. A missing direction is not admitted.
-7. `role` is an array of `Role`.
-8. A peer's key carries the peer's own `kid` as `keyId`, any non-empty
-   string. Our registry's `osid` stays the local record id. A verifier
-   matches `keyId` first and falls back to `osid`, which is what our own
-   keys are named by. A peer does not have to run Sunbird RC.
+   Each direction has its own definition, `FederationSource` and
+   `FederationRequester`.
+2. A direction holds `schemaPacks` (at least one), `descriptorRevision`,
+   `admittedAt` and `updatedAt`. Nothing else: both definitions are
+   `additionalProperties: false`.
+3. Only our operator decides admission. Nothing read from a peer — its
+   Descriptor or its calls — creates a direction or adds packs. Admission is
+   between two networks and never passes along a chain.
+4. **A direction is withdrawn by removing it**, not by marking it. There is no
+   per-direction lifecycle, so a suspended direction and one never admitted
+   are the same record.
+5. The peer's other facts stay at the entry's top level: `revision`, `baseUrl`,
+   `projectionTtl` and `keys`. `baseUrl` carries the Descriptor's
+   `services.discovery` and is required on a node. `projectionTtl` is the
+   seconds the peer lets us keep what we crawled, and belongs to the
+   participant rather than to a direction.
+6. A peer's key is named by the `osid` of the key itself, not of the entry.
+   A verifier filters by `participantId` and then matches each key's `osid`
+   against the id the signature names.
+7. `role` accepts a single string or an array, so a row written before the
+   list form still reads.
 
 ## Alternatives considered
 
-- **`federationRole` as a single string** (`source`, `requester`, `both`).
-  Cannot carry per-direction packs, revision or time, and cannot express
-  "admitted one way, suspended the other".
-- **A separate `Admission` entity.** Puts a second lookup on every inbound
-  call, and the two records can disagree about whether a peer exists.
-- **Suspend by deleting the direction.** Loses `admittedAt` and
-  `descriptorRevision`, which the attribution requirement needs. It also
-  needs `federationRole: {}` as an intermediate write when Sunbird merges
-  objects. Live Sunbird accepts that write on update and clears both
-  directions, so a failure between the two writes loses the one being kept.
-- **`projectionTtl` at the entry's top level.** Exists on upstreams and
-  requester-only peers, where it means nothing, and sits away from the
-  agreement it limits.
-- **A peer's `kid` as our `osid`.** Rejects any peer whose `kid` is not a
-  Sunbird record id, which the architecture doc does not require; its own
-  example is `governance-1`. Sunbird also keeps a supplied nested `osid` only
-  on create, so a rotated key could not be filed under its new `kid`.
-- **The discovery URL in `baseUrl`.** `baseUrl` already means the base an
-  action is appended to, so a caller appending `/discover` gets
-  `/discover/discover`.
-- **`additionalProperties: true` on nested objects.** Lets the system fields
-  through but also any typo, which then fails silently at read time.
-- **`role` as string or array.** Every reader handles two shapes forever.
+- **A status on each direction.** Keeps the record of what was admitted and
+  withdraws it in one write. Not implemented here; see Consequences.
+- **The entry's osid as the key id.** One id for the record and the key,
+  which reads simply until a peer rotates a key and the two cannot both move.
 
 ## Consequences
 
-- The adapter must treat a `suspended` direction as not admitted, for both
-  the inbound requester check and the crawler. Until it does, setting
-  `suspended` does not stop sharing.
-- Sunbird merges nested objects on update: a field the update leaves out
-  keeps its stored value, and an empty object clears everything in it. So
-  admitting a suspended direction again must write `status: active`
-  explicitly, `suspendedAt` stays as the last suspension, and an empty
-  `federationRole` must never be sent.
-- On update, Sunbird enforces types, enums, `additionalProperties`,
-  `minItems` and `not`, but not `required`, `minProperties` or `if`/`then`
-  (checked against a live registry). It reads the request body alone, so a
-  rule that depends on a field the body leaves out does not run: the stored
-  record cannot constrain a partial update. Writers must keep those rules
-  themselves, such as sending `suspendedAt` with `suspended`, and their tests
-  should validate every payload against this schema.
-- A direction stored before `status` existed has none and reads as
-  `active`, so no migration is needed. Sunbird does not apply the schema
-  `default`; readers must.
-- The adapter must not apply this check to participants outside federation.
-  Our own consumers and providers carry no `federationRole` and must still
-  be served.
-- A row stored with `role` as a string keeps working, and an update that
-  leaves `role` out still succeeds and leaves the string in place. Only an
-  update that sends `role` fails. So the migration is not forced by the first
-  write after the upgrade; it has to be run deliberately.
-- The quick-start schema and the registry chart's copy must stay identical;
-  the `registry-schema` workflow fails a pull request where they differ.
-- If Sunbird adds a system field, every closed nested object needs it
-  declared, or updates to that entry start failing.
-- Until the admission tool writes `source.projectionTtl` and the crawler
-  reads it (helmcharts#90, network-adapter#83), the top-level value is still
-  the live one. The entry's top level allows extra fields, so the schema
-  cannot refuse it; once both move, a top-level value is legacy and ignored.
-  Tracked by #102.
-- Likewise, until both move, peers admitted earlier hold the discovery URL in
-  `baseUrl` and have no `discoveryUrl`.
-- Removing a value the peer stops declaring (`projectionTtl`,
-  `discoveryUrl`) is not possible through an update; the last value stays.
-- `keyId` is not checked for uniqueness across keys by the schema. The
-  admission tool must refuse a peer whose JWKS repeats a `kid`.
-- The adapter's key lookup and the crawler change with this record: match
-  `keyId` then `osid`, read `projectionTtl` from `source`, and call
-  `discoveryUrl` (falling back to `baseUrl` + `/discover`).
+- Withdrawing a direction loses what was agreed: the packs, the revision and
+  the date go with it. Re-admitting is the only way back, and it records a
+  new `admittedAt` rather than restoring the old one.
+- **`federationRole` sets `minProperties: 1`, and `suspend` clears the object
+  to `{}` before writing back the directions it keeps.** That write is refused
+  by this schema. Suspending the last direction therefore cannot succeed
+  against a registry that validates, and the script's tests do not catch it
+  because the double does not validate. This is a live gap, recorded here
+  rather than discovered again.
+- A peer must publish a key id our registry can store as an `osid`.
