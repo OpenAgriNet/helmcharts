@@ -10,6 +10,20 @@ else. The moment an OAN modification lands, this chart's version has to fork fro
 upstream's and follow [`CONVENTIONS.md`](../../CONVENTIONS.md) instead — record
 that switch in this file when it happens.
 
+## [1.2.0] - 2026-10-28
+
+The first OAN modification. From here this chart's `version` follows
+[`CONVENTIONS.md`](../../CONVENTIONS.md) rather than upstream's; it is based on
+upstream `hyperdx/clickstack` 1.1.1.
+
+### Added
+- `clickhouse.config.users.existingSecret`: the name of a Secret with keys
+  `appUserPassword` and `otelUserPassword`. When set, ClickHouse reads both
+  users' passwords from the environment (`from_env` in `users.xml`), the OTel
+  collector's `CLICKHOUSE_PASSWORD` and HyperDX's default connection come from
+  the same Secret, and the chart renders no `<release>-clickhouse-secrets` of
+  its own. Unset, the chart renders exactly as before.
+
 ## [1.1.1] - 2026-09-09
 
 Initial import [#4]. Upstream `hyperdx/clickstack` 1.1.1 (appVersion 2.8.0),
