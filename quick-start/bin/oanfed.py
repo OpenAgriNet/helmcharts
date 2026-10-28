@@ -624,17 +624,17 @@ def peer_record(descriptor, keyset):
 
 
 def file_peer(registry, descriptor, keyset):
-    """Create the peer's entry, or bring its facts up to date. Returns the stored entry.
+    """Create the peer's entry, or bring its record up to date. Returns the stored entry.
 
     Never touches federationRole: a peer's documents cannot widen its admission.
     """
-    kid, facts = peer_record(descriptor, keyset)
-    held = registry.participant(facts["participantId"])
+    kid, record = peer_record(descriptor, keyset)
+    held = registry.participant(record["participantId"])
     if held is None:
         # Sunbird keeps a supplied osid only without its "1-" prefix, and only
         # on create: it prepends one itself, so passing the kid whole stores
         # 1-1-<uuid> and no signature naming the kid resolves.
-        created = {**facts, "keys": [{**facts["keys"][0],
+        created = {**record, "keys": [{**record["keys"][0],
                                       "osid": kid.removeprefix("1-")}]}
         registry.create(created)
     else:
@@ -642,32 +642,38 @@ def file_peer(registry, descriptor, keyset):
             raise FederationError(
                 f"revision {descriptor['revision']} is below the {held['revision']} we hold; "
                 f"refusing a replay")
-        same_key = [k.get("key") for k in held.get("keys") or []] == [facts["keys"][0]["key"]]
+        same_key = [k.get("key") for k in held.get("keys") or []] == [record["keys"][0]["key"]]
         if descriptor["revision"] == held.get("revision") and not (
-                same_key and all(held.get(f) == facts.get(f) for f in ("baseUrl", "projectionTtl"))):
+                same_key and all(held.get(f) == record.get(f) for f in ("baseUrl", "projectionTtl"))):
             raise FederationError(
                 f"revision {descriptor['revision']} is the one we hold, with different contents")
         if same_key:
-            facts["keys"] = held["keys"]
-        registry.update({**held, **facts})
-    stored = registry.participant(facts["participantId"])
+            record["keys"] = held["keys"]
+        registry.update({**held, **record})
+    return stored_as_written(registry, record["participantId"], kid, record["keys"][0]["key"])
+
+
+def stored_as_written(registry, participant_id, kid, key):
+    """Read the entry back and refuse one the registry did not store as asked.
+
+    The kid must have landed on the KEY: a verifier resolves nothing without it,
+    and the registry regenerates a nested osid that an update failed to echo."""
+    stored = registry.participant(participant_id)
     if stored is None:
-        raise FederationError(f"the registry did not store {facts['participantId']}")
-    # The kid must have landed on the KEY: a verifier resolves nothing without it,
-    # and the registry regenerates a nested osid that an update failed to echo.
+        raise FederationError(f"the registry did not store {participant_id}")
     if kid not in [k.get("osid") for k in stored.get("keys") or []]:
         raise FederationError(
-            f"the registry did not store {facts['participantId']}'s key as {kid}; "
+            f"the registry did not store {participant_id}'s key as {kid}; "
             f"signatures naming it would resolve to no key")
-    if [k.get("key") for k in stored.get("keys") or []] != [facts["keys"][0]["key"]]:
-        raise FederationError(f"the registry did not store {facts['participantId']}'s key")
+    if [k.get("key") for k in stored.get("keys") or []] != [key]:
+        raise FederationError(f"the registry did not store {participant_id}'s key")
     return stored
 
 
-def our_schema_packs(args):
+def our_schema_packs(out_dir):
     """The packs WE publish, from the document another network reads -- not our
     registry, which holds a row before anyone has been told about it."""
-    path = pathlib.Path(args.out) / ".well-known" / "schema-packs.json"
+    path = pathlib.Path(out_dir) / ".well-known" / "schema-packs.json"
     if not path.is_file():
         raise FederationError(
             f"{path} does not exist, so this network publishes nothing to agree about.\n"
@@ -688,7 +694,7 @@ def cmd_admit(args):
     registry = peer_registry(args.network_id)
     # What can be agreed here, and both sides are a DOCUMENT: theirs when we
     # read from them, ours when they ask us.
-    offered = published if args.direction == "source" else our_schema_packs(args)
+    offered = published if args.direction == "source" else our_schema_packs(args.out)
 
     packs = sorted({p.strip() for p in args.schema_packs.split(",") if p.strip()})
     if packs == ["all"]:
