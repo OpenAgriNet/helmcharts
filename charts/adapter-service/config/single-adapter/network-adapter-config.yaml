@@ -37,7 +37,7 @@ plugins:
   # registry's bindings, runs each `publish` pipeline that is due and POSTs the
   # catalogs to this adapter's own /publish, which signs them as the provider and sends them on
   # to discovery. Needs a crawler-capable image, the run log database (its DSN
-  # is a key in the keys Secret, see crawler.dbDsnKey) and the pipeline's
+  # comes from the keys Secret through extraSubstitutions, see README) and the pipeline's
   # inputs as env (MANDI_*, APP_NETWORK_ID, AGMARKNET_*). Remove both blocks to turn it off.
   # This registry block is the crawler's own lookup; the modules' is separate.
   registry:
@@ -59,7 +59,7 @@ plugins:
       publishEnabled: "true"
       # Every 6 hours.
       catalogIntervalSeconds: "21600"
-      # The chart mounts an emptyDir here (read-only root filesystem).
+      # An emptyDir from extraVolumes (read-only root filesystem), see README.
       publishCatalogOutputDir: "/tmp/catalogs"
       # Per-pipeline overrides, by metadata.name. Once a day, OnDemand catalogs
       # only. Agmarknet data lags 1-3 weeks: a relative window, not the

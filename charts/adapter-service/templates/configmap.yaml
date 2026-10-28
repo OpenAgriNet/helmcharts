@@ -32,7 +32,7 @@ in `helm get values` -- so the render refuses it.
 {{- if $single }}
 {{- /* Single mode: config/single-adapter/network-adapter-config.yaml unless `config` replaces it;
        private keys must be tier placeholders either way. */}}
-{{- $nlCfg = include "adapter-service.rawConfig" . }}
+{{- $nlCfg = .Values.config | default (.Files.Get "config/single-adapter/network-adapter-config.yaml") }}
 {{- if not $nlCfg }}
 {{- fail (printf "%s: role network-adapter in single mode reads config/single-adapter/network-adapter-config.yaml, which is missing from the chart." .Chart.Name) }}
 {{- end }}
@@ -45,7 +45,8 @@ in `helm get values` -- so the render refuses it.
 {{- fail (printf "%s: the single-mode config listens on http.port %v but service.targetPort is %v. The single-mode routing sends tier hops to that port on localhost, so the two must match." .Chart.Name (dig "http" "port" "unset" $nlParsed) .Values.service.targetPort) }}
 {{- end }}
 {{- else }}
-{{- $cfg := include "adapter-service.rawConfig" . }}
+{{- $cfgFile := printf "config/multi-adapter/%s-config.yaml" (include "adapter-service.role" .) }}
+{{- $cfg := .Values.config | default (.Files.Get $cfgFile) }}
 {{- if $cfg }}
 {{- range $ph, $field := dict "__ADAPTER_SIGNING_PRIVATE__" "signingPrivateKey" "__ADAPTER_ENCR_PRIVATE__" "encrPrivateKey" }}
 {{- if and (contains (printf "%s:" $field) $cfg) (not (contains $ph $cfg)) }}
@@ -94,9 +95,10 @@ data:
 
            `config` in values wins when set, for an environment that needs to
            differ without a new file. */}}
-    {{- $raw := include "adapter-service.rawConfig" . }}
+    {{- $file := printf "config/multi-adapter/%s-config.yaml" (include "adapter-service.role" .) }}
+    {{- $raw := .Values.config | default ($.Files.Get $file) }}
     {{- if not $raw }}
-    {{- fail (printf "%s: no config. Expected %s in the chart, or `config` set in values. The role decides the filename, so a new role needs a new file." .Chart.Name (include "adapter-service.configFile" .)) }}
+    {{- fail (printf "%s: no config. Expected %s in the chart, or `config` set in values. The role decides the filename, so a new role needs a new file." .Chart.Name $file) }}
     {{- end }}
     {{- $raw | nindent 4 }}
 

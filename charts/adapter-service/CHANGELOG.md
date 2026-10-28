@@ -13,17 +13,11 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   plugin blocks are in `config/single-adapter/network-adapter-config.yaml` and
   `config/multi-adapter/network-config.yaml`. Catalogs go to this pod's
   `/publish` (single) or the provider adapter's (multi), sent as the provider
-  to `discovery.oan.dev`. When the config carries the
-  `__ADAPTER_CRAWLER_DB_DSN__` placeholder, the init container fills it from
-  `crawler.dbDsnKey` (the keys Secret in multi mode, the network tier's Secret
-  in single mode) and the pod gets an emptyDir at `/tmp/catalogs`. Needs
-  the registry and registry-seed from #96 (a `publishPipelineUrl` on the binding),
-  a run log database of its own (not discovery's), and a crawler-capable image.
-
-### Fixed
-- The init container's substitution escapes `\`, `&` and `|` in the value. A
-  DSN or URL holding one of them used to be corrupted (`&` expanded to the
-  placeholder) or break the `sed` expression; base64 keys are unaffected.
+  to `discovery.oan.dev`. No template change: the deployment fills the run log
+  DSN placeholder `__ADAPTER_CRAWLER_DB_DSN__` through `extraSubstitutions` and
+  mounts `/tmp/catalogs` through `extraVolumes` (see README). Needs the registry
+  and registry-seed from #96 (a `publishPipelineUrl` on the binding), a run log
+  database of its own (not discovery's), and a crawler-capable image.
 
 ## [0.6.0] - 2026-10-09
 

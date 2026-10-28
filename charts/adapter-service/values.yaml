@@ -405,23 +405,6 @@ podAnnotations: {}
 commonLabels: {}
 commonAnnotations: {}
 
-# ---------------------------------------------------------------------------
-# Catalog crawler (network-adapter role)
-#
-# The crawler's plugin blocks live in the network adapter's config files
-# (config/single-adapter/network-adapter-config.yaml,
-# config/multi-adapter/network-config.yaml). When the config carries them, the
-# chart fills the run log DSN from this key and mounts /tmp/catalogs.
-# ---------------------------------------------------------------------------
-crawler:
-  # Key holding the run log DSN, substituted at pod start so the password never
-  # reaches the ConfigMap. In the keys Secret (multi-adapter), or in the network
-  # tier's Secret, adapterKeys.network-adapter (single-adapter). Use the
-  # database's FQDN.
-  dbDsnKey: crawlerDbDsn
-  # Size of the emptyDir the crawler keeps built catalogs in.
-  outputSizeLimit: 512Mi
-
 extraInitContainers: []
 extraVolumes: []
 extraVolumeMounts: []

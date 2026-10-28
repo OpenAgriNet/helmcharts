@@ -1,6 +1,5 @@
 apiVersion: {{ include "common.deployment.apiVersion" . }}
 {{- $single := eq (include "adapter-service.deploymentMode" .) "single-adapter" }}
-{{- $crawler := eq (include "adapter-service.crawlerEnabled" .) "true" }}
 kind: Deployment
 metadata:
   name: {{ include "adapter-service.fullname" . }}
@@ -107,10 +106,7 @@ spec:
                   echo "    ./scripts/resolve-key-ids.sh -e <env>" >&2
                   exit 1
                 fi
-                # Escape the replacement: base64 never needs it, but a DSN or URL
-                # can hold \, & or | -- each of which sed would otherwise eat,
-                # expand to the placeholder, or end the expression on.
-                sed -i "s|$1|$(sed 's/[\\&|]/\\&/g' "$2")|g" /rendered/adapter.yaml
+                sed -i "s|$1|$(cat "$2")|g" /rendered/adapter.yaml
               }
               {{- if $single }}
 
@@ -143,10 +139,6 @@ spec:
               {{- range $ph, $key := .Values.keys.existingSecret.extraSubstitutions }}
               subst {{ $ph }} /keys/{{ $key }}
               {{- end }}
-              {{- end }}
-              {{- if $crawler }}
-              {{- /* The crawler's run log DSN: the network tier's Secret in single mode. */}}
-              subst __ADAPTER_CRAWLER_DB_DSN__ /keys/{{ ternary "network/" "" $single }}{{ .Values.crawler.dbDsnKey }}
               {{- end }}
 
               # A placeholder that survived means a key was substituted with
@@ -222,10 +214,6 @@ spec:
             - name: config
               mountPath: {{ include "adapter-service.configDir" . }}
               readOnly: true
-            {{- if $crawler }}
-            - name: crawler-catalogs
-              mountPath: /tmp/catalogs
-            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -254,13 +242,6 @@ spec:
         - name: config
           emptyDir:
             sizeLimit: 1Mi
-        {{- if $crawler }}
-        {{- /* Built catalogs. The root filesystem is read-only, so the crawler's
-               output directory needs a mount of its own. Dies with the pod. */}}
-        - name: crawler-catalogs
-          emptyDir:
-            sizeLimit: {{ .Values.crawler.outputSizeLimit }}
-        {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

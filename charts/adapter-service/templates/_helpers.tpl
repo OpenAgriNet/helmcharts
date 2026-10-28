@@ -177,38 +177,3 @@ therefore needs a rollout restart -- which the NOTES print.
 {{- define "adapter-service.configChecksum" -}}
 {{- include (print $.Template.BasePath "/configmap.yaml") . | sha256sum -}}
 {{- end }}
-
-{{/*
-The chart file the adapter config comes from: one per mode, and per role in
-multi mode.
-*/}}
-{{- define "adapter-service.configFile" -}}
-{{- if eq (include "adapter-service.deploymentMode" .) "single-adapter" -}}
-config/single-adapter/network-adapter-config.yaml
-{{- else -}}
-config/multi-adapter/{{ include "adapter-service.role" . }}-config.yaml
-{{- end -}}
-{{- end }}
-
-{{/*
-The adapter config as mounted: `config` in values wins, else configFile.
-*/}}
-{{- define "adapter-service.rawConfig" -}}
-{{- .Values.config | default (.Files.Get (include "adapter-service.configFile" .)) -}}
-{{- end }}
-
-{{/*
-"true" when the config's crawler plugin takes its run log DSN from the
-__ADAPTER_CRAWLER_DB_DSN__ placeholder. The deployment then substitutes the DSN
-and mounts the emptyDir the crawler builds catalogs in. The block itself lives
-in the config files.
-*/}}
-{{- define "adapter-service.crawlerEnabled" -}}
-{{- $crawler := dig "plugins" "crawler" "config" dict (include "adapter-service.rawConfig" . | fromYaml) -}}
-{{- if eq (toString (index $crawler "dbDsn" | default "")) "__ADAPTER_CRAWLER_DB_DSN__" -}}
-{{- if ne (toString (index $crawler "publishCatalogOutputDir" | default "")) "/tmp/catalogs" -}}
-{{- fail (printf "%s: the crawler's publishCatalogOutputDir must be /tmp/catalogs, where the chart mounts its emptyDir (the root filesystem is read-only)." .Chart.Name) -}}
-{{- end -}}
-true
-{{- end -}}
-{{- end }}
