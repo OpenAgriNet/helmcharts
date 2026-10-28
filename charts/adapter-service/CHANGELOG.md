@@ -5,6 +5,20 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-10-26
+
+### Added
+- The catalog crawler (the scheduled catalog publisher) is on for the
+  network-adapter role in both deployment modes: its `registry` and `crawler`
+  plugin blocks are in `config/single-adapter/network-adapter-config.yaml` and
+  `config/multi-adapter/network-config.yaml`. Catalogs go to this pod's
+  `/publish` (single) or the provider adapter's (multi), sent as the provider
+  to `discovery.oan.dev`. No template change: the deployment fills the run log
+  DSN placeholder `__ADAPTER_CRAWLER_DB_DSN__` through `extraSubstitutions` and
+  mounts `/tmp/catalogs` through `extraVolumes` (see README). Needs the registry
+  and registry-seed from #96 (a `publishPipelineUrl` on the binding), a run log
+  database of its own (not discovery's), and a crawler-capable image.
+
 ## [0.6.0] - 2026-10-09
 
 ### Added

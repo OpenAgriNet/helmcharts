@@ -84,6 +84,56 @@ kubectl -n <namespace> rollout restart deploy/<release>
 
 Any other values change rolls the pods on its own.
 
+## Catalog crawler
+
+The network adapter's config files carry the catalogcrawler's `registry` and
+`crawler` plugin blocks (`config/single-adapter/network-adapter-config.yaml`,
+`config/multi-adapter/network-config.yaml`). On every tick it runs the pipeline
+of each registry binding with a `publish` action and POSTs the catalogs to
+`/publish` (this pod in single mode, the provider adapter in multi mode).
+
+The deployment wires it with existing values, no template change:
+
+```yaml
+# The run log DSN, from a key in the keys Secret. Single mode:
+adapterKeys:
+  extraSubstitutions:
+    __ADAPTER_CRAWLER_DB_DSN__: network/crawlerDbDsn
+# Multi mode:
+keys:
+  existingSecret:
+    extraSubstitutions:
+      __ADAPTER_CRAWLER_DB_DSN__: crawlerDbDsn
+# Built catalogs (the root filesystem is read-only).
+extraVolumes:
+  - name: crawler-catalogs
+    emptyDir:
+      sizeLimit: 512Mi
+extraVolumeMounts:
+  - name: crawler-catalogs
+    mountPath: /tmp/catalogs
+```
+
+Without the substitution the pod stops at start-up ("placeholders remain").
+The DSN must hold no `&` or `|` (the substitution uses `sed`); a password
+percent-encoded into it is fine.
+
+It needs, outside this chart:
+
+- an image with the `catalogcrawler` plugin and the `render.mappingByField` engine;
+- the `publish` action in the registry: the registry and registry-seed from #96, and
+  `bindings[].publishPipelineUrl` in registry-seed, pinned to a commit SHA;
+- its own run log database (PostgreSQL), not discovery's: e.g. a `catalogcrawler`
+  database and role on the shared `postgres` cluster. Its DSN goes in the keys
+  Secret (the network tier's Secret in single mode), named by the substitution above;
+- the pipeline's inputs as env: `MANDI_API_URI`, `MANDI_PARTICIPANT_ID`,
+  `APP_NETWORK_ID`, and the provider's Agmarknet credentials
+  `AGMARKNET_ACCESS_NAME` and `AGMARKNET_PASSWORD`. Single mode already has those
+  two from the provider's upstream Secret; in multi mode map them with `extraEnv`
+  `secretKeyRef`s into that Secret rather than copying them into a new one.
+
+To run without it, remove both blocks from the config file (or from `config`).
+
 ## Values and examples
 
 - `values.yaml`: every field, with a comment on what it does.
