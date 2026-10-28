@@ -378,6 +378,7 @@ modules:
         - MandiPrice
         - KnowledgeAdvisory
         - AgricultureFacility
+        - Grievance
         - sign
 
   # provider-publish: the catalogue system publishes at /publish, signed as the
