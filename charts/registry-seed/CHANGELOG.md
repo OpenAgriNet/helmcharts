@@ -5,14 +5,6 @@ All notable changes to the `registry-seed` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.2] - 2026-10-27
-
-### Added
-- `bindings[].publishPipelineUrl` (optional) writes a `publish` action beside
-  `select`, naming the pipeline the network adapter's catalog crawler runs. On a
-  binding that already exists the Job adds or repoints that one action with a PUT
-  of the whole record. Needs registry 0.5.0+.
-
 ## [0.1.1] - 2026-09-20
 
 ### Fixed
