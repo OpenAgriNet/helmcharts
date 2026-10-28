@@ -439,5 +439,49 @@
       "type": "upstream",
       "status": "active"
     }
+  },
+  {
+    "name": "our own consumer is an ordinary node with a baseUrl and no federation",
+    "valid": true,
+    "participant": {
+      "participantId": "consumer.oan.example.org",
+      "name": "OAN consumer adapter",
+      "type": "node",
+      "status": "active",
+      "role": [
+        "consumer"
+      ],
+      "baseUrl": "https://consumer.oan.example.org",
+      "keys": [
+        {
+          "alg": "ed25519",
+          "status": "active",
+          "validFrom": "2026-10-28T00:00:00Z",
+          "key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+        }
+      ]
+    }
+  },
+  {
+    "name": "a node reached over plain http is refused",
+    "valid": false,
+    "participant": {
+      "participantId": "consumer.oan.example.org",
+      "name": "OAN consumer adapter",
+      "type": "node",
+      "status": "active",
+      "role": [
+        "consumer"
+      ],
+      "baseUrl": "http://consumer.oan.example.org",
+      "keys": [
+        {
+          "alg": "ed25519",
+          "status": "active",
+          "validFrom": "2026-10-28T00:00:00Z",
+          "key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+        }
+      ]
+    }
   }
 ]
