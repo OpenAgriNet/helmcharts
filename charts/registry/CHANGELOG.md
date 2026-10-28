@@ -5,6 +5,21 @@ All notable changes to the `registry` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-10-28
+
+### Added
+- `files/schemas/Participant.json` carries the federation fields: `revision`,
+  `discoveryUrl` and `federationRole`, with a `source` and/or `requester`
+  admission per direction (`schemaPacks`, `descriptorRevision`, `admittedAt`,
+  `updatedAt`, `status`, `suspendedAt`; `projectionTtl` on `source` only).
+  `PublicKey` gains an optional `keyId`, a peer's own `kid`. See ADR-0002.
+
+### Changed
+- **BREAKING.** `role` is a list. A row holding a single string fails
+  validation on its next update until it is rewritten as a list.
+- `PublicKey.validFrom` is optional, and nested objects declare the registry's
+  system fields so an update passes.
+
 ## [0.4.1] - 2026-09-27
 
 ### Changed
