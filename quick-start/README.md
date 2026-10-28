@@ -72,7 +72,10 @@ For another network to reach you, paste
 Advanced tab. Without it `/discover` is a 404 and they collect nothing.
 
 To run two networks on one machine, set `STACK_NAME` and `STACK_PREFIX` in the
-second one's `.env`, along with its own ports and `BECKN_NETWORK_ID`.
+second one's `.env`, along with its own ports, `BECKN_NETWORK_ID` and
+`NETWORK_BASE_URL`. The last two are the network's identity and the address it
+publishes, so two stacks sharing either are one network as far as anyone else
+can tell.
 
 ## When it breaks
 
