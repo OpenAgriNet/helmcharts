@@ -19,8 +19,7 @@
         "participantId",
         "name",
         "type",
-        "status",
-        "baseUrl"
+        "status"
       ],
       "properties": {
         "participantId": {
@@ -40,13 +39,13 @@
           "$ref": "#/definitions/Status"
         },
         "baseUrl": {
-          "description": "The base something is appended to: a Beckn action for a node, a binding's path for an upstream. https for a node, since that is its wire identity; an upstream may be plaintext, because nothing in the registry is sent to it.",
+          "description": "The base something is appended to: a Beckn action for a node, a binding's path for an upstream. https for a node, since that is its wire identity; an upstream may be plaintext, because nothing in the registry is sent to it. A peer network may omit it and give discoveryUrl instead.",
           "type": "string",
           "maxLength": 2000,
           "pattern": "^https?://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*$"
         },
         "discoveryUrl": {
-          "description": "A peer's discover endpoint, as its Descriptor states. Called as is.",
+          "description": "A peer's discover endpoint, as its Descriptor states. Called as is. Required with federationRole.",
           "type": "string",
           "maxLength": 2000,
           "pattern": "^https://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*$"
@@ -64,7 +63,6 @@
           "description": "What we agreed with this peer, by direction. Absent outside federation.",
           "type": "object",
           "additionalProperties": false,
-          "minProperties": 1,
           "properties": {
             "source": {
               "description": "We consume the listed packs from this peer.",
@@ -85,11 +83,21 @@
                 }
               ]
             },
-            "osid": {},
-            "osCreatedAt": {},
-            "osUpdatedAt": {},
-            "osCreatedBy": {},
-            "osUpdatedBy": {}
+            "osid": {
+              "type": "string"
+            },
+            "osCreatedAt": {
+              "type": "string"
+            },
+            "osUpdatedAt": {
+              "type": "string"
+            },
+            "osCreatedBy": {
+              "type": "string"
+            },
+            "osUpdatedBy": {
+              "type": "string"
+            }
           }
         },
         "revision": {
@@ -134,7 +142,50 @@
               "baseUrl": {
                 "pattern": "^https://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*$"
               }
-            }
+            },
+            "anyOf": [
+              {
+                "required": [
+                  "baseUrl"
+                ]
+              },
+              {
+                "required": [
+                  "discoveryUrl"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "description": "An upstream is reached at its baseUrl.",
+          "if": {
+            "properties": {
+              "type": {
+                "const": "upstream"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "required": [
+              "baseUrl"
+            ]
+          }
+        },
+        {
+          "description": "An admitted peer is reached at its discoveryUrl.",
+          "if": {
+            "required": [
+              "federationRole"
+            ]
+          },
+          "then": {
+            "required": [
+              "discoveryUrl"
+            ]
           }
         }
       ]
@@ -191,15 +242,25 @@
           "format": "date-time"
         },
         "projectionTtl": {
-          "description": "Seconds the peer lets us keep its crawled data, as its Descriptor states. 0 means no retention: query live.",
+          "description": "Seconds the peer lets us keep its crawled data, as its Descriptor states. 0 means no retention: query live. A projectionTtl at the entry's root is legacy and ignored once readers move here (ADR-0002).",
           "type": "integer",
           "minimum": 0
         },
-        "osid": {},
-        "osCreatedAt": {},
-        "osUpdatedAt": {},
-        "osCreatedBy": {},
-        "osUpdatedBy": {}
+        "osid": {
+          "type": "string"
+        },
+        "osCreatedAt": {
+          "type": "string"
+        },
+        "osUpdatedAt": {
+          "type": "string"
+        },
+        "osCreatedBy": {
+          "type": "string"
+        },
+        "osUpdatedBy": {
+          "type": "string"
+        }
       },
       "if": {
         "properties": {
@@ -265,11 +326,21 @@
           "maxLength": 256,
           "pattern": "^\\S+$"
         },
-        "osid": {},
-        "osCreatedAt": {},
-        "osUpdatedAt": {},
-        "osCreatedBy": {},
-        "osUpdatedBy": {}
+        "osid": {
+          "type": "string"
+        },
+        "osCreatedAt": {
+          "type": "string"
+        },
+        "osUpdatedAt": {
+          "type": "string"
+        },
+        "osCreatedBy": {
+          "type": "string"
+        },
+        "osUpdatedBy": {
+          "type": "string"
+        }
       }
     },
     "ParticipantId": {

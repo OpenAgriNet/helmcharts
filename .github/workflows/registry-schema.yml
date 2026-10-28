@@ -1,0 +1,16 @@
+name: registry-schema
+
+on:
+  pull_request:
+    paths:
+      - 'quick-start/config/registry/schemas/Participant.json'
+      - 'charts/registry/files/schemas/Participant.json'
+      - '.github/workflows/registry-schema.yml'
+
+jobs:
+  copies-match:
+    name: quick-start and chart Participant.json are identical
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmp quick-start/config/registry/schemas/Participant.json charts/registry/files/schemas/Participant.json

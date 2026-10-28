@@ -43,12 +43,17 @@ stores.
 5. Other facts the peer declares stay at the entry's top level: `revision`,
    `baseUrl`, `discoveryUrl` and `keys`. `discoveryUrl` is the Descriptor's
    `services.discovery`, called as is; `baseUrl` keeps meaning the base an
-   action is appended to. A top-level `revision` above a
+   action is appended to. An entry with `federationRole` requires
+   `discoveryUrl`; `baseUrl` is required for an upstream and for a node
+   without `discoveryUrl`, so a peer never has to fill it. A top-level `revision` above a
    direction's `descriptorRevision` means the peer changed since that
    direction was admitted and is due for review.
 6. Closed nested objects (`federationRole`, `FederationAdmission`,
    `PublicKey`) keep `additionalProperties: false` and declare the Sunbird
-   system fields, so a PUT passes and a misspelt field is still refused.
+   system fields as strings, so a PUT passes and a misspelt or mistyped
+   field is still refused. `federationRole` has no `minProperties`: the
+   system fields would count towards it, so it could never require a
+   direction. A missing direction is not admitted.
 7. `role` is an array of `Role`.
 8. A peer's key carries the peer's own `kid` as `keyId`, any non-empty
    string. Our registry's `osid` stays the local record id. A verifier
@@ -65,7 +70,8 @@ stores.
 - **Suspend by deleting the direction.** Loses `admittedAt` and
   `descriptorRevision`, which the attribution requirement needs. It also
   needs `federationRole: {}` as an intermediate write when Sunbird merges
-  objects, which `minProperties: 1` rejects.
+  objects. Live Sunbird accepts that write on update and clears both
+  directions, so a failure between the two writes loses the one being kept.
 - **`projectionTtl` at the entry's top level.** Exists on upstreams and
   requester-only peers, where it means nothing, and sits away from the
   agreement it limits.
@@ -103,12 +109,16 @@ stores.
   be served.
 - A row stored with `role` as a string keeps working until its next update,
   which then fails until it is rewritten as a list.
-- The quick-start schema and the registry chart's copy must stay identical.
+- The quick-start schema and the registry chart's copy must stay identical;
+  the `registry-schema` workflow fails a pull request where they differ.
 - If Sunbird adds a system field, every closed nested object needs it
   declared, or updates to that entry start failing.
-- A top-level `projectionTtl` written before this change is still accepted
-  (the entry's top level allows extra fields) but is not read. Readers take
-  it from `source`.
+- Until the admission tool writes `source.projectionTtl` and the crawler
+  reads it (helmcharts#90, network-adapter#83), the top-level value is still
+  the live one. The entry's top level allows extra fields, so the schema
+  cannot refuse it; once both move, a top-level value is legacy and ignored.
+- Likewise, until both move, peers admitted earlier hold the discovery URL in
+  `baseUrl` and have no `discoveryUrl`.
 - Removing a value the peer stops declaring (`projectionTtl`,
   `discoveryUrl`) is not possible through an update; the last value stays.
 - `keyId` is not checked for uniqueness across keys by the schema. The

@@ -15,10 +15,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `PublicKey` gains an optional `keyId`, a peer's own `kid`. See ADR-0002.
 
 ### Changed
-- **BREAKING.** `role` is a list. A row holding a single string fails
-  validation on its next update until it is rewritten as a list.
+- **BREAKING.** `role` is an array. In 0.4.1 it was a single string, so
+  every existing row holds one: it still reads, but its next update
+  (admitting a peer, rotating a key) is refused until it is rewritten as an
+  array. 0.4.1 refuses an array, so **right after upgrading**, and before any
+  other write, rewrite those rows (needs `jq` and an admin token):
+
+  ```sh
+  REG=https://<registry-host>; TOKEN=<admin bearer token>
+  curl -s -X POST "$REG/api/v1/Participant/search" -H 'Content-Type: application/json' \
+       -d '{"filters":{},"limit":10000}' \
+    | jq -c '(.data // .)[] | select(.role | type == "string")' > string-roles.jsonl
+  while read -r row; do
+    jq -c 'with_entries(select(.key | startswith("os") | not)) | .role = [.role]' <<<"$row" \
+      | curl -s -X PUT "$REG/api/v1/Participant/$(jq -r .osid <<<"$row")" \
+             -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d @-
+  done < string-roles.jsonl
+  ```
+
+  An empty `string-roles.jsonl` means there is nothing to rewrite.
+- `baseUrl` is required for an upstream and for a node without
+  `discoveryUrl`; an entry with `federationRole` requires `discoveryUrl`.
 - `PublicKey.validFrom` is optional, and nested objects declare the registry's
-  system fields so an update passes.
+  system fields (as strings) so an update passes.
 
 ## [0.4.1] - 2026-09-27
 
