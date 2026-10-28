@@ -6,6 +6,9 @@ jwks.json and schema-packs.json, all generated from our registry entry.
 
     oanfed.py publish    generate and sign this network's documents
     oanfed.py verify     fetch a network's documents and check them
+    oanfed.py admit      record a peer in our registry, in one direction
+    oanfed.py refresh    re-read an admitted peer's documents
+    oanfed.py suspend    withdraw one direction of a peer's admission
 """
 
 import argparse, base64, binascii, http.client, json, os, pathlib, re, ssl, sys, urllib.error, urllib.parse, urllib.request
@@ -411,7 +414,13 @@ class Registry(ReadOnlyRegistry):
         super().__init__(url, timeout)
         self.token, self.own_id = token, own_id
 
+    def create(self, record):
+        self._write("POST", "Participant", record)
+
     def update(self, record):
+        if record.get("federationRole") == {}:
+            raise FederationError("refusing to write an empty federationRole: the registry "
+                                  "would clear every direction")
         body = {k: v for k, v in record.items() if not k.startswith("os")}
         self._write("PUT", f"Participant/{record['osid']}", body)
 
@@ -561,6 +570,158 @@ def fetcher_from(args):
                    resolve=args.resolve or None, timeout=args.timeout)
 
 
+# --- admission ------------------------------------------------------------
+
+DIRECTIONS = ("source", "requester")
+
+
+def peer_registry(network_id):
+    """Our registry, refusing our own id: our entry is never a peer."""
+    registry = open_registry()
+    if network_id == registry.own_id:
+        raise FederationError(f"{network_id} is this network, not a peer")
+    return registry
+
+
+def now_utc():
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def peer_record(descriptor, keyset):
+    """What the peer's own documents say about it, shaped as its entry in our registry.
+
+    Only the key the descriptor's signature names is filed, under the peer's own kid: the
+    adapter verifies with the entry's one active key. Its lifetime is the peer's JWKS.
+    """
+    kid = descriptor["signature"]["keyId"]
+    record = {"participantId": descriptor["networkId"], "name": descriptor["name"],
+              "type": "node", "status": "active", "role": ["network"],
+              "discoveryUrl": descriptor["services"]["discovery"],
+              "keys": [{"alg": "ed25519", "status": "active", "keyId": kid,
+                        "key": base64.b64encode(validate_keyset(keyset)[kid]).decode()}],
+              "revision": descriptor["revision"]}
+    return record
+
+
+def filed_keys(entry):
+    return [(k.get("keyId"), k.get("key")) for k in entry.get("keys") or []]
+
+
+def file_peer(registry, descriptor, keyset):
+    """Create the peer's entry, or bring its facts up to date. Returns the stored entry.
+
+    Never widens federationRole: the only part of it a peer's documents change is
+    source.projectionTtl, which limits what we keep.
+    """
+    facts = peer_record(descriptor, keyset)
+    ttl = descriptor.get("projectionTtl")
+    held = registry.participant(facts["participantId"])
+    if held is None:
+        registry.create(facts)
+    else:
+        if descriptor["revision"] < (held.get("revision") or 0):
+            raise FederationError(
+                f"revision {descriptor['revision']} is below the {held['revision']} we hold; "
+                f"refusing a replay")
+        roles = held.get("federationRole") or {}
+        source = roles.get("source")
+        same_key = filed_keys(held) == filed_keys(facts)
+        if descriptor["revision"] == held.get("revision") and not (
+                same_key and held.get("discoveryUrl") == facts["discoveryUrl"]
+                and (source is None or source.get("projectionTtl") == ttl)):
+            raise FederationError(
+                f"revision {descriptor['revision']} is the one we hold, with different contents")
+        if same_key:
+            facts["keys"] = held["keys"]
+        if source is not None and ttl is not None and source.get("projectionTtl") != ttl:
+            facts["federationRole"] = {**roles, "source": {**source, "projectionTtl": ttl}}
+        registry.update({**held, **facts})
+    stored = registry.participant(facts["participantId"])
+    if stored is None or filed_keys(stored) != filed_keys(facts):
+        raise FederationError(f"the registry did not store {facts['participantId']}'s key")
+    return stored
+
+
+def cmd_admit(args):
+    """Admit a peer in one direction, after fetching and verifying its documents."""
+    registry = peer_registry(args.network_id)
+    packs = sorted({p.strip() for p in args.schema_packs if p.strip()})
+    if not packs:
+        raise FederationError("name at least one schema pack the agreement covers")
+    descriptor, keyset, published = fetcher_from(args).fetch(args.network_id)
+    if descriptor["status"] != "Active":
+        raise FederationError(f"{args.network_id} declares itself {descriptor['status']}")
+    unspoken = [p for p in OPERATING_PROFILE if p not in descriptor["operatingProfile"]]
+    if unspoken:
+        raise FederationError(f"{args.network_id} does not speak {', '.join(unspoken)}; "
+                              f"this network needs {' '.join(OPERATING_PROFILE)}")
+    offered = published if args.direction == "source" else registry.schema_packs()
+    outside = sorted(set(packs) - set(offered))
+    if outside:
+        whose = args.network_id if args.direction == "source" else "this network"
+        raise FederationError(f"{whose} does not publish {', '.join(outside)}")
+
+    entry = file_peer(registry, descriptor, keyset)
+    roles = dict(entry.get("federationRole") or {})
+    held = roles.get(args.direction) or {}
+    now = now_utc()
+    # status is written every time: the registry keeps fields an update leaves out,
+    # so re-admitting a suspended direction must say it is active again.
+    roles[args.direction] = {**held, "schemaPacks": packs, "descriptorRevision": descriptor["revision"],
+                             "admittedAt": held.get("admittedAt", now), "updatedAt": now,
+                             "status": "active"}
+    if args.direction == "source" and "projectionTtl" in descriptor:
+        roles["source"]["projectionTtl"] = descriptor["projectionTtl"]
+    registry.update({**entry, "federationRole": roles})
+    print(f"admitted {args.network_id} as {args.direction} at revision {descriptor['revision']}, "
+          f"covering {len(packs)} pack(s)")
+    return 0
+
+
+def cmd_refresh(args):
+    """Re-read an admitted peer's documents and update its facts. Its admission is unchanged."""
+    registry = peer_registry(args.network_id)
+    held = registry.participant(args.network_id)
+    if held is None or not any(d in (held.get("federationRole") or {}) for d in DIRECTIONS):
+        raise FederationError(f"{args.network_id} is not admitted; admit it first")
+    descriptor, keyset, published = fetcher_from(args).fetch(args.network_id)
+    entry = file_peer(registry, descriptor, keyset)
+    roles = entry.get("federationRole") or {}
+    print(f"refreshed {args.network_id} at revision {descriptor['revision']}")
+    gone = sorted(set((roles.get("source") or {}).get("schemaPacks") or []) - set(published))
+    if gone:
+        print(f"  no longer published, still in our source agreement: {', '.join(gone)}")
+    for direction in DIRECTIONS:
+        admitted = (roles.get(direction) or {}).get("descriptorRevision")
+        if admitted and admitted < descriptor["revision"]:
+            print(f"  {direction} was admitted at revision {admitted}; review it against "
+                  f"revision {descriptor['revision']}")
+    if descriptor["status"] != "Active":
+        print(f"  it now declares itself {descriptor['status']}; suspend it if that ends the agreement")
+    return 0
+
+
+def cmd_suspend(args):
+    """Suspend one direction of a peer's admission. Admitting it again restores it."""
+    registry = peer_registry(args.network_id)
+    entry = registry.participant(args.network_id)
+    roles = dict((entry or {}).get("federationRole") or {})
+    held = roles.get(args.direction)
+    if not held:
+        raise FederationError(f"{args.network_id} is not admitted as {args.direction}")
+    if held.get("status") == "suspended":
+        raise FederationError(f"{args.network_id} is already suspended as {args.direction}")
+    now = now_utc()
+    # One write to this direction only; the record stays, so nothing is lost if it fails.
+    roles[args.direction] = {**held, "status": "suspended", "suspendedAt": now, "updatedAt": now}
+    registry.update({**entry, "federationRole": roles})
+    stored = ((registry.participant(args.network_id) or {}).get("federationRole") or {})
+    if (stored.get(args.direction) or {}).get("status") != "suspended":
+        raise FederationError(f"the registry did not store {args.network_id} as suspended")
+    print(f"suspended {args.network_id} as {args.direction}")
+    return 0
+
+
 # --- flags ----------------------------------------------------------------
 
 def add_peer_access(parser):
@@ -596,6 +757,25 @@ def main(argv=None):
                             help="http only for a stack with no certificates at all")
     add_peer_access(verify_cmd)
     verify_cmd.set_defaults(run=cmd_verify)
+
+    admit = commands.add_parser("admit", help="admit a peer network in one direction")
+    admit.add_argument("--network-id", required=True, help="the peer, by its domain")
+    admit.add_argument("--direction", required=True, choices=DIRECTIONS,
+                       help="source: we read from it; requester: it may read from us")
+    admit.add_argument("--schema-pack", dest="schema_packs", action="append", required=True,
+                       help="a pack URL the agreement covers; repeat for each")
+    add_peer_access(admit)
+    admit.set_defaults(run=cmd_admit)
+
+    refresh = commands.add_parser("refresh", help="re-read an admitted peer's documents")
+    refresh.add_argument("--network-id", required=True, help="the peer, by its domain")
+    add_peer_access(refresh)
+    refresh.set_defaults(run=cmd_refresh)
+
+    suspend = commands.add_parser("suspend", help="suspend one direction of a peer's admission; admit restores it")
+    suspend.add_argument("--network-id", required=True, help="the peer, by its domain")
+    suspend.add_argument("--direction", required=True, choices=DIRECTIONS)
+    suspend.set_defaults(run=cmd_suspend)
 
     args = parser.parse_args(argv)
     try:

@@ -12,6 +12,17 @@ from types import SimpleNamespace
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 import oanfed as o
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from jsonschema import Draft7Validator, FormatChecker
+
+SCHEMA = Draft7Validator(
+    json.loads((pathlib.Path(__file__).parent.parent / "config/registry/schemas/Participant.json")
+               .read_text()), format_checker=FormatChecker())
+
+
+def schema_errors(record):
+    """Every Participant.json rule the record breaks. Sunbird skips some of them on an
+    update (required, minProperties, if/then), so the tests apply all of them here."""
+    return [e.message for e in SCHEMA.iter_errors({"Participant": record})]
 
 NETWORK = "network-a.example.org"
 # The registry entry's own osid. Nothing names the key by it.
@@ -366,6 +377,176 @@ class Verify(Base):
         renamed = copy.deepcopy(self.keyset)
         renamed["keys"][0]["kid"] = "1-00000000-0000-0000-0000-000000000000"
         self.refuses(keyset=renamed, match="no published")
+
+
+PEER_PACK = "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1"
+OUR_PACK = "https://openagrinet.github.io/network-specs/schema/WeatherObservation/v0.1"
+
+
+class OurRegistry:
+    """Our registry in memory, behaving as Sunbird RC does where admission depends on it:
+    it assigns the osid on create, lists are replaced, objects merged, {} clears.
+    Every write is checked against Participant.json, so a payload the schema forbids fails."""
+    own_id = "network-b.example.org"
+
+    def __init__(self):
+        self.rows = {}
+
+    def participant(self, participant_id):
+        return copy.deepcopy(self.rows.get(participant_id))
+
+    def schema_packs(self):
+        return [OUR_PACK]
+
+    def check(self, record):
+        errors = schema_errors(record)
+        assert not errors, f"Participant.json refuses this write: {errors}"
+
+    def create(self, record):
+        self.check(record)
+        record = copy.deepcopy(record)
+        record["osid"] = f"1-peer-{len(self.rows)}"
+        self.rows[record["participantId"]] = record
+
+    def update(self, record):
+        held = self.rows[record["participantId"]]
+        assert held["osid"] == record["osid"]
+        self.check(record)
+        new = copy.deepcopy(record)
+        roles = new.pop("federationRole", None)
+        held.update(new)
+        if roles == {}:
+            held.pop("federationRole", None)
+        elif roles is not None:
+            merged = held.setdefault("federationRole", {})
+            for direction, fields in roles.items():
+                merged[direction] = {**merged.get(direction, {}), **fields}
+        self.check(held)
+
+
+class Admission(Base):
+    def setUp(self):
+        super().setUp()
+        # Network A publishes from its own registry; then the tests act as network B.
+        self.publish()
+        self.ours = OurRegistry()
+        fetcher = o.Fetcher()
+        fetcher._get = lambda _, path: json.loads((self.dir / path.lstrip("/")).read_text())
+        self._real_open, self._real_fetcher = o.open_registry, o.fetcher_from
+        o.open_registry = lambda: self.ours
+        o.fetcher_from = lambda _args: fetcher
+
+    def tearDown(self):
+        o.open_registry, o.fetcher_from = self._real_open, self._real_fetcher
+        super().tearDown()
+
+    def republish(self, **overrides):
+        """Network A publishes its next revision from its own registry."""
+        o.open_registry = StubRegistry
+        try:
+            return self.publish(**overrides)
+        finally:
+            o.open_registry = lambda: self.ours
+
+    def admit(self, direction="source", packs=PEER_PACK, network_id=NETWORK):
+        o.cmd_admit(SimpleNamespace(network_id=network_id, direction=direction, schema_packs=[packs]))
+
+    def refresh(self):
+        o.cmd_refresh(SimpleNamespace(network_id=NETWORK))
+
+    def suspend(self, direction):
+        o.cmd_suspend(SimpleNamespace(network_id=NETWORK, direction=direction))
+
+    def held(self):
+        return self.ours.participant(NETWORK)
+
+    def test_admit_files_the_peer_and_its_kid(self):
+        os.environ["FEDERATION_PROJECTION_TTL"] = "900"
+        self.republish()
+        self.admit()
+        held = self.held()
+        self.assertEqual((held["federationRole"]["source"]["projectionTtl"], "projectionTtl" in held),
+                         (900, False))
+        self.assertEqual([(k["keyId"], "validFrom" in k) for k in held["keys"]], [(KEY_ID, False)])
+        self.assertNotIn("baseUrl", held)
+        self.assertEqual((held["role"], held["revision"], held["discoveryUrl"]),
+                         (["network"], 2, f"https://{NETWORK}/network/discover"))
+        self.assertEqual([k["key"] for k in held["keys"]],
+                         [base64.b64encode(raw_public(self.traffic)).decode()])
+        self.assertEqual(held["federationRole"]["source"]["schemaPacks"], [PEER_PACK])
+        self.assertEqual(held["federationRole"]["source"]["descriptorRevision"], 2)
+
+    def test_admit_covers_only_packs_on_offer(self):
+        with self.assertRaisesRegex(o.FederationError, "does not publish"):
+            self.admit(packs=OUR_PACK)
+        with self.assertRaisesRegex(o.FederationError, "this network does not publish"):
+            self.admit(direction="requester", packs=PEER_PACK)
+        self.assertIsNone(self.held())
+
+    def test_a_second_direction_keeps_the_first(self):
+        self.admit()
+        self.admit(direction="requester", packs=OUR_PACK)
+        roles = self.held()["federationRole"]
+        self.assertEqual((roles["source"]["schemaPacks"], roles["requester"]["schemaPacks"]),
+                         ([PEER_PACK], [OUR_PACK]))
+
+    def test_refresh_follows_the_documents_but_never_the_admission(self):
+        self.admit()
+        before = self.held()["federationRole"]
+        self.republish()
+        self.refresh()
+        self.assertEqual(self.held()["revision"], 2)
+        self.assertEqual(self.held()["federationRole"], before)
+
+    def test_refresh_files_a_rotated_key(self):
+        self.admit()
+        self.traffic = Ed25519PrivateKey.generate()
+        StubRegistry.entry["keys"] = [self.registry_key(self.traffic)]
+        self.write_key(self.traffic, self.key_file)
+        self.republish()
+        self.refresh()
+        self.assertEqual([k["key"] for k in self.held()["keys"]],
+                         [base64.b64encode(raw_public(self.traffic)).decode()])
+        self.assertEqual([k["keyId"] for k in self.held()["keys"]], [KEY_ID])
+
+    def test_replays_are_refused(self):
+        self.admit()
+        self.ours.rows[NETWORK]["revision"] = 5
+        with self.assertRaisesRegex(o.FederationError, "replay"):
+            self.refresh()
+        self.ours.rows[NETWORK].update(revision=1, discoveryUrl="https://elsewhere.example/discover")
+        with self.assertRaisesRegex(o.FederationError, "different contents"):
+            self.refresh()
+
+    def test_any_kid_is_filed_and_a_new_one_replaces_it(self):
+        StubRegistry.entry["keys"][0]["osid"] = "governance-1"
+        self.republish()
+        self.admit()
+        self.assertEqual([k["keyId"] for k in self.held()["keys"]], ["governance-1"])
+        StubRegistry.entry["keys"][0]["osid"] = "governance-2"
+        self.republish()
+        self.refresh()
+        self.assertEqual([k["keyId"] for k in self.held()["keys"]], ["governance-2"])
+
+    def test_suspend_withdraws_one_direction(self):
+        self.admit()
+        self.admit(direction="requester", packs=OUR_PACK)
+        self.suspend("requester")
+        roles = self.held()["federationRole"]
+        self.assertEqual((roles["requester"]["status"], roles["source"]["status"]),
+                         ("suspended", "active"))
+        self.suspend("source")
+        self.assertEqual(self.held()["federationRole"]["source"]["status"], "suspended")
+
+    def test_our_own_id_and_inactive_peers_are_refused(self):
+        with self.assertRaisesRegex(o.FederationError, "is this network"):
+            o.cmd_suspend(SimpleNamespace(network_id=OurRegistry.own_id, direction="source"))
+        self.republish(status="Suspended")
+        with self.assertRaisesRegex(o.FederationError, "declares itself Suspended"):
+            self.admit()
+        self.republish(operating_profile=["OAN/v9.0", "Beckn/v4"])
+        with self.assertRaisesRegex(o.FederationError, "does not speak"):
+            self.admit()
 
 
 if __name__ == "__main__":
