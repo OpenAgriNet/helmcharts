@@ -434,8 +434,7 @@ services:
       # the exported span stream by a collector running the discovery-service
       # repo's otel/collector.yaml, and this stack does not run one. Traces
       # arrive, everything looks healthy, and those five are simply absent.
-      # That is a quick-start simplification, not the deployment shape -- see
-      # Appendix H.
+      # That is a quick-start simplification, not the deployment shape.
       OTEL_EXPORTER: ${DISCOVERY_OTEL_EXPORTER:-otlp}
 
       # NO SCHEME, and that is the opposite of the adapters two screens up --
@@ -759,8 +758,8 @@ services:
     user: "0:0"
 
     # oan-internal ONLY. Nothing on oan-edge ever needs to resolve this name --
-    # NPM does not route to it, and README Appendix B says why 4317/4318 must
-    # never get a proxy host: they take telemetry with no credential at all.
+    # NPM does not route to it, and 4317/4318 must never get a proxy host:
+    # they take telemetry with no credential at all.
     networks: [oan-internal]
     depends_on:
       clickhouse:
