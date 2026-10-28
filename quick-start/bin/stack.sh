@@ -119,6 +119,8 @@ preflight() {
         true|false) ;;
         *) die "GRAFANA_ALERTING_ENABLED must be exactly true or false, not '$alerting'" ;;
     esac
+
+    mkdir -p .well-known  # before Docker can create it root-owned
 }
 
 # ------------------------------------------------------------------- up
@@ -185,12 +187,12 @@ up_registry_tier() {
     docker compose up -d sunbird-registry-service discovery-service
 }
 
-# Generates the adapter keypairs, registers the three adapter identities, and
+# Generates the network's keypair, registers its one identity, and
 # renders config/adapters/{multi-adapter,single-adapter}/*.yaml from the .tmpl files
 # beside them. Safe to re-run: keys come from keys/keys.json once it exists,
 # and participants already registered are left alone.
 up_setup() {
-    step 2 "$1" "bin/setup.py -- keys, seven registry participants, adapter configs"
+    step 2 "$1" "bin/setup.py -- keys, five registry participants, adapter configs"
     python3 bin/setup.py
 }
 
@@ -409,6 +411,45 @@ setup() {
     python3 bin/setup.py
 }
 
+# Generate the federation documents into .well-known/ and serve them through NPM
+# (npm-custom/server_proxy.conf). Each run publishes the next revision.
+host_descriptor() {
+    preflight
+    step 1 3 "bin/oanfed.py publish -- the Network Descriptor, JWKS and schema-pack list"
+    python3 bin/oanfed.py publish --keys keys/keys.json --out .
+
+    step 2 3 "nginx-proxy-manager -- serves .well-known/ on every proxy host"
+    local was_running
+    was_running=$(docker inspect -f '{{.State.Running}}' nginx-proxy-manager 2>/dev/null || true)
+    docker compose --profile reverse-proxy up -d nginx-proxy-manager
+    if [ "$was_running" = true ] \
+            && ! docker exec nginx-proxy-manager test -f /srv/well-known/openagrinet; then
+        # .well-known/ was deleted and recreated: the container still holds the old,
+        # empty folder until it restarts.
+        docker restart nginx-proxy-manager >/dev/null
+    elif [ "$was_running" = true ]; then
+        docker exec nginx-proxy-manager nginx -s reload >/dev/null 2>&1 \
+            || warn "NPM did not reload; run make restart-edge if the check below fails"
+    else
+        info "NPM just started. Change its default login before anything else: make reverse-proxy says how."
+    fi
+
+    local network_id="${BECKN_NETWORK_ID:-$(dotenv_get BECKN_NETWORK_ID)}"
+    local https_port="${REVERSE_PROXY_HTTPS_PORT:-$(dotenv_get REVERSE_PROXY_HTTPS_PORT)}"
+    https_port="${https_port:-443}"
+    step 3 3 "checking https://$network_id/.well-known/openagrinet through NPM"
+    # Checks routing only (-k); a peer checks the certificate. Retries while NPM starts.
+    if curl -fsSk --max-time 10 --retry 10 --retry-delay 1 --retry-all-errors --resolve "$network_id:$https_port:127.0.0.1" \
+            "https://$network_id:$https_port/.well-known/openagrinet" 2>/dev/null \
+            | cmp -s - .well-known/openagrinet; then
+        info "served -- peers can fetch it now"
+    else
+        warn "written, but NPM is not serving it for $network_id yet"
+        info "NPM needs a proxy host, with a certificate, for $network_id -- README Appendix B."
+        info "Create it, then re-run make host-descriptor."
+    fi
+}
+
 usage() {
     cat <<'USAGE'
 bin/stack.sh <command>
@@ -422,6 +463,8 @@ bin/stack.sh <command>
   down           stop everything, keep the data
   destroy        stop everything and DELETE every volume
   setup          re-run bin/setup.py only
+  host-descriptor  sign the descriptor, JWKS and schema packs into .well-known/
+                   and serve them through nginx-proxy-manager (public, 80/443)
   reverse-proxy  start nginx-proxy-manager on its own (public, 80/443)
   observability  start clickhouse, otel-collector and grafana on their own
   pull           git pull, fixing the npm-custom ownership first
@@ -441,6 +484,7 @@ case "${1:-}" in
     down)           down ;;
     destroy)        destroy ;;
     setup)          setup ;;
+    host-descriptor) host_descriptor ;;
     reverse-proxy)  reverse_proxy ;;
     observability)  observability ;;
     pull)           pull ;;

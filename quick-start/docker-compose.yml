@@ -255,7 +255,7 @@ services:
     # silently depend on it.
     #
     # What this costs: nothing outside the VM can write a registry row, which
-    # is why bin/setup.py seeds all seven participants and all four bindings from
+    # is why bin/setup.py seeds all five participants and all four bindings from
     # inside. It is also why the Postman collection has no registry request --
     # there is no way for one to work.
     #
@@ -1045,6 +1045,9 @@ services:
       # here has one, so the pass is a no-op on content. It does take
       # ownership of the files, which is cosmetic and not tracked by git.
       - ./config/reverse-proxy/npm-custom:/data/nginx/custom
+
+      # Federation documents from `make host-descriptor`, served by server_proxy.conf.
+      - ./.well-known:/srv/well-known:ro
 
     depends_on:
       # Ordering only; the adapter image has no healthcheck.
