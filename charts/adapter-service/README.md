@@ -97,7 +97,7 @@ it from `crawler.dbDsnKey` and mounts an emptyDir at `/tmp/catalogs`.
 It needs, outside this chart:
 
 - an image with the `catalogcrawler` plugin and the `render.mappingByField` engine;
-- the `publish` action in the registry: registry 0.5.0+, and
+- the `publish` action in the registry: the registry and registry-seed from #96, and
   `bindings[].publishPipelineUrl` in registry-seed, pinned to a commit SHA;
 - its own run log database (PostgreSQL), not discovery's: e.g. a `catalogcrawler`
   database and role on the shared `postgres` cluster. Its DSN goes under

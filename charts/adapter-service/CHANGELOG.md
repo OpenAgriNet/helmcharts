@@ -17,7 +17,7 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   `__ADAPTER_CRAWLER_DB_DSN__` placeholder, the init container fills it from
   `crawler.dbDsnKey` (the keys Secret in multi mode, the network tier's Secret
   in single mode) and the pod gets an emptyDir at `/tmp/catalogs`. Needs
-  registry 0.5.0+, a registry-seed 0.1.2+ `publishPipelineUrl` on the binding,
+  the registry and registry-seed from #96 (a `publishPipelineUrl` on the binding),
   a run log database of its own (not discovery's), and a crawler-capable image.
 
 ### Fixed
