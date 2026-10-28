@@ -1194,7 +1194,7 @@ because a request is missing.
 ## Appendix O — Scheduled catalog publishing (the crawler)
 
 The network adapter runs the `catalogcrawler` plugin in both modes. Every
-`catalogIntervalSeconds` (60 s here) it runs each registry binding's `publish`
+`catalogIntervalSeconds` (6 hours here) it runs each registry binding's `publish`
 pipeline that is due and POSTs the catalogs to `/publish`, which signs them as
 the provider and sends them to discovery.
 

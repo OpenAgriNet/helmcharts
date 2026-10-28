@@ -52,15 +52,16 @@ plugins:
       receiverId: "discovery.oan.dev"
       publishPipelines: "true"
       publishEnabled: "true"
-      catalogIntervalSeconds: "60"
+      # Every 6 hours.
+      catalogIntervalSeconds: "21600"
       publishCatalogOutputDir: "/tmp/catalogs"
       # Once a day, OnDemand catalogs only (no Direct price catalogs).
       publish.mandi-price.schedule: "0 13 * * *"
       publish.mandi-price.mode: "onDemand"
       # Agmarknet data lags 1-3 weeks: a relative window, not the default (yesterday).
       publish.mandi-price.fromDate: "21 days ago"
-      # The pipeline's non-secret inputs, from the Agmarknet values in .env.
-      # networkId is required: the network the catalogs are visible to.
+      # The pipeline's inputs, from .env. Used only when
+      # AGMARKNET_PUBLISH_PIPELINE_URL is set.
       publish.mandi-price.baseUrl: "__AGMARKNET_BASE_URL__"
       publish.mandi-price.participantId: "__AGMARKNET_PARTICIPANT_ID__"
       publish.mandi-price.networkId: "__BECKN_NETWORK_ID__"
