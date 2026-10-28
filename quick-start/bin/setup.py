@@ -8,11 +8,11 @@ the adapter configs.
 it renders are bind-mounted files, and an adapter started before they exist
 leaves a directory in their place.
 
-WHAT IT WRITES. Seven participants, four capability bindings, four schemas:
+WHAT IT WRITES. Five participants, four capability bindings, four schemas:
 
-    3 x node      one per adapter -- consumer, network, provider -- each with the
-                  public halves of a keypair. The private halves stay in
-                  keys/keys.json and never reach the registry.
+    1 x node      the network itself, BECKN_NETWORK_ID, shared by all three
+                  adapters, with the public half of ONE keypair. The private
+                  half stays in keys/keys.json.
     4 x upstream  the APIs this deployment calls. ALL FOUR are real external
                   hosts now, whose base URLs come from .env -- no mock is in
                   use by any capability. An upstream signs nothing, so it needs
@@ -110,11 +110,10 @@ PLACEHOLDER_WHY = """\
 #
 # Checked together, up front, for two reasons. seed() runs BEFORE render(), so a
 # placeholder in a render-only key like VISTAAR_TOKEN_URL would otherwise be
-# found only after seven rows already existed -- unfixable, per the note above.
+# found only after five rows already existed -- unfixable, per the note above.
 # And one list beats being sent back to .env ten times in a row.
 REQUIRED = [
-    "CONSUMER_SUBSCRIBER_ID", "NETWORK_SUBSCRIBER_ID", "PROVIDER_SUBSCRIBER_ID",
-    "CONSUMER_BASE_URL", "NETWORK_BASE_URL", "PROVIDER_BASE_URL",
+    "BECKN_NETWORK_ID", "NETWORK_BASE_URL",
     "MAUSAMGRAM_PARTICIPANT_ID", "MAUSAMGRAM_CAPABILITY", "MAUSAMGRAM_BASE_URL",
     "MAUSAMGRAM_AUTH", "MAUSAMGRAM_MAPPING_URL",
     "AGMARKNET_PARTICIPANT_ID", "AGMARKNET_CAPABILITY", "AGMARKNET_BASE_URL",
@@ -166,37 +165,36 @@ def x25519_pair():
 
 
 def load_or_generate_keys():
-    """Keys persist across runs: the registry already holds the public halves."""
-    roles = (("consumer", env("CONSUMER_SUBSCRIBER_ID")),
-             ("network", env("NETWORK_SUBSCRIBER_ID")),
-             ("provider", env("PROVIDER_SUBSCRIBER_ID")))
+    """The network's one identity. Keys persist across runs."""
+    participant = env("BECKN_NETWORK_ID")
 
     if KEYS.exists():
         print("keys: reusing keys/keys.json")
-        identities = json.loads(KEYS.read_text())
+        identity = json.loads(KEYS.read_text())
+        if "participantId" not in identity and {"consumer", "network", "provider"} & set(identity):
+            sys.exit("setup: keys/keys.json holds the old three adapter identities; this version\n"
+                     "  seeds one network identity. Run `make destroy` and set up again, or move\n"
+                     "  keys/keys.json aside to keep the old keys.")
         # The keypair persists; the id is read from .env each run. This registry
-        # cannot update a record, so changing an id in .env seeds a NEW
+        # cannot update a record, so changing the id in .env seeds a NEW
         # participant rather than editing one -- and the same keypair moving to
         # the new id is what makes that a rename rather than a rekey.
-        for role, participant in roles:
-            if identities[role]["participantId"] != participant:
-                print(f"  {role}: id is now {participant}, keeping the keypair")
-                identities[role]["participantId"] = participant
-        KEYS.write_text(json.dumps(identities, indent=2))
-        return identities
+        if identity["participantId"] != participant:
+            print(f"  id is now {participant}, keeping the keypair")
+            identity["participantId"] = participant
+        KEYS.write_text(json.dumps(identity, indent=2))
+        return identity
 
     print("keys: generating")
-    identities = {}
-    for role, participant in roles:
-        sign_private, sign_public = ed25519_pair()
-        encr_private, encr_public = x25519_pair()
-        identities[role] = {"participantId": participant,
-                            "signingPrivate": sign_private, "signingPublic": sign_public,
-                            "encrPrivate": encr_private, "encrPublic": encr_public}
+    sign_private, sign_public = ed25519_pair()
+    encr_private, encr_public = x25519_pair()
+    identity = {"participantId": participant,
+                "signingPrivate": sign_private, "signingPublic": sign_public,
+                "encrPrivate": encr_private, "encrPublic": encr_public}
     KEYS.parent.mkdir(exist_ok=True)
-    KEYS.write_text(json.dumps(identities, indent=2))
+    KEYS.write_text(json.dumps(identity, indent=2))
     KEYS.chmod(0o600)
-    return identities
+    return identity
 
 
 # ----------------------------------------------------------------- registry
@@ -283,9 +281,8 @@ def signing_key_block(public_key):
     to a base64 decoder is the value as published, and a label left on fails
     every verification with a decode error pointing nowhere near the registry.
 
-    No friendly key id, because nothing could look one up: the registry assigns
-    an osid on write and that is what a sender names in the Authorization
-    header. No use either -- alg carries the purpose, ed25519 signs."""
+    No key id of our own: the registry assigns the key an osid, which is what a
+    sender names. No use either -- alg carries the purpose, ed25519 signs."""
     return [{"alg": "ed25519", "key": public_key, "status": "active",
              "validFrom": "2026-01-01T00:00:00Z", "validUntil": "2030-01-01T00:00:00Z"}]
 
@@ -367,7 +364,7 @@ CAPABILITY_SCHEMAS = (
 )
 
 
-def schema_url(capability, version, ref):
+def schema_url(capability, version):
     """Build a pack URL from the capability code, which already contains the
     pack directory's name: openagrinet:WeatherObservation is served out of
     schema/WeatherObservation. Deriving it means the two cannot drift.
@@ -375,19 +372,22 @@ def schema_url(capability, version, ref):
     The registry pattern-checks the result against exactly this shape, so a
     capability whose pack is laid out differently is refused rather than
     stored -- which is the behaviour to want, since all eight packs in
-    network-specs are <Capability>/<version>/attributes.yaml today."""
-    return ("https://raw.githubusercontent.com/OpenAgriNet/network-specs/"
-            f"{ref}/schema/{capability.partition(':')[2]}/{version}"
+    network-specs are <Capability>/<version>/attributes.yaml today.
+
+    openagrinet.github.io, which catalogs carry in their @context; a crawl
+    derived from a raw.githubusercontent URL matches nothing."""
+    return ("https://openagrinet.github.io/network-specs/"
+            f"schema/{capability.partition(':')[2]}/{version}"
             "/attributes.yaml")
 
 
-def ensure_capability_schema(bearer, capability, name, version, ref):
+def ensure_capability_schema(bearer, capability, name, version):
     """Create a capability's schema row only when absent.
 
     THE REGISTRY NEVER FETCHES schemaUrl -- it only checks its shape. So a row
     pointing at a ref that does not serve the pack stores perfectly happily and
-    fails later, at whoever resolves it. Getting SCHEMA_PACK_REF right matters
-    more than the write succeeding.
+    fails later, at whoever resolves it. Getting the URL right matters more
+    than the write succeeding.
 
     And it cannot be corrected afterwards: SchemaRegistry.json sets
     additionalProperties false, so an update is rejected over the system fields
@@ -398,7 +398,7 @@ def ensure_capability_schema(bearer, capability, name, version, ref):
         return
     result = post("SchemaRegistry", {
         "capabilityCode": capability, "name": name, "version": version,
-        "schemaUrl": schema_url(capability, version, ref),
+        "schemaUrl": schema_url(capability, version),
         "status": "active"}, bearer)
     print(f"  {capability}: {result['params']['status']} "
           f"{result['params'].get('errmsg', '')[:160]}")
@@ -415,26 +415,23 @@ def ensure_participant(bearer, participant_id, payload):
     print(f"  {participant_id}: {status} {result['params'].get('errmsg', '')[:160]}")
 
 
-def seed(identities):
+def seed(identity):
     wait_for_registry()
     bearer = token()
 
-    # Seven participants and four capability bindings, all of it from here.
+    # Five participants and four capability bindings, all of it from here.
     #
     # The registry is not reachable from outside this stack -- no published
     # port beyond loopback and no proxy host in front of it -- so there is no
     # second way to create these. Everything the network needs to answer a
     # request has to exist by the time this returns.
-    print("registry: three adapter identities")
-    for role, name, network_role in (
-            ("consumer", "OAN consumer layer adapter", "consumer"),
-            ("network", "OAN network layer adapter", "network"),
-            ("provider", "OAN provider layer adapter", "provider")):
-        identity = identities[role]
-        ensure_participant(bearer, identity["participantId"],
-                           node(identity["participantId"], name, [network_role],
-                                env(f"{role.upper()}_BASE_URL"),
-                                identity["signingPublic"]))
+    # One entry for the network, shared by all three adapters.
+    print("registry: one network identity")
+    ensure_participant(bearer, identity["participantId"],
+                       node(identity["participantId"],
+                            env("BECKN_NETWORK_NAME", identity["participantId"]),
+                            list(ROLES), env("NETWORK_BASE_URL"),
+                            identity["signingPublic"]))
 
     # All four upstreams are real external providers now -- no mock is in use
     # by any capability, so every base URL comes from .env and the stack needs
@@ -500,63 +497,48 @@ def seed(identities):
     #
     # SEPARATE FROM THE MAPPING URLS ABOVE, which live in helmcharts and
     # describe one upstream's wire format. These are network-specs and describe
-    # the network's own vocabulary, so they move on their own ref.
+    # the network's own vocabulary, published on its own site.
     print("registry: four capability schemas")
-    ref = env("SCHEMA_PACK_REF", "main")
     for var, name, version in CAPABILITY_SCHEMAS:
-        ensure_capability_schema(bearer, env(var), name, version, ref)
+        ensure_capability_schema(bearer, env(var), name, version)
 
 
-def key_osids(identities):
-    """Read back each key's osid, and check the registry still holds the public
-    half we have the private half for.
-
-    The Authorization header names a key by its osid rather than by the friendly
-    id, so the adapters have to be configured with the value the registry
-    assigned.
+def key_osid(identity):
+    """Check the registry still holds the public half we have the private half
+    for, and read back the key's osid: the key id the adapters sign with.
 
     The mismatch check matters because this registry cannot update a record and
     its delete is soft: a participant seeded against an earlier keys.json keeps
     that public key forever. Signing with a new private half would then produce
     signatures nobody can verify -- and the failure would surface much later, as
     an authentication error with no obvious cause."""
-    for role, identity in identities.items():
-        records = search("Participant", {"participantId": {"eq": identity["participantId"]}})
-        keys = (records[0].get("keys") or []) if records else []
-        if not keys:
-            sys.exit(f"setup: {identity['participantId']} has no published key")
+    records = search("Participant", {"participantId": {"eq": identity["participantId"]}})
+    keys = (records[0].get("keys") or []) if records else []
+    if not keys:
+        sys.exit(f"setup: {identity['participantId']} has no published key")
 
-        # Bare base64 now, but an older row may still carry the label, and a
-        # confusing mismatch error is worse than one tolerant line.
-        published = keys[0]["key"].removeprefix("base64:")
-        if published != identity["signingPublic"]:
-            sys.exit(
-                f"setup: {identity['participantId']} is registered with a different key.\n"
-                f"  This registry cannot update a record, and its delete is soft and keeps\n"
-                f"  the unique index, so the id cannot be reused. Either restore the\n"
-                f"  matching keys/keys.json, or pick a new id for {role.upper()}_SUBSCRIBER_ID\n"
-                f"  in .env and re-run.")
-        identity["keyOsid"] = keys[0]["osid"]
-    return identities
+    # Bare base64 now, but an older row may still carry the label, and a
+    # confusing mismatch error is worse than one tolerant line.
+    published = keys[0]["key"].removeprefix("base64:")
+    if published != identity["signingPublic"]:
+        sys.exit(
+            f"setup: {identity['participantId']} is registered with a different key.\n"
+            f"  This registry cannot update a record, and its delete is soft and keeps\n"
+            f"  the unique index, so the id cannot be reused. Either restore the\n"
+            f"  matching keys/keys.json, or pick a new BECKN_NETWORK_ID in .env and\n"
+            f"  re-run.")
+    identity["keyOsid"] = keys[0]["osid"]
+    return identity
 
 
 # ------------------------------------------------------------------ configs
 
-# The role key is three things at once: the entry in keys/keys.json, the
-# __ROLE_* placeholder prefix, and the config filename. They were spelled
-# differently once -- role "exp" writing experience.yaml -- and a lookup table
-# kept them apart. They are the same word now, so the table is gone.
-#
-# CHANGING A ROLE KEY IS NOT A RENAME. It makes this script generate a FRESH
-# keypair for a participant the registry has already published a public key
-# for, which it cannot update and whose delete is soft -- so the id cannot be
-# reused either. The adapter then signs with a key nobody can verify, and it
-# surfaces much later as an authentication error with no obvious cause. Renaming
-# exp -> consumer therefore came with `make destroy` and a new keys.json.
+# Each role is a __ROLE_* placeholder prefix, a config filename, and a layer in
+# the network entry's role list.
 ROLES = ("consumer", "network", "provider")
 
 
-def render(identities):
+def render(identity):
     print("configs:")
     mausamgram_binding = (f"{env('MAUSAMGRAM_PARTICIPANT_ID')}"
                           f"|{env('MAUSAMGRAM_CAPABILITY')}")
@@ -565,14 +547,13 @@ def render(identities):
     vistaar_binding = (f"{env('VISTAAR_PARTICIPANT_ID')}"
                        f"|{env('VISTAAR_CAPABILITY')}")
     pocra_binding = f"{env('POCRA_PARTICIPANT_ID')}|{env('POCRA_CAPABILITY')}"
-    # The three tier configs (multi-adapter/), then single-adapter/network-adapter,
-    # which carries all three tiers' identities.
+    # All three tiers share the network's id and key: the three multi-adapter
+    # configs, then single-adapter/network-adapter, which carries all three.
     for name in (*ROLES, "network-adapter"):
         folder = "single-adapter" if name == "network-adapter" else "multi-adapter"
         fname = name if name == "network-adapter" else f"{name}-adapter"
         template = (ADAPTERS / folder / f"{fname}.yaml.tmpl").read_text()
         for role in (ROLES if name == "network-adapter" else (name,)):
-            identity = identities[role]
             prefix = role.upper()
             for placeholder, value in (
                     (f"__{prefix}_SUBSCRIBER_ID__", identity["participantId"]),
@@ -630,13 +611,13 @@ def render(identities):
 if __name__ == "__main__":
     load_dotenv()
     preflight()
-    identities = load_or_generate_keys()
-    seed(identities)
-    identities = key_osids(identities)
-    KEYS.write_text(json.dumps(identities, indent=2))
-    render(identities)
+    identity = load_or_generate_keys()
+    seed(identity)
+    identity = key_osid(identity)
+    KEYS.write_text(json.dumps(identity, indent=2))
+    render(identity)
     print(f"""
-ready. The registry holds seven participants and four capability bindings, and
+ready. The registry holds five participants and four capability bindings, and
 the adapter configs are rendered, so nothing further has to be created by hand.
 
   {env('MAUSAMGRAM_PARTICIPANT_ID')}|{env('MAUSAMGRAM_CAPABILITY')}
