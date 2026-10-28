@@ -414,9 +414,6 @@ class Registry(ReadOnlyRegistry):
         super().__init__(url, timeout)
         self.token, self.own_id = token, own_id
 
-    def by_osid(self, osid):
-        return self._search("Participant", {"osid": {"eq": osid}})
-
     def create(self, record):
         self._write("POST", "Participant", record)
 
@@ -576,8 +573,6 @@ def fetcher_from(args):
 # --- admission ------------------------------------------------------------
 
 DIRECTIONS = ("source", "requester")
-# A Sunbird RC record id. The peer is filed under it, so it must be one.
-RECORD_ID = re.compile(r"1-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 
 
 def peer_registry(network_id):
@@ -595,70 +590,71 @@ def now_utc():
 def peer_record(descriptor, keyset):
     """What the peer's own documents say about it, shaped as its entry in our registry.
 
-    Only the key the descriptor's signature names is filed: the adapter verifies with
-    the entry's one active key.
+    Only the key the descriptor's signature names is filed, under the peer's own kid: the
+    adapter verifies with the entry's one active key. Its lifetime is the peer's JWKS.
     """
     kid = descriptor["signature"]["keyId"]
-    if not RECORD_ID.fullmatch(kid):
-        raise FederationError(f"kid {kid!r} is not a registry record id (1-<uuid>); "
-                              f"the peer cannot be filed under it")
     record = {"participantId": descriptor["networkId"], "name": descriptor["name"],
               "type": "node", "status": "active", "role": ["network"],
               "discoveryUrl": descriptor["services"]["discovery"],
-              "keys": [{"alg": "ed25519", "status": "active", "validFrom": descriptor["issuedAt"],
+              "keys": [{"alg": "ed25519", "status": "active", "keyId": kid,
                         "key": base64.b64encode(validate_keyset(keyset)[kid]).decode()}],
               "revision": descriptor["revision"]}
-    if "projectionTtl" in descriptor:
-        record["projectionTtl"] = descriptor["projectionTtl"]
-    return kid, record
+    return record
+
+
+def filed_keys(entry):
+    return [(k.get("keyId"), k.get("key")) for k in entry.get("keys") or []]
 
 
 def file_peer(registry, descriptor, keyset):
     """Create the peer's entry, or bring its facts up to date. Returns the stored entry.
 
-    Never touches federationRole: a peer's documents cannot widen its admission.
+    Never widens federationRole: the only part of it a peer's documents change is
+    source.projectionTtl, which limits what we keep.
     """
-    kid, facts = peer_record(descriptor, keyset)
+    facts = peer_record(descriptor, keyset)
+    ttl = descriptor.get("projectionTtl")
     held = registry.participant(facts["participantId"])
     if held is None:
-        if registry.by_osid(kid):
-            raise FederationError(f"another entry in our registry already has osid {kid}")
-        # Sunbird keeps a supplied osid only without its "1-" prefix, and only on create.
-        registry.create({**facts, "osid": kid.removeprefix("1-")})
+        registry.create(facts)
     else:
-        if held.get("osid") != kid:
-            raise FederationError(
-                f"{facts['participantId']} now signs as {kid}, but we hold it as "
-                f"{held.get('osid')}; an entry's osid cannot change, so it cannot be refreshed")
         if descriptor["revision"] < (held.get("revision") or 0):
             raise FederationError(
                 f"revision {descriptor['revision']} is below the {held['revision']} we hold; "
                 f"refusing a replay")
-        same_key = [k.get("key") for k in held.get("keys") or []] == [facts["keys"][0]["key"]]
+        roles = held.get("federationRole") or {}
+        source = roles.get("source")
+        same_key = filed_keys(held) == filed_keys(facts)
         if descriptor["revision"] == held.get("revision") and not (
-                same_key and all(held.get(f) == facts.get(f) for f in ("discoveryUrl", "projectionTtl"))):
+                same_key and held.get("discoveryUrl") == facts["discoveryUrl"]
+                and (source is None or source.get("projectionTtl") == ttl)):
             raise FederationError(
                 f"revision {descriptor['revision']} is the one we hold, with different contents")
         if same_key:
             facts["keys"] = held["keys"]
+        if source is not None and ttl is not None and source.get("projectionTtl") != ttl:
+            facts["federationRole"] = {**roles, "source": {**source, "projectionTtl": ttl}}
         registry.update({**held, **facts})
     stored = registry.participant(facts["participantId"])
-    if stored is None or stored.get("osid") != kid:
-        raise FederationError(f"the registry did not store {facts['participantId']} as {kid}")
-    if [k.get("key") for k in stored.get("keys") or []] != [facts["keys"][0]["key"]]:
+    if stored is None or filed_keys(stored) != filed_keys(facts):
         raise FederationError(f"the registry did not store {facts['participantId']}'s key")
     return stored
 
 
 def cmd_admit(args):
     """Admit a peer in one direction, after fetching and verifying its documents."""
+    registry = peer_registry(args.network_id)
+    packs = sorted({p.strip() for p in args.schema_packs if p.strip()})
+    if not packs:
+        raise FederationError("name at least one schema pack the agreement covers")
     descriptor, keyset, published = fetcher_from(args).fetch(args.network_id)
     if descriptor["status"] != "Active":
         raise FederationError(f"{args.network_id} declares itself {descriptor['status']}")
-    packs = sorted({p.strip() for p in args.schema_packs.split(",") if p.strip()})
-    if not packs:
-        raise FederationError("name at least one schema pack the agreement covers")
-    registry = peer_registry(args.network_id)
+    unspoken = [p for p in OPERATING_PROFILE if p not in descriptor["operatingProfile"]]
+    if unspoken:
+        raise FederationError(f"{args.network_id} does not speak {', '.join(unspoken)}; "
+                              f"this network needs {' '.join(OPERATING_PROFILE)}")
     offered = published if args.direction == "source" else registry.schema_packs()
     outside = sorted(set(packs) - set(offered))
     if outside:
@@ -674,9 +670,11 @@ def cmd_admit(args):
     roles[args.direction] = {**held, "schemaPacks": packs, "descriptorRevision": descriptor["revision"],
                              "admittedAt": held.get("admittedAt", now), "updatedAt": now,
                              "status": "active"}
+    if args.direction == "source" and "projectionTtl" in descriptor:
+        roles["source"]["projectionTtl"] = descriptor["projectionTtl"]
     registry.update({**entry, "federationRole": roles})
     print(f"admitted {args.network_id} as {args.direction} at revision {descriptor['revision']}, "
-          f"covering {len(packs)} pack(s); filed under {entry['osid']}")
+          f"covering {len(packs)} pack(s)")
     return 0
 
 
@@ -693,6 +691,11 @@ def cmd_refresh(args):
     gone = sorted(set((roles.get("source") or {}).get("schemaPacks") or []) - set(published))
     if gone:
         print(f"  no longer published, still in our source agreement: {', '.join(gone)}")
+    for direction in DIRECTIONS:
+        admitted = (roles.get(direction) or {}).get("descriptorRevision")
+        if admitted and admitted < descriptor["revision"]:
+            print(f"  {direction} was admitted at revision {admitted}; review it against "
+                  f"revision {descriptor['revision']}")
     if descriptor["status"] != "Active":
         print(f"  it now declares itself {descriptor['status']}; suspend it if that ends the agreement")
     return 0
@@ -759,8 +762,8 @@ def main(argv=None):
     admit.add_argument("--network-id", required=True, help="the peer, by its domain")
     admit.add_argument("--direction", required=True, choices=DIRECTIONS,
                        help="source: we read from it; requester: it may read from us")
-    admit.add_argument("--schema-packs", required=True,
-                       help="comma-separated pack URLs the agreement covers")
+    admit.add_argument("--schema-pack", dest="schema_packs", action="append", required=True,
+                       help="a pack URL the agreement covers; repeat for each")
     add_peer_access(admit)
     admit.set_defaults(run=cmd_admit)
 

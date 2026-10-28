@@ -385,7 +385,7 @@ OUR_PACK = "https://openagrinet.github.io/network-specs/schema/WeatherObservatio
 
 class OurRegistry:
     """Our registry in memory, behaving as Sunbird RC does where admission depends on it:
-    a supplied osid gets "1-" back on create, lists are replaced, objects merged, {} clears.
+    it assigns the osid on create, lists are replaced, objects merged, {} clears.
     Every write is checked against Participant.json, so a payload the schema forbids fails."""
     own_id = "network-b.example.org"
 
@@ -394,9 +394,6 @@ class OurRegistry:
 
     def participant(self, participant_id):
         return copy.deepcopy(self.rows.get(participant_id))
-
-    def by_osid(self, osid):
-        return [copy.deepcopy(r) for r in self.rows.values() if r["osid"] == osid]
 
     def schema_packs(self):
         return [OUR_PACK]
@@ -408,7 +405,7 @@ class OurRegistry:
     def create(self, record):
         self.check(record)
         record = copy.deepcopy(record)
-        record["osid"] = "1-" + record["osid"]
+        record["osid"] = f"1-peer-{len(self.rows)}"
         self.rows[record["participantId"]] = record
 
     def update(self, record):
@@ -452,7 +449,7 @@ class Admission(Base):
             o.open_registry = lambda: self.ours
 
     def admit(self, direction="source", packs=PEER_PACK, network_id=NETWORK):
-        o.cmd_admit(SimpleNamespace(network_id=network_id, direction=direction, schema_packs=packs))
+        o.cmd_admit(SimpleNamespace(network_id=network_id, direction=direction, schema_packs=[packs]))
 
     def refresh(self):
         o.cmd_refresh(SimpleNamespace(network_id=NETWORK))
@@ -463,17 +460,21 @@ class Admission(Base):
     def held(self):
         return self.ours.participant(NETWORK)
 
-    def test_admit_files_the_peer_under_its_entry_osid(self):
+    def test_admit_files_the_peer_and_its_kid(self):
+        os.environ["FEDERATION_PROJECTION_TTL"] = "900"
+        self.republish()
         self.admit()
         held = self.held()
-        self.assertEqual(held["osid"], KEY_ID)
+        self.assertEqual((held["federationRole"]["source"]["projectionTtl"], "projectionTtl" in held),
+                         (900, False))
+        self.assertEqual([(k["keyId"], "validFrom" in k) for k in held["keys"]], [(KEY_ID, False)])
         self.assertNotIn("baseUrl", held)
         self.assertEqual((held["role"], held["revision"], held["discoveryUrl"]),
-                         (["network"], 1, f"https://{NETWORK}/network/discover"))
+                         (["network"], 2, f"https://{NETWORK}/network/discover"))
         self.assertEqual([k["key"] for k in held["keys"]],
                          [base64.b64encode(raw_public(self.traffic)).decode()])
         self.assertEqual(held["federationRole"]["source"]["schemaPacks"], [PEER_PACK])
-        self.assertEqual(held["federationRole"]["source"]["descriptorRevision"], 1)
+        self.assertEqual(held["federationRole"]["source"]["descriptorRevision"], 2)
 
     def test_admit_covers_only_packs_on_offer(self):
         with self.assertRaisesRegex(o.FederationError, "does not publish"):
@@ -506,7 +507,7 @@ class Admission(Base):
         self.refresh()
         self.assertEqual([k["key"] for k in self.held()["keys"]],
                          [base64.b64encode(raw_public(self.traffic)).decode()])
-        self.assertEqual(self.held()["osid"], KEY_ID)
+        self.assertEqual([k["keyId"] for k in self.held()["keys"]], [KEY_ID])
 
     def test_replays_are_refused(self):
         self.admit()
@@ -517,22 +518,15 @@ class Admission(Base):
         with self.assertRaisesRegex(o.FederationError, "different contents"):
             self.refresh()
 
-    def test_refused_kids(self):
-        self.ours.rows["other.example.org"] = {"participantId": "other.example.org", "osid": KEY_ID}
-        with self.assertRaisesRegex(o.FederationError, "already has osid"):
-            self.admit()
-        StubRegistry.entry["keys"][0]["osid"] = "not-a-record-id"
+    def test_any_kid_is_filed_and_a_new_one_replaces_it(self):
+        StubRegistry.entry["keys"][0]["osid"] = "governance-1"
         self.republish()
-        with self.assertRaisesRegex(o.FederationError, "not a registry record id"):
-            self.admit()
-        self.assertIsNone(self.held())
-
-    def test_a_peer_cannot_change_the_osid_it_is_filed_under(self):
         self.admit()
-        StubRegistry.entry["keys"][0]["osid"] = "1-00000000-0000-4000-8000-000000000000"
+        self.assertEqual([k["keyId"] for k in self.held()["keys"]], ["governance-1"])
+        StubRegistry.entry["keys"][0]["osid"] = "governance-2"
         self.republish()
-        with self.assertRaisesRegex(o.FederationError, "cannot change"):
-            self.refresh()
+        self.refresh()
+        self.assertEqual([k["keyId"] for k in self.held()["keys"]], ["governance-2"])
 
     def test_suspend_withdraws_one_direction(self):
         self.admit()
@@ -549,6 +543,9 @@ class Admission(Base):
             o.cmd_suspend(SimpleNamespace(network_id=OurRegistry.own_id, direction="source"))
         self.republish(status="Suspended")
         with self.assertRaisesRegex(o.FederationError, "declares itself Suspended"):
+            self.admit()
+        self.republish(operating_profile=["OAN/v9.0", "Beckn/v4"])
+        with self.assertRaisesRegex(o.FederationError, "does not speak"):
             self.admit()
 
 
