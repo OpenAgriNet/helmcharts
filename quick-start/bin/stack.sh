@@ -10,7 +10,7 @@
 # Everything here is also a make target: `make up`, `make down`.
 #
 # The order the steps run in, and why teardown names every profile, are
-# docs/adr/0003-bringing-the-stack-up.md.
+# docs/adr/0006-bringing-the-stack-up.md.
 
 set -euo pipefail
 
@@ -21,7 +21,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 # Every optional profile, named explicitly: compose acts only on services whose
-# profile is active, which is what makes `down` mean down (ADR-0003).
+# profile is active, which is what makes `down` mean down (ADR-0006).
 PROFILES=(--profile reverse-proxy --profile observability --profile multi-adapter)
 
 # Deployment mode for `up`: NETWORK_ADAPTER_DEPLOYMENT_MODE from the shell, else .env, else

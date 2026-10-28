@@ -1,4 +1,4 @@
-# ADR-0003 — The stack starts in an order, and `down` means down
+# ADR-0006 — The stack starts in an order, and `down` means down
 
 **Status:** Accepted
 **Date:** 2026-10-28

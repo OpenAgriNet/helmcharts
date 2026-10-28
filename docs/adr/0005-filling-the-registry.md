@@ -1,4 +1,4 @@
-# ADR-0002 — Filling the registry: create-only rows, and what that costs
+# ADR-0005 — Filling the registry: create-only rows, and what that costs
 
 **Status:** Accepted
 **Date:** 2026-10-28

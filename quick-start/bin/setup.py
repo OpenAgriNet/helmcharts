@@ -282,7 +282,7 @@ def signing_key_block(public_key):
 
 def node(participant_id, name, role, base_url, public_key):
     """A participant that speaks Beckn. baseUrl is the address we publish, so
-    it comes from .env -- see docs/adr/0002-filling-the-registry.md."""
+    it comes from .env -- see docs/adr/0005-filling-the-registry.md."""
     return {"participantId": participant_id, "name": name, "type": "node",
             "status": "active", "baseUrl": base_url,
             "role": role, "keys": signing_key_block(public_key)}
@@ -317,7 +317,7 @@ def created(result, what):
 def ensure_binding(participant_id, capability, path, mapping_url,
                    method="GET"):
     """Create a capability binding only when absent. The shape of actions,
-    mappings and method is docs/adr/0002-filling-the-registry.md."""
+    mappings and method is docs/adr/0005-filling-the-registry.md."""
     binding = f"{participant_id}|{capability}"
     if search("ProviderSchema", {"bindingKey": {"eq": binding}}):
         print(f"  {binding}: already present")
@@ -342,7 +342,7 @@ def schema_url(capability, version):
 
 def ensure_capability_schema(capability, name, version):
     """Create a capability's schema row only when absent. A wrong schemaUrl is
-    permanent for that code -- see docs/adr/0002-filling-the-registry.md."""
+    permanent for that code -- see docs/adr/0005-filling-the-registry.md."""
     if search("SchemaRegistry", {"capabilityCode": {"eq": capability}}):
         print(f"  {capability}: already present")
         return
