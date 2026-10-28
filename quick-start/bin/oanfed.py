@@ -604,7 +604,7 @@ def peer_record(descriptor, keyset):
                               f"the peer cannot be filed under it")
     record = {"participantId": descriptor["networkId"], "name": descriptor["name"],
               "type": "node", "status": "active", "role": ["network"],
-              "baseUrl": descriptor["services"]["discovery"],
+              "discoveryUrl": descriptor["services"]["discovery"],
               "keys": [{"alg": "ed25519", "status": "active", "validFrom": descriptor["issuedAt"],
                         "key": base64.b64encode(validate_keyset(keyset)[kid]).decode()}],
               "revision": descriptor["revision"]}
@@ -636,7 +636,7 @@ def file_peer(registry, descriptor, keyset):
                 f"refusing a replay")
         same_key = [k.get("key") for k in held.get("keys") or []] == [facts["keys"][0]["key"]]
         if descriptor["revision"] == held.get("revision") and not (
-                same_key and all(held.get(f) == facts.get(f) for f in ("baseUrl", "projectionTtl"))):
+                same_key and all(held.get(f) == facts.get(f) for f in ("discoveryUrl", "projectionTtl"))):
             raise FederationError(
                 f"revision {descriptor['revision']} is the one we hold, with different contents")
         if same_key:

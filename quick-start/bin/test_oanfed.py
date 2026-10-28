@@ -467,7 +467,8 @@ class Admission(Base):
         self.admit()
         held = self.held()
         self.assertEqual(held["osid"], KEY_ID)
-        self.assertEqual((held["role"], held["revision"], held["baseUrl"]),
+        self.assertNotIn("baseUrl", held)
+        self.assertEqual((held["role"], held["revision"], held["discoveryUrl"]),
                          (["network"], 1, f"https://{NETWORK}/network/discover"))
         self.assertEqual([k["key"] for k in held["keys"]],
                          [base64.b64encode(raw_public(self.traffic)).decode()])
@@ -512,7 +513,7 @@ class Admission(Base):
         self.ours.rows[NETWORK]["revision"] = 5
         with self.assertRaisesRegex(o.FederationError, "replay"):
             self.refresh()
-        self.ours.rows[NETWORK].update(revision=1, baseUrl="https://elsewhere.example/discover")
+        self.ours.rows[NETWORK].update(revision=1, discoveryUrl="https://elsewhere.example/discover")
         with self.assertRaisesRegex(o.FederationError, "different contents"):
             self.refresh()
 
