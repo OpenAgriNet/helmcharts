@@ -8,9 +8,13 @@
 nameOverride: ""
 fullnameOverride: ""
 
-# Must match what the adapter uses: the descriptor is built from this registry
-# entry and signed with the key that entry publishes.
+# The same registry the adapter reads: the descriptor is built from this entry
+# and signed with the key it publishes.
 networkId: ""
+
+# WITHOUT /api/v1 -- oanfed appends it. The adapter's own registry.url DOES
+# carry it, so the two values differ by that suffix and cannot be copied across.
+#   http://registry.registry.svc.cluster.local:8081
 registryUrl: ""
 
 # For the descriptor. The entry's name is used when empty.
