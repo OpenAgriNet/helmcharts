@@ -202,7 +202,7 @@ services:
       retries: 20
 
   sunbird-registry-keycloak:
-    image: ghcr.io/sunbird-rc/sunbird-rc-keycloak:latest
+    image: ghcr.io/sunbird-rc/sunbird-rc-keycloak:v1.0.1  # pinned: the entrypoint below uses its paths
     container_name: sunbird-registry-keycloak
     restart: unless-stopped
     # An interrupted boot leaves keycloak-add-user.json behind, and every restart
