@@ -23,19 +23,6 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   `PMKISAN_OTP_TOKEN` from `provider-upstream`, which must carry them before
   PM-KISAN is called.
 - The consumer tier's routing sends `support` to the provider tier.
-- **Temporary, and pinned to a branch.** `extendedSchema_contextRewrite` on the
-  consumer, provider and provider-publish modules of
-  `config/single-adapter/network-adapter-config.yaml` redirects
-  `https://openagrinet.github.io/network-specs/schema/Grievance/` and
-  `.../schema/SchemeApplication/` to the same paths on the
-  `api-schema-packs-v0.1` branch of `OpenAgriNet/network-specs`.
-  The published URL is a 404 today, so without this every Grievance payload
-  fails extended validation. A branch is not a release: it moves, and whatever
-  it moves to is what the adapters validate against. Delete all three lines once
-  the pack is served from the published URL, or repoint them at a tag. The
-  network module does not have the line because `extendedSchema_enabled` is
-  `false` there, and the multi-adapter configs do not because they have no
-  Grievance step.
 
 ## [0.6.0] - 2026-10-09
 

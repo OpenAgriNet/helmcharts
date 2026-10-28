@@ -14,8 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `SchemaRegistry.schemaUrl` accepts a network-specs ref with a dot in it, such
-  as `api-schema-packs-v0.1`. A schema row for a pack on that branch was
-  refused.
+  as a `v0.1` tag. It was refused before.
 
 ## [0.4.1] - 2026-09-27
 

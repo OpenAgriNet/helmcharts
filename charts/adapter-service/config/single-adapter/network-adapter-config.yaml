@@ -78,8 +78,6 @@ modules:
             location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "true"
-            # Fetch the Grievance and SchemeApplication packs from their branch until the published URL serves them.
-            extendedSchema_contextRewrite: "https://openagrinet.github.io/network-specs/schema/Grievance/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/api-schema-packs-v0.1/schema/Grievance/,https://openagrinet.github.io/network-specs/schema/SchemeApplication/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/api-schema-packs-v0.1/schema/SchemeApplication/"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
@@ -211,8 +209,6 @@ modules:
             location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "true"
-            # Fetch the Grievance and SchemeApplication packs from their branch until the published URL serves them.
-            extendedSchema_contextRewrite: "https://openagrinet.github.io/network-specs/schema/Grievance/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/api-schema-packs-v0.1/schema/Grievance/,https://openagrinet.github.io/network-specs/schema/SchemeApplication/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/api-schema-packs-v0.1/schema/SchemeApplication/"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
@@ -385,8 +381,6 @@ modules:
             location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "true"
-            # Fetch the Grievance and SchemeApplication packs from their branch until the published URL serves them.
-            extendedSchema_contextRewrite: "https://openagrinet.github.io/network-specs/schema/Grievance/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/api-schema-packs-v0.1/schema/Grievance/,https://openagrinet.github.io/network-specs/schema/SchemeApplication/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/api-schema-packs-v0.1/schema/SchemeApplication/"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
