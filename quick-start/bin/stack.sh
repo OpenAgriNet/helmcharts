@@ -7,20 +7,10 @@
 #     bin/stack.sh down          stop everything, keep the data
 #     bin/stack.sh destroy       stop everything, DELETE the data
 #
-# Everything here is also a make target: `make up`, `make down`. The Makefile is
-# the front door; this file is where the reasoning lives.
+# Everything here is also a make target: `make up`, `make down`.
 #
-# ------------------------------------------------------------ why a script
-#
-# The steps in `up` are not interchangeable and the failure mode of getting
-# them wrong is not obvious. An adapter's config is a bind-mounted
-# FILE that setup.py renders. Docker creates a DIRECTORY at any bind-mount
-# source that does not exist yet -- so starting an adapter before step 2 both
-# wedges that container on a directory it cannot parse AND leaves a directory
-# sitting where step 2 needs to write a file. Recovering means `rm -rf`ing
-# paths under config/adapters/ that look like they should be there.
-#
-# So the ordering is worth encoding once rather than remembering three times.
+# The order the steps run in, and why teardown names every profile, are
+# docs/adr/0003-bringing-the-stack-up.md.
 
 set -euo pipefail
 
@@ -30,10 +20,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-# Every optional profile, named explicitly. This matters for `down`: compose
-# only acts on services whose profile is active, so a plain `docker compose
-# down` leaves the gateway, observability and multi-adapter containers running
-# and then reports success. Naming them on teardown is what makes "down" mean down.
+# Every optional profile, named explicitly: compose acts only on services whose
+# profile is active, which is what makes `down` mean down (ADR-0003).
 PROFILES=(--profile reverse-proxy --profile observability --profile multi-adapter)
 
 # Deployment mode for `up`: NETWORK_ADAPTER_DEPLOYMENT_MODE from the shell, else .env, else

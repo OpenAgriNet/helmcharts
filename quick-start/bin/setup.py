@@ -281,20 +281,8 @@ def signing_key_block(public_key):
 
 
 def node(participant_id, name, role, base_url, public_key):
-    """A participant that speaks Beckn.
-
-    One level, no wrapper object: type decides which fields apply. baseUrl must
-    be https for a node, and the id must be hostname-shaped -- it is the
-    identity a signature is checked against.
-
-    baseUrl IS PUBLISHED FOR PEERS, and is the one field here that a real
-    network reads rather than this stack. Nothing inside this stack resolves it
-    -- routing between the adapters is the router plugin's config, which uses
-    the compose service names -- so a wrong value costs nothing locally and
-    everything on a shared network, where it is the address a peer POSTs to.
-    That is why it comes from .env rather than being built from the id: this
-    command creates only, so a fabricated URL stays until someone corrects it
-    with a PUT."""
+    """A participant that speaks Beckn. baseUrl is the address we publish, so
+    it comes from .env -- see docs/adr/0002-filling-the-registry.md."""
     return {"participantId": participant_id, "name": name, "type": "node",
             "status": "active", "baseUrl": base_url,
             "role": role, "keys": signing_key_block(public_key)}
@@ -328,19 +316,8 @@ def created(result, what):
 
 def ensure_binding(participant_id, capability, path, mapping_url,
                    method="GET"):
-    """Create a capability binding only when absent.
-
-    actions is a list, not a map: the registry treats every nested object as an
-    entity and injects an osid into it, which a map cannot carry. It is also
-    what lets one action be retired without touching the others.
-
-    mappings is one reference carrying both directions, because the response
-    mapping reads what the request mapping resolved.
-
-    method is a parameter because it is the provider's contract, not a network
-    convention: Mausamgram and Agmarknet answer a GET whose query the mapping
-    builds, while the knowledge provider and POCRA take a POST with a JSON body.
-    The adapter reads it from this row, so nothing about it is compiled in."""
+    """Create a capability binding only when absent. The shape of actions,
+    mappings and method is docs/adr/0002-filling-the-registry.md."""
     binding = f"{participant_id}|{capability}"
     if search("ProviderSchema", {"bindingKey": {"eq": binding}}):
         print(f"  {binding}: already present")
@@ -356,34 +333,16 @@ def ensure_binding(participant_id, capability, path, mapping_url,
 
 
 def schema_url(capability, version):
-    """Build a pack URL from the capability code, which already contains the
-    pack directory's name: openagrinet:WeatherObservation is served out of
-    schema/WeatherObservation. Deriving it means the two cannot drift.
-
-    The registry pattern-checks the result against exactly this shape, so a
-    capability whose pack is laid out differently is refused rather than
-    stored -- which is the behaviour to want, since all eight packs in
-    network-specs are <Capability>/<version>/attributes.yaml today.
-
-    openagrinet.github.io, which catalogs carry in their @context; a crawl
-    derived from a raw.githubusercontent URL matches nothing."""
+    """The pack URL for a capability code, derived so the two cannot drift.
+    The host is the one catalogs carry in their @context."""
     return ("https://openagrinet.github.io/network-specs/"
             f"schema/{capability.partition(':')[2]}/{version}"
             "/attributes.yaml")
 
 
 def ensure_capability_schema(capability, name, version):
-    """Create a capability's schema row only when absent.
-
-    THE REGISTRY NEVER FETCHES schemaUrl -- it only checks its shape. So a row
-    pointing at a ref that does not serve the pack stores perfectly happily and
-    fails later, at whoever resolves it. Getting the URL right matters more
-    than the write succeeding.
-
-    And it cannot be corrected afterwards: SchemaRegistry.json sets
-    additionalProperties false, so an update is rejected over the system fields
-    the registry itself merges in, while delete is soft and keeps the unique
-    index on capabilityCode. A wrong URL here is permanent for that code."""
+    """Create a capability's schema row only when absent. A wrong schemaUrl is
+    permanent for that code -- see docs/adr/0002-filling-the-registry.md."""
     if search("SchemaRegistry", {"capabilityCode": {"eq": capability}}):
         print(f"  {capability}: already present")
         return
