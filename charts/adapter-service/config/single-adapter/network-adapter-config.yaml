@@ -243,7 +243,18 @@ modules:
             config:
               bindingKeys: "agmarknet|openagrinet:MandiPrice"
               agmarknet:
-                authScheme: none
+                authScheme: tokenQuery
+                # Substituted from the provider Secret (agmarknetTokenUrl) via
+                # adapterKeys.extraSubstitutions; the login is read from
+                # AGMARKNET_ACCESS_NAME and AGMARKNET_PASSWORD.
+                tokenUrl: "__AGMARKNET_TOKEN_URL__"
+                tokenUserField: access_name
+                tokenUserEnv: AGMARKNET_ACCESS_NAME
+                tokenSecretField: password
+                tokenSecretEnv: AGMARKNET_PASSWORD
+                tokenResponseField: token
+                queryName: token
+                tokenTtl: 10m
 
           - id: KnowledgeAdvisory
             config:

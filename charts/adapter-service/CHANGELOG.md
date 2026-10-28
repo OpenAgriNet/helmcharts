@@ -5,6 +5,18 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-10-28
+
+### Changed
+- **BREAKING.** Mandi prices call the real Agmarknet again: `agmarknet` is back
+  on `authScheme: tokenQuery` in both modes, in place of the no-auth setting
+  the benchmark mock needed. A release must now supply
+  `__AGMARKNET_TOKEN_URL__` (`adapterKeys.extraSubstitutions` in single mode,
+  `keys.existingSecret.extraSubstitutions` in multi), and the provider tier's
+  environment must carry `AGMARKNET_ACCESS_NAME` and `AGMARKNET_PASSWORD`.
+  Without the substitution the init container stops on the unfilled
+  placeholder. Point the registry's `agmarknet` upstream at the real API too.
+
 ## [0.7.0] - 2026-10-26
 
 ### Added
