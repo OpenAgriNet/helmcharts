@@ -242,7 +242,7 @@
           "format": "date-time"
         },
         "projectionTtl": {
-          "description": "Seconds the peer lets us keep its crawled data, as its Descriptor states. 0 means no retention: query live. A projectionTtl at the entry's root is legacy and ignored once readers move here (ADR-0002).",
+          "description": "Seconds the peer lets us keep its crawled data, as its Descriptor states. 0 means no retention: query live. A projectionTtl at the entry's root is legacy and ignored once readers move here (ADR-0002, #102).",
           "type": "integer",
           "minimum": 0
         },

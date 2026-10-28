@@ -1,0 +1,443 @@
+[
+  {
+    "name": "a peer admitted as a source is reached at its discoveryUrl, with no baseUrl",
+    "valid": true,
+    "participant": {
+      "participantId": "net-a.example.org",
+      "name": "Net A",
+      "type": "node",
+      "status": "active",
+      "role": [
+        "network"
+      ],
+      "discoveryUrl": "https://net-a.example.org/discover",
+      "keys": [
+        {
+          "alg": "ed25519",
+          "status": "active",
+          "validFrom": "2026-10-28T00:00:00Z",
+          "key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+        }
+      ],
+      "federationRole": {
+        "source": {
+          "schemaPacks": [
+            "https://net-a.example.org/packs/MandiPrice/v0.1/attributes.yaml"
+          ],
+          "descriptorRevision": 1,
+          "admittedAt": "2026-10-28T00:00:00Z"
+        }
+      }
+    }
+  },
+  {
+    "name": "federationRole may be empty: suspend leaves the key behind with nothing under it",
+    "valid": true,
+    "participant": {
+      "participantId": "net-a.example.org",
+      "name": "Net A",
+      "type": "node",
+      "status": "active",
+      "role": [
+        "network"
+      ],
+      "discoveryUrl": "https://net-a.example.org/discover",
+      "keys": [
+        {
+          "alg": "ed25519",
+          "status": "active",
+          "validFrom": "2026-10-28T00:00:00Z",
+          "key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+        }
+      ],
+      "federationRole": {}
+    }
+  },
+  {
+    "name": "federationRole without a discoveryUrl is refused: there is nowhere to crawl",
+    "valid": false,
+    "participant": {
+      "participantId": "net-a.example.org",
+      "name": "Net A",
+      "type": "node",
+      "status": "active",
+      "role": [
+        "network"
+      ],
+      "keys": [
+        {
+          "alg": "ed25519",
+          "status": "active",
+          "validFrom": "2026-10-28T00:00:00Z",
+          "key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+        }
+      ],
+      "federationRole": {
+        "source": {
+          "schemaPacks": [
+            "https://net-a.example.org/packs/MandiPrice/v0.1/attributes.yaml"
+          ],
+          "descriptorRevision": 1,
+          "admittedAt": "2026-10-28T00:00:00Z"
+        }
+      }
+    }
+  },
+  {
+    "name": "a node must be reachable: neither baseUrl nor discoveryUrl is refused",
+    "valid": false,
+    "participant": {
+      "participantId": "net-a.example.org",
+      "name": "Net A",
+      "type": "node",
+      "status": "active",
+      "role": [
+        "network"
+      ],
+      "keys": [
+        {
+          "alg": "ed25519",
+          "status": "active",
+          "validFrom": "2026-10-28T00:00:00Z",
+          "key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+        }
+      ]
+    }
+  },
+  {
+    "name": "projectionTtl belongs to source: how long we may keep what we crawled",
+    "valid": true,
+    "participant": {
+      "participantId": "net-a.example.org",
+      "name": "Net A",
+      "type": "node",
+      "status": "active",
+      "role": [
+        "network"
+      ],
+      "discoveryUrl": "https://net-a.example.org/discover",
+      "keys": [
+        {
+          "alg": "ed25519",
+          "status": "active",
+          "validFrom": "2026-10-28T00:00:00Z",
+          "key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+        }
+      ],
+      "federationRole": {
+        "source": {
+          "schemaPacks": [
+            "https://net-a.example.org/packs/MandiPrice/v0.1/attributes.yaml"
+          ],
+          "descriptorRevision": 1,
+          "admittedAt": "2026-10-28T00:00:00Z",
+          "projectionTtl": 3600
+        }
+      }
+    }
+  },
+  {
+    "name": "projectionTtl on requester is refused: it is the peer's retention, not ours",
+    "valid": false,
+    "participant": {
+      "participantId": "net-a.example.org",
+      "name": "Net A",
+      "type": "node",
+      "status": "active",
+      "role": [
+        "network"
+      ],
+      "discoveryUrl": "https://net-a.example.org/discover",
+      "keys": [
+        {
+          "alg": "ed25519",
+          "status": "active",
+          "validFrom": "2026-10-28T00:00:00Z",
+          "key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+        }
+      ],
+      "federationRole": {
+        "requester": {
+          "schemaPacks": [
+            "https://net-a.example.org/packs/MandiPrice/v0.1/attributes.yaml"
+          ],
+          "descriptorRevision": 1,
+          "admittedAt": "2026-10-28T00:00:00Z",
+          "projectionTtl": 60
+        }
+      }
+    }
+  },
+  {
+    "name": "projectionTtl of 0 is an agreement, not a missing value: query live",
+    "valid": true,
+    "participant": {
+      "participantId": "net-a.example.org",
+      "name": "Net A",
+      "type": "node",
+      "status": "active",
+      "role": [
+        "network"
+      ],
+      "discoveryUrl": "https://net-a.example.org/discover",
+      "keys": [
+        {
+          "alg": "ed25519",
+          "status": "active",
+          "validFrom": "2026-10-28T00:00:00Z",
+          "key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+        }
+      ],
+      "federationRole": {
+        "source": {
+          "schemaPacks": [
+            "https://net-a.example.org/packs/MandiPrice/v0.1/attributes.yaml"
+          ],
+          "descriptorRevision": 1,
+          "admittedAt": "2026-10-28T00:00:00Z",
+          "projectionTtl": 0
+        }
+      }
+    }
+  },
+  {
+    "name": "a suspended admission must say when it was suspended",
+    "valid": false,
+    "participant": {
+      "participantId": "net-a.example.org",
+      "name": "Net A",
+      "type": "node",
+      "status": "active",
+      "role": [
+        "network"
+      ],
+      "discoveryUrl": "https://net-a.example.org/discover",
+      "keys": [
+        {
+          "alg": "ed25519",
+          "status": "active",
+          "validFrom": "2026-10-28T00:00:00Z",
+          "key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+        }
+      ],
+      "federationRole": {
+        "source": {
+          "schemaPacks": [
+            "https://net-a.example.org/packs/MandiPrice/v0.1/attributes.yaml"
+          ],
+          "descriptorRevision": 1,
+          "admittedAt": "2026-10-28T00:00:00Z",
+          "status": "suspended"
+        }
+      }
+    }
+  },
+  {
+    "name": "a suspended admission with suspendedAt is accepted",
+    "valid": true,
+    "participant": {
+      "participantId": "net-a.example.org",
+      "name": "Net A",
+      "type": "node",
+      "status": "active",
+      "role": [
+        "network"
+      ],
+      "discoveryUrl": "https://net-a.example.org/discover",
+      "keys": [
+        {
+          "alg": "ed25519",
+          "status": "active",
+          "validFrom": "2026-10-28T00:00:00Z",
+          "key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+        }
+      ],
+      "federationRole": {
+        "source": {
+          "schemaPacks": [
+            "https://net-a.example.org/packs/MandiPrice/v0.1/attributes.yaml"
+          ],
+          "descriptorRevision": 1,
+          "admittedAt": "2026-10-28T00:00:00Z",
+          "status": "suspended",
+          "suspendedAt": "2026-10-28T09:00:00Z"
+        }
+      }
+    }
+  },
+  {
+    "name": "an admission with no schemaPacks is refused: it admits nothing",
+    "valid": false,
+    "participant": {
+      "participantId": "net-a.example.org",
+      "name": "Net A",
+      "type": "node",
+      "status": "active",
+      "role": [
+        "network"
+      ],
+      "discoveryUrl": "https://net-a.example.org/discover",
+      "keys": [
+        {
+          "alg": "ed25519",
+          "status": "active",
+          "validFrom": "2026-10-28T00:00:00Z",
+          "key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+        }
+      ],
+      "federationRole": {
+        "source": {
+          "schemaPacks": [],
+          "descriptorRevision": 1,
+          "admittedAt": "2026-10-28T00:00:00Z"
+        }
+      }
+    }
+  },
+  {
+    "name": "a typo in a member name is refused rather than ignored",
+    "valid": false,
+    "participant": {
+      "participantId": "net-a.example.org",
+      "name": "Net A",
+      "type": "node",
+      "status": "active",
+      "role": [
+        "network"
+      ],
+      "discoveryUrl": "https://net-a.example.org/discover",
+      "keys": [
+        {
+          "alg": "ed25519",
+          "status": "active",
+          "validFrom": "2026-10-28T00:00:00Z",
+          "key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+        }
+      ],
+      "federationRole": {
+        "source": {
+          "schemapacks": [
+            "https://net-a.example.org/packs/MandiPrice/v0.1/attributes.yaml"
+          ],
+          "descriptorRevision": 1,
+          "admittedAt": "2026-10-28T00:00:00Z"
+        }
+      }
+    }
+  },
+  {
+    "name": "the system fields the registry injects pass back on an update",
+    "valid": true,
+    "participant": {
+      "participantId": "net-a.example.org",
+      "name": "Net A",
+      "type": "node",
+      "status": "active",
+      "role": [
+        "network"
+      ],
+      "discoveryUrl": "https://net-a.example.org/discover",
+      "keys": [
+        {
+          "alg": "ed25519",
+          "status": "active",
+          "validFrom": "2026-10-28T00:00:00Z",
+          "key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+        }
+      ],
+      "federationRole": {
+        "source": {
+          "schemaPacks": [
+            "https://net-a.example.org/packs/MandiPrice/v0.1/attributes.yaml"
+          ],
+          "descriptorRevision": 1,
+          "admittedAt": "2026-10-28T00:00:00Z",
+          "osid": "1-abc"
+        },
+        "osid": "1-def"
+      }
+    }
+  },
+  {
+    "name": "an osid the registry did not write is refused when it is not a string",
+    "valid": false,
+    "participant": {
+      "participantId": "net-a.example.org",
+      "name": "Net A",
+      "type": "node",
+      "status": "active",
+      "role": [
+        "network"
+      ],
+      "discoveryUrl": "https://net-a.example.org/discover",
+      "keys": [
+        {
+          "alg": "ed25519",
+          "status": "active",
+          "validFrom": "2026-10-28T00:00:00Z",
+          "key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+        }
+      ],
+      "federationRole": {
+        "source": {
+          "schemaPacks": [
+            "https://net-a.example.org/packs/MandiPrice/v0.1/attributes.yaml"
+          ],
+          "descriptorRevision": 1,
+          "admittedAt": "2026-10-28T00:00:00Z"
+        },
+        "osid": 7
+      }
+    }
+  },
+  {
+    "name": "role as a bare string is refused: 0.4.1 rows need the migration in the CHANGELOG",
+    "valid": false,
+    "participant": {
+      "participantId": "net-a.example.org",
+      "name": "Net A",
+      "type": "node",
+      "status": "active",
+      "role": "network",
+      "discoveryUrl": "https://net-a.example.org/discover",
+      "keys": [
+        {
+          "alg": "ed25519",
+          "status": "active",
+          "validFrom": "2026-10-28T00:00:00Z",
+          "key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+        }
+      ],
+      "federationRole": {
+        "source": {
+          "schemaPacks": [
+            "https://net-a.example.org/packs/MandiPrice/v0.1/attributes.yaml"
+          ],
+          "descriptorRevision": 1,
+          "admittedAt": "2026-10-28T00:00:00Z"
+        }
+      }
+    }
+  },
+  {
+    "name": "an upstream is reached at its baseUrl and federates with nobody",
+    "valid": true,
+    "participant": {
+      "participantId": "agmarknet",
+      "name": "Agmarknet",
+      "type": "upstream",
+      "status": "active",
+      "baseUrl": "http://mock-agmarknet:8080"
+    }
+  },
+  {
+    "name": "an upstream without a baseUrl is refused",
+    "valid": false,
+    "participant": {
+      "participantId": "agmarknet",
+      "name": "Agmarknet",
+      "type": "upstream",
+      "status": "active"
+    }
+  }
+]

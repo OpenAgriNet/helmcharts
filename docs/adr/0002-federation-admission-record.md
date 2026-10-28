@@ -117,6 +117,7 @@ stores.
   reads it (helmcharts#90, network-adapter#83), the top-level value is still
   the live one. The entry's top level allows extra fields, so the schema
   cannot refuse it; once both move, a top-level value is legacy and ignored.
+  Tracked by #102.
 - Likewise, until both move, peers admitted earlier hold the discovery URL in
   `baseUrl` and have no `discoveryUrl`.
 - Removing a value the peer stops declaring (`projectionTtl`,
