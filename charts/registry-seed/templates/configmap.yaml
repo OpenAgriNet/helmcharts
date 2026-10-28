@@ -99,6 +99,44 @@ data:
                          f"against.")
 
 
+    def publish_action(b):
+        # The pipeline the network adapter's catalog crawler runs for this
+        # binding; the crawler reads only `mappings`.
+        if not b.get("publishPipelineUrl"):
+            return []
+        return [{"action": "publish", "method": "POST", "path": "/publish",
+                 "mappings": b["publishPipelineUrl"], "status": "active"}]
+
+
+    def ensure_publish_action(binding, action, bearer):
+        """Add or repoint the publish action on a binding seeded without it."""
+        rows = search("ProviderSchema", {"bindingKey": {"eq": binding}})
+        if not rows:
+            return None
+        record = rows[0]
+        current = next((a for a in record.get("actions", [])
+                        if a.get("action") == "publish"), None)
+        if current and current.get("mappings") == action["mappings"]:
+            print(f"  {binding} publish: already present")
+            return False
+        if current:
+            current.update(action)
+        else:
+            record.setdefault("actions", []).append(action)
+        # A PUT re-validates the merged record, so the whole record goes back.
+        try:
+            result = http(f"{REGISTRY}/api/v1/ProviderSchema/{record['osid']}",
+                          method="PUT", data=json.dumps(record).encode(),
+                          headers={"Content-Type": "application/json",
+                                   "Authorization": f"Bearer {bearer}"})
+        except urllib.error.HTTPError as e:
+            print(f"  {binding} publish: HTTP {e.code} {e.read().decode(errors='replace')[:160]}")
+            return None
+        status = result.get("params", {}).get("status", "?")
+        print(f"  {binding} publish: {status}")
+        return True if status in ("SUCCESSFUL", "SUCCESS") else None
+
+
     def wait_for_registry():
         for _ in range(60):
             try:
@@ -174,10 +212,13 @@ data:
                                       "mappings": b["mappingUrl"],
                                       "timeoutMs": b.get("timeoutMs", 15000),
                                       "retryMax": b.get("retryMax", 2),
-                                      "status": "active"}]},
+                                      "status": "active"}] + publish_action(b)},
                         bearer, binding)
             if ok is None:
                 failed.append(binding)
+            elif ok is False and publish_action(b):
+                if ensure_publish_action(binding, publish_action(b)[0], bearer) is None:
+                    failed.append(binding + " (publish action)")
 
         print("registry: capability schemas")
         for s in DOC["schemas"]:
