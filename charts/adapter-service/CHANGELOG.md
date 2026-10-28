@@ -50,6 +50,13 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   a crawled catalog takes the same path as a local one without leaving the pod.
 
 
+### Fixed
+- The crawler's own application-level `registry` plugin, in both the
+  single-adapter and multi-adapter network configs. The adapter image refuses to
+  start a crawler without one ("crawler plugin configured without a registry
+  plugin"), because it verifies a crawled catalog against the publisher's
+  registry key; the modules' registries do not count.
+
 ## [0.7.0] - 2026-10-26
 
 ### Added

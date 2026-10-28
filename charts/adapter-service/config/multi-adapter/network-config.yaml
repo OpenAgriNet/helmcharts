@@ -40,6 +40,22 @@ plugins:
       enableTracing: "true"
       enableLogs: "true"
 
+  # The crawler's own registry: it verifies a crawled catalog's signature
+  # against the publisher's key there. The image refuses to start a crawler
+  # without one. Separate from the modules' registries below.
+  registry:
+    id: sunbirdRegistry
+    config:
+      url: http://registry.registry.svc.cluster.local:8081/api/v1
+      entity: Participant
+      providerEntity: ProviderSchema
+      timeout: 2
+      retry_max: 1
+      retry_wait_min: 100ms
+      retry_wait_max: 500ms
+      maxResponseBytes: 1048576
+      cacheTTL: 0
+
   # Off builds no schedule and never dials, so a cluster that federates with
   # nobody stays quiet. Answering someone else's crawl is unaffected.
   #
