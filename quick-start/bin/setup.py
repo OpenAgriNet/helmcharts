@@ -313,6 +313,19 @@ def upstream(participant_id, name, base_url):
             "status": "active", "baseUrl": base_url}
 
 
+def created(result, what):
+    """Report a write, and stop on one the registry refused.
+
+    These commands create only, so a refusal leaves a row absent rather than
+    wrong -- and the first symptom further on is a crawl that collects nothing."""
+    params = result.get("params", {}) if isinstance(result, dict) else {}
+    if params.get("status") != "SUCCESSFUL":
+        sys.exit(f"setup: the registry refused {what}: "
+                 f"{params.get('errmsg', result)}\n"
+                 f"  Nothing after this point was written.")
+    print(f"  {what}: created")
+
+
 def ensure_binding(participant_id, capability, path, mapping_url,
                    method="GET"):
     """Create a capability binding only when absent.
@@ -339,8 +352,7 @@ def ensure_binding(participant_id, capability, path, mapping_url,
                      "mappings": mapping_url,
                      "timeoutMs": 15000, "retryMax": 2,
                      "status": "active"}]})
-    print(f"  {binding}: {result['params']['status']} "
-          f"{result['params'].get('errmsg', '')[:160]}")
+    created(result, binding)
 
 
 def schema_url(capability, version):
@@ -379,8 +391,7 @@ def ensure_capability_schema(capability, name, version):
         "capabilityCode": capability, "name": name, "version": version,
         "schemaUrl": schema_url(capability, version),
         "status": "active"})
-    print(f"  {capability}: {result['params']['status']} "
-          f"{result['params'].get('errmsg', '')[:160]}")
+    created(result, capability)
 
 
 def ensure_participant(participant_id, payload):
@@ -389,9 +400,7 @@ def ensure_participant(participant_id, payload):
     if search("Participant", {"participantId": {"eq": participant_id}}):
         print(f"  {participant_id}: already present")
         return
-    result = post("Participant", payload)
-    status = result["params"]["status"]
-    print(f"  {participant_id}: {status} {result['params'].get('errmsg', '')[:160]}")
+    created(post("Participant", payload), participant_id)
 
 
 def register_network(identity):
