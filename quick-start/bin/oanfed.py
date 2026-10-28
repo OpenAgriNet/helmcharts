@@ -749,10 +749,16 @@ def cmd_suspend(args):
     registry.update({**entry, "federationRole": {}})
     if kept:
         registry.update({**registry.participant(args.network_id), "federationRole": kept})
+    else:
+        # Nothing agreed either way, so stop dealing with them at all: an inactive
+        # participant is refused when its signature is checked, before any
+        # federation rule is read. Admitting again sets it back to active.
+        registry.update({**registry.participant(args.network_id), "status": "inactive"})
     left = (registry.participant(args.network_id).get("federationRole") or {})
     if args.direction in left:
         raise FederationError(f"the registry still holds {args.network_id} as {args.direction}")
-    print(f"suspended {args.network_id} as {args.direction}")
+    print(f"suspended {args.network_id} as {args.direction}"
+          + ("" if kept else "; nothing is agreed either way, so it is now inactive"))
     return 0
 
 
