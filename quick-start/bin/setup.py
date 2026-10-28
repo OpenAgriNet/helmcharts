@@ -505,6 +505,16 @@ def step_id(binding_key):
 ROLES = ("consumer", "network", "provider")
 
 
+def publish_url(folder):
+    """Where a crawled catalog is handed in, which differs by mode.
+
+    Single mode serves /publish from the same process; multi mode has it on the
+    provider adapter, a container of its own."""
+    if folder == "single-adapter":
+        return "http://localhost:9201/publish"
+    return "http://provider-adapter:9200/publish"
+
+
 def configure_adapter(identity):
     wait_for_registry()
     providers = registered_providers()
@@ -544,9 +554,10 @@ def configure_adapter(identity):
                 # and reach the adapter through its environment.
                 ("__AGMARKNET_TOKEN_URL__", env("AGMARKNET_TOKEN_URL", "")),
                 ("__VISTAAR_TOKEN_URL__", env("VISTAAR_TOKEN_URL", "")),
-                # The crawler, on the network-adapter templates only. A
-                # crawled catalog is published the same way a local one is.
-                ("__DISCOVERY_PUSH_URL__", "http://localhost:9201/network/publish"),
+                # The crawler hands a crawled catalog to /publish, which signs it
+                # and forwards it on. /network/publish expects a signature the
+                # crawl does not carry, and in multi mode /publish is elsewhere.
+                ("__DISCOVERY_PUSH_URL__", publish_url(folder)),
                 # on/off in .env, true/false in the config.
                 ("__FEDERATION_ENABLED__",
                  "false" if env("FEDERATION_CRAWL_PEERS", "off").lower() == "off"
