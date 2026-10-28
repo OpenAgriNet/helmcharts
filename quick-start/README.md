@@ -1193,34 +1193,27 @@ because a request is missing.
 
 ## Appendix O — Scheduled catalog publishing (the crawler)
 
-The network adapter also runs the `catalogcrawler` plugin, in both modes. On
-every tick (`catalogIntervalSeconds`, 60 s here) it lists the registry's
-bindings, keeps the ones with a `publish` action, and runs each pipeline that
-is due: fetch the upstream, build the catalogs, POST each to `/publish`, which
-signs it as the provider and routes it to discovery.
+The network adapter runs the `catalogcrawler` plugin in both modes. Every
+`catalogIntervalSeconds` (60 s here) it runs each registry binding's `publish`
+pipeline that is due and POSTs the catalogs to `/publish`, which signs them as
+the provider and sends them to discovery.
 
-| Piece | Where |
-|---|---|
-| `registry` and `crawler` plugin blocks | `config/adapters/{single,multi}-adapter/network-adapter.yaml.tmpl` |
-| `publish` action on the Agmarknet binding | `bin/setup.py`, pinned to a commit; override with `AGMARKNET_PUBLISH_PIPELINE_URL` |
-| Schema that admits `publish` | `config/registry/schemas/ProviderSchema.json` |
-| Run log database `catalogcrawler` | `crawler-postgres`, its own container and volume; the network adapter waits for it |
-| Pipeline inputs `MANDI_*`, `APP_NETWORK_ID` | `network-adapter` environment, mapped from `AGMARKNET_*` |
+- Config: the `registry` and `crawler` blocks in
+  `config/adapters/{single,multi}-adapter/network-adapter.yaml.tmpl`.
+- Run log: `crawler-postgres`, its own container and volume.
+- Publish action: added to the Agmarknet binding by `bin/setup.py`
+  (override with `AGMARKNET_PUBLISH_PIPELINE_URL`).
+- Pipeline inputs: the `AGMARKNET_*` values and `BECKN_NETWORK_ID` from `.env`.
 
-Catalogs go to `http://localhost:9201/publish` in single mode and to
-`http://provider-adapter:9200/publish` in multi mode.
-
-**On a stack that already exists**, the schema is not picked up by itself:
+On a stack that already exists:
 
 ```sh
 docker compose restart sunbird-registry-service   # loads the schema that admits publish
-make up                                           # starts crawler-postgres, re-runs setup.py: adds the publish action
+make up                                           # starts crawler-postgres, adds the publish action
 ```
 
-To see what the crawler has run: `make logs SVC=network-adapter`, or the run log
-itself with `docker exec -it crawler-postgres psql -U crawler catalogcrawler`.
+Logs: `make logs SVC=network-adapter`. Run log:
+`docker exec -it crawler-postgres psql -U crawler catalogcrawler`.
 
-**The image must have the crawler's publish sweep and the `render.mappingByField`
-engine.** `network-adapter:0.0.1` predates both: it starts, but publishes
-nothing. Set `ADAPTER_IMAGE` to a build from network-adapter `development`.
-Without real `AGMARKNET_*` values the pipeline runs and its fetch fails.
+Needs a network-adapter image of `0.2.0-RC1` or later (`ADAPTER_IMAGE`); `0.0.1`
+starts but publishes nothing.

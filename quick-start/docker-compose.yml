@@ -682,17 +682,9 @@ services:
     environment:
       <<: *adapter-env
       OTEL_SERVICE_NAME: network-adapter
-      # The Mandi publish pipeline's inputs, read by name from the hosted
-      # pipeline file (inputs.*.env). Mapped from the Agmarknet values the
-      # provider tier already uses, so nothing is stated twice.
-      MANDI_API_URI: ${AGMARKNET_BASE_URL}
-      MANDI_TOKEN_USER: ${AGMARKNET_ACCESS_NAME}
-      MANDI_TOKEN_SECRET: ${AGMARKNET_PASSWORD}
-      # The catalog's provider id, and the network it is visible to.
-      MANDI_PARTICIPANT_ID: ${AGMARKNET_PARTICIPANT_ID}
-      APP_NETWORK_ID: ${BECKN_NETWORK_ID}
       # Upstream credentials for the single-mode provider module, read at call
-      # time -- the same variables and reasons as provider-adapter.
+      # time -- the same variables and reasons as provider-adapter. The
+      # crawler's Agmarknet publish pipeline reads the AGMARKNET_* pair too.
       MAUSAMGRAM_AUTH: ${MAUSAMGRAM_AUTH}
       AGMARKNET_ACCESS_NAME: ${AGMARKNET_ACCESS_NAME}
       AGMARKNET_PASSWORD: ${AGMARKNET_PASSWORD}

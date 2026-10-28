@@ -651,6 +651,9 @@ def render(identities):
                 # password stay as variable NAMES in the config and reach the
                 # adapter through its environment.
                 ("__AGMARKNET_TOKEN_URL__", env("AGMARKNET_TOKEN_URL")),
+                # The crawler's publish pipeline inputs (README, Appendix O).
+                ("__AGMARKNET_BASE_URL__", env("AGMARKNET_BASE_URL")),
+                ("__BECKN_NETWORK_ID__", env("BECKN_NETWORK_ID")),
                 # Auth is per provider, so the participant id is a YAML KEY in
                 # the adapter config, not only half of a binding key.
                 ("__POCRA_BINDING_KEY__", pocra_binding),
