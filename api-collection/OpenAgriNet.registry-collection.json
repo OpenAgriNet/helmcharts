@@ -251,7 +251,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"participantId\": \"{{consumer-participant-id}}\",\n  \"name\": \"OAN consumer layer adapter\",\n  \"type\": \"node\",\n  \"status\": \"active\",\n  \"baseUrl\": \"{{consumer-base-url}}\",\n  \"role\": [\"consumer\"],\n  \"keys\": [\n    {\n      \"alg\": \"ed25519\",\n      \"key\": \"{{consumer-participant-key}}\",\n      \"status\": \"active\",\n      \"validFrom\": \"2026-01-01T00:00:00Z\",\n      \"validUntil\": \"2030-01-01T00:00:00Z\"\n    }\n  ]\n}",
+              "raw": "{\n  \"participantId\": \"{{consumer-participant-id}}\",\n  \"name\": \"OAN consumer layer adapter\",\n  \"type\": \"node\",\n  \"status\": \"active\",\n  \"baseUrl\": \"{{consumer-base-url}}\",\n  \"role\": \"consumer\",\n  \"keys\": [\n    {\n      \"alg\": \"ed25519\",\n      \"key\": \"{{consumer-participant-key}}\",\n      \"status\": \"active\",\n      \"validFrom\": \"2026-01-01T00:00:00Z\",\n      \"validUntil\": \"2030-01-01T00:00:00Z\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
