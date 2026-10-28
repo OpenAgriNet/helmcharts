@@ -34,10 +34,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ```
 
   An empty `string-roles.jsonl` means there is nothing to rewrite. Re-run the
-  search afterwards and confirm it is empty again. Until a row is rewritten
-  its updates fail with `#/Participant/role: expected type: JSONArray, found:
-  String`. Rehearsed against sunbird-rc-core v2.0.0: the rows keep their keys
-  and can then be admitted as peers. Tracked per deployment by #98.
+  search afterwards and confirm it is empty again. Run this even though
+  nothing forces it: the registry validates a PUT against the request body, so
+  an update that does not mention `role` succeeds and leaves the string there.
+  Only an update that sends `role` fails, with `#/Participant/role: expected
+  type: JSONArray, found: String`. Rehearsed against sunbird-rc-core v2.0.0:
+  the rows keep their keys and can then be admitted as peers. Tracked per
+  deployment by #98.
 - `baseUrl` is required for an upstream and for a node without
   `discoveryUrl`; an entry with `federationRole` requires `discoveryUrl`.
 - `PublicKey.validFrom` is optional, and nested objects declare the registry's

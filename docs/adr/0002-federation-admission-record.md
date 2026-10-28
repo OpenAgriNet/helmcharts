@@ -17,9 +17,9 @@ The peer publishes its own facts in a signed Descriptor: base URL, keys,
 revision, how long its data may be kept. Those change on the peer's schedule.
 Admission changes only when our operator decides.
 
-Sunbird RC re-validates the whole merged document on a PUT, nested objects
-included, and stamps `osid` and `os*` fields into each nested object it
-stores.
+Sunbird RC validates a PUT against the request body, not against the record
+the merge will produce, and then merges the body into what it stores. It
+stamps `osid` and `os*` fields into each nested object.
 
 ## Decision
 
@@ -98,7 +98,9 @@ stores.
   `federationRole` must never be sent.
 - On update, Sunbird enforces types, enums, `additionalProperties`,
   `minItems` and `not`, but not `required`, `minProperties` or `if`/`then`
-  (checked against a live registry). Writers must keep those rules
+  (checked against a live registry). It reads the request body alone, so a
+  rule that depends on a field the body leaves out does not run: the stored
+  record cannot constrain a partial update. Writers must keep those rules
   themselves, such as sending `suspendedAt` with `suspended`, and their tests
   should validate every payload against this schema.
 - A direction stored before `status` existed has none and reads as
@@ -107,8 +109,10 @@ stores.
 - The adapter must not apply this check to participants outside federation.
   Our own consumers and providers carry no `federationRole` and must still
   be served.
-- A row stored with `role` as a string keeps working until its next update,
-  which then fails until it is rewritten as a list.
+- A row stored with `role` as a string keeps working, and an update that
+  leaves `role` out still succeeds and leaves the string in place. Only an
+  update that sends `role` fails. So the migration is not forced by the first
+  write after the upgrade; it has to be run deliberately.
 - The quick-start schema and the registry chart's copy must stay identical;
   the `registry-schema` workflow fails a pull request where they differ.
 - If Sunbird adds a system field, every closed nested object needs it
