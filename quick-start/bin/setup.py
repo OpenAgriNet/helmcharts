@@ -146,12 +146,12 @@ def network_requirements():
 def provider_requirements(name):
     """What this provider needs filled in before anything is written. Its
     credential variables are here too, so a placeholder is caught before the row."""
-    p = PROVIDERS[name]
-    keys = [f"{p['prefix']}_{s}" for s in
+    provider = PROVIDERS[name]
+    keys = [f"{provider['prefix']}_{s}" for s in
             ("PARTICIPANT_ID", "CAPABILITY", "BASE_URL", "MAPPING_URL")]
-    if p["default_path"] is None:
-        keys.append(f"{p['prefix']}_PATH")
-    return keys + p["needs"]
+    if provider["default_path"] is None:
+        keys.append(f"{provider['prefix']}_PATH")
+    return keys + provider["needs"]
 
 
 def require(keys):
@@ -381,22 +381,22 @@ def register_provider(name):
     """One upstream, its binding and its schema. Three rows together: a provider
     with no binding answers nothing, and a binding with no schema resolves to
     no pack. A re-run with the same id changes nothing."""
-    p = PROVIDERS[name]
+    provider = PROVIDERS[name]
     require(provider_requirements(name))
     wait_for_registry()
 
-    participant = env(f"{p['prefix']}_PARTICIPANT_ID")
-    capability = env(f"{p['prefix']}_CAPABILITY")
+    participant = env(f"{provider['prefix']}_PARTICIPANT_ID")
+    capability = env(f"{provider['prefix']}_CAPABILITY")
 
     print(f"registry: {name}")
     ensure_participant(participant,
-                       upstream(participant, p["name"],
-                                env(f"{p['prefix']}_BASE_URL")))
+                       upstream(participant, provider["name"],
+                                env(f"{provider['prefix']}_BASE_URL")))
     ensure_binding(participant, capability,
-                   env(f"{p['prefix']}_PATH", p["default_path"]),
-                   env(f"{p['prefix']}_MAPPING_URL"),
-                   method=p["method"])
-    ensure_capability_schema(capability, p["capability_name"], p["version"])
+                   env(f"{provider['prefix']}_PATH", provider["default_path"]),
+                   env(f"{provider['prefix']}_MAPPING_URL"),
+                   method=provider["method"])
+    ensure_capability_schema(capability, provider["capability_name"], provider["version"])
     print(f"  binding key {participant}|{capability}")
 
 
@@ -435,7 +435,7 @@ def key_osid(identity):
 def registered_providers():
     """The providers the registry holds a binding for, carrying the key as the
     REGISTRY spells it -- so the adapter and the caller use the same string."""
-    by_participant = {env(f"{p['prefix']}_PARTICIPANT_ID", ""): name
+    by_participant = {env(f"{provider['prefix']}_PARTICIPANT_ID", ""): name
                       for name, p in PROVIDERS.items()}
     found = []
     for row in search("ProviderSchema", {"status": {"eq": "active"}}):
