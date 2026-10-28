@@ -26,6 +26,8 @@ MAX_DOCUMENT_BYTES = 1 << 20
 ALGORITHM = "Ed25519"
 
 DESCRIPTOR_VERSION = "1.0"
+# The version stack this build speaks.
+OPERATING_PROFILE = ["OAN/v0.1", "Beckn/v2"]
 DESCRIPTOR_STATUSES = ("Active", "Suspended", "Retired")
 
 # How far a peer's issuedAt may run ahead of our clock.
@@ -506,7 +508,7 @@ def cmd_publish(args):
         "revision": revision,
         "status": args.status,
         "issuedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "operatingProfile": [p.strip() for p in args.operating_profile.split(",") if p.strip()],
+        "operatingProfile": args.operating_profile or OPERATING_PROFILE,
         "schemaPacks": f"https://{entry['participantId']}{WELL_KNOWN_SCHEMA_PACKS}",
         "services": {"discovery": f"{base_url}/discover"},
     }
@@ -576,8 +578,9 @@ def main(argv=None):
     commands = parser.add_subparsers(dest="command", required=True)
 
     publish = commands.add_parser("publish", help="generate and sign this network's documents")
-    publish.add_argument("--operating-profile", default="OAN/v0.1,Beckn/v2",
-                         help="comma-separated version stack")
+    publish.add_argument("--operating-profile", action="append",
+                         help="one version in the stack; repeat for each "
+                              f"(default {' '.join(OPERATING_PROFILE)})")
     publish.add_argument("--status", default="Active", choices=DESCRIPTOR_STATUSES,
                          help="what this network declares itself to be")
     publish.add_argument("--out", required=True, help="directory to write .well-known/ into")

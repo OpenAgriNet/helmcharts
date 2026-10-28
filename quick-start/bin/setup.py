@@ -171,6 +171,10 @@ def load_or_generate_keys():
     if KEYS.exists():
         print("keys: reusing keys/keys.json")
         identity = json.loads(KEYS.read_text())
+        if "participantId" not in identity and {"consumer", "network", "provider"} & set(identity):
+            sys.exit("setup: keys/keys.json holds the old three adapter identities; this version\n"
+                     "  seeds one network identity. Run `make destroy` and set up again, or move\n"
+                     "  keys/keys.json aside to keep the old keys.")
         # The keypair persists; the id is read from .env each run. This registry
         # cannot update a record, so changing the id in .env seeds a NEW
         # participant rather than editing one -- and the same keypair moving to

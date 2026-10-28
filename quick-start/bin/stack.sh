@@ -119,6 +119,8 @@ preflight() {
         true|false) ;;
         *) die "GRAFANA_ALERTING_ENABLED must be exactly true or false, not '$alerting'" ;;
     esac
+
+    mkdir -p .well-known  # before Docker can create it root-owned
 }
 
 # ------------------------------------------------------------------- up
@@ -142,7 +144,6 @@ up() {
     # 0.0.0.0:80 and :443, deliberately not scoped, because Let's Encrypt
     # validates HTTP-01 from its own servers.
     step 4 5 "nginx-proxy-manager -- the public edge (80 and 443, all interfaces)"
-    mkdir -p .well-known  # before Docker can create it root-owned
     docker compose --profile reverse-proxy up -d nginx-proxy-manager
 
     # ClickHouse, the collector, and Grafana. Heaviest thing here by a wide
@@ -303,7 +304,6 @@ WARN
 reverse_proxy() {
     preflight
     step 1 1 "nginx-proxy-manager -- publishes 80 and 443 on ALL interfaces"
-    mkdir -p .well-known  # before Docker can create it root-owned
     docker compose --profile reverse-proxy up -d nginx-proxy-manager
     cat <<'NEXT'
 
@@ -434,10 +434,9 @@ host_descriptor() {
         info "NPM just started. Change its default login before anything else: make reverse-proxy says how."
     fi
 
-    local network_id https_port
-    read -r network_id https_port <<<"$(python3 -c 'import sys; sys.path.insert(0, "bin"); import setup
-setup.load_dotenv()
-print(setup.env("BECKN_NETWORK_ID"), setup.env("REVERSE_PROXY_HTTPS_PORT", "443"))')"
+    local network_id="${BECKN_NETWORK_ID:-$(dotenv_get BECKN_NETWORK_ID)}"
+    local https_port="${REVERSE_PROXY_HTTPS_PORT:-$(dotenv_get REVERSE_PROXY_HTTPS_PORT)}"
+    https_port="${https_port:-443}"
     step 3 3 "checking https://$network_id/.well-known/openagrinet through NPM"
     # Checks routing only (-k); a peer checks the certificate. Retries while NPM starts.
     if curl -fsSk --max-time 10 --retry 10 --retry-delay 1 --retry-all-errors --resolve "$network_id:$https_port:127.0.0.1" \

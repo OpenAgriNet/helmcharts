@@ -80,7 +80,7 @@ class Base(unittest.TestCase):
                 "key": base64.b64encode(raw_public(private)).decode(), "osid": KEY_ID, **extra}
 
     def publish(self, **overrides):
-        args = SimpleNamespace(operating_profile="OAN/v0.1,Beckn/v2", status="Active",
+        args = SimpleNamespace(operating_profile=None, status="Active",
                                out=str(self.dir), keys=str(self.key_file))
         vars(args).update(overrides)
         o.cmd_publish(args)
