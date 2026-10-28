@@ -1,0 +1,25 @@
+name: registry-schema
+
+on:
+  pull_request:
+    paths:
+      - 'quick-start/config/registry/schemas/Participant.json'
+      - 'charts/registry/files/schemas/Participant.json'
+      - 'scripts/check-registry-schema.py'
+      - 'scripts/registry-schema-cases.json'
+      - '.github/workflows/registry-schema.yml'
+
+jobs:
+  check:
+    name: Participant.json copies match and the cases hold
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install jsonschema==4.23.0
+
+      - run: ./scripts/check-registry-schema.py

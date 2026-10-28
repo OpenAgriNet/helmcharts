@@ -5,6 +5,47 @@ All notable changes to the `registry` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-10-28
+
+### Added
+- `files/schemas/Participant.json` carries the federation fields: `revision`,
+  `discoveryUrl` and `federationRole`, with a `source` and/or `requester`
+  admission per direction (`schemaPacks`, `descriptorRevision`, `admittedAt`,
+  `updatedAt`, `status`, `suspendedAt`; `projectionTtl` on `source` only).
+  `PublicKey` gains an optional `keyId`, a peer's own `kid`. See ADR-0002.
+
+### Changed
+- **BREAKING.** `role` is an array. In 0.4.1 it was a single string, so
+  every existing row holds one: it still reads, but its next update
+  (admitting a peer, rotating a key) is refused until it is rewritten as an
+  array. 0.4.1 refuses an array, so **right after upgrading**, and before any
+  other write, rewrite those rows (needs `jq` and an admin token):
+
+  ```sh
+  REG=https://<registry-host>; TOKEN=<admin bearer token>
+  curl -s -X POST "$REG/api/v1/Participant/search" -H 'Content-Type: application/json' \
+       -d '{"filters":{},"limit":10000}' \
+    | jq -c '(.data // .)[] | select(.role | type == "string")' > string-roles.jsonl
+  while read -r row; do
+    jq -c 'with_entries(select(.key | startswith("os") | not)) | .role = [.role]' <<<"$row" \
+      | curl -s -X PUT "$REG/api/v1/Participant/$(jq -r .osid <<<"$row")" \
+             -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d @-
+  done < string-roles.jsonl
+  ```
+
+  An empty `string-roles.jsonl` means there is nothing to rewrite. Re-run the
+  search afterwards and confirm it is empty again. Run this even though
+  nothing forces it: the registry validates a PUT against the request body, so
+  an update that does not mention `role` succeeds and leaves the string there.
+  Only an update that sends `role` fails, with `#/Participant/role: expected
+  type: JSONArray, found: String`. Rehearsed against sunbird-rc-core v2.0.0:
+  the rows keep their keys and can then be admitted as peers. Tracked per
+  deployment by #98.
+- `baseUrl` is required for an upstream and for a node without
+  `discoveryUrl`; an entry with `federationRole` requires `discoveryUrl`.
+- `PublicKey.validFrom` is optional, and nested objects declare the registry's
+  system fields (as strings) so an update passes.
+
 ## [0.5.0] - 2026-10-27
 
 ### Added
