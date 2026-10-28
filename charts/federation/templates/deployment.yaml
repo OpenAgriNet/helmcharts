@@ -53,10 +53,10 @@ spec:
             - name: documents
               mountPath: /srv/documents
               readOnly: true
-            - name: cache
-              mountPath: /var/cache/nginx
-            - name: run
-              mountPath: /var/run
+            # nginx-unprivileged keeps its temp paths AND its pid under /tmp,
+            # not /var/cache/nginx, so this is the one writable path it needs.
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: nginx
           configMap:
@@ -65,10 +65,8 @@ spec:
           configMap:
             name: {{ include "federation.documentsConfigMap" . }}
             optional: true
-        - name: cache
-          emptyDir: {}
-        - name: run
-          emptyDir: {}
+        - name: tmp
+          emptyDir: {sizeLimit: 16Mi}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
