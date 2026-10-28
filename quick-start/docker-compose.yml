@@ -96,6 +96,7 @@ networks:
 volumes:
   sunbird-registry-postgres-data:
   discovery-postgres-data:
+  crawler-postgres-data:
   clickhouse-data:
   grafana-data:
   nginx-proxy-manager-data:
@@ -344,6 +345,29 @@ services:
       - discovery-postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U discovery -d discovery"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # The network adapter's catalog crawler keeps its run log here (README,
+  # Appendix O). Its own database, not discovery's: POSTGRES_DB creates it on
+  # every fresh volume, and the crawler never holds discovery's credentials.
+  # Inspect it with: docker exec -it crawler-postgres psql -U crawler catalogcrawler
+  crawler-postgres:
+    image: postgres:16-alpine
+    container_name: crawler-postgres
+    restart: unless-stopped
+    logging: *logging
+    networks: [oan-internal]
+    environment:
+      # Local only, like discovery-postgres: no published port, internal network.
+      POSTGRES_USER: crawler
+      POSTGRES_PASSWORD: crawler
+      POSTGRES_DB: catalogcrawler
+    volumes:
+      - crawler-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crawler -d catalogcrawler"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -652,11 +676,15 @@ services:
         condition: service_healthy
       discovery-service:
         condition: service_started
+      # The crawler's run log. The adapter refuses to start without it.
+      crawler-postgres:
+        condition: service_healthy
     environment:
       <<: *adapter-env
       OTEL_SERVICE_NAME: network-adapter
       # Upstream credentials for the single-mode provider module, read at call
-      # time -- the same variables and reasons as provider-adapter.
+      # time -- the same variables and reasons as provider-adapter. The
+      # crawler's Agmarknet publish pipeline reads the AGMARKNET_* pair too.
       MAUSAMGRAM_AUTH: ${MAUSAMGRAM_AUTH}
       AGMARKNET_ACCESS_NAME: ${AGMARKNET_ACCESS_NAME}
       AGMARKNET_PASSWORD: ${AGMARKNET_PASSWORD}

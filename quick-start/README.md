@@ -376,6 +376,7 @@ Reference, read on demand. Nothing here is a step.
 | **L** | Renaming this directory |
 | **M** | Starting over |
 | **N** | What the collection demonstrates |
+| **O** | Scheduled catalog publishing (the crawler) |
 
 ## Appendix A — What is here, and what is not
 
@@ -1189,3 +1190,30 @@ its `/publish` and `/discover` both verify signatures, so a network peer calls
 it directly. Signing is not something Postman does, so those calls are not
 scripted. The variable exists to give the address somewhere to live, not
 because a request is missing.
+
+## Appendix O — Scheduled catalog publishing (the crawler)
+
+The network adapter runs the `catalogcrawler` plugin in both modes. Every
+`catalogIntervalSeconds` (6 hours here) it runs each registry binding's `publish`
+pipeline that is due and POSTs the catalogs to `/publish`, which signs them as
+the provider and sends them to discovery.
+
+- Config: the `registry` and `crawler` blocks in
+  `config/adapters/{single,multi}-adapter/network-adapter.yaml.tmpl`.
+- Run log: `crawler-postgres`, its own container and volume.
+- Publish action: added to the Agmarknet binding by `bin/setup.py` from
+  `AGMARKNET_PUBLISH_PIPELINE_URL` in `.env`; unset, nothing publishes.
+- Pipeline inputs: the `AGMARKNET_*` values and `BECKN_NETWORK_ID` from `.env`.
+
+On a stack that already exists:
+
+```sh
+docker compose restart sunbird-registry-service   # loads the schema that admits publish
+make up                                           # starts crawler-postgres, adds the publish action
+```
+
+Logs: `make logs SVC=network-adapter`. Run log:
+`docker exec -it crawler-postgres psql -U crawler catalogcrawler`.
+
+Needs a network-adapter image of `0.2.0-RC1` or later (`ADAPTER_IMAGE`); `0.0.1`
+starts but publishes nothing.

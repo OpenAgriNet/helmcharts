@@ -33,6 +33,41 @@ plugins:
       enableTracing: "__OTEL_ENABLED__"
       enableLogs: "__OTEL_ENABLED__"
 
+  # Scheduled catalog publishing: the crawler runs each registry binding's
+  # `publish` pipeline when due and POSTs the catalogs to /publish (README,
+  # Appendix O). This registry block is the crawler's own lookup.
+  registry:
+    id: sunbirdRegistry
+    config:
+      url: http://sunbird-registry-service:8081/api/v1
+      entity: Participant
+      providerEntity: ProviderSchema
+
+  crawler:
+    id: catalogcrawler
+    config:
+      dbDsn: "postgres://crawler:crawler@crawler-postgres:5432/catalogcrawler?sslmode=disable"
+      # Where built catalogs are POSTed: this process's own /publish module.
+      discoveryPushUrl: "http://localhost:9201/publish"
+      # Who the catalogs are published AS (context.senderId) and TO (receiverId).
+      participantId: "__PROVIDER_SUBSCRIBER_ID__"
+      receiverId: "discovery.oan.dev"
+      publishPipelines: "true"
+      publishEnabled: "true"
+      # Every 6 hours.
+      catalogIntervalSeconds: "21600"
+      publishCatalogOutputDir: "/tmp/catalogs"
+      # Once a day, OnDemand catalogs only (no Direct price catalogs).
+      publish.mandi-price.schedule: "0 13 * * *"
+      publish.mandi-price.mode: "onDemand"
+      # Agmarknet data lags 1-3 weeks: a relative window, not the default (yesterday).
+      publish.mandi-price.fromDate: "21 days ago"
+      # The pipeline's inputs, from .env. Used only when
+      # AGMARKNET_PUBLISH_PIPELINE_URL is set.
+      publish.mandi-price.baseUrl: "__AGMARKNET_BASE_URL__"
+      publish.mandi-price.participantId: "__AGMARKNET_PARTICIPANT_ID__"
+      publish.mandi-price.networkId: "__BECKN_NETWORK_ID__"
+
 modules:
   # consumer-adapter: the app calls /<action>; discover to /_internal/network, transactions
   # to /_internal/provider (routing-network-adapter-consumer.yaml).

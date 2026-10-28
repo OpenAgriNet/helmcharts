@@ -257,6 +257,20 @@ def post(entity, payload, bearer):
                      f"  issuer than the registry validates against.")
 
 
+def put(entity, osid, payload, bearer):
+    # Sunbird RC re-validates the whole record on a PUT, so all of it goes back.
+    req = urllib.request.Request(f"{registry_url()}/api/v1/{entity}/{osid}", method="PUT",
+                                 data=json.dumps(payload).encode(),
+                                 headers={"Content-Type": "application/json",
+                                          "Authorization": f"Bearer {bearer}"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        sys.exit(f"setup: the registry refused an update -- HTTP {e.code}: "
+                 f"{e.read().decode(errors='replace').strip()[:200] or '(empty body)'}")
+
+
 def search(entity, filters):
     req = urllib.request.Request(f"{registry_url()}/api/v1/{entity}/search", method="POST",
                                  data=json.dumps({"filters": filters}).encode(),
@@ -349,6 +363,25 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url,
                      "timeoutMs": 15000, "retryMax": 2,
                      "status": "active"}]}, bearer)
     print(f"  {binding}: {result['params']['status']} "
+          f"{result['params'].get('errmsg', '')[:160]}")
+
+
+def ensure_publish_action(bearer, participant_id, capability, url):
+    """Add or repoint the `publish` action the catalog crawler runs on a binding."""
+    binding = f"{participant_id}|{capability}"
+    rows = search("ProviderSchema", {"bindingKey": {"eq": binding}})
+    if not rows:
+        return
+    record = rows[0]
+    actions = record.get("actions", [])
+    if any(a.get("action") == "publish" and a.get("mappings") == url for a in actions):
+        print(f"  {binding} publish: already present")
+        return
+    record["actions"] = [a for a in actions if a.get("action") != "publish"] + [
+        {"action": "publish", "method": "POST", "path": "/publish",
+         "mappings": url, "status": "active"}]
+    result = put("ProviderSchema", record["osid"], record, bearer)
+    print(f"  {binding} publish: {result['params']['status']} "
           f"{result['params'].get('errmsg', '')[:160]}")
 
 
@@ -484,6 +517,10 @@ def seed(identities):
     ensure_binding(bearer, mandi, env("AGMARKNET_CAPABILITY"),
                    env("AGMARKNET_PATH", "/v1/fetch-agmarknet-vistaar"),
                    env("AGMARKNET_MAPPING_URL"))
+    # Optional: the pipeline the network adapter's catalog crawler runs (README, Appendix O).
+    if env("AGMARKNET_PUBLISH_PIPELINE_URL", ""):
+        ensure_publish_action(bearer, mandi, env("AGMARKNET_CAPABILITY"),
+                              env("AGMARKNET_PUBLISH_PIPELINE_URL"))
     ensure_binding(bearer, knowledge, env("VISTAAR_CAPABILITY"),
                    env("VISTAAR_PATH"), env("VISTAAR_MAPPING_URL"),
                    method="POST")
@@ -592,6 +629,9 @@ def render(identities):
                 # password stay as variable NAMES in the config and reach the
                 # adapter through its environment.
                 ("__AGMARKNET_TOKEN_URL__", env("AGMARKNET_TOKEN_URL")),
+                # The crawler's publish pipeline inputs (README, Appendix O).
+                ("__AGMARKNET_BASE_URL__", env("AGMARKNET_BASE_URL")),
+                ("__BECKN_NETWORK_ID__", env("BECKN_NETWORK_ID")),
                 # Auth is per provider, so the participant id is a YAML KEY in
                 # the adapter config, not only half of a binding key.
                 ("__POCRA_BINDING_KEY__", pocra_binding),
