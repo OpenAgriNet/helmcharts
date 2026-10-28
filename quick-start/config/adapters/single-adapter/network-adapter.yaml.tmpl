@@ -54,8 +54,8 @@ plugins:
   crawler:
     id: catalogcrawler
     config:
-      # Where what we collect is published: this deployment's own /publish
-      # mount, so a crawled catalog takes the same path as a local one.
+      # The /publish mount, which signs a crawled catalog and forwards it on.
+      # Not /network/publish: that one expects a signature the crawl has none of.
       discoveryPushUrl: "__DISCOVERY_PUSH_URL__"
       participantId: "__NETWORK_SUBSCRIBER_ID__"
 
