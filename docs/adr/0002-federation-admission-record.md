@@ -85,9 +85,16 @@ stores.
 - The adapter must treat a `suspended` direction as not admitted, for both
   the inbound requester check and the crawler. Until it does, setting
   `suspended` does not stop sharing.
-- Sunbird merges objects on update and cannot remove a nested field. So
+- Sunbird merges nested objects on update: a field the update leaves out
+  keeps its stored value, and an empty object clears everything in it. So
   admitting a suspended direction again must write `status: active`
-  explicitly, and `suspendedAt` stays as the last suspension.
+  explicitly, `suspendedAt` stays as the last suspension, and an empty
+  `federationRole` must never be sent.
+- On update, Sunbird enforces types, enums, `additionalProperties`,
+  `minItems` and `not`, but not `required`, `minProperties` or `if`/`then`
+  (checked against a live registry). Writers must keep those rules
+  themselves, such as sending `suspendedAt` with `suspended`, and their tests
+  should validate every payload against this schema.
 - A direction stored before `status` existed has none and reads as
   `active`, so no migration is needed. Sunbird does not apply the schema
   `default`; readers must.
