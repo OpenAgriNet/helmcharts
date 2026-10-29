@@ -5,6 +5,25 @@ All notable changes to the `otel-agent` chart.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-10-29
+
+### Added
+
+- Pod logs. A `filelog` receiver reads `/var/log/pods` on each node (mounted
+  read-only), `k8sattributes` adds the owning Deployment, StatefulSet,
+  DaemonSet or Job, and that name becomes `service.name`, falling back to the
+  container name. Before this only services that export OTLP themselves showed
+  up in HyperDX. On by default; `logs.enabled: false` turns it off.
+- `logs.exclude`: file globs to skip. Defaults to the agent's own pods.
+
+### Changed
+
+- With logs on, the container runs as uid 0, which pod log files require
+  (root:root 0640). It keeps all capabilities dropped and no privilege
+  escalation.
+- The ClusterRole can read `apps/replicasets`, which `k8sattributes` needs to
+  name a pod's Deployment.
+
 ## [0.1.3] - 2026-09-29
 
 ### Changed

@@ -41,6 +41,19 @@ data:
           - container.id
         k8s_api_config:
           auth_type: serviceAccount
+{{- if .Values.logs.enabled }}
+
+      # Every container's stdout on this node. The container parser reads the
+      # namespace, pod and container from the file path.
+      filelog:
+        include: ["/var/log/pods/*/*/*.log"]
+        exclude:
+          {{- toYaml .Values.logs.exclude | nindent 10 }}
+        start_at: end
+        include_file_path: true
+        operators:
+          - type: container
+{{- end }}
 
     processors:
       # A bound on this agent's own memory. It runs on the nodes under test, so
@@ -52,6 +65,35 @@ data:
       batch:
         timeout: 10s
         send_batch_size: 1024
+{{- if .Values.logs.enabled }}
+      # Pods on this node only, matched by the uid the container parser set.
+      k8sattributes:
+        auth_type: serviceAccount
+        filter:
+          node_from_env_var: K8S_NODE_NAME
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.uid
+        extract:
+          metadata:
+            - k8s.deployment.name
+            - k8s.statefulset.name
+            - k8s.daemonset.name
+            - k8s.job.name
+            - k8s.node.name
+      # HyperDX groups by service.name: the owning workload, else the container.
+      transform/service-name:
+        error_mode: ignore
+        log_statements:
+          - context: resource
+            statements:
+              - set(attributes["service.name"], attributes["k8s.deployment.name"]) where attributes["service.name"] == nil
+              - set(attributes["service.name"], attributes["k8s.statefulset.name"]) where attributes["service.name"] == nil
+              - set(attributes["service.name"], attributes["k8s.daemonset.name"]) where attributes["service.name"] == nil
+              - set(attributes["service.name"], attributes["k8s.job.name"]) where attributes["service.name"] == nil
+              - set(attributes["service.name"], attributes["k8s.container.name"]) where attributes["service.name"] == nil
+{{- end }}
 
     exporters:
       otlp:
@@ -72,3 +114,9 @@ data:
           receivers: [kubeletstats]
           processors: [memory_limiter, batch]
           exporters: [otlp]
+{{- if .Values.logs.enabled }}
+        logs:
+          receivers: [filelog]
+          processors: [memory_limiter, k8sattributes, transform/service-name, batch]
+          exporters: [otlp]
+{{- end }}

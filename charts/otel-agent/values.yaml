@@ -40,6 +40,15 @@ exporter:
 # visibly, rather than dropping telemetry in silence.
 apiKey: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
+# Container stdout from every pod on the node, tagged with its workload as
+# service.name. start_at end: a restarted agent skips what it missed rather
+# than re-sending whole files.
+logs:
+  enabled: true
+  # The agent's own logs would echo every export error back through itself.
+  exclude:
+    - /var/log/pods/*_otel-agent-*/*/*.log
+
 # How often each kubelet is read. 15s matches the cAdvisor scrape it replaces;
 # a benchmark run is minutes long, so this is fine enough to see a saturation
 # curve without flooding ClickHouse.
