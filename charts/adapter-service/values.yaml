@@ -305,6 +305,9 @@ ingress:
   # provider without checking who calls it, so a public /publish lets anyone
   # publish catalogues under the provider's name.
   allowPublicPublish: false
+  # Single-adapter mode only: lets a route rewrite onto /consumer/ or /publish,
+  # which take UNSIGNED calls. Throwaway/dev environments only.
+  allowUnsignedMounts: false
 
   # One Ingress per entry, each with its own annotations and tls. Needed when
   # paths go to different mounts: a rewrite holds one target (ADR-0002).

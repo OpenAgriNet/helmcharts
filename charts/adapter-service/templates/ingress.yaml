@@ -35,7 +35,7 @@ objects (ADR-0002).
 {{- end }}
 {{- $lands := $rewrite | default $p }}
 {{- $mount := regexFind "^/[A-Za-z0-9_.-]+" $lands }}
-{{- if or (eq $mount "/publish") (eq $mount "/consumer") }}
+{{- if and (or (eq $mount "/publish") (eq $mount "/consumer")) (not $root.Values.ingress.allowUnsignedMounts) }}
 {{- fail (printf "%s: %q lands on %s, a mount that takes UNSIGNED calls.\n\n  /publish writes anything into the catalogue and /consumer/ answers anyone --\n  their caller is this deployment's own software, inside the trust boundary.\n  Publishing %s from outside means rewriting onto a mount that checks the\n  caller: /network/publish serves the same action behind validateSign and\n  checkCrossNetworkRequester. Reach the unsigned mount by port-forward." $root.Chart.Name $p $mount $p) }}
 {{- end }}
 {{- end }}
