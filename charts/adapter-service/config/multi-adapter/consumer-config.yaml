@@ -42,8 +42,10 @@ plugins:
 
 modules:
   - name: consumer-adapter
-    # A subtree: every action lands here and the payload says which one it is.
-    path: /
+    # A subtree: the mount path is stripped and what remains is the action.
+    # NEVER on an Ingress -- this tier checks no signature and no agreement,
+    # because its caller is this deployment's own app.
+    path: /consumer/
     handler:
       type: std
       # bap because this adapter SENDS. role sets direction, not participant type.
@@ -109,7 +111,7 @@ modules:
           id: schemav2validator
           config:
             type: url
-            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "true"
             extendedSchema_cacheTTL: "86400"

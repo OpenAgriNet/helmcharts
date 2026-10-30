@@ -40,10 +40,54 @@ plugins:
       enableTracing: "true"
       enableLogs: "true"
 
+  # The crawler's own registry: it verifies a crawled catalog's signature
+  # against the publisher's key there. The image refuses to start a crawler
+  # without one. Separate from the modules' registries below.
+  registry:
+    id: sunbirdRegistry
+    config:
+      url: http://registry.registry.svc.cluster.local:8081/api/v1
+      entity: Participant
+      providerEntity: ProviderSchema
+      timeout: 2
+      retry_max: 1
+      retry_wait_min: 100ms
+      retry_wait_max: 500ms
+      maxResponseBytes: 1048576
+      cacheTTL: 0
+
+  # Off builds no schedule and never dials, so a cluster that federates with
+  # nobody stays quiet. Answering someone else's crawl is unaffected.
+  #
+  # No database: dbDsn is only for staticIndexUrls, networks or publishPipelines.
+  crawler:
+    id: catalogcrawler
+    config:
+      # Where a crawled catalog is published: this adapter's own network mount,
+      # which is what a local publish goes through too. The port must match
+      # service.targetPort.
+      discoveryPushUrl: "http://localhost:__ADAPTER_PORT__/network/publish"
+      participantId: "__NETWORK_SUBSCRIBER_ID__"
+
+      federationEnabled: "__FEDERATION_ENABLED__"
+      # We sign what we send, with the same key that signs everything else.
+      signingPrivateKey: "__NETWORK_SIGNING_PRIVATE__"
+      keyId: "__NETWORK_KEY_ID__"
+      # How often every admitted source network is asked.
+      federationRefreshSeconds: "__FEDERATION_REFRESH_SECONDS__"
+      # How many catalogs one call asks for. Discovery defaults to 20, so a
+      # network sharing more is partly collected and nothing says so.
+      federationPageSize: "__FEDERATION_PAGE_SIZE__"
+      # What breadth to ask for. Required in practice: discovery refuses an
+      # intent that narrows nothing, and the refusal mirrors zero catalogs with
+      # no error anywhere.
+      federationIntent: '__FEDERATION_INTENT__'
+
 modules:
   - name: network-adapter
-    # A subtree: every action lands here and the payload says which one it is.
-    path: /
+    # A subtree: the mount path is stripped and what remains is the action.
+    # PUBLIC, and the path the Network Descriptor advertises.
+    path: /network/
     handler:
       type: std
       # bpp because this adapter RECEIVES. role sets direction, not participant type.
@@ -104,7 +148,7 @@ modules:
           id: schemav2validator
           config:
             type: url
-            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "false"
             extendedSchema_cacheTTL: "86400"
@@ -132,4 +176,5 @@ modules:
       # it checks who is calling and routes.
       steps:
         - validateSign
+        - checkCrossNetworkRequester
         - addRoute

@@ -1,58 +1,75 @@
-{{- if .Values.ingress.enabled }}
-{{- $ann := merge (dict) (.Values.ingress.annotations | default dict) (.Values.commonAnnotations | default dict) }}
-{{- $single := eq (include "adapter-service.deploymentMode" .) "single-adapter" }}
-{{- if $single }}
-{{- /* Single mode: only literal one-segment /<action> paths (Prefix/Exact); no snippet,
-       rewrite or regex annotation; never /, /publish or /_internal* (ADR-0001). */}}
-{{- range $k, $_ := $ann }}
+{{- /*
+One Ingress per entry in .Values.ingress.routes, plus the legacy single
+.Values.ingress when no routes are given.
+
+Several, rather than one with a list of paths, because a rewrite is an
+annotation on the Ingress and holds ONE target. Single mode serves /discover
+from the /network/ mount and /select from /provider/ -- two targets, so two
+objects (ADR-0002).
+*/ -}}
+{{- define "adapter-service.ingress.guard" -}}
+{{- $root := .root -}}
+{{- $route := .route -}}
+{{- if eq (include "adapter-service.deploymentMode" $root) "single-adapter" -}}
+{{- /* Single mode: literal one-segment /<action> paths (Prefix/Exact), and a
+       rewrite onto any mount except the two that take unsigned calls. */ -}}
+{{- /* Where a request actually lands: the rewrite if there is one, else the
+       path unchanged. Only its FIRST SEGMENT decides -- /publish is the mount
+       that takes unsigned writes, /network/publish is the mount that checks
+       the caller and happens to serve the same action. */ -}}
+{{- $rewrite := "" -}}
+{{- range $k, $v := $route.annotations }}
 {{- if regexMatch "(?i)(snippet|rewrite|regex)" $k }}
-{{- fail (printf "%s: ingress annotation %s is not allowed in the single deployment mode. Snippet, rewrite and regex annotations can reach /_internal or /publish." $.Chart.Name $k) }}
+{{- $rewrite = toString $v }}
 {{- end }}
 {{- end }}
-{{- range .Values.ingress.hosts }}
+{{- range $route.hosts }}
 {{- range .paths }}
 {{- $p := .path | default "" }}
 {{- $pt := .pathType | default "Prefix" }}
 {{- if not (has $pt (list "Prefix" "Exact")) }}
-{{- fail (printf "%s: ingress path %q has pathType %s, which is not allowed in the single deployment mode. Use Prefix or Exact." $.Chart.Name $p $pt) }}
+{{- fail (printf "%s: ingress path %q has pathType %s, which is not allowed in the single deployment mode. Use Prefix or Exact." $root.Chart.Name $p $pt) }}
 {{- end }}
-{{- if or (not (regexMatch "^/[A-Za-z0-9_.-]+$" $p)) (hasPrefix "/_internal" $p) (and (eq $p "/publish") (not $.Values.ingress.allowPublicPublish)) }}
-{{- fail (printf "%s: ingress path %q is not allowed in the single deployment mode. Allowed: one literal segment, /<action> (e.g. /discover, /select). / and /_internal* are never public; /publish only with ingress.allowPublicPublish." $.Chart.Name $p) }}
+{{- if not (regexMatch "^/[A-Za-z0-9_.-]+$" $p) }}
+{{- fail (printf "%s: ingress path %q is not allowed in the single deployment mode. Allowed: one literal segment, /<action> (e.g. /discover, /select)." $root.Chart.Name $p) }}
+{{- end }}
+{{- $lands := $rewrite | default $p }}
+{{- $mount := regexFind "^/[A-Za-z0-9_.-]+" $lands }}
+{{- if and (or (eq $mount "/publish") (eq $mount "/consumer")) (not $root.Values.ingress.allowUnsignedMounts) }}
+{{- fail (printf "%s: %q lands on %s, a mount that takes UNSIGNED calls.\n\n  /publish writes anything into the catalogue and /consumer/ answers anyone --\n  their caller is this deployment's own software, inside the trust boundary.\n  Publishing %s from outside means rewriting onto a mount that checks the\n  caller: /network/publish serves the same action behind validateSign and\n  checkCrossNetworkRequester. Reach the unsigned mount by port-forward." $root.Chart.Name $p $mount $p) }}
 {{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
-{{/*
-Off by default, and worth a thought before turning on.
+{{- end }}
 
-The provider and network roles take SIGNED requests -- validateSign is their
-first step -- so publishing them is not the same risk as publishing an adapter
-that does not. The consumer role, and the single-mode consumer module
-at /, take UNSIGNED requests (NOTES says so when ingress is on). Either way
-it is still a Beckn peer endpoint, and the thing that makes it safe is that
-every caller must hold a key the registry publishes. That is a property of the
-registry's contents, not of this Ingress.
-*/}}
-apiVersion: {{ include "common.ingress.apiVersion" . }}
+{{- if .Values.ingress.enabled }}
+{{- $base := dict "name" "" "annotations" (.Values.ingress.annotations | default dict) "hosts" .Values.ingress.hosts "tls" .Values.ingress.tls -}}
+{{- $routes := .Values.ingress.routes | default (list $base) -}}
+{{- range $i, $route := $routes }}
+{{- $ann := merge (dict) ($route.annotations | default dict) ($.Values.commonAnnotations | default dict) -}}
+{{- include "adapter-service.ingress.guard" (dict "root" $ "route" (dict "annotations" $ann "hosts" $route.hosts)) }}
+---
+apiVersion: {{ include "common.ingress.apiVersion" $ }}
 kind: Ingress
 metadata:
-  name: {{ include "adapter-service.fullname" . }}
+  name: {{ printf "%s%s" (include "adapter-service.fullname" $) (ternary "" (printf "-%s" ($route.name | default (printf "%d" $i))) (empty $route.name)) }}
   labels:
-    {{- include "adapter-service.labels" . | nindent 4 }}
+    {{- include "adapter-service.labels" $ | nindent 4 }}
   {{- with $ann }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- with .Values.ingress.className }}
+  {{- with $.Values.ingress.className }}
   ingressClassName: {{ . }}
   {{- end }}
-  {{- with .Values.ingress.tls }}
+  {{- with $route.tls }}
   tls:
     {{- toYaml . | nindent 4 }}
   {{- end }}
   rules:
-    {{- range .Values.ingress.hosts }}
+    {{- range $route.hosts }}
     - host: {{ .host | quote }}
       http:
         paths:
@@ -66,4 +83,5 @@ spec:
                   number: {{ $.Values.service.port }}
           {{- end }}
     {{- end }}
+{{- end }}
 {{- end }}

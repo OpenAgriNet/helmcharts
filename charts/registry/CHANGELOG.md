@@ -5,6 +5,19 @@ All notable changes to the `registry` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-10-30
+
+### Added
+- `files/schemas/SchemaRegistry.json` accepts a `schemaUrl` served from
+  `openagrinet.github.io/network-specs` as well as the raw GitHub host, and
+  permits additional properties so the registry's own system fields survive an
+  update.
+
+### Changed
+- Keycloak settings are only demanded while `authenticationEnabled` is true.
+  With it off the registry checks no token, and the chart no longer renders the
+  SSO environment or fails for a missing realm URL and admin client secret.
+
 ## [0.6.0] - 2026-10-28
 
 ### Added

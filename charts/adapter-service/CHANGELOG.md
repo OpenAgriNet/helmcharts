@@ -23,6 +23,40 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   Without the substitution the init container stops on the unfilled
   placeholder. Point the registry's `agmarknet` upstream at the real API too.
 
+### Changed
+
+- The network and provider roles list `checkCrossNetworkRequester` after
+  `validateSign`. The agreement check used to run inside the registry's key
+  lookup, so it only happened when a signature was verified; it is now a step
+  of its own and holds either way. Needs an adapter image carrying the step.
+
+### Added
+
+- `crawler` values, and the catalog crawler's config block on the network
+  role. Off by default, so a deployment that has admitted no network is
+  unchanged. The other roles carry no crawler block, and the values are ignored
+  there.
+- A render-time refusal when `crawler.enabled` is true and `crawler.intent` is
+  empty. Discovery will not take an intent that narrows nothing and answers an
+  empty one with no catalogs, so the pass would report success and mirror
+  nothing.
+
+### Notes
+
+- No database. A DSN is only needed by crawler work that keeps a record
+  between passes, and crawling other networks keeps none.
+- `crawler.discoveryPushUrl` defaults to this same pod. The crawler runs on the
+  network adapter, which serves `/publish` itself in both deployment modes, so
+  a crawled catalog takes the same path as a local one without leaving the pod.
+
+
+### Fixed
+- The crawler's own application-level `registry` plugin, in both the
+  single-adapter and multi-adapter network configs. The adapter image refuses to
+  start a crawler without one ("crawler plugin configured without a registry
+  plugin"), because it verifies a crawled catalog against the publisher's
+  registry key; the modules' registries do not count.
+
 ## [0.7.0] - 2026-10-26
 
 ### Added

@@ -47,10 +47,11 @@ plugins:
 
 modules:
   - name: oanProvider
-    # "/" with the trailing slash is a prefix match, so every action lands here.
-    # The action comes from the URL, not the payload: the mount path is stripped
-    # and what remains ("select", "discover") is what routing matches on.
-    path: /
+    # A prefix match, so every action lands here. The action comes from the
+    # URL, not the payload: the mount path is stripped and what remains
+    # ("select", "discover") is what routing matches on. PUBLIC -- another
+    # network's select arrives here.
+    path: /provider/
     handler:
       type: std
       role: bpp
@@ -104,7 +105,7 @@ modules:
           id: schemav2validator
           config:
             type: url
-            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             # Resolves each resource's @context to its pack and validates
             # resourceAttributes. Base validation treats that object as
@@ -224,11 +225,13 @@ modules:
       # A plugin declared above but missing from this list is loaded and never runs.
       steps:
         - validateSign
+        - checkCrossNetworkRequester
         - validateSchema
         - WeatherObservation
         - MandiPrice
         - KnowledgeAdvisory
         - AgricultureFacility
+        - sign
 
   # The outbound leg: this provider's catalogue system publishing to the network.
   #
@@ -286,7 +289,7 @@ modules:
           id: schemav2validator
           config:
             type: url
-            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "true"
             # Same trust boundary as the module above; see the note there.

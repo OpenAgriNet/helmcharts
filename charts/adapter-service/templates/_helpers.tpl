@@ -177,3 +177,42 @@ therefore needs a rollout restart -- which the NOTES print.
 {{- define "adapter-service.configChecksum" -}}
 {{- include (print $.Template.BasePath "/configmap.yaml") . | sha256sum -}}
 {{- end }}
+
+{{/*
+adapter-service.crawlerConfig substitutes the crawler's placeholders into an
+adapter config.
+
+Done here and not by the init container that renders the keypair: none of these
+is a credential, so none belongs in the keys Secret. A config carrying no
+crawler block comes back unchanged, which is every role but network.
+
+discoveryPushUrl defaults to this same process. The crawler runs on the network
+adapter, and that adapter serves /publish itself in both modes -- as its own
+mount in single, as an action on / in multi -- so a crawled catalog takes the
+same path as a local one without leaving the pod to do it.
+*/}}
+{{- define "adapter-service.crawlerConfig" -}}
+{{- $c := .ctx.Values.crawler | default dict -}}
+{{- $push := $c.discoveryPushUrl | default (printf "http://localhost:%v/publish" .ctx.Values.service.targetPort) -}}
+{{- $cfg := .cfg -}}
+{{- $cfg = $cfg | replace "__DISCOVERY_PUSH_URL__" $push -}}
+{{- $cfg = $cfg | replace "__FEDERATION_ENABLED__" (ternary "true" "false" ($c.enabled | default false)) -}}
+{{- $cfg = $cfg | replace "__FEDERATION_REFRESH_SECONDS__" (toString ($c.refreshSeconds | default 900)) -}}
+{{- $cfg = $cfg | replace "__FEDERATION_PAGE_SIZE__" (toString ($c.pageSize | default 100)) -}}
+{{- $cfg = $cfg | replace "__FEDERATION_INTENT__" ($c.intent | default "") -}}
+{{- $cfg -}}
+{{- end -}}
+
+{{/*
+adapter-service.crawlerCheck refuses a crawler that is on but asks for nothing.
+
+Discovery will not take an intent that narrows nothing, and answers an empty one
+with 200 and no catalogs -- so the pass reports success, mirrors nothing, and
+says so nowhere. Caught at render instead.
+*/}}
+{{- define "adapter-service.crawlerCheck" -}}
+{{- $c := .Values.crawler | default dict -}}
+{{- if and ($c.enabled | default false) (not $c.intent) }}
+{{- fail (printf "%s: crawler.enabled is true but crawler.intent is empty. Discovery refuses an intent that narrows nothing and answers an empty one with no catalogs, so the crawl would report success and mirror nothing." .Chart.Name) }}
+{{- end }}
+{{- end -}}

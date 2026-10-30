@@ -46,6 +46,11 @@ registry:
   # http://registry.registry.svc.cluster.local:8081
   url: ""
 
+# Whether the REGISTRY checks a token. Must match the registry chart's own
+# authenticationEnabled: with it false the Job writes without one, and the
+# keycloak and seedUser values below are unused.
+authenticationEnabled: true
+
 keycloak:
   # Must be the issuer Keycloak puts in its tokens, including /auth - the
   # registry validates the token against OAUTH2_RESOURCES_0_URI, so a token

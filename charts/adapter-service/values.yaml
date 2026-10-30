@@ -242,7 +242,7 @@ routing:
 # can fail on the request path.
 # ---------------------------------------------------------------------------
 becknSpec:
-  url: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+  url: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml"
   cacheTTL: "3600"
   extendedSchema:
     enabled: false
@@ -295,6 +295,8 @@ service:
 ingress:
   enabled: false
   className: ""
+
+  # One Ingress, for when every path goes to the same place.
   annotations: {}
   hosts: []
   tls: []
@@ -303,6 +305,48 @@ ingress:
   # provider without checking who calls it, so a public /publish lets anyone
   # publish catalogues under the provider's name.
   allowPublicPublish: false
+  # Single-adapter mode only: lets a route rewrite onto /consumer/ or /publish,
+  # which take UNSIGNED calls. Throwaway/dev environments only.
+  allowUnsignedMounts: false
+
+  # One Ingress per entry, each with its own annotations and tls. Needed when
+  # paths go to different mounts: a rewrite holds one target (ADR-0002).
+  #
+  #   routes:
+  #     - name: network
+  #       annotations: {konghq.com/rewrite: /network/discover}
+  #       hosts: [{host: oan.example.org, paths: [{path: /discover, pathType: Exact}]}]
+  #       tls: [{hosts: [oan.example.org], secretName: network-adapter-tls}]
+  #
+  # Put tls on ONE route per hostname. cert-manager orders per Ingress, and a
+  # second order for the same name burns an ACME attempt for nothing.
+  #
+  # The chart checks where a rewrite LANDS, refusing /publish and /consumer.
+  # It does not care which controller you use.
+  routes: []
+
+# ---------------------------------------------------------------------------
+# Crawling other networks. Off builds no schedule and never dials, so a
+# cluster that federates with nobody stays quiet. Only the network role reads it.
+#
+# Answering someone else's crawl is unaffected -- that is the /network/ mount.
+# ---------------------------------------------------------------------------
+federation:
+  enabled: false
+
+  # Keep it well under the projectionTtl those networks publish, or what we
+  # hold expires between crawls and discover answers from nothing.
+  refreshSeconds: 900
+
+  # Discovery defaults to 20, so a network sharing more is partly collected
+  # and nothing says so.
+  pageSize: 100
+
+  # Required when enabled: discovery refuses an intent that narrows nothing,
+  # and that refusal looks exactly like zero catalogs.
+  #
+  #   intent: '{"filters": {"type": "jsonpath", "expression": "$.catalogs[*] ? (@.isActive == true)"}}'
+  intent: ""
 
 # ---------------------------------------------------------------------------
 # Wait for the upstreams before starting.
@@ -410,18 +454,46 @@ podAnnotations: {}
 commonLabels: {}
 commonAnnotations: {}
 
+# The catalog crawler, on the network role only. Other roles ignore this --
+# their config files carry no crawler block for it to fill.
+#
+# Off by default: a deployment that has admitted no network has nothing to
+# crawl, and the pass would wake on its interval to find none every time.
+#
+# None of these is a credential, so they are substituted by the chart rather
+# than by the init container that reads the keys Secret.
+crawler:
+  # on/off for the federated pass. The adapter still ANSWERS another network's
+  # crawl either way -- that is the network module's job, not this one's.
+  enabled: false
+  # How often every admitted network is asked, in seconds.
+  refreshSeconds: 900
+  # How many catalogs one call asks for. Discovery's own default is 20, so
+  # without this a network sharing more is only partly collected and nothing
+  # says so.
+  pageSize: 100
+  # What breadth of another network's catalogue to ask for. Discovery refuses
+  # an intent that narrows nothing, so an empty one mirrors zero catalogs with
+  # no error anywhere.
+  intent: '{"filters": {"type": "jsonpath", "expression": "$.catalogs[*] ? (@.isActive == true)"}}'
+  # Where a crawled catalog is published. Empty means this deployment's own
+  # /publish: localhost in single mode, the provider adapter in multi.
+  discoveryPushUrl: ""
+
 extraInitContainers: []
 extraVolumes: []
 extraVolumeMounts: []
 extraEnv: []
 envFromSecrets: []
 
-# Single mode only: one key Secret per tier (six keys each, as under keys.existingSecret),
-# named as openbao-secrets creates them. routing.config and handler.* are unused.
+# Single mode only: which Secret fills each tier's placeholders. All three
+# share one, because a network has one identity and one key.
+#
+# Still three settings, so a deployment that seeded three can keep working.
 adapterKeys:
-  consumer-adapter: consumer-adapter-keys
+  consumer-adapter: network-adapter-keys
   network-adapter: network-adapter-keys
-  provider-adapter: provider-adapter-keys
+  provider-adapter: network-adapter-keys
   # The provider tier's upstream credentials, loaded as env vars in single-adapter mode.
   upstreamSecret: provider-upstream
   # Extra placeholders, as "<tier>/<key in that tier's Secret>", e.g.
