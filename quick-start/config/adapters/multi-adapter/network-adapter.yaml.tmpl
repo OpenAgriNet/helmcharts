@@ -31,10 +31,52 @@ plugins:
       enableTracing: "__OTEL_ENABLED__"
       enableLogs: "__OTEL_ENABLED__"
 
+  # The crawler's OWN registry, separate from the modules' below. It is key
+  # distribution for verifying what a crawl fetches, not request handling, and
+  # the crawler refuses to start without it.
+  registry:
+    id: sunbirdRegistry
+    config:
+      url: http://sunbird-registry-service:8081/api/v1
+      entity: Participant
+      providerEntity: ProviderSchema
+      cacheTTL: 0
+      timeout: 2
+      retry_max: 1
+      retry_wait_min: 100ms
+      retry_wait_max: 500ms
+      maxResponseBytes: 1048576
+
+  # The crawler: a background pass, not something a request reaches.
+  # No dbDsn -- nothing here keeps a record between runs.
+  crawler:
+    id: catalogcrawler
+    config:
+      # The provider adapter's /publish mount, which signs a crawled catalog and
+      # forwards it on. Not /network/publish: that expects a signature we have none of.
+      discoveryPushUrl: "__DISCOVERY_PUSH_URL__"
+      participantId: "__NETWORK_SUBSCRIBER_ID__"
+
+      # Off means this network never crawls. It still ANSWERS another network's
+      # crawl, which is the network module's job and unaffected by this.
+      federationEnabled: "__FEDERATION_ENABLED__"
+      signingPrivateKey: "__NETWORK_SIGNING_PRIVATE__"
+      keyId: "__NETWORK_KEY_ID__"
+      # How often every admitted network is asked.
+      federationRefreshSeconds: "__FEDERATION_REFRESH_SECONDS__"
+      # How many catalogs one call asks for. Discovery's own default is 20, so
+      # without this a network sharing more is only partly collected and
+      # nothing says so.
+      federationPageSize: "__FEDERATION_PAGE_SIZE__"
+      # What breadth of another network's catalogue to ask for. Required in
+      # practice: discovery refuses an intent that narrows nothing, so leaving
+      # it unset mirrors zero catalogs with no error anywhere.
+      federationIntent: '__FEDERATION_INTENT__'
+
 modules:
   - name: network-adapter
     # A subtree: every action lands here and the payload says which one it is.
-    path: /
+    path: /network/
     handler:
       type: std
       # bpp because this adapter RECEIVES. role sets direction, not participant type.
@@ -90,7 +132,7 @@ modules:
           id: schemav2validator
           config:
             type: url
-            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "false"
             extendedSchema_cacheTTL: "86400"
@@ -103,11 +145,9 @@ modules:
           config:
             routingConfig: /app/config/routing-network.yaml
 
-      # Signing and signature validation are OFF: this tier accepts unsigned
-      # traffic and forwards unsigned. Turning it back on means adding the step
-      # names here AND on the other side of the hop at the same time.
-      #
-      # validateSchema is not listed either, so this tier enforces no payload
-      # shape at all -- it only routes.
+      # A door: checks the signature and the agreement, then routes. No
+      # validateSchema -- the tier that answers does that.
       steps:
+        - validateSign
+        - checkCrossNetworkRequester
         - addRoute

@@ -46,13 +46,50 @@
           "pattern": "^https?://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*$"
         },
         "role": {
-          "description": "What this party does on the network. consumer asks. provider answers. network exposes publish and discover, answering discover from published catalogs. Required on a node. Permitted on an upstream, where nothing reads it.",
-          "type": "string",
-          "enum": [
-            "consumer",
-            "provider",
-            "network"
+          "description": "What this party does on the network. consumer asks. provider answers. network exposes publish and discover, answering discover from published catalogs. A list when one participant serves several layers; a single string stays valid for older rows. Search with `contains`, which matches both shapes. Required on a node. Permitted on an upstream, where nothing reads it.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Role"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 3,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/definitions/Role"
+              }
+            }
           ]
+        },
+        "federationRole": {
+          "description": "Our admission decision for this peer, never read from its Descriptor. source: we consume from it. requester: it consumes from us. Absent on a participant outside federation. Declares the registry's system fields, as PublicKey does.",
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "source": {
+              "$ref": "#/definitions/FederationSource"
+            },
+            "requester": {
+              "$ref": "#/definitions/FederationRequester"
+            },
+            "osid": {},
+            "osCreatedAt": {},
+            "osUpdatedAt": {},
+            "osCreatedBy": {},
+            "osUpdatedBy": {}
+          }
+        },
+        "revision": {
+          "description": "The latest Descriptor revision verified. Only increases: a lower or equal revision is a replay and is refused.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "projectionTtl": {
+          "description": "Seconds the peer lets us keep its crawled data. 0 means no retention: query live.",
+          "type": "integer",
+          "minimum": 0
         },
         "keys": {
           "description": "Plural for rotation: an overlap where old and new are both valid. The sender names which it used by osid in the Authorization header. Required on a node, since a node's signatures are verified against them. Permitted on an upstream, which does not sign anything this stack verifies.",
@@ -96,8 +133,96 @@
         }
       ]
     },
+    "FederationSource": {
+      "description": "Admission to consume from this peer.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaPacks",
+        "descriptorRevision",
+        "admittedAt"
+      ],
+      "properties": {
+        "descriptorRevision": {
+          "description": "The Descriptor revision this direction was admitted against. A higher top-level revision means the peer is due for review.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "admittedAt": {
+          "description": "When this direction was admitted.",
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "description": "When we last changed this admission decision. Unlike osUpdatedAt, not set on every write.",
+          "type": "string",
+          "format": "date-time"
+        },
+        "schemaPacks": {
+          "description": "The peer's schema pack URLs we consume, as declared in its Descriptor.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 2000,
+            "pattern": "^https://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*/?$"
+          }
+        },
+        "osid": {},
+        "osCreatedAt": {},
+        "osUpdatedAt": {},
+        "osCreatedBy": {},
+        "osUpdatedBy": {}
+      }
+    },
+    "FederationRequester": {
+      "description": "Admission for this peer to consume from us.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaPacks",
+        "descriptorRevision",
+        "admittedAt"
+      ],
+      "properties": {
+        "descriptorRevision": {
+          "description": "The Descriptor revision this direction was admitted against. A higher top-level revision means the peer is due for review.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "admittedAt": {
+          "description": "When this direction was admitted.",
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "description": "When we last changed this admission decision. Unlike osUpdatedAt, not set on every write.",
+          "type": "string",
+          "format": "date-time"
+        },
+        "schemaPacks": {
+          "description": "Our schema pack URLs this peer may request.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 2000,
+            "pattern": "^https://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*/?$"
+          }
+        },
+        "osid": {},
+        "osCreatedAt": {},
+        "osUpdatedAt": {},
+        "osCreatedBy": {},
+        "osUpdatedBy": {}
+      }
+    },
     "PublicKey": {
-      "description": "A public key, held as material: it is public, so there is nothing to protect. Identified by the osid the registry assigns on write -- which is what a sender names in the Authorization header, and so the only id a verifier can look up. alg carries the purpose: ed25519 signs, x25519 encrypts.",
+      "description": "A public key, held as material: it is public, so there is nothing to protect. Identified by the osid the registry assigns on write -- which is what a sender names in the Authorization header, and so the only id a verifier can look up. alg carries the purpose: ed25519 signs, x25519 encrypts. Declares the system fields the registry stamps on each key, since a PUT re-validates them; additionalProperties stays false so typos are still refused.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -136,7 +261,12 @@
             "active",
             "revoked"
           ]
-        }
+        },
+        "osid": {},
+        "osCreatedAt": {},
+        "osUpdatedAt": {},
+        "osCreatedBy": {},
+        "osUpdatedBy": {}
       }
     },
     "ParticipantId": {
@@ -158,6 +288,14 @@
       "enum": [
         "node",
         "upstream"
+      ]
+    },
+    "Role": {
+      "type": "string",
+      "enum": [
+        "consumer",
+        "provider",
+        "network"
       ]
     }
   },

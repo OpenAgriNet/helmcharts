@@ -34,7 +34,7 @@ plugins:
 modules:
   - name: consumer-adapter
     # A subtree: every action lands here and the payload says which one it is.
-    path: /
+    path: /consumer/
     handler:
       type: std
       # bap because this adapter SENDS. role sets direction, not participant type.
@@ -90,7 +90,7 @@ modules:
           id: schemav2validator
           config:
             type: url
-            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "false"
             extendedSchema_cacheTTL: "86400"
@@ -103,12 +103,9 @@ modules:
           config:
             routingConfig: /app/config/routing-consumer.yaml
 
-      # Signing and signature validation are OFF: this tier accepts unsigned
-      # traffic and forwards unsigned. Turning it back on means adding the step
-      # names here AND on the other side of the hop at the same time.
-      #
-      # No validateSign either way: the experience app calling this is inside
-      # the trust boundary, so there is no network signature to check inbound.
+      # We sign what we forward and check nothing inbound: our own app calls
+      # this. The tier it forwards to does check our signature.
       steps:
         - validateSchema
         - addRoute
+        - sign

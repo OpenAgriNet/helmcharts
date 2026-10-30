@@ -5,7 +5,7 @@ routingRules:
   - version: "2.0.0"
     targetType: "url"
     target:
-      url: "http://localhost:9201/_internal/network"
+      url: "http://localhost:9201/network"
     endpoints:
       - discover
 
@@ -13,7 +13,7 @@ routingRules:
   - version: "2.0.0"
     targetType: "url"
     target:
-      url: "http://localhost:9201/_internal/provider"
+      url: "http://localhost:9201/provider"
     endpoints:
       - select
       - init
