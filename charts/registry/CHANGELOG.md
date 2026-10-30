@@ -5,6 +5,124 @@ All notable changes to the `registry` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-10-30
+
+### Added
+- `files/schemas/SchemaRegistry.json` accepts a `schemaUrl` served from
+  `openagrinet.github.io/network-specs` as well as the raw GitHub host, and
+  permits additional properties so the registry's own system fields survive an
+  update.
+
+### Changed
+- Keycloak settings are only demanded while `authenticationEnabled` is true.
+  With it off the registry checks no token, and the chart no longer renders the
+  SSO environment or fails for a missing realm URL and admin client secret.
+
+## [0.6.0] - 2026-10-28
+
+### Added
+- `files/schemas/Participant.json` carries the federation fields: `revision`
+  and `federationRole`, with a `source` and/or `requester` admission per
+  direction (`schemaPacks`, `descriptorRevision`, `admittedAt`, `updatedAt`,
+  `status`, `suspendedAt`; `projectionTtl` on `source` only). See ADR-0002.
+
+### Changed
+- **BREAKING.** `role` is an array. In 0.4.1 it was a single string, so
+  every existing row holds one: it still reads, but its next update
+  (admitting a peer, rotating a key) is refused until it is rewritten as an
+  array. 0.4.1 refuses an array, so **right after upgrading**, and before any
+  other write, rewrite those rows (needs `jq` and an admin token):
+
+  ```sh
+  REG=https://<registry-host>; TOKEN=<admin bearer token>
+  curl -s -X POST "$REG/api/v1/Participant/search" -H 'Content-Type: application/json' \
+       -d '{"filters":{},"limit":10000}' \
+    | jq -c '(.data // .)[] | select(.role | type == "string")' > string-roles.jsonl
+  while read -r row; do
+    jq -c 'with_entries(select(.key | startswith("os") | not)) | .role = [.role]' <<<"$row" \
+      | curl -s -X PUT "$REG/api/v1/Participant/$(jq -r .osid <<<"$row")" \
+             -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d @-
+  done < string-roles.jsonl
+  ```
+
+  An empty `string-roles.jsonl` means there is nothing to rewrite. Re-run the
+  search afterwards and confirm it is empty again. Run this even though
+  nothing forces it: the registry validates a PUT against the request body, so
+  an update that does not mention `role` succeeds and leaves the string there.
+  Only an update that sends `role` fails, with `#/Participant/role: expected
+  type: JSONArray, found: String`. Rehearsed against sunbird-rc-core v2.0.0:
+  the rows keep their keys and can then be admitted as peers. Tracked per
+  deployment by #98.
+- `baseUrl` is required on every entry. An admitted network is reached there
+  too: its discover endpoint is its `baseUrl`, so there is no separate field
+  for it.
+- `PublicKey.validFrom` is optional, and nested objects declare the registry's
+  system fields (as strings) so an update passes.
+
+## [0.5.0] - 2026-10-27
+
+### Added
+- `ProviderSchema` takes an optional `baseUrl`: the host one capability is
+  called on, in place of its participant's. PM-KISAN is one participant whose
+  grievance portal and chatbot service are different hosts.
+
+### Fixed
+- `SchemaRegistry.schemaUrl` accepts a network-specs ref with a dot in it, such
+  as a `v0.1` tag. It was refused before.
+
+## [0.4.1] - 2026-09-27
+
+### Changed
+- The README's install walkthrough says the secrets come from OpenBao, not AWS
+  Secrets Manager. Documentation only.
+
+## [0.4.0] - 2026-09-20
+
+### Changed
+- **BREAKING.** `files/schemas/Participant.json` is the schema the verified
+  compose stack runs -- `participantId`, `name`, `type`, `status`, `baseUrl`
+  and a nested `keys[]` -- replacing the snake_case model that was here.
+
+  The two are different data models, not different spellings. registry-seed
+  builds the compose shape, so every participant write was rejected twice over:
+  `required key [participant_id] not found` for fields the seed does not send,
+  and `extraneous key [participantId] is not permitted` for the ones it does.
+
+### Added
+- `files/schemas/ProviderSchema.json` and `files/schemas/SchemaRegistry.json`.
+  The chart shipped only Participant, so the seed's capability bindings and
+  capability schemas had no entity to write to and failed with HTTP 404.
+
+  Every payload registry-seed builds now validates against these, nested
+  `PublicKey` and `ActionBinding` objects included.
+
+## [0.3.0] - 2026-09-18
+
+### Added
+- `database.sslMode`, appended to the JDBC URL as `?sslmode=<mode>` when set.
+  Defaults to `disable`.
+
+  MINOR rather than MAJOR despite changing a rendered value: pgjdbc's own
+  default is `prefer`, which reaches plaintext anyway against a server with SSL
+  off, so no working deployment changes behaviour. What it fixes is CNPG, which
+  always offers SSL. `prefer` falls back only when the server REFUSES SSL -- a
+  failed handshake is fatal -- and this registry's Java 8 runtime cannot
+  complete a handshake with PostgreSQL 18 on Debian trixie, which answers
+  `Received fatal alert: protocol_version`.
+
+  `disable` is a deliberate downgrade, safe only because this is pod-to-pod
+  traffic to a Service in another namespace. It should become `require` once the
+  registry image ships a JRE that can negotiate TLS 1.2.
+
+## [0.2.1] - 2026-09-15
+
+### Changed
+- Documentation only, no template change. `keycloak.adminClientSecret` is now
+  described as the Secret shared with the keycloak chart's
+  `realmImport.adminClientSecret`, rather than a value regenerated by hand in the
+  Keycloak console. Install order in the README changes accordingly: the Secret
+  is created before Keycloak, not between Keycloak and the registry.
+
 ## [0.2.0] - 2026-08-31
 
 ### Changed

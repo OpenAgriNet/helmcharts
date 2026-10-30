@@ -98,6 +98,15 @@ spec:
                 secretKeyRef:
                   name: {{ include "clickstack.fullname" . }}-app-secrets
                   key: api-key
+            {{- with .Values.clickhouse.config.users.existingSecret }}
+            # Before DEFAULT_CONNECTIONS: Kubernetes expands $(CLICKHOUSE_APP_PASSWORD)
+            # there only from variables defined earlier in this list.
+            - name: CLICKHOUSE_APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: appUserPassword
+            {{- end }}
             {{- if .Values.hyperdx.useExistingConfigSecret }}
             - name: DEFAULT_CONNECTIONS
               valueFrom:

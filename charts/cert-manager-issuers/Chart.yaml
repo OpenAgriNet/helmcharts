@@ -1,0 +1,14 @@
+apiVersion: v2
+name: cert-manager-issuers
+description: >-
+  Let's Encrypt ClusterIssuers for cert-manager. Separate from the cert-manager
+  chart because an Issuer is a custom resource that chart's CRDs define: the
+  same release cannot register a CRD and create an instance of it.
+type: application
+
+# Chart version. Bumped on every chart change, per CONVENTIONS.md.
+version: 0.1.0
+
+# The cert-manager release these issuers are written against. Not an image tag:
+# this chart deploys no workload.
+appVersion: "v1.21.2"

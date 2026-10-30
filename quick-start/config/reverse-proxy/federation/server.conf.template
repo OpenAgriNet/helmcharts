@@ -1,0 +1,79 @@
+# This network's federation front door, for other networks to reach.
+#
+# Rendered by `make host-descriptor` into http.conf beside this file, which
+# compose mounts at /data/nginx/custom/http.conf -- a path NPM includes in its
+# http block on its own. So federation needs no proxy host and no certificate
+# upload in the admin UI.
+#
+# It answers on the networkId, because that is the only name another network
+# knows us by. NPM's own proxy hosts are untouched; this block is additive.
+
+server {
+    listen 443 ssl;
+    server_name ${NETWORK_ID};
+
+    # Signed by the shared local CA, which the other network's adapter trusts
+    # by path. See bin/network-certs.sh.
+    ssl_certificate     /etc/nginx/tls/server.crt;
+    ssl_certificate_key /etc/nginx/tls/server.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    # The published documents, served as files. The contract calls these
+    # publication points, not APIs, and a file is the smallest thing that fits.
+    # Exact matches, one per document, so /.well-known/acme-challenge/ is left
+    # for Let's Encrypt. Served from /srv/well-known, where compose mounts them.
+    location = /.well-known/openagrinet {
+        alias /srv/well-known/openagrinet;
+        default_type application/json;
+        add_header Cache-Control "no-cache";
+    }
+    location = /.well-known/jwks.json {
+        alias /srv/well-known/jwks.json;
+        default_type application/json;
+        add_header Cache-Control "no-cache";
+    }
+    location = /.well-known/schema-packs.json {
+        alias /srv/well-known/schema-packs.json;
+        default_type application/json;
+        add_header Cache-Control "no-cache";
+    }
+
+    # Where another network's crawl sends its signed discover. The descriptor
+    # advertises /discover; the adapter serves it at /network/discover. Without
+    # this the crawl is a 404 and collects nothing, with nothing on either side
+    # naming the proxy as the cause.
+    location = /discover {
+        proxy_pass http://${NETWORK_UPSTREAM}/network/discover;
+        include /etc/nginx/federation/headers.inc;
+    }
+
+    # The same module under its own mount. A proxy, not a second
+    # implementation, so a federated call meets what a local one meets.
+    #
+    # Two locations because baseUrl cannot end in a slash: the registry schema
+    # refuses it, so the exact form is matched as well as the subtree.
+    location = /network  { proxy_pass http://${NETWORK_UPSTREAM}/network/;  include /etc/nginx/federation/headers.inc; }
+    location  /network/  { proxy_pass http://${NETWORK_UPSTREAM}/network/;  include /etc/nginx/federation/headers.inc; }
+
+    # The transaction actions, by their own names. A catalog's bppUri addresses
+    # them here, and the provider module serves them under /provider/.
+    #
+    # Named one by one rather than a catch-all: the list IS the public surface,
+    # and an action nobody implements should 404 at the door.
+    #
+    # rewrite-then-proxy_pass, because a variable inside proxy_pass makes nginx
+    # resolve the upstream per request and need a resolver of its own.
+    location ~ ^/(select|init|confirm|status|track|cancel|update|rate|support)$ {
+        rewrite ^/(.*)$ /provider/$1 break;
+        proxy_pass http://${PROVIDER_UPSTREAM};
+        include /etc/nginx/federation/headers.inc;
+    }
+
+    # The same module under its own mount, for a caller that addresses it that way.
+    location = /provider { proxy_pass http://${PROVIDER_UPSTREAM}/provider/; include /etc/nginx/federation/headers.inc; }
+    location  /provider/ { proxy_pass http://${PROVIDER_UPSTREAM}/provider/; include /etc/nginx/federation/headers.inc; }
+
+    # Anything else is not part of the contract. /consumer is this deployment's
+    # own callers and /crawl is an operator surface -- neither is their business.
+    location / { return 404; }
+}

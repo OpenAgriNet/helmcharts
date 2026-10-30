@@ -1,75 +1,63 @@
 # adapter-service
 
-One chart for all three Beckn adapters. `provider`, `network` and `experience`
-are the same image and the same config format, so `role` selects the handler
-role, the step list and where requests are routed.
+One chart for the OAN Beckn adapters. `role` picks the adapter (`provider-adapter`,
+`network-adapter` or `consumer-adapter`; the old names `provider`, `network`, `consumer` still work); all three use the same image and config format.
+
+Role `network` has two deployment modes, set by `deploymentMode`:
+
+- **single (default):** one release runs the consumer, network and provider
+  tiers as modules of one adapter. Tier-to-tier calls stay inside the pod.
+- **multi:** one release per tier (`consumer-adapter`, `network-adapter`,
+  `provider-adapter`). The network release sets `deploymentMode=multi-adapter`.
+
+`provider-adapter` and `consumer-adapter` releases are always multi-adapter and ignore the value.
+
+**To install, follow [SETUP.md](SETUP.md).** Why single is the default is in
+[ADR-0001](../../docs/adr/0001-single-network-adapter-deployment-mode.md).
 
 ```
-  experience ──unsigned──▶ network ──▶ discovery
-                              │
-    provider ──signed─────────┤
-        │                     └── registry (whose key signed this?)
-        └──▶ mandi / agmarknet upstreams
+  multi:   app ──▶ consumer ──▶ network ──▶ discovery
+                       └──────▶ provider ──▶ upstream APIs
+
+  single:  app ──▶ network-adapter
+                     /<action>            consumer module
+                     /_internal/network/  network module   ──▶ discovery
+                     /_internal/provider/ provider module  ──▶ upstream APIs
+                     /publish             catalogue publishing
 ```
+
+## Roles
 
 | Role | Handler | Steps | Routes to |
 |---|---|---|---|
-| `provider` | `bpp` | `validateSign → addRoute → sign` | upstream APIs (several) |
-| `network` | `bpp` | `validateSign → addRoute → sign` | discovery |
-| `experience` | `bap` | `addRoute → sign` | network |
+| `provider-adapter` | `bpp` | `validateSign → addRoute → sign` | upstream APIs |
+| `network-adapter` (multi-adapter) | `bpp` | `validateSign → addRoute → sign` | discovery |
+| `consumer-adapter` | `bap` | `addRoute → sign` | network |
+| `network-adapter` (single-adapter, default) | `bap` + `bpp`, four modules | each module runs its tier's steps | discovery and upstream APIs |
 
-`experience` is the only one that accepts **unsigned** requests: the experience
-app is inside the trust boundary, so there is no network signature to check.
-That is why it has no `validateSign`, and why an Ingress on it exposes an
-unauthenticated entry point.
+The consumer accepts **unsigned** requests: the app is inside the trust
+boundary. An Ingress on it is an unauthenticated entry point, so rate-limit it.
 
-Stateless. Each adapter's identity is a keypair in a Secret; everything else it
-reads from the registry at request time.
+Callers see the same paths in both modes: `/<action>` (e.g. `/discover`),
+`/publish` and `/health`. `/_internal/` is only called by the adapter itself.
+The chart refuses an Ingress path other than a single-segment `/<action>`.
 
-## Install
+## Required values
 
-Once per role. **Keep the release name per-role** — it is what the Service is
-called, which is the DNS name the other adapters address.
+The render fails without these:
 
-```sh
-helm dependency build charts/adapter-service
-
-helm upgrade --install provider-adapter charts/adapter-service -n oan \
-  -f charts/adapter-service/examples/provider.yaml
-helm upgrade --install network-adapter charts/adapter-service -n oan \
-  -f charts/adapter-service/examples/network.yaml
-helm upgrade --install experience-adapter charts/adapter-service -n oan \
-  -f charts/adapter-service/examples/experience.yaml
-```
-
-Each example sets `fullnameOverride` to `<role>-adapter`. Without it the Service
-would be named `<release>-adapter-service`, and nothing routing by name would
-resolve. Rename a release and you must update whatever routes to it — `experience`
-points at the network adapter, `network` points at discovery.
-
-The Secret comes first — the render fails without it.
-
-## What you must decide
-
-Six values have no default, and the chart fails rather than guessing. Each one
-is something that produces a *silent* failure if wrong, which is why it is a
-render error rather than a default:
-
-| Value | Why there is no default |
+| Value | Why |
 |---|---|
-| `image.repository` | An empty one renders `ghcr.io/:tag`, which Helm and the API server both accept and which surfaces later as `ImagePullBackOff` |
-| `keys.existingSecret.name` | Without an identity the pod starts, serves `/health`, reports Ready, and fails every signature it makes — in a peer's logs |
-| `registry.url` | The adapter verifies every caller against the registry, so with none it can verify nobody |
-| `role` | It decides the handler role, the step list and the routing target. A default would give one adapter another one's behaviour |
-| `routing.rules` | An adapter with no route accepts requests and has nowhere to send them |
-| `otel.endpoint` | Only when `otel.enabled` — an enabled exporter with nowhere to send logs a failure every interval |
+| `role` | Decides the handler role, the steps and where requests go. |
+| `image.repository` | An empty one renders an image name that fails only at pull time. |
+| `keys.existingSecret.name` | The adapter's identity (multi roles). Single mode uses `adapterKeys`, which defaults to the Secret names openbao-secrets creates. |
 
 ## The identity Secret
 
 Six keys, all required:
 
 ```sh
-kubectl -n oan create secret generic <role>-adapter-keys \
+kubectl -n <namespace> create secret generic <role>-adapter-keys \
   --from-literal=subscriberId=... \
   --from-literal=keyId=... \
   --from-literal=signingPrivateKey=... \
@@ -78,58 +66,34 @@ kubectl -n oan create secret generic <role>-adapter-keys \
   --from-literal=encrPublicKey=...
 ```
 
-`keyId` is the **key's osid as the registry assigned it**, not a name you
-choose — that is what a verifier looks the key up by.
-
-In the compose stack `bin/setup.py` generates these and writes them to
-`keys/keys.json`. Check the field names there before scripting the command
-above; that file's shape belongs to `setup.py`, not to this chart.
-
-### How the keys reach the process
-
-The adapter reads one config file and wants the keys inline in it. A plain
-ConfigMap would therefore hold private keys, so instead:
-
-1. the **ConfigMap** holds the config with `__NETWORK_*__` placeholders — the
-   same shape as the `.tmpl` in the compose stack;
-2. the **Secret** is mounted as files, not env vars, so the values are not
-   readable from `/proc/<pid>/environ` of anything in the pod;
-3. an **init container** substitutes one into the other and writes the result
-   to an `emptyDir` that dies with the pod.
-
-It fails loudly if a key is empty or a placeholder survives. That check exists
-because the alternative is an adapter that runs, looks healthy, and produces
-signatures nobody can verify — a failure that shows up in someone else's logs.
+- `keyId` is the key's **osid as the registry assigned it**, not a name you choose.
+- The registry needs a `Participant` row for `subscriberId` with the **public**
+  key. If it is missing or different, peers reject every signature while the
+  pod still reports Ready.
+- The keys never go into the ConfigMap. The ConfigMap holds placeholders, and an
+  init container fills them from the Secret into an `emptyDir` at pod start. It
+  fails if a key is empty or a placeholder is left.
 
 ## Key rotation needs a restart
 
-The keys Secret is not rendered by this chart, so its contents cannot go into
-the config checksum, so changing it restarts nothing:
+The chart does not render the keys Secret, so changing it restarts nothing:
 
 ```sh
-kubectl -n oan rollout restart deploy/<role>-adapter
+kubectl -n <namespace> rollout restart deploy/<release>
 ```
 
-Changing anything else — log level, upstreams, telemetry — rolls the pods on
-its own.
+Any other values change rolls the pods on its own.
 
-## The registry row
+## Values and examples
 
-This chart cannot verify the half of the setup that lives outside the cluster.
-The adapter's `subscriberId` needs a `Participant` row in the registry carrying
-the **public** half of the keypair. Missing, or carrying a different key, and
-every peer rejects what this adapter signs while the pod stays perfectly
-healthy.
-
-## Values
-
-See `values.yaml` — every field is commented with what it does and what breaks
-without it. `examples/{provider,network,experience}.yaml` are working dev deployments;
-`ci/` holds the two files lint renders, one minimal and one with every switch
-turned on.
+- `values.yaml`: every field, with a comment on what it does.
+- `examples/network-adapter.yaml`: role `network-adapter` in either mode (`--set deploymentMode=single-adapter|multi-adapter`).
+- `examples/{provider,consumer}-adapter.yaml`: the other two releases in multi mode.
+- `ci/*-values.yaml`: what CI lints and renders.
 
 ## Related
 
-- `charts/discovery` — where `discover` and `publish` are forwarded
-- `charts/registry` — what signatures are verified against
-- `docker-deployment/` — the compose stack this chart was modelled on
+- `charts/openbao-secrets`: puts the key Secrets in each namespace.
+- `charts/discovery`: where `discover` and `publish` are forwarded.
+- `charts/registry`: what signatures are verified against.
+- `quick-start/`: the same adapters in docker compose.

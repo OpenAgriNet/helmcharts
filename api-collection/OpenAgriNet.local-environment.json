@@ -130,10 +130,10 @@
     },
     {
       "key": "mausamgram-mapping-url",
-      "value": "https://raw.githubusercontent.com/OpenAgriNet/helmcharts/release-0.0.1/quick-start/config/mappings/mausamgram/weather-observation.select.yaml",
+      "value": "https://raw.githubusercontent.com/OpenAgriNet/helmcharts/0.0.1/quick-start/config/mappings/mausamgram/weather-observation.select.yaml",
       "enabled": true,
       "type": "default",
-      "description": "What the binding row publishes and the provider adapter fetches. A branch ref, so a push to release-0.0.1 changes what a running stack reads. MAUSAMGRAM_MAPPING_URL in .env."
+      "description": "What the binding row publishes and the provider adapter fetches. A TAG ref, so what a running stack reads is fixed at 0.0.1 and a later push does not move it. MAUSAMGRAM_MAPPING_URL in .env."
     },
     {
       "key": "capability-code",

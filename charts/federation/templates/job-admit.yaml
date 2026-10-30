@@ -1,0 +1,85 @@
+{{- range $i, $a := .Values.admissions }}
+{{- if not $a.networkId }}{{ fail (printf "%s: admissions[%d] has no networkId." $.Chart.Name $i) }}{{ end }}
+{{- if not (has ($a.direction | default "") (list "source" "requester")) }}
+{{- fail (printf "%s: admissions[%d].direction is %q. It is `source` (we may read from them) or `requester` (they may ask us) -- admission is one direction at a time, and ours says nothing about theirs." $.Chart.Name $i ($a.direction | default "")) }}
+{{- end }}
+{{- if not $a.schemaPacks }}
+{{- fail (printf "%s: admissions[%d] names no schemaPacks. An agreement covers specific capabilities, and oanfed refuses a pack the other side does not publish." $.Chart.Name $i) }}
+{{- end }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ printf "%s-admit-%s-%s" (include "federation.fullname" $) ($a.networkId | replace "." "-") $a.direction | trunc 63 | trimSuffix "-" }}
+  labels:
+    {{- include "federation.labels" $ | nindent 4 }}
+  annotations:
+    {{- toYaml $.Values.job.annotations | nindent 4 }}
+    # After publish: admission reads the OTHER network's documents, but a pair
+    # only works once both have published, and ours should exist first.
+    helm.sh/hook-weight: "10"
+spec:
+  backoffLimit: {{ $.Values.job.backoffLimit }}
+  ttlSecondsAfterFinished: {{ $.Values.job.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "federation.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: admit
+    spec:
+      restartPolicy: Never
+      securityContext:
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: admit
+          image: {{ include "federation.image" (dict "image" $.Values.image) }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml $.Values.securityContext | nindent 12 }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              {{- if $.Values.pipInstall }}
+              pip install --quiet --no-cache-dir --target /tmp/py {{ $.Values.pipInstall }}
+              export PYTHONPATH=/tmp/py
+              {{- end }}
+              # No key: admission reads the other network's PUBLIC documents
+              # and writes a row in our registry. Nothing here signs.
+              exec python3 /opt/federation/oanfed.py admit \
+                --network-id {{ $a.networkId | quote }} \
+                --direction {{ $a.direction | quote }} \
+                --schema-packs {{ join "," $a.schemaPacks | quote }} \
+                --out /published
+          env:
+            # admit takes no registry flags: it reads these.
+            - name: REGISTRY_URL
+              value: {{ $.Values.registryUrl | quote }}
+            - name: BECKN_NETWORK_ID
+              value: {{ $.Values.networkId | quote }}
+          resources:
+            {{- toYaml $.Values.job.resources | nindent 12 }}
+          volumeMounts:
+            - name: scripts
+              mountPath: /opt/federation
+              readOnly: true
+            # OUR published documents: a requester agreement covers what the
+            # other network can read, not what our registry holds.
+            - name: published
+              mountPath: /published/.well-known
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: published
+          configMap:
+            name: {{ include "federation.documentsConfigMap" $ }}
+            # Optional so a missing document is oanfed naming the fix, not a
+            # pod stuck Pending. The publish Job runs at an earlier weight.
+            optional: true
+        - name: scripts
+          configMap:
+            name: {{ include "federation.fullname" $ }}-scripts
+        - name: tmp
+          emptyDir: {}
+{{- end }}

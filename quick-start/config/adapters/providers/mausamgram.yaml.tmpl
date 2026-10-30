@@ -1,0 +1,9 @@
+          - id: WeatherObservation
+            config:
+              bindingKeys: "__BINDING_KEY__"
+              # header, not basic: IMD issues one opaque token, and basic would
+              # build the header itself from a username and password pair.
+              __PARTICIPANT_ID__:
+                authScheme: header
+                headerName: Authorization
+                headerValueEnv: MAUSAMGRAM_AUTH

@@ -1,0 +1,10 @@
+# Single mode, /publish: through the network module to discovery. The mount strips
+# /publish, so the rule keys on "" with excludeAction; port must equal service.targetPort.
+routingRules:
+  - version: "2.0.0"
+    targetType: url
+    target:
+      url: http://localhost:9201/network/publish
+      excludeAction: true
+    endpoints:
+      - ""

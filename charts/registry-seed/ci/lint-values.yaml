@@ -1,0 +1,69 @@
+# Minimum values that let `helm template` run in CI.
+#
+# This chart fails the render when the registry, Keycloak and seed-user Secret
+# are unset, and when any seeded row is missing a field it cannot be given
+# later, so bare defaults cannot be templated. Dummy references only - see the
+# chart README for real configuration.
+registry:
+  url: http://registry.registry.svc.cluster.local:8081
+keycloak:
+  url: http://keycloak.keycloak.svc.cluster.local:8080/auth
+seedUser:
+  passwordSecret:
+    name: registry-seed
+adapters:
+  - role: consumer
+    participantId: consumer.oan.dev
+    name: OAN consumer layer adapter
+    networkRole: consumer
+    baseUrl: https://consumer.oan.example.com
+    signingPublicKey: cA/inE02peMj9ihaBstg7IQ/d4TKwKaHy20lDJz36Hk=
+upstreams:
+  - participantId: mausamgram
+    name: IMD Mausamgram NWP
+    baseUrl: https://example.invalid
+  - participantId: pmfby
+    name: PMFBY grievance
+    baseUrl: https://example.invalid
+  - participantId: pmkisan
+    name: PM-KISAN
+    baseUrl: https://example.invalid
+bindings:
+  # Both binding forms, so the render covers both branches: the flat one, which
+  # is a single select, and the multi-action one.
+  - participantId: mausamgram
+    capability: openagrinet:WeatherObservation
+    path: /get-daily
+    method: GET
+    mappingUrl: https://example.invalid/mapping.yaml
+  - participantId: pmfby
+    capability: openagrinet:Grievance
+    actions:
+      - action: support
+        path: /add-ticket
+        method: POST
+        mappingUrl: https://example.invalid/grievance.support.yaml
+        timeoutMs: 30000
+        retryMax: 0
+      - action: status
+        path: /ticket-status
+        method: POST
+        mappingUrl: https://example.invalid/grievance.status.yaml
+  # A binding on another host than its participant's.
+  - participantId: pmkisan
+    capability: openagrinet:SchemeApplication
+    baseUrl: https://chatbot.example.invalid/services/chatbotservice.asmx
+    actions:
+      - action: init
+        path: /ChatbotOTP
+        method: POST
+        mappingUrl: https://example.invalid/application-status.init.yaml
+      - action: status
+        path: /ChatbotUserDetails
+        method: POST
+        mappingUrl: https://example.invalid/application-status.status.yaml
+        retryMax: 0
+schemas:
+  - capability: openagrinet:WeatherObservation
+    name: Weather Observation
+    version: v0.1

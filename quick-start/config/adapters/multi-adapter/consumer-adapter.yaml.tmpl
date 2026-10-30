@@ -1,0 +1,111 @@
+# Use only in multi-adapter deployment mode: the consumer adapter,
+# the caller: routes discovery to the network layer, transactions to the provider.
+appName: "consumer-adapter"
+
+log:
+  level: debug
+  destinations:
+    - type: stdout
+  contextKeys: [transaction_id, message_id, subscriber_id, module_id]
+
+http:
+  port: 9202
+  timeout:
+    read: 30
+    write: 30
+    idle: 30
+
+pluginManager:
+  root: ./plugins
+
+plugins:
+  # Ships metrics, traces and logs over OTLP/gRPC. All three flags false builds
+  # no exporter at all, which is the right setting for a stack with no collector.
+  otelsetup:
+    id: otelsetup
+    config:
+      serviceName: "consumer-adapter"
+      environment: "__OTEL_ENVIRONMENT__"
+      otlpEndpoint: "__OTLP_ENDPOINT__"
+      enableMetrics: "__OTEL_ENABLED__"
+      enableTracing: "__OTEL_ENABLED__"
+      enableLogs: "__OTEL_ENABLED__"
+
+modules:
+  - name: consumer-adapter
+    # A subtree: every action lands here and the payload says which one it is.
+    path: /consumer/
+    handler:
+      type: std
+      # bap because this adapter SENDS. role sets direction, not participant type.
+      role: bap
+      subscriberId: __CONSUMER_SUBSCRIBER_ID__
+
+      plugins:
+        registry:
+          id: sunbirdRegistry
+          config:
+            url: http://sunbird-registry-service:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+            # 0 because no cache plugin is configured. A non-zero TTL here only
+            # warns at startup and caches nothing.
+            cacheTTL: 0
+            # Plain seconds, per attempt.
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            # A search response past this is refused, not truncated.
+            maxResponseBytes: 1048576
+
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: __CONSUMER_SUBSCRIBER_ID__
+            # The key's osid, not a friendly name: the registry indexes on it.
+            keyId: __CONSUMER_KEY_ID__
+            signingPrivateKey: "__CONSUMER_SIGNING_PRIVATE__"
+            signingPublicKey: "__CONSUMER_SIGNING_PUBLIC__"
+            encrPrivateKey: "__CONSUMER_ENCR_PRIVATE__"
+            encrPublicKey: "__CONSUMER_ENCR_PUBLIC__"
+
+        signer:
+          id: signer
+        signValidator:
+          id: signvalidator
+
+        # Populates transaction_id and message_id on the context so every log
+        # line carries them. subscriber_id is resolved separately, not listed.
+        middleware:
+          - id: reqpreprocessor
+            config:
+              contextKeys: transaction_id,message_id
+              role: bap
+
+        # The extended layer is off: it fetches a resource's own @context per
+        # payload, and nothing here needs it. The settings below only apply if
+        # it is turned on.
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml"
+            cacheTTL: "3600"
+            extendedSchema_enabled: "false"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
+
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/routing-consumer.yaml
+
+      # We sign what we forward and check nothing inbound: our own app calls
+      # this. The tier it forwards to does check our signature.
+      steps:
+        - validateSchema
+        - addRoute
+        - sign

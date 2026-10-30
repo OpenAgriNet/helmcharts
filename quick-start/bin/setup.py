@@ -1,44 +1,49 @@
 #!/usr/bin/env python3
-"""Prepare the stack: generate the adapter keypairs, seed the registry, render
-the adapter configs.
+"""Prepare the stack, one step at a time.
 
-    python3 bin/setup.py
+    python3 bin/setup.py keys                    generate keys/keys.json
+    python3 bin/setup.py register-network        our own entry in the registry
+    python3 bin/setup.py register-provider NAME  one upstream and what it answers
+    python3 bin/setup.py configure-adapter       render the adapter configs
 
-`make up` runs this as step 2, which is where it belongs -- the adapter configs
-it renders are bind-mounted files, and an adapter started before they exist
-leaves a directory in their place.
+Four commands rather than one run, because all four CREATE ONLY: a row that
+already exists is left alone, never overwritten. So a wrong value is not fixed
+by re-running -- it is fixed by a PUT against the stored row, the way oanfed.py
+does it. Registering one provider at a time keeps that correction to one
+provider rather than the whole network.
 
-WHAT IT WRITES. Seven participants, four capability bindings, four schemas:
+An id that was deleted still cannot be reused: delete is soft and keeps the
+unique index.
 
-    3 x node      one per adapter -- consumer, network, provider -- each with the
-                  public halves of a keypair. The private halves stay in
-                  keys/keys.json and never reach the registry.
-    4 x upstream  the APIs this deployment calls. ALL FOUR are real external
-                  hosts now, whose base URLs come from .env -- no mock is in
-                  use by any capability. An upstream signs nothing, so it needs
-                  no role and no keys.
-    4 x binding   a ProviderSchema row per capability: which upstream answers
-                  it, the method and path, timeouts, and the mapping URL.
-    4 x schema    a SchemaRegistry row per capability, saying what the
-                  capability MEANS rather than who serves it: the pack in
-                  network-specs that defines its attributes. One per
-                  capability, so two providers of one capability share a row.
+WHAT EACH ONE WRITES
 
-This is all of it. Nothing has to be created by hand afterwards, and nothing
-can be from outside the VM -- the registry has no route through the gateway and
-publishes on loopback only, which is why seeding lives here rather than in a
-Postman request.
+    keys               one ed25519 keypair for signing and one x25519 for
+                       encryption, into keys/keys.json. The private halves
+                       never leave this machine.
+    register-network   1 node -- the network itself, BECKN_NETWORK_ID, shared
+                       by all three adapters, carrying the public half.
+    register-provider  1 upstream (the API this deployment calls -- it signs
+                       nothing, so no role and no keys), 1 ProviderSchema row
+                       binding it to a capability with the method, path and
+                       mapping URL, and 1 SchemaRegistry row saying what that
+                       capability MEANS. The schema row is per capability, not
+                       per provider, so a second provider of one capability
+                       shares it.
+    configure-adapter  reads the bindings back OUT of the registry and renders
+                       config/adapters/{multi-adapter,single-adapter}/*.yaml
+                       from the .tmpl files beside them. A provider that was
+                       never registered gets no block and answers nothing.
 
 The binding keys are the load-bearing part. A provider step answers only when
-the key it was configured with matches the one built from the incoming payload,
-and both sides come from the same .env values in this one run -- which is what
-keeps them from disagreeing. To point a capability somewhere else: edit .env,
-re-run this, recreate the provider adapter.
+the key it was configured with matches the one built from the incoming payload
+-- and configure-adapter takes them from the registry rows themselves, so the
+two cannot disagree.
 
-Safe to re-run. Keys are generated once and reused from keys/keys.json, so the
-identities already in the registry stay valid; participants and bindings that
-exist are left alone rather than recreated, because this registry's delete is
-soft and holds the unique index -- a deleted participantId cannot be reused.
+The registry has no route through the gateway and publishes on loopback only,
+which is why these writes live here rather than in a Postman request.
+
+Safe to re-run. Keys are generated once and reused; a participant, binding or
+schema already present is left alone rather than recreated.
 
 Needs python3 and the cryptography package:
 
@@ -58,11 +63,11 @@ ADAPTERS = ROOT / "config" / "adapters"
 def load_dotenv():
     """Read .env into the environment.
 
-    Nothing sources .env before this runs -- `make up` shells straight out to
-    python3 -- and a real environment variable wins so a one-off override still
-    works:
+    Nothing sources .env before this runs -- the make targets shell straight
+    out to python3 -- and a real environment variable wins so a one-off
+    override still works:
 
-        REGISTRY_PORT=9081 python3 bin/setup.py
+        REGISTRY_PORT=9081 python3 bin/setup.py register-network
     """
     path = ROOT / ".env"
     if not path.exists():
@@ -98,40 +103,81 @@ def is_placeholder(value):
 PLACEHOLDER_WHY = """\
   Fill it in in .env, then re-run. Nothing has been written yet.
 
-  This is refused rather than passed through because the registry is
-  APPEND-ONLY: it cannot update a record, and its delete is soft and keeps the
-  unique index, so an id is never reusable. Seeding a participant with a
-  placeholder base URL would burn that id permanently -- the capability could
-  only be recovered under a NEW id, which is the one thing the settled naming
-  was meant to avoid."""
+  Refused rather than passed through: these commands create only, so a
+  placeholder written now is not corrected by re-running."""
 
 
-# Everything that has to be a real value before the first registry write.
-#
-# Checked together, up front, for two reasons. seed() runs BEFORE render(), so a
-# placeholder in a render-only key like VISTAAR_TOKEN_URL would otherwise be
-# found only after seven rows already existed -- unfixable, per the note above.
-# And one list beats being sent back to .env ten times in a row.
-REQUIRED = [
-    "CONSUMER_SUBSCRIBER_ID", "NETWORK_SUBSCRIBER_ID", "PROVIDER_SUBSCRIBER_ID",
-    "CONSUMER_BASE_URL", "NETWORK_BASE_URL", "PROVIDER_BASE_URL",
-    "MAUSAMGRAM_PARTICIPANT_ID", "MAUSAMGRAM_CAPABILITY", "MAUSAMGRAM_BASE_URL",
-    "MAUSAMGRAM_AUTH", "MAUSAMGRAM_MAPPING_URL",
-    "AGMARKNET_PARTICIPANT_ID", "AGMARKNET_CAPABILITY", "AGMARKNET_BASE_URL",
-    "AGMARKNET_TOKEN_URL", "AGMARKNET_ACCESS_NAME", "AGMARKNET_PASSWORD",
-    "AGMARKNET_MAPPING_URL",
-    "VISTAAR_PARTICIPANT_ID", "VISTAAR_CAPABILITY", "VISTAAR_BASE_URL",
-    "VISTAAR_PATH", "VISTAAR_TOKEN_URL", "VISTAAR_CLIENT_ID",
-    "VISTAAR_CLIENT_SECRET", "VISTAAR_MAPPING_URL",
-    "POCRA_PARTICIPANT_ID", "POCRA_CAPABILITY", "POCRA_BASE_URL",
-    "POCRA_PATH", "POCRA_MAPPING_URL",
-]
+# Every provider this stack can serve, keyed by the name register-provider
+# takes. method is the provider's contract: some answer a GET, some a POST.
+PROVIDERS = {
+    "mausamgram": {
+        "prefix": "MAUSAMGRAM", "name": "IMD Mausamgram NWP",
+        "capability_name": "Weather Observation", "version": "v0.1",
+        "method": "GET", "default_path": "/get-daily",
+        "needs": ["MAUSAMGRAM_AUTH"],
+    },
+    "agmarknet": {
+        "prefix": "AGMARKNET", "name": "Agmarknet Vistaar",
+        "capability_name": "Mandi Price", "version": "v0.1",
+        "method": "GET", "default_path": "/v1/fetch-agmarknet-vistaar",
+        "needs": ["AGMARKNET_TOKEN_URL", "AGMARKNET_ACCESS_NAME",
+                  "AGMARKNET_PASSWORD"],
+    },
+    "vistaar": {
+        "prefix": "VISTAAR", "name": "Bharat Vistaar knowledge retrieval",
+        "capability_name": "Knowledge Advisory", "version": "v0.1",
+        "method": "POST", "default_path": None,
+        "needs": ["VISTAAR_TOKEN_URL", "VISTAAR_CLIENT_ID",
+                  "VISTAAR_CLIENT_SECRET"],
+    },
+    "pocra": {
+        "prefix": "POCRA", "name": "POCRA agriculture facilities",
+        "capability_name": "Agriculture Facility", "version": "v0.1",
+        "method": "POST", "default_path": None,
+        "needs": [],
+    },
+    # Two capabilities on two hosts, each answering several actions. No schema
+    # rows: neither pack is published on network-specs yet.
+    "pmkisan": {
+        "prefix": "PMKISAN", "name": "PM-KISAN",
+        "needs": ["PMKISAN_BASE_URL", "PMKISAN_CHATBOT_BASE_URL"],
+        "capabilities": (
+            ("openagrinet:Grievance", None, (
+                ("init", "/ChatbotOTP", "grievance.init.yaml", 20000, 0),
+                ("support", "/LodgeGrievance", "grievance.support.yaml", 30000, 0),
+                ("status", "/GrievanceStatusCheck", "grievance.status.yaml", 30000, 2))),
+            ("openagrinet:SchemeApplication", "PMKISAN_CHATBOT_BASE_URL", (
+                ("init", "/ChatbotOTP", "application-status.init.yaml", 20000, 0),
+                ("status", "/ChatbotUserDetails", "application-status.status.yaml", 30000, 0))),
+        ),
+    },
+}
 
 
-def preflight():
-    """Refuse to touch the registry while any required value is unfilled."""
-    missing = [k for k in REQUIRED if os.environ.get(k) is None]
-    unfilled = [k for k in REQUIRED
+def network_requirements():
+    return ["BECKN_NETWORK_ID", "NETWORK_BASE_URL"]
+
+
+def provider_requirements(name):
+    """What this provider needs filled in before anything is written. Its
+    credential variables are here too, so a placeholder is caught before the row."""
+    provider = PROVIDERS[name]
+    # A provider carrying several capabilities names its own paths and
+    # mappings in the table above, so it asks for the folder, not one URL.
+    if provider.get("capabilities"):
+        return [f"{provider['prefix']}_{s}" for s in
+                ("PARTICIPANT_ID", "MAPPING_BASE_URL")] + provider["needs"]
+    keys = [f"{provider['prefix']}_{s}" for s in
+            ("PARTICIPANT_ID", "CAPABILITY", "BASE_URL", "MAPPING_URL")]
+    if provider["default_path"] is None:
+        keys.append(f"{provider['prefix']}_PATH")
+    return keys + provider["needs"]
+
+
+def require(keys):
+    """Refuse to touch the registry while any of these is unfilled."""
+    missing = [k for k in keys if os.environ.get(k) is None]
+    unfilled = [k for k in keys
                 if os.environ.get(k) is not None
                 and is_placeholder(os.environ[k])]
     if not missing and not unfilled:
@@ -166,37 +212,32 @@ def x25519_pair():
 
 
 def load_or_generate_keys():
-    """Keys persist across runs: the registry already holds the public halves."""
-    roles = (("consumer", env("CONSUMER_SUBSCRIBER_ID")),
-             ("network", env("NETWORK_SUBSCRIBER_ID")),
-             ("provider", env("PROVIDER_SUBSCRIBER_ID")))
+    """The network's one identity. Keys persist across runs."""
+    participant = env("BECKN_NETWORK_ID")
 
     if KEYS.exists():
         print("keys: reusing keys/keys.json")
-        identities = json.loads(KEYS.read_text())
-        # The keypair persists; the id is read from .env each run. This registry
-        # cannot update a record, so changing an id in .env seeds a NEW
-        # participant rather than editing one -- and the same keypair moving to
-        # the new id is what makes that a rename rather than a rekey.
-        for role, participant in roles:
-            if identities[role]["participantId"] != participant:
-                print(f"  {role}: id is now {participant}, keeping the keypair")
-                identities[role]["participantId"] = participant
-        KEYS.write_text(json.dumps(identities, indent=2))
-        return identities
+        identity = json.loads(KEYS.read_text())
+        # The keypair persists; the id is read from .env each run. register-network
+        # creates only, so changing the id seeds a NEW participant rather than
+        # editing one -- and the same keypair moving to the new id is what makes
+        # that a rename rather than a rekey.
+        if identity["participantId"] != participant:
+            print(f"  id is now {participant}, keeping the keypair")
+            identity["participantId"] = participant
+        KEYS.write_text(json.dumps(identity, indent=2))
+        return identity
 
     print("keys: generating")
-    identities = {}
-    for role, participant in roles:
-        sign_private, sign_public = ed25519_pair()
-        encr_private, encr_public = x25519_pair()
-        identities[role] = {"participantId": participant,
-                            "signingPrivate": sign_private, "signingPublic": sign_public,
-                            "encrPrivate": encr_private, "encrPublic": encr_public}
+    sign_private, sign_public = ed25519_pair()
+    encr_private, encr_public = x25519_pair()
+    identity = {"participantId": participant,
+                "signingPrivate": sign_private, "signingPublic": sign_public,
+                "encrPrivate": encr_private, "encrPublic": encr_public}
     KEYS.parent.mkdir(exist_ok=True)
-    KEYS.write_text(json.dumps(identities, indent=2))
+    KEYS.write_text(json.dumps(identity, indent=2))
     KEYS.chmod(0o600)
-    return identities
+    return identity
 
 
 # ----------------------------------------------------------------- registry
@@ -205,40 +246,12 @@ def registry_url():
     return f"http://localhost:{env('REGISTRY_PORT', '8081')}"
 
 
-def token():
-    body = urllib.parse.urlencode({
-        "client_id": env("KEYCLOAK_CLIENT_ID", "registry-frontend"),
-        "grant_type": "password",
-        "username": env("REGISTRY_ADMIN_USER", "no-user"),
-        "password": env("REGISTRY_ADMIN_PASSWORD", "no-user-password"),
-    }).encode()
-    # Keycloak sits behind PROXY_ADDRESS_FORWARDING, so it builds the token's
-    # issuer from these headers. Without them it answers with an empty body.
-    #
-    # sunbird-registry-keycloak:8080 is the CONTAINER-INTERNAL address, and is deliberately not
-    # KEYCLOAK_PORT. The registry validates the issuer against
-    # OAUTH2_RESOURCES_0_URI, which names that internal address -- so a token
-    # minted with the host port in its issuer is rejected with a 401 and an
-    # empty body, however the port is published.
-    req = urllib.request.Request(
-        f"http://localhost:{env('KEYCLOAK_PORT', '8080')}/auth/realms/"
-        f"{env('KEYCLOAK_REALM', 'sunbird-rc')}/protocol/openid-connect/token",
-        data=body, headers={"X-Forwarded-Host": "sunbird-registry-keycloak:8080",
-                            "X-Forwarded-Proto": "http"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        payload = json.load(r)
-    if not payload.get("access_token"):
-        sys.exit("setup: keycloak issued no token -- check the KEYCLOAK_* values in .env")
-    return payload["access_token"]
-
-
-def post(entity, payload, bearer):
+def post(entity, payload):
     # No {"EntityName": {...}} wrapper: this registry takes the record itself,
     # and a wrapper comes back as "extraneous key [...] is not permitted".
     req = urllib.request.Request(f"{registry_url()}/api/v1/{entity}", method="POST",
                                  data=json.dumps(payload).encode(),
-                                 headers={"Content-Type": "application/json",
-                                          "Authorization": f"Bearer {bearer}"})
+                                 headers={"Content-Type": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
             return json.load(r)
@@ -252,9 +265,7 @@ def post(entity, payload, bearer):
             return json.loads(raw)
         except ValueError:
             detail = raw.decode(errors="replace").strip()[:200] or "(empty body)"
-            sys.exit(f"setup: the registry refused a write -- HTTP {e.code}: {detail}\n"
-                     f"  A 401 here usually means the token was minted for a different\n"
-                     f"  issuer than the registry validates against.")
+            sys.exit(f"setup: the registry refused a write -- HTTP {e.code}: {detail}")
 
 
 def search(entity, filters):
@@ -283,27 +294,15 @@ def signing_key_block(public_key):
     to a base64 decoder is the value as published, and a label left on fails
     every verification with a decode error pointing nowhere near the registry.
 
-    No friendly key id, because nothing could look one up: the registry assigns
-    an osid on write and that is what a sender names in the Authorization
-    header. No use either -- alg carries the purpose, ed25519 signs."""
+    No key id of our own: a sender names the entry's osid. No use either -- alg
+    carries the purpose, ed25519 signs."""
     return [{"alg": "ed25519", "key": public_key, "status": "active",
              "validFrom": "2026-01-01T00:00:00Z", "validUntil": "2030-01-01T00:00:00Z"}]
 
 
 def node(participant_id, name, role, base_url, public_key):
-    """A participant that speaks Beckn.
-
-    One level, no wrapper object: type decides which fields apply. baseUrl must
-    be https for a node, and the id must be hostname-shaped -- it is the
-    identity a signature is checked against.
-
-    baseUrl IS PUBLISHED FOR PEERS, and is the one field here that a real
-    network reads rather than this stack. Nothing inside this stack resolves it
-    -- routing between the adapters is the router plugin's config, which uses
-    the compose service names -- so a wrong value costs nothing locally and
-    everything on a shared network, where it is the address a peer POSTs to.
-    That is why it comes from .env rather than being built from the id: this
-    registry cannot update a record, so a fabricated URL is permanent."""
+    """A participant that speaks Beckn. baseUrl is the address we publish, so
+    it comes from .env -- see docs/adr/0005-filling-the-registry.md."""
     return {"participantId": participant_id, "name": name, "type": "node",
             "status": "active", "baseUrl": base_url,
             "role": role, "keys": signing_key_block(public_key)}
@@ -322,21 +321,23 @@ def upstream(participant_id, name, base_url):
             "status": "active", "baseUrl": base_url}
 
 
-def ensure_binding(bearer, participant_id, capability, path, mapping_url,
+def created(result, what):
+    """Report a write, and stop on one the registry refused.
+
+    These commands create only, so a refusal leaves a row absent rather than
+    wrong -- and the first symptom further on is a crawl that collects nothing."""
+    params = result.get("params", {}) if isinstance(result, dict) else {}
+    if params.get("status") != "SUCCESSFUL":
+        sys.exit(f"setup: the registry refused {what}: "
+                 f"{params.get('errmsg', result)}\n"
+                 f"  Nothing after this point was written.")
+    print(f"  {what}: created")
+
+
+def ensure_binding(participant_id, capability, path, mapping_url,
                    method="GET"):
-    """Create a capability binding only when absent.
-
-    actions is a list, not a map: the registry treats every nested object as an
-    entity and injects an osid into it, which a map cannot carry. It is also
-    what lets one action be retired without touching the others.
-
-    mappings is one reference carrying both directions, because the response
-    mapping reads what the request mapping resolved.
-
-    method is a parameter because it is the provider's contract, not a network
-    convention: Mausamgram and Agmarknet answer a GET whose query the mapping
-    builds, while the knowledge provider and POCRA take a POST with a JSON body.
-    The adapter reads it from this row, so nothing about it is compiled in."""
+    """Create a capability binding only when absent. The shape of actions,
+    mappings and method is docs/adr/0005-filling-the-registry.md."""
     binding = f"{participant_id}|{capability}"
     if search("ProviderSchema", {"bindingKey": {"eq": binding}}):
         print(f"  {binding}: already present")
@@ -347,322 +348,329 @@ def ensure_binding(bearer, participant_id, capability, path, mapping_url,
         "actions": [{"action": "select", "method": method, "path": path,
                      "mappings": mapping_url,
                      "timeoutMs": 15000, "retryMax": 2,
-                     "status": "active"}]}, bearer)
-    print(f"  {binding}: {result['params']['status']} "
-          f"{result['params'].get('errmsg', '')[:160]}")
+                     "status": "active"}]})
+    created(result, binding)
 
 
-# The four capability schemas, keyed by the .env variable each capability code
-# comes from so the code itself is never written twice.
-#
-# The display name mirrors the pack's own info.title, minus its "OpenAgriNet -"
-# and "Attributes" framing. The version is per capability rather than one
-# setting for all four, because a capability can move to v0.2 while the others
-# stay -- that is the point of versioning the packs separately.
-CAPABILITY_SCHEMAS = (
-    ("MAUSAMGRAM_CAPABILITY", "Weather Observation", "v0.1"),
-    ("AGMARKNET_CAPABILITY", "Mandi Price", "v0.1"),
-    ("VISTAAR_CAPABILITY", "Knowledge Advisory", "v0.1"),
-    ("POCRA_CAPABILITY", "Agriculture Facility", "v0.1"),
-)
+def ensure_actions_binding(participant_id, capability, actions, base_url=None):
+    """Create a binding that answers more than select, only when absent.
+    base_url overrides the participant's, for a capability on another host."""
+    binding = f"{participant_id}|{capability}"
+    if search("ProviderSchema", {"bindingKey": {"eq": binding}}):
+        print(f"  {binding}: already present")
+        return
+    row = {"bindingKey": binding, "participantId": participant_id,
+           "capabilityCode": capability, "status": "active",
+           "actions": [{"action": action, "method": "POST", "path": path,
+                        "mappings": mappings, "timeoutMs": timeout,
+                        "retryMax": retries, "status": "active"}
+                       for action, path, mappings, timeout, retries in actions]}
+    if base_url:
+        row["baseUrl"] = base_url
+    created(post("ProviderSchema", row), binding)
 
 
-def schema_url(capability, version, ref):
-    """Build a pack URL from the capability code, which already contains the
-    pack directory's name: openagrinet:WeatherObservation is served out of
-    schema/WeatherObservation. Deriving it means the two cannot drift.
-
-    The registry pattern-checks the result against exactly this shape, so a
-    capability whose pack is laid out differently is refused rather than
-    stored -- which is the behaviour to want, since all eight packs in
-    network-specs are <Capability>/<version>/attributes.yaml today."""
-    return ("https://raw.githubusercontent.com/OpenAgriNet/network-specs/"
-            f"{ref}/schema/{capability.partition(':')[2]}/{version}"
+def schema_url(capability, version):
+    """The pack URL for a capability code, derived so the two cannot drift.
+    The host is the one catalogs carry in their @context."""
+    return ("https://openagrinet.github.io/network-specs/"
+            f"schema/{capability.partition(':')[2]}/{version}"
             "/attributes.yaml")
 
 
-def ensure_capability_schema(bearer, capability, name, version, ref):
-    """Create a capability's schema row only when absent.
-
-    THE REGISTRY NEVER FETCHES schemaUrl -- it only checks its shape. So a row
-    pointing at a ref that does not serve the pack stores perfectly happily and
-    fails later, at whoever resolves it. Getting SCHEMA_PACK_REF right matters
-    more than the write succeeding.
-
-    And it cannot be corrected afterwards: SchemaRegistry.json sets
-    additionalProperties false, so an update is rejected over the system fields
-    the registry itself merges in, while delete is soft and keeps the unique
-    index on capabilityCode. A wrong URL here is permanent for that code."""
+def ensure_capability_schema(capability, name, version):
+    """Create a capability's schema row only when absent. A wrong schemaUrl is
+    permanent for that code -- see docs/adr/0005-filling-the-registry.md."""
     if search("SchemaRegistry", {"capabilityCode": {"eq": capability}}):
         print(f"  {capability}: already present")
         return
     result = post("SchemaRegistry", {
         "capabilityCode": capability, "name": name, "version": version,
-        "schemaUrl": schema_url(capability, version, ref),
-        "status": "active"}, bearer)
-    print(f"  {capability}: {result['params']['status']} "
-          f"{result['params'].get('errmsg', '')[:160]}")
+        "schemaUrl": schema_url(capability, version),
+        "status": "active"})
+    created(result, capability)
 
 
-def ensure_participant(bearer, participant_id, payload):
+def ensure_participant(participant_id, payload):
     """Create only when absent. Delete here is soft and keeps the unique index,
     so a recreate would fail on a duplicate key rather than replacing."""
     if search("Participant", {"participantId": {"eq": participant_id}}):
         print(f"  {participant_id}: already present")
         return
-    result = post("Participant", payload, bearer)
-    status = result["params"]["status"]
-    print(f"  {participant_id}: {status} {result['params'].get('errmsg', '')[:160]}")
+    created(post("Participant", payload), participant_id)
 
 
-def seed(identities):
+def register_network(identity):
+    """Our own entry: one node, shared by all three adapters. The registry is
+    loopback-only, so this is the only place it can be written from."""
     wait_for_registry()
-    bearer = token()
-
-    # Seven participants and four capability bindings, all of it from here.
-    #
-    # The registry is not reachable from outside this stack -- no published
-    # port beyond loopback and no proxy host in front of it -- so there is no
-    # second way to create these. Everything the network needs to answer a
-    # request has to exist by the time this returns.
-    print("registry: three adapter identities")
-    for role, name, network_role in (
-            ("consumer", "OAN consumer layer adapter", "consumer"),
-            ("network", "OAN network layer adapter", "network"),
-            ("provider", "OAN provider layer adapter", "provider")):
-        identity = identities[role]
-        ensure_participant(bearer, identity["participantId"],
-                           node(identity["participantId"], name, network_role,
-                                env(f"{role.upper()}_BASE_URL"),
-                                identity["signingPublic"]))
-
-    # All four upstreams are real external providers now -- no mock is in use
-    # by any capability, so every base URL comes from .env and the stack needs
-    # egress to all of them.
-    #
-    # No default base URL for weather any more: falling back to the mock's
-    # service name would seed a row that cannot serve the basic auth the
-    # capability is configured with, and the registry cannot update it after.
-    print("registry: four upstream providers")
-    weather = env("MAUSAMGRAM_PARTICIPANT_ID")
-    ensure_participant(bearer, weather,
-                       upstream(weather, "IMD Mausamgram NWP",
-                                env("MAUSAMGRAM_BASE_URL")))
-
-    # Mandi is the REAL Agmarknet now, because authScheme tokenQuery needs a
-    # token endpoint and mock-agmarknet has none. No default base URL for the
-    # same reason: falling back to the mock's service name would seed a row
-    # that cannot serve the configured scheme, and the registry cannot update
-    # it afterwards.
-    mandi = env("AGMARKNET_PARTICIPANT_ID")
-    ensure_participant(bearer, mandi,
-                       upstream(mandi, "Agmarknet Vistaar",
-                                env("AGMARKNET_BASE_URL")))
-
-    # The knowledge capability. Also a REAL external provider, so the stack
-    # needs egress to it and its base URL comes from .env rather than a service
-    # name. It is the only one whose action is a POST.
-    knowledge = env("VISTAAR_PARTICIPANT_ID")
-    ensure_participant(bearer, knowledge,
-                       upstream(knowledge, "Bharat Vistaar knowledge retrieval",
-                                env("VISTAAR_BASE_URL")))
-
-    # POCRA, serving AgricultureFacility. A real external provider too, and the
-    # only one needing no credential at all.
-    pocra = env("POCRA_PARTICIPANT_ID")
-    ensure_participant(bearer, pocra,
-                       upstream(pocra, "POCRA agriculture facilities",
-                                env("POCRA_BASE_URL")))
-
-    # And what each of them answers. The binding key is participantId piped to
-    # capabilityCode, and it has to match what the provider adapter was
-    # rendered with -- both come from the same .env, which is what keeps them
-    # from disagreeing.
-    print("registry: four capability bindings")
-    ensure_binding(bearer, weather, env("MAUSAMGRAM_CAPABILITY"),
-                   env("MAUSAMGRAM_PATH", "/get-daily"), env("MAUSAMGRAM_MAPPING_URL"))
-    ensure_binding(bearer, mandi, env("AGMARKNET_CAPABILITY"),
-                   env("AGMARKNET_PATH", "/v1/fetch-agmarknet-vistaar"),
-                   env("AGMARKNET_MAPPING_URL"))
-    ensure_binding(bearer, knowledge, env("VISTAAR_CAPABILITY"),
-                   env("VISTAAR_PATH"), env("VISTAAR_MAPPING_URL"),
-                   method="POST")
-    ensure_binding(bearer, pocra, env("POCRA_CAPABILITY"),
-                   env("POCRA_PATH"), env("POCRA_MAPPING_URL"),
-                   method="POST")
-
-    # And what each capability MEANS, which is a different question from who
-    # serves it. A binding above says mausamgram answers WeatherObservation
-    # over this path with this mapping; a row here says what a
-    # WeatherObservation is, by pointing at the schema pack that defines its
-    # attributes. One row per capability, not per binding -- a second provider
-    # for the same capability shares this row rather than adding one.
-    #
-    # SEPARATE FROM THE MAPPING URLS ABOVE, which live in helmcharts and
-    # describe one upstream's wire format. These are network-specs and describe
-    # the network's own vocabulary, so they move on their own ref.
-    print("registry: four capability schemas")
-    ref = env("SCHEMA_PACK_REF", "main")
-    for var, name, version in CAPABILITY_SCHEMAS:
-        ensure_capability_schema(bearer, env(var), name, version, ref)
+    print("registry: our network identity")
+    ensure_participant(identity["participantId"],
+                       node(identity["participantId"],
+                            env("BECKN_NETWORK_NAME", identity["participantId"]),
+                            list(ROLES), env("NETWORK_BASE_URL"),
+                            identity["signingPublic"]))
+    identity = key_osid(identity)
+    KEYS.write_text(json.dumps(identity, indent=2))
+    print(f"  signing key id {identity['keyId']}")
 
 
-def key_osids(identities):
-    """Read back each key's osid, and check the registry still holds the public
-    half we have the private half for.
+def register_provider(name):
+    """One upstream, its binding and its schema. Three rows together: a provider
+    with no binding answers nothing, and a binding with no schema resolves to
+    no pack. A re-run with the same id changes nothing."""
+    provider = PROVIDERS[name]
+    require(provider_requirements(name))
+    wait_for_registry()
 
-    The Authorization header names a key by its osid rather than by the friendly
-    id, so the adapters have to be configured with the value the registry
-    assigned.
+    participant = env(f"{provider['prefix']}_PARTICIPANT_ID")
 
-    The mismatch check matters because this registry cannot update a record and
-    its delete is soft: a participant seeded against an earlier keys.json keeps
-    that public key forever. Signing with a new private half would then produce
-    signatures nobody can verify -- and the failure would surface much later, as
-    an authentication error with no obvious cause."""
-    for role, identity in identities.items():
-        records = search("Participant", {"participantId": {"eq": identity["participantId"]}})
-        keys = (records[0].get("keys") or []) if records else []
-        if not keys:
-            sys.exit(f"setup: {identity['participantId']} has no published key")
+    print(f"registry: {name}")
+    ensure_participant(participant,
+                       upstream(participant, provider["name"],
+                                env(f"{provider['prefix']}_BASE_URL")))
+    if provider.get("capabilities"):
+        register_capabilities(provider, participant)
+        return
 
-        # Bare base64 now, but an older row may still carry the label, and a
-        # confusing mismatch error is worse than one tolerant line.
-        published = keys[0]["key"].removeprefix("base64:")
-        if published != identity["signingPublic"]:
-            sys.exit(
-                f"setup: {identity['participantId']} is registered with a different key.\n"
-                f"  This registry cannot update a record, and its delete is soft and keeps\n"
-                f"  the unique index, so the id cannot be reused. Either restore the\n"
-                f"  matching keys/keys.json, or pick a new id for {role.upper()}_SUBSCRIBER_ID\n"
-                f"  in .env and re-run.")
-        identity["keyOsid"] = keys[0]["osid"]
-    return identities
+    capability = env(f"{provider['prefix']}_CAPABILITY")
+    ensure_binding(participant, capability,
+                   env(f"{provider['prefix']}_PATH", provider["default_path"]),
+                   env(f"{provider['prefix']}_MAPPING_URL"),
+                   method=provider["method"])
+    ensure_capability_schema(capability, provider["capability_name"], provider["version"])
+    print(f"  binding key {participant}|{capability}")
+
+
+def register_capabilities(provider, participant):
+    """A provider answering more than one capability. Mappings come from this
+    repo's published copies, so the folder name is all the entry carries."""
+    mappings = env(f"{provider['prefix']}_MAPPING_BASE_URL").rstrip("/")
+    for capability, host_var, actions in provider["capabilities"]:
+        ensure_actions_binding(
+            participant, capability,
+            [(action, path, f"{mappings}/{mapping}", timeout, retries)
+             for action, path, mapping, timeout, retries in actions],
+            base_url=env(host_var) if host_var else None)
+        print(f"  binding key {participant}|{capability}")
+
+
+def key_osid(identity):
+    """Check the registry still holds the public half we have the private half
+    for, and read back the KEY's osid: the key id the adapters sign with.
+
+    The key's own osid, not the entry's. A verifier filters by participantId and
+    then walks that record's keys matching on their osid, so a signature naming
+    anything else resolves to no key and fails as an unregistered subscriber.
+
+    The mismatch check matters because register-network creates only: a
+    participant seeded against an earlier keys.json keeps that public key until
+    someone rotates it deliberately. Signing with a new private half would
+    produce signatures nobody can verify -- and the failure surfaces much later,
+    as an authentication error with no obvious cause."""
+    records = search("Participant", {"participantId": {"eq": identity["participantId"]}})
+    keys = (records[0].get("keys") or []) if records else []
+    if not keys:
+        sys.exit(f"setup: {identity['participantId']} has no published key")
+
+    # Bare base64 now, but an older row may still carry the label, and a
+    # confusing mismatch error is worse than one tolerant line.
+    published = keys[0]["key"].removeprefix("base64:")
+    if published != identity["signingPublic"]:
+        sys.exit(
+            f"setup: {identity['participantId']} is registered with a different key.\n"
+            f"  This command creates only, so re-running will not republish the key.\n"
+            f"  Either restore the matching keys/keys.json, rotate the registered key\n"
+            f"  with a PUT that echoes its nested osid, or pick a new BECKN_NETWORK_ID\n"
+            f"  in .env -- a deleted id cannot be reused.")
+    identity["keyId"] = keys[0]["osid"]
+    return identity
+
+
+def registered_providers():
+    """The providers the registry holds a binding for, carrying the key as the
+    REGISTRY spells it -- so the adapter and the caller use the same string."""
+    by_participant = {env(f"{provider['prefix']}_PARTICIPANT_ID", ""): name
+                      for name, provider in PROVIDERS.items()}
+    found = []
+    for row in search("ProviderSchema", {"status": {"eq": "active"}}):
+        name = by_participant.get(row["participantId"])
+        if not name:
+            print(f"  skipping {row['bindingKey']}: no provider in .env has "
+                  f"participant id {row['participantId']}")
+            continue
+        found.append((name, row["bindingKey"], row["participantId"]))
+    return sorted(found)
+
+
+def provider_steps(providers):
+    """The providerSteps entries and their names, one fragment per provider --
+    the auth shape is the one thing the registry does not hold."""
+    blocks, ids = [], []
+    # Grouped by provider: one serving two capabilities is one step, because
+    # its two bindings refer to each other -- PM-KISAN's OTP is the case.
+    for name, bindings, participant in grouped(providers):
+        fragment = (ADAPTERS / "providers" / f"{name}.yaml.tmpl").read_text()
+        blocks.append(fragment.replace("__BINDING_KEY__", ",".join(bindings))
+                              .replace("__PARTICIPANT_ID__", participant))
+        ids.append(f"        - {step_id(bindings[0])}")
+    return "".join(blocks).rstrip("\n"), "\n".join(ids)
+
+
+def grouped(providers):
+    """(name, [binding, ...], participant) per provider, bindings in order."""
+    by_name = {}
+    for name, binding, participant in providers:
+        by_name.setdefault(name, (participant, []))[1].append(binding)
+    return [(name, bindings, participant)
+            for name, (participant, bindings) in by_name.items()]
+
+
+def step_id(binding_key):
+    """The plugin id a capability is served by: the capability code without its
+    namespace, so openagrinet:WeatherObservation is served by WeatherObservation."""
+    return binding_key.partition("|")[2].partition(":")[2]
 
 
 # ------------------------------------------------------------------ configs
 
-# The role key is three things at once: the entry in keys/keys.json, the
-# __ROLE_* placeholder prefix, and the config filename. They were spelled
-# differently once -- role "exp" writing experience.yaml -- and a lookup table
-# kept them apart. They are the same word now, so the table is gone.
-#
-# CHANGING A ROLE KEY IS NOT A RENAME. It makes this script generate a FRESH
-# keypair for a participant the registry has already published a public key
-# for, which it cannot update and whose delete is soft -- so the id cannot be
-# reused either. The adapter then signs with a key nobody can verify, and it
-# surfaces much later as an authentication error with no obvious cause. Renaming
-# exp -> consumer therefore came with `make destroy` and a new keys.json.
+# Each role is a __ROLE_* placeholder prefix, a config filename, and a layer in
+# the network entry's role list.
 ROLES = ("consumer", "network", "provider")
 
 
-def render(identities):
-    print("configs:")
-    mausamgram_binding = (f"{env('MAUSAMGRAM_PARTICIPANT_ID')}"
-                          f"|{env('MAUSAMGRAM_CAPABILITY')}")
-    agmarknet_binding = (f"{env('AGMARKNET_PARTICIPANT_ID')}"
-                         f"|{env('AGMARKNET_CAPABILITY')}")
-    vistaar_binding = (f"{env('VISTAAR_PARTICIPANT_ID')}"
-                       f"|{env('VISTAAR_CAPABILITY')}")
-    pocra_binding = f"{env('POCRA_PARTICIPANT_ID')}|{env('POCRA_CAPABILITY')}"
-    for role in ROLES:
-        identity = identities[role]
-        template = (ADAPTERS / f"{role}.yaml.tmpl").read_text()
-        prefix = role.upper()
+def publish_url(folder):
+    """Where a crawled catalog is handed in, which differs by mode.
+
+    Single mode serves /publish from the same process; multi mode has it on the
+    provider adapter, a container of its own."""
+    if folder == "single-adapter":
+        return "http://localhost:9201/publish"
+    return "http://provider-adapter:9200/publish"
+
+
+def token_url(provider, variable, serving):
+    """A provider's login endpoint, read only when that provider is served.
+
+    Its placeholder is in that provider's fragment, so a registry without it
+    renders nothing that needs the value -- and asking for it anyway refuses a
+    deployment over a credential it will never use."""
+    return env(variable, "") if provider in serving else ""
+
+
+def configure_adapter(identity):
+    wait_for_registry()
+    providers = registered_providers()
+    if not providers:
+        sys.exit("setup: the registry holds no provider binding, so the adapter "
+                 "would answer nothing.\n"
+                 "  Register at least one first:\n"
+                 "    make register-provider PROVIDER=mausamgram")
+    serving = {name for name, _, _ in providers}
+    print("configs: serving " + ", ".join(sorted(serving)))
+    steps, step_ids = provider_steps(providers)
+
+    # The three tier configs (multi-adapter/), then single-adapter/network-adapter,
+    # which carries all three tiers' placeholders.
+    for name in (*ROLES, "network-adapter"):
+        folder = "single-adapter" if name == "network-adapter" else "multi-adapter"
+        fname = name if name == "network-adapter" else f"{name}-adapter"
+        template = (ADAPTERS / folder / f"{fname}.yaml.tmpl").read_text()
+        # The provider blocks go in first: they carry placeholders of their own
+        # that the shared pass below resolves.
+        template = (template.replace("__PROVIDER_STEPS__", steps)
+                            .replace("__PROVIDER_STEP_IDS__", step_ids))
+        # All three adapters share the network's id and key.
+        for role in (ROLES if name == "network-adapter" else (name,)):
+            prefix = role.upper()
+            for placeholder, value in (
+                    (f"__{prefix}_SUBSCRIBER_ID__", identity["participantId"]),
+                    (f"__{prefix}_KEY_ID__", identity["keyId"]),
+                    (f"__{prefix}_SIGNING_PRIVATE__", identity["signingPrivate"]),
+                    (f"__{prefix}_SIGNING_PUBLIC__", identity["signingPublic"]),
+                    (f"__{prefix}_ENCR_PRIVATE__", identity["encrPrivate"]),
+                    (f"__{prefix}_ENCR_PUBLIC__", identity["encrPublic"])):
+                template = template.replace(placeholder, value)
         for placeholder, value in (
-                (f"__{prefix}_SUBSCRIBER_ID__", identity["participantId"]),
-                (f"__{prefix}_KEY_ID__", identity["keyOsid"]),
-                (f"__{prefix}_SIGNING_PRIVATE__", identity["signingPrivate"]),
-                (f"__{prefix}_SIGNING_PUBLIC__", identity["signingPublic"]),
-                (f"__{prefix}_ENCR_PRIVATE__", identity["encrPrivate"]),
-                (f"__{prefix}_ENCR_PUBLIC__", identity["encrPublic"]),
-                ("__MAUSAMGRAM_BINDING_KEY__", mausamgram_binding),
-                ("__AGMARKNET_BINDING_KEY__", agmarknet_binding),
-                ("__VISTAAR_BINDING_KEY__", vistaar_binding),
-                ("__VISTAAR_TOKEN_URL__", env("VISTAAR_TOKEN_URL")),
-                # Agmarknet's own token endpoint. A deployment fact, not a
-                # credential, so it is rendered directly -- the access name and
-                # password stay as variable NAMES in the config and reach the
-                # adapter through its environment.
-                ("__AGMARKNET_TOKEN_URL__", env("AGMARKNET_TOKEN_URL")),
-                # Auth is per provider, so the participant id is a YAML KEY in
-                # the adapter config, not only half of a binding key.
-                ("__POCRA_BINDING_KEY__", pocra_binding),
-                ("__MAUSAMGRAM_PARTICIPANT_ID__", env("MAUSAMGRAM_PARTICIPANT_ID")),
-                ("__AGMARKNET_PARTICIPANT_ID__", env("AGMARKNET_PARTICIPANT_ID")),
-                ("__VISTAAR_PARTICIPANT_ID__", env("VISTAAR_PARTICIPANT_ID")),
-                ("__POCRA_PARTICIPANT_ID__", env("POCRA_PARTICIPANT_ID")),
+                # The token endpoints the provider fragments name. A deployment
+                # fact, not a credential, so it is rendered directly -- the
+                # access name and password stay as variable NAMES in the config
+                # and reach the adapter through its environment.
+                ("__AGMARKNET_TOKEN_URL__", token_url("agmarknet", "AGMARKNET_TOKEN_URL", serving)),
+                ("__VISTAAR_TOKEN_URL__", token_url("vistaar", "VISTAAR_TOKEN_URL", serving)),
+                # The crawler hands a crawled catalog to /publish, which signs it
+                # and forwards it on. /network/publish expects a signature the
+                # crawl does not carry, and in multi mode /publish is elsewhere.
+                ("__DISCOVERY_PUSH_URL__", publish_url(folder)),
+                # on/off in .env, true/false in the config.
+                ("__FEDERATION_ENABLED__",
+                 "false" if env("FEDERATION_CRAWL_PEERS", "off").lower() == "off"
+                 else "true"),
+                ("__FEDERATION_REFRESH_SECONDS__", env("FEDERATION_REFRESH_SECONDS", "900")),
+                ("__FEDERATION_PAGE_SIZE__", env("FEDERATION_PAGE_SIZE", "100")),
+                ("__FEDERATION_INTENT__", env("FEDERATION_INTENT", "")),
                 # Telemetry. One switch drives all three signals: with every
                 # one false the plugin builds no exporter and never dials, so
                 # a stack running without the observability profile stays
                 # quiet instead of logging a refused connection on a loop.
                 ("__OTEL_ENABLED__", env("ADAPTER_OTEL_ENABLED", "true")),
-                ("__OTLP_ENDPOINT__", env("OTLP_ENDPOINT", "hyperdx:4317")),
+                ("__OTLP_ENDPOINT__", env("OTLP_ENDPOINT", "otel-collector:4317")),
                 ("__OTEL_ENVIRONMENT__", env("OTEL_ENVIRONMENT", "dev"))):
             template = template.replace(placeholder, value)
         if "__" in template:
-            sys.exit(f"setup: {role}.yaml still has unrendered placeholders")
-        out = ADAPTERS / f"{role}.yaml"
-        # A bare `docker compose up -d` before this script runs starts the
-        # adapters too, and Docker creates a DIRECTORY at a bind-mount source
-        # that does not exist. Writing would then fail with a bare
-        # IsADirectoryError that says nothing about the cause.
+            sys.exit(f"setup: {fname}.yaml still has unrendered placeholders")
+        out = ADAPTERS / folder / f"{fname}.yaml"
+        # A bare `docker compose up -d` before this runs starts the adapters
+        # too, and Docker creates a DIRECTORY at a bind-mount source that does
+        # not exist. Writing would then fail with a bare IsADirectoryError that
+        # says nothing about the cause.
         if out.is_dir():
             sys.exit(
                 f"setup: {out} is a directory, not a file.\n"
                 f"  Docker created it, which means the adapters were started before this\n"
-                f"  script ran. Bring them down, remove the empty directories and retry:\n"
+                f"  ran. Bring them down, remove the empty directories and retry:\n"
                 f"    docker compose down\n"
-                f"    rmdir config/adapters/*.yaml\n"
-                f"    make up")
+                f"    rmdir config/adapters/*/*.yaml\n"
+                f"    make configure-adapter")
         out.write_text(template)
         out.chmod(0o600)  # holds a private key
-        print(f"  config/adapters/{role}.yaml")
+        print(f"  config/adapters/{folder}/{fname}.yaml")
+
+
+# ---------------------------------------------------------------- commands
+
+def need_identity():
+    """keys.json with the key id register-network read back into it."""
+    if not KEYS.exists():
+        sys.exit("setup: keys/keys.json does not exist -- run `make keys` first")
+    identity = json.loads(KEYS.read_text())
+    if not identity.get("keyId"):
+        sys.exit("setup: keys/keys.json carries no key id, so nothing could sign.\n"
+                 "  Run `make register-network` -- it reads the id back from the\n"
+                 "  registry row it writes.")
+    return identity
+
+
+def main(argv):
+    load_dotenv()
+    command = argv[0] if argv else ""
+
+    if command == "keys":
+        require(["BECKN_NETWORK_ID"])
+        load_or_generate_keys()
+    elif command == "register-network":
+        require(network_requirements())
+        register_network(load_or_generate_keys())
+    elif command == "register-provider":
+        if len(argv) != 2 or argv[1] not in PROVIDERS:
+            sys.exit("setup: register-provider takes one of "
+                     + ", ".join(PROVIDERS))
+        register_provider(argv[1])
+    elif command == "configure-adapter":
+        configure_adapter(need_identity())
+    else:
+        sys.exit(__doc__)
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    preflight()
-    identities = load_or_generate_keys()
-    seed(identities)
-    identities = key_osids(identities)
-    KEYS.write_text(json.dumps(identities, indent=2))
-    render(identities)
-    print(f"""
-ready. The registry holds seven participants and four capability bindings, and
-the adapter configs are rendered, so nothing further has to be created by hand.
-
-  {env('MAUSAMGRAM_PARTICIPANT_ID')}|{env('MAUSAMGRAM_CAPABILITY')}
-  {env('AGMARKNET_PARTICIPANT_ID')}|{env('AGMARKNET_CAPABILITY')}
-  {env('VISTAAR_PARTICIPANT_ID')}|{env('VISTAAR_CAPABILITY')}
-  {env('POCRA_PARTICIPANT_ID')}|{env('POCRA_CAPABILITY')}
-
-Those are the binding keys the provider adapter answers to. They were rendered
-into its config from the same .env this seeded the registry from, which is what
-keeps the two from disagreeing. A payload naming anything else is answered 404
-"this module serves no capability matching the request" -- explicit, but it
-names the request rather than the mismatch, so compare it against these four.
-
-The left half of each key is the participant id, and it names the ENTITY that
-operates the upstream -- not the capability, which is already the right half,
-and not the deployment, which is only a base URL. It is also the string a
-catalog publishes as offer.provider.id, so capability-examples/ can be run
-against this stack unedited.
-
-All four upstreams are real external providers reached over the internet, so
-this stack needs egress to each of them and no capability depends on a mock.
-Repointing one is an .env edit and a re-run of this, but it takes a NEW
-participant id: the registry cannot update a row and its delete is soft and
-keeps the unique index, so an id seeded against one base URL keeps that base
-URL for good. A re-run with the same id prints "already present" and changes
-nothing. The registry is not reachable from outside this stack, so that write
-happens from here.
-
-Next: `make up` continues to step 3 and starts the adapters. If you ran this
-on its own, the adapters need recreating to pick up the rendered configs:
-
-  docker compose up -d --force-recreate provider-adapter network-adapter consumer-adapter
-
-Then import ../api-collection/ -- both files, the collection and the
-environment -- and run it. Eighteen requests across the four capabilities,
-publish then discover then select in each, with nothing to fill in.""")
+    main(sys.argv[1:])

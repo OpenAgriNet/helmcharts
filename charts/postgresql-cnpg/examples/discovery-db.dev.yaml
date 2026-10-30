@@ -1,13 +1,14 @@
 # Example: the discovery service's database, dev environment.
 #
 #   helm install discovery-db charts/postgresql-cnpg \
-#     -n oan-discovery -f charts/postgresql-cnpg/examples/discovery-db.dev.yaml
+#     -n postgres -f charts/postgresql-cnpg/examples/discovery-db.dev.yaml
 #
 # The discovery service then connects to:
-#   discovery-db-rw.oan-discovery.svc.cluster.local:5432
+#   discovery-db-rw.postgres.svc.cluster.local:5432
 #
-# Separate from registry-db in every way - its own cluster, its own namespace,
-# its own PostgreSQL major. Nothing here affects the registry stack.
+# Separate from the shared `postgres` cluster, and the reason is capability
+# rather than ownership: discovery-service needs pgvector, which is a different
+# operand image, so it cannot be a database inside that one.
 
 fullnameOverride: discovery-db
 
@@ -76,11 +77,15 @@ walStorage:
 bootstrap:
   database: discovery
   owner: discovery
-  # Omit ownerSecret and CNPG generates Secret/discovery-db-app itself, with a
-  # ready-made `uri` key the discovery chart consumes through
-  # database.urlSecret. Simplest correct thing for dev - nothing to create by
-  # hand and no password to escape.
-  ownerSecret: ""
+  # Supplied, not generated, and that is load-bearing now that this Cluster
+  # lives in its own namespace.
+  #
+  # CNPG will happily generate Secret/discovery-db itself, with a ready-made
+  # `uri` key the discovery chart consumes through database.urlSecret. But the
+  # host in that DSN is the BARE service name, which resolves only inside this
+  # namespace -- and the discovery service does not run here. So the DSN is
+  # built with the FQDN instead, by scripts/gen-secrets.py, and supplied.
+  ownerSecret: discovery-db
 
   # ---------------------------------------------------------------------------
   # This is load-bearing, not a convenience.

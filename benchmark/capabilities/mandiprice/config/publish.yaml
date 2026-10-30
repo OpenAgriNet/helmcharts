@@ -1,0 +1,84 @@
+# MandiPrice publish payloads.
+#
+# Built from real Agmarknet data in data/mandiPrice-metadata/. Nothing is
+# invented and nothing is fetched at run time.
+
+# --- where things come from -------------------------------------------------
+
+source: data/mandiPrice-metadata/mandi-metadata.json
+template: capabilities/mandiprice/templates/catalog.json
+output: data/publish-payload/mandiprice
+
+# --- what goes in every payload ---------------------------------------------
+
+context:
+  action: catalog/publish
+  version: "2.0.0"
+
+schemaContext:
+  - https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld#openagrinet:MandiPrice
+
+resource:
+  context: https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld
+  type: openagrinet:MandiPrice
+
+providerId: agmarknet
+catalogIdPrefix: "catalog:mandi-price:"
+resourceIdPrefix: "resource:mandi-price:market:"
+
+# What the resources claim about themselves.
+validity:
+  startsAt: "2026-09-01T00:00:00+05:30"
+  endsAt: "2026-12-31T23:59:59+05:30"
+
+# --- the catalogs -----------------------------------------------------------
+#
+# groupBy names the metadata field that decides which markets belong to which
+# catalog; each entry's `match` is the value to look for.
+#
+# LEAVE entries EMPTY and one catalog is derived per distinct value in the
+# metadata — one per state, whichever states were fetched. That is what makes an
+# all-India fetch work without thirty-odd states written out here and kept in
+# step by hand. Derived catalogs take the real agm_state_code and advertise
+# English only.
+#
+# List entries to override that, for instance to name a state's languages.
+# count must then equal the number of entries, so a half-deleted entry is
+# caught; it is ignored when entries is empty.
+
+catalogs:
+  groupBy: state_name
+  count: 0
+  entries: []
+
+# --- how much data ----------------------------------------------------------
+
+# How many resources in total, across every catalog.
+#
+# A resource is one market-commodity pair. An all-India fetch yields about 19k
+# real pairs, so reaching 100k repeats each about five times. Each state gets a
+# share proportional to its real pairs, and the total lands on this number
+# exactly. The manifest records realPairs, so the stretch stays visible.
+#
+# 0 hands control back to scaleFactor below.
+targetResources: 100000
+
+# Resources per catalog, per REQUEST. 0 keeps a catalog whole in one request.
+#
+# Not a cap on the catalog: updateMode is MERGE, so a state split across forty
+# requests is still one catalog at the end. This is what stops a single POST
+# carrying three thousand resources.
+resourcesPerCatalog: 50
+
+# Catalogs per publish request. Never two parts of the same catalog.
+catalogsPerRequest: 2
+
+# Only read when targetResources is 0: a whole multiple of the real pairs.
+scaleFactor: 1
+
+# --- data quality -----------------------------------------------------------
+
+# Reject coordinates outside this box: [minLon, minLat, maxLon, maxLat].
+# The source has a few impossible ones — longitude 703620, latitude equal to
+# longitude, a market called "Testing".
+coordinateBounds: [68.0, 6.0, 98.0, 38.0]

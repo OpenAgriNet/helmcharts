@@ -5,7 +5,7 @@
 # Purpose: chart-local helpers delegating to common, plus the role,
 #          identity, upstream and config-rendering wiring an adapter needs.
 #
-# One chart, three roles. provider, network and experience are the same image and the
+# One chart, three roles. provider, network and consumer are the same image and the
 # same config format; the role decides the handler role, the step list and
 # where requests are routed. Install once per role, and keep the RELEASE name
 # per-role -- the release name is what becomes the Service DNS name that the
@@ -14,7 +14,8 @@
 */}}
 
 {{/*
-The adapter's role: provider | network | experience.
+The adapter's role: provider-adapter | network-adapter | consumer-adapter (old names
+provider | network | consumer still accepted). Returns the tier: provider | network | consumer.
 
 Required, with no default. A default would silently give one role's step list
 and handler role to a different adapter -- which renders, starts, reports Ready
@@ -23,12 +24,13 @@ and then mis-handles every request, at the far end, in a peer's logs.
 {{- define "adapter-service.role" -}}
 {{- $role := .Values.role | default "" -}}
 {{- if not $role -}}
-{{- fail (printf "%s: role is required -- one of provider, network, experience. It decides the handler role, the step list and the routing target, so there is no safe default. See examples/ for a values file per role." .Chart.Name) -}}
+{{- fail (printf "%s: role is required -- one of provider-adapter, network-adapter, consumer-adapter. It decides the handler role, the step list and the routing target, so there is no safe default. See examples/ for a values file per role." .Chart.Name) -}}
 {{- end -}}
-{{- if not (has $role (list "provider" "network" "experience")) -}}
-{{- fail (printf "%s: role must be one of provider, network, experience (got %q)." .Chart.Name $role) -}}
+{{- $tier := trimSuffix "-adapter" $role -}}
+{{- if not (has $tier (list "provider" "network" "consumer")) -}}
+{{- fail (printf "%s: role must be one of provider-adapter, network-adapter, consumer-adapter (got %q)." .Chart.Name $role) -}}
 {{- end -}}
-{{- $role -}}
+{{- $tier -}}
 {{- end }}
 
 {{/*
@@ -48,14 +50,14 @@ in the compose stack so traces from either deployment line up.
 {{- end }}
 
 {{/*
-bap originates a call, bpp receives one. experience is the caller; network and
+bap originates a call, bpp receives one. consumer is the caller; network and
 provider receive. Overridable, because the role is a shorthand for a default
 rather than a constraint.
 */}}
 {{- define "adapter-service.handlerRole" -}}
 {{- if .Values.handler.role -}}
 {{- .Values.handler.role -}}
-{{- else if eq (include "adapter-service.role" .) "experience" -}}
+{{- else if eq (include "adapter-service.role" .) "consumer" -}}
 bap
 {{- else -}}
 bpp
@@ -65,14 +67,14 @@ bpp
 {{/*
 The step list, as a YAML array.
 
-experience sits inside the trust boundary and accepts unsigned requests, so it has no
+consumer sits inside the trust boundary and accepts unsigned requests, so it has no
 signature to validate; the other two receive from the network and must verify
 first. Set handler.steps to override.
 */}}
 {{- define "adapter-service.steps" -}}
 {{- if .Values.handler.steps -}}
 {{- toYaml .Values.handler.steps -}}
-{{- else if eq (include "adapter-service.role" .) "experience" -}}
+{{- else if eq (include "adapter-service.role" .) "consumer" -}}
 {{- toYaml (list "addRoute" "sign") -}}
 {{- else -}}
 {{- toYaml (list "validateSign" "addRoute" "sign") -}}
@@ -87,33 +89,6 @@ self-describing when you exec into a pod.
 routing-{{ include "adapter-service.role" . }}.yaml
 {{- end }}
 
-{{/*
-The routing rules, as a YAML array.
-
-A list rather than one rule: provider fans out to several upstreams, while
-network and experience each have a single target. Every rule needs a target url,
-and a trailing slash on one produces //discover once the router appends the
-action -- so that is caught here rather than at request time.
-*/}}
-{{- define "adapter-service.routingRules" -}}
-{{- $rules := .Values.routing.rules | default list -}}
-{{- if not $rules -}}
-{{- fail (printf "%s: routing.rules is required and must hold at least one rule. An adapter with no route accepts requests and has nowhere to send them. See examples/%s.yaml." .Chart.Name (include "adapter-service.role" .)) -}}
-{{- end -}}
-{{- range $i, $rule := $rules -}}
-{{- $url := $rule.target.url | default "" -}}
-{{- if not $url -}}
-{{- fail (printf "%s: routing.rules[%d].target.url is required -- e.g. http://discovery:8080. In-cluster this is the RELEASE name of the target, which is what its Service is called." $.Chart.Name $i) -}}
-{{- end -}}
-{{- if hasSuffix "/" $url -}}
-{{- fail (printf "%s: routing.rules[%d].target.url must not end in a slash (%q). The router appends the action to it, so a trailing slash produces //discover." $.Chart.Name $i $url) -}}
-{{- end -}}
-{{- if not $rule.endpoints -}}
-{{- fail (printf "%s: routing.rules[%d].endpoints is required -- e.g. [discover, publish]. A rule with no endpoints matches nothing." $.Chart.Name $i) -}}
-{{- end -}}
-{{- end -}}
-{{- toYaml $rules -}}
-{{- end }}
 
 {{- define "adapter-service.name" -}}
 {{- include "common.name" . -}}
@@ -202,3 +177,42 @@ therefore needs a rollout restart -- which the NOTES print.
 {{- define "adapter-service.configChecksum" -}}
 {{- include (print $.Template.BasePath "/configmap.yaml") . | sha256sum -}}
 {{- end }}
+
+{{/*
+adapter-service.crawlerConfig substitutes the crawler's placeholders into an
+adapter config.
+
+Done here and not by the init container that renders the keypair: none of these
+is a credential, so none belongs in the keys Secret. A config carrying no
+crawler block comes back unchanged, which is every role but network.
+
+discoveryPushUrl defaults to this same process. The crawler runs on the network
+adapter, and that adapter serves /publish itself in both modes -- as its own
+mount in single, as an action on / in multi -- so a crawled catalog takes the
+same path as a local one without leaving the pod to do it.
+*/}}
+{{- define "adapter-service.crawlerConfig" -}}
+{{- $c := .ctx.Values.crawler | default dict -}}
+{{- $push := $c.discoveryPushUrl | default (printf "http://localhost:%v/publish" .ctx.Values.service.targetPort) -}}
+{{- $cfg := .cfg -}}
+{{- $cfg = $cfg | replace "__DISCOVERY_PUSH_URL__" $push -}}
+{{- $cfg = $cfg | replace "__FEDERATION_ENABLED__" (ternary "true" "false" ($c.enabled | default false)) -}}
+{{- $cfg = $cfg | replace "__FEDERATION_REFRESH_SECONDS__" (toString ($c.refreshSeconds | default 900)) -}}
+{{- $cfg = $cfg | replace "__FEDERATION_PAGE_SIZE__" (toString ($c.pageSize | default 100)) -}}
+{{- $cfg = $cfg | replace "__FEDERATION_INTENT__" ($c.intent | default "") -}}
+{{- $cfg -}}
+{{- end -}}
+
+{{/*
+adapter-service.crawlerCheck refuses a crawler that is on but asks for nothing.
+
+Discovery will not take an intent that narrows nothing, and answers an empty one
+with 200 and no catalogs -- so the pass reports success, mirrors nothing, and
+says so nowhere. Caught at render instead.
+*/}}
+{{- define "adapter-service.crawlerCheck" -}}
+{{- $c := .Values.crawler | default dict -}}
+{{- if and ($c.enabled | default false) (not $c.intent) }}
+{{- fail (printf "%s: crawler.enabled is true but crawler.intent is empty. Discovery refuses an intent that narrows nothing and answers an empty one with no catalogs, so the crawl would report success and mirror nothing." .Chart.Name) }}
+{{- end }}
+{{- end -}}

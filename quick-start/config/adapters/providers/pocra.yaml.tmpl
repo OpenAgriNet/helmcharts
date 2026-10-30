@@ -1,0 +1,10 @@
+          - id: AgricultureFacility
+            config:
+              bindingKeys: "__BINDING_KEY__"
+              __PARTICIPANT_ID__:
+                authScheme: none
+              # Must stay 1. POCRA answers 200 with an empty catalogue after
+              # roughly twenty calls in a few minutes. That is indistinguishable
+              # from a genuine "nothing nearby", so raising this risks telling a
+              # farmer there is no facility when there is.
+              searchConcurrency: 1

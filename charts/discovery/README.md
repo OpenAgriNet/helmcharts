@@ -29,14 +29,14 @@ name and created outside the chart.
 
 ```bash
 # 1. The database — pgvector, plus `vector` created at bootstrap. Both matter; see below.
-helm install discovery-db charts/postgresql-cnpg -n oan-discovery \
+helm install discovery-db charts/postgresql-cnpg -n postgres \
   -f charts/postgresql-cnpg/examples/discovery-db.dev.yaml
 
 # 2. The service
-helm install discovery charts/discovery -n oan-discovery \
+helm install discovery charts/discovery -n discovery \
   -f charts/discovery/examples/discovery.dev.yaml
 
-helm test discovery -n oan-discovery
+helm test discovery -n discovery
 ```
 
 ## The database
@@ -52,7 +52,7 @@ No stock CloudNativePG operand image carries pgvector, so the cluster needs an
 image that does. [`postgresql-cnpg`](../postgresql-cnpg) ships a ready example:
 
 ```bash
-helm install discovery-db charts/postgresql-cnpg -n oan-discovery \
+helm install discovery-db charts/postgresql-cnpg -n postgres \
   -f charts/postgresql-cnpg/examples/discovery-db.dev.yaml
 ```
 
@@ -116,7 +116,7 @@ Exactly one of these, or the render fails:
 # Preferred — one Secret key holds the whole DSN.
 database:
   urlSecret:
-    name: discovery-db-app
+    name: discovery-db
     key: uri
 ```
 
@@ -128,13 +128,13 @@ nothing consumes and nothing keeps true.
 # Assembled by the chart, with the password injected through Kubernetes'
 # own $(VAR) expansion so it stays in the Secret.
 database:
-  host: discovery-db-rw
+  host: discovery-db-rw.postgres.svc.cluster.local
   port: 5432
   name: discovery
   user: discovery
   sslMode: prefer
   passwordSecret:
-    name: discovery-db-app
+    name: discovery-db
     key: password
 ```
 
@@ -159,7 +159,7 @@ is set, and treats "already at the latest version" as success.
 decides to take, not something that happens because a pod was rescheduled.
 
 ```bash
-helm upgrade discovery <chart> -n oan-discovery --reuse-values \
+helm upgrade discovery <chart> -n discovery --reuse-values \
   --set database.autoMigrate=true --set replicaCount=1
 # verify the rollout, then upgrade back with autoMigrate=false
 ```
@@ -184,7 +184,7 @@ empty, because that configuration cannot boot.
 | both | Fetch first, ConfigMap as the fallback. |
 
 ```bash
-kubectl -n oan-discovery create configmap discovery-beckn-spec \
+kubectl -n discovery create configmap discovery-beckn-spec \
   --from-file=beckn.yaml=<discovery-service>/tests/testdata/beckn-v2.0.0.yaml
 ```
 

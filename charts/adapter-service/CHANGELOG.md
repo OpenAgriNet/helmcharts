@@ -5,6 +5,318 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-10-28
+
+### Added
+- `ingress.allowPublicPublish` (default `false`): in single-adapter mode, lets
+  `/publish` be an ingress path. The publish module signs as the provider
+  without authenticating its caller, so this is for throwaway environments
+  only. `/` and `/_internal*` stay refused.
+
+### Changed
+- **BREAKING.** Mandi prices call the real Agmarknet again: `agmarknet` is back
+  on `authScheme: tokenQuery` in both modes, in place of the no-auth setting
+  the benchmark mock needed. A release must now supply
+  `__AGMARKNET_TOKEN_URL__` (`adapterKeys.extraSubstitutions` in single mode,
+  `keys.existingSecret.extraSubstitutions` in multi), and the provider tier's
+  environment must carry `AGMARKNET_ACCESS_NAME` and `AGMARKNET_PASSWORD`.
+  Without the substitution the init container stops on the unfilled
+  placeholder. Point the registry's `agmarknet` upstream at the real API too.
+
+### Changed
+
+- The network and provider roles list `checkCrossNetworkRequester` after
+  `validateSign`. The agreement check used to run inside the registry's key
+  lookup, so it only happened when a signature was verified; it is now a step
+  of its own and holds either way. Needs an adapter image carrying the step.
+
+### Added
+
+- `crawler` values, and the catalog crawler's config block on the network
+  role. Off by default, so a deployment that has admitted no network is
+  unchanged. The other roles carry no crawler block, and the values are ignored
+  there.
+- A render-time refusal when `crawler.enabled` is true and `crawler.intent` is
+  empty. Discovery will not take an intent that narrows nothing and answers an
+  empty one with no catalogs, so the pass would report success and mirror
+  nothing.
+
+### Notes
+
+- No database. A DSN is only needed by crawler work that keeps a record
+  between passes, and crawling other networks keeps none.
+- `crawler.discoveryPushUrl` defaults to this same pod. The crawler runs on the
+  network adapter, which serves `/publish` itself in both deployment modes, so
+  a crawled catalog takes the same path as a local one without leaving the pod.
+
+
+### Fixed
+- The crawler's own application-level `registry` plugin, in both the
+  single-adapter and multi-adapter network configs. The adapter image refuses to
+  start a crawler without one ("crawler plugin configured without a registry
+  plugin"), because it verifies a crawled catalog against the publisher's
+  registry key; the modules' registries do not count.
+
+## [0.7.0] - 2026-10-26
+
+### Added
+- The single-adapter layer's provider tier serves the PMFBY grievance
+  capability: a `Grievance` step for `pmfby|openagrinet:Grievance`, logging in at
+  the provider's login URL and holding the token until the login reply's own
+  expiry. The login URL is the `__PMFBY_TOKEN_URL__` substitution, and the login
+  is read from `PMFBY_ACCESS_UID` and `PMFBY_ACCESS_PWD`.
+- The same step serves PM-KISAN as one participant, `pmkisan`, with two
+  capabilities: `pmkisan|openagrinet:Grievance` (OTP at `init`, lodge at
+  `support`, read back at `status`) and `pmkisan|openagrinet:SchemeApplication`
+  (OTP at `init`, the application record and its blockers at `status`). Each has
+  its own envelope, in a block named by its binding key; Grievance asks for and
+  checks its OTP on the SchemeApplication binding's host. Both read
+  `PMKISAN_GRIEVANCE_KEY`, `PMKISAN_GRIEVANCE_IV`, `PMKISAN_SERVICE_TOKEN` and
+  `PMKISAN_OTP_TOKEN` from `provider-upstream`, which must carry them before
+  PM-KISAN is called.
+- The consumer tier's routing sends `support` to the provider tier.
+
+## [0.6.0] - 2026-10-09
+
+### Added
+- **Two deployment modes, with single as the default.**
+  `deploymentMode: single-adapter | multi-adapter` (default `single-adapter`), read by
+  role `network-adapter` only. In single, role `network-adapter` is the Network Adapter Layer: the consumer, network and provider tiers as four
+  modules of one process (`/` for the consumer, `/publish`,
+  `/_internal/network/`, `/_internal/provider/`), one release called `network-adapter`. In multi,
+  `provider`, `network` and `consumer` run one release per tier, unchanged.
+- `config/single-adapter/network-adapter-config.yaml`: the layer's adapter config, mounted
+  like any role's file (an outbound connection pool and log level info on
+  every module). Each module is its tier's module, so a change to
+  a tier file that should apply to both deployment modes is made in both. Its routing
+  is two files of its own, `config/single-adapter/routing-network-adapter-{consumer,provider}.yaml`,
+  whose tier hops go to `http://localhost:9201/_internal/<tier>`, so they stay inside the pod;
+  the network module reuses `config/multi-adapter/routing-network.yaml`. The render fails if
+  `http.port` or a routing file's localhost port differs from `service.targetPort`.
+- Three identities: each module signs as its own tier from
+  `adapterKeys.{consumer-adapter,network-adapter,provider-adapter}`, defaulting to
+  `consumer-adapter-keys`, `network-adapter-keys` and `provider-adapter-keys`
+  (`adapterKeys.extraSubstitutions` for extra placeholders). A literal
+  private key in the config, including a `config:` override, fails the render.
+- Flat paths: `/discover`, `/publish`, `/<action>` and `/health`, the
+  same URLs as the multi deployment mode. The network and provider tiers are mounted
+  under `/_internal/`, which only the process itself calls.
+- Ingress for the layer may expose only single-segment `/<action>`, as literal
+  paths with `pathType` Prefix or Exact and no `use-regex` / `rewrite-target`
+  annotation; `/`, `/publish` and `/_internal*` are refused. `routing.config` fails the render for this
+  role.
+- `examples/network-adapter.yaml` serves both modes: in single mode the chart adds
+  `adapterKeys.upstreamSecret` (default `provider-upstream`) to `envFrom`,
+  so only `--set deploymentMode` changes. `ci/network-adapter-values.yaml`
+  renders single mode in CI.
+- `deploymentMode` is set only in `values.yaml` (default `single-adapter`);
+  examples and CI values do not set it. `ci/lint-values.yaml` (role `network-adapter`)
+  therefore renders single mode.
+- `SETUP.md`: setup for both modes, including the openbao-secrets changes for multi.
+
+### Changed
+- **Breaking:** `role: network` now defaults to the single deployment mode.
+  An existing network-tier release must set `deploymentMode:
+  multi-adapter` (e.g. `--set deploymentMode=multi-adapter`), or the upgrade turns it into the
+  Network Adapter Layer. That pod then waits on the consumer and provider key
+  Secrets, which a multi environment does not mirror into `network-adapter`.
+- Docs, `values.yaml` and the example headers say single is the default
+  deployment mode and multi is optional.
+- Naming: in single mode the release, Service, app name and namespace are
+  `network-adapter`, the same as the multi network tier's (telemetry service
+  `oan-network-adapter`, set in `config/single-adapter/network-adapter-config.yaml`).
+  Switching modes upgrades that release in place.
+
+### Fixed
+- Liveness and readiness probes now render. Values used `probes.liveness` /
+  `probes.readiness`, which `common.probes` never read, so no adapter pod had a
+  readiness probe. Upgrading rolls every adapter pod once.
+- The startup probe bounds first boot at 180s (`periodSeconds: 5` x
+  `failureThreshold: 36`) and holds off liveness until `/health` answers.
+  Pods that had no probe before now get a liveness probe, and the adapter
+  fetches `beckn.yaml` at boot, so without this a slow or proxied egress
+  would get a cold start killed after about 70s.
+- NOTES.txt in single mode no longer prints `registry.url` and
+  `otel.*`: that role mounts `config/single-adapter/network-adapter-config.yaml` as is, so those
+  values never reached the pod and NOTES reported the opposite of what it ran.
+  The example and CI values no longer set them.
+- The Ingress annotations merge tolerates `ingress.annotations: null`.
+  `ci/network-adapter-values.yaml` turns the Ingress on, so CI renders the path guard.
+
+### Removed
+- **Breaking:** the `probes.liveness` and `probes.readiness` values keys, renamed to
+  `livenessProbe` / `readinessProbe`, plus a new `startupProbe`, on by
+  default. The liveness and readiness timings are unchanged. An environment
+  that overrides `probes.*` must rename those keys; the old keys never took
+  effect and are now silently ignored, which is why this is a minor bump
+  rather than a patch.
+
+### Unchanged
+- Roles `provider`, `network`, `consumer`: same config, routing and manifests
+  apart from the probes (the chart version label and the config checksum
+  annotation also change with the version).
+
+## [0.5.2] - 2026-09-29
+
+### Changed
+- The role configs' header comments say the keys Secret comes from OpenBao,
+  not AWS Secrets Manager, and so does the provider config's note on why the
+  benchmark drops the agmarknet token exchange. Comment-only; the Secret's name
+  and keys are unchanged.
+
+## [0.5.1] - 2026-09-28
+
+### Fixed
+
+- The trailing-slash guard on routing targets is parsed rather than grepped. It
+  tested lines beginning `url:` and ending `/`, which missed every form the
+  value can legitimately take: a quoted url ends in the quote, a list-item
+  `- url:` fails the prefix, and a trailing comment fails the suffix. Each was a
+  slash that reached the router and produced `//discover`.
+
+  It now reads the routing with `fromYaml` and checks each
+  `routingRules[].target.url`, and fails when the document parses to no rules at
+  all — previously a malformed routing file rendered an adapter with no routes.
+
+- The failure message names the source that was actually used. It always named
+  the chart's `config/routing-<role>.yaml`, even when the routing came from
+  `routing.config` in values, pointing at a file the operator had not edited.
+
+## [0.5.0] - 2026-09-23
+
+### Changed
+- **BREAKING.** `routing.rules` is gone. Routing comes from
+  `config/routing-<role>.yaml` in this chart, mounted verbatim, exactly like
+  `config/<role>-config.yaml` beside it.
+
+  Routing is topology rather than environment: the in-cluster targets follow the
+  namespace-per-component convention and are identical in every environment — no
+  environment had ever overridden them. Holding them in values only meant that
+  changing an adapter's steps was a change here while changing its routes was a
+  change in another repository, for the same adapter and the same config
+  directory.
+
+  `routing.config` takes a whole routing file verbatim for a deployment that
+  genuinely differs — pointing the provider adapter at a mock upstream, say.
+
+  To migrate: delete the `routing:` block from your values. If it said anything
+  other than what `config/routing-<role>.yaml` now says, move it to
+  `routing.config`.
+
+### Removed
+- The `adapter-service.routingRules` helper, which validated and rendered those
+  values. Three of its four checks — rules present, url present, endpoints
+  present — stop earning their keep once the file is committed in the chart and
+  visible in review.
+
+  The fourth is kept, as a string check on the file: a `target.url` ending in a
+  slash fails the render, naming the file and the line. That one produces
+  `//discover` at runtime, which reads as a bad gateway rather than as a typo.
+
+## [0.4.0] - 2026-09-22
+
+### Changed
+- **Signing and signature validation are on.** Each hop now has a signer on one
+  side and a validator on the other, which is why this is one change and not
+  three:
+
+  | Module | Steps |
+  |---|---|
+  | consumer | `validateSchema, addRoute, sign` |
+  | network | `validateSign, addRoute` |
+  | provider (select) | `validateSign, validateSchema, <capabilities>` |
+  | provider (publish) | `validateSchema, addRoute, sign` |
+
+  Turning any one of these off on its own breaks the hop it belongs to: drop
+  `sign` on consumer and both network and provider reject every request.
+
+  The network adapter does not sign on the way out, and the provider does not
+  `signAck`, because nothing verifies either: the discovery service's signature
+  middleware is parked rather than mounted, and the consumer has no validation
+  step on the response path. Signing for a verifier that does not exist is a
+  keypair operation per request for nothing.
+
+- **Extended schema validation is on** wherever `validateSchema` runs — consumer
+  and both provider modules. It fetches each resource's own `@context` and
+  validates against it, so a payload can now fail on a network call.
+  `extendedSchema_allowedDomains` is what keeps that fetch from following a
+  payload to an arbitrary host. Note it does not enforce `if/then`, so a pass is
+  not pack conformance.
+
+- **Telemetry is on** in all three roles. This assumes a collector answers at
+  `clickstack-otel-collector.observability.svc.cluster.local:4317`. Without one
+  the exporter logs a connection failure every few seconds — set all three flags
+  back to `false` for a cluster with no collector.
+
+### Known issue
+- `handler.steps`, `otel.*` and `becknSpec.*` in `values.yaml` no longer affect
+  anything. Since 0.3.0 the config is read from `config/<role>-config.yaml` by
+  `.Files.Get`, and only `NOTES.txt` still reads those values — so the
+  post-install message prints a step list the adapter is not running. Fixing it
+  means either deleting the dead values or rendering the config from them.
+
+## [0.3.1] - 2026-09-18
+
+### Fixed
+- `subscriberId` and `keyId` are quoted in all three role configs. The init
+  container substitutes each sentinel with the contents of the keys Secret, and
+  the placeholder `keyId` holds before registry-seed runs contains a colon, so
+  the substituted line parsed as a nested mapping. Every adapter crash-looped on
+  `yaml: line 77: mapping values are not allowed in this context`.
+
+### Added
+- The init container fails, naming `resolve-key-ids.sh`, when the `keyId` in the
+  Secret is still the `<<PENDING ...>>` sentinel. Quoting alone would let the
+  adapter start and sign with an identity the registry has never issued, which
+  fails at every counterparty with nothing in this pod's logs to explain it.
+
+## [0.3.0] - 2026-09-18
+
+### Changed
+- **BREAKING.** The adapter config comes from `config/<role>-config.yaml` in this
+  chart, mounted verbatim, instead of being rendered by `configmap.yaml`. The
+  render fails naming the expected file when it is absent.
+
+  An adapter config is a plugin graph. The provider one carries a plugin per
+  capability, each with its own binding key, auth block and mapping, plus a
+  second module for the outbound publish leg — 298 lines against the 131 the
+  template produced. Expressing that in values would mean this chart learning
+  what a capability is, and every new provider becoming a chart change.
+
+  `config` in values still overrides the file, for an environment that must
+  differ without a new file.
+
+### Added
+- `keys.existingSecret.extraSubstitutions`: placeholder -> key in the same
+  Secret, substituted by the same init container as the keys. Upstream token
+  endpoints use it — they are deployment facts, one of them a bare IP, and
+  committing them would put a partner's endpoint in a public repository.
+
+### Fixed
+- The leftover-placeholder check matched only `__ADAPTER_`, so any other
+  unsubstituted placeholder reached the application as literal text and failed
+  as a DNS error on a hostname like `__AGMARKNET_TOKEN_URL__`. It now catches
+  any `__UPPERCASE__` and refuses to start.
+- `examples/consumer.yaml` still said `role: experience` throughout. The file
+  was renamed in 845d916 but its contents were not, so it failed to render
+  against the chart that validates `consumer`.
+
+## [0.2.0] - 2026-09-17
+
+### Changed
+- **BREAKING.** The third role is `consumer`, not `experience`. `role: experience`
+  now fails the render, `examples/experience.yaml` is `examples/consumer.yaml`,
+  and the default `appName` and handler wiring follow.
+
+  The compose stack renamed this adapter to `consumer-adapter`, and the chart
+  kept validating against the old word -- so a values file written from the
+  running stack was rejected with "role must be one of provider, network,
+  experience", which names the rule rather than the rename. The two now agree.
+
+  The role is not cosmetic: it decides the handler role, the step list and the
+  routing target, so a chart that accepted both spellings would be a chart with
+  two names for one thing.
+
 ## [Unreleased]
 
 ### Changed

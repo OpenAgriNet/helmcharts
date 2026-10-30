@@ -1,0 +1,460 @@
+# Single mode: consumer at /, /publish, /network/, /provider/ in one
+# process. Each module mirrors its tier file; keys are filled in at pod start (ADR-0001).
+appName: "network-adapter"
+
+log:
+  level: info
+  destinations:
+    - type: stdout
+  contextKeys: [transaction_id, message_id, subscriber_id, module_id]
+
+http:
+  # Also the port the single-adapter routing files use: keep it equal to the
+  # chart's service.targetPort.
+  port: 9201
+  timeout:
+    read: 30
+    write: 30
+    idle: 30
+
+pluginManager:
+  root: ./plugins
+
+plugins:
+  # OTLP/gRPC metrics, traces and logs. Turn all three off where no collector
+  # runs, or the exporter logs a failure every few seconds.
+  otelsetup:
+    id: otelsetup
+    config:
+      serviceName: "oan-network-adapter"
+      environment: "dev"
+      otlpEndpoint: "clickstack-otel-collector.observability.svc.cluster.local:4317"
+      enableMetrics: "true"
+      enableTracing: "true"
+      enableLogs: "true"
+
+  # The crawler's own registry: it verifies a crawled catalog's signature
+  # against the publisher's key there. The image refuses to start a crawler
+  # without one. Separate from the modules' registries below.
+  registry:
+    id: sunbirdRegistry
+    config:
+      url: http://registry.registry.svc.cluster.local:8081/api/v1
+      entity: Participant
+      providerEntity: ProviderSchema
+      timeout: 2
+      retry_max: 1
+      retry_wait_min: 100ms
+      retry_wait_max: 500ms
+      maxResponseBytes: 1048576
+      cacheTTL: 0
+
+  # Off builds no schedule and never dials, so a cluster that federates with
+  # nobody stays quiet. Answering someone else's crawl is unaffected.
+  #
+  # No database: dbDsn is only for staticIndexUrls, networks or publishPipelines.
+  crawler:
+    id: catalogcrawler
+    config:
+      # Where a crawled catalog is published: this adapter's own network mount,
+      # which is what a local publish goes through too. The port must match
+      # service.targetPort.
+      discoveryPushUrl: "http://localhost:__ADAPTER_PORT__/network/publish"
+      participantId: "__NETWORK_SUBSCRIBER_ID__"
+
+      federationEnabled: "__FEDERATION_ENABLED__"
+      # We sign what we send, with the same key that signs everything else.
+      signingPrivateKey: "__NETWORK_SIGNING_PRIVATE__"
+      keyId: "__NETWORK_KEY_ID__"
+      # How often every admitted source network is asked.
+      federationRefreshSeconds: "__FEDERATION_REFRESH_SECONDS__"
+      # How many catalogs one call asks for. Discovery defaults to 20, so a
+      # network sharing more is partly collected and nothing says so.
+      federationPageSize: "__FEDERATION_PAGE_SIZE__"
+      # What breadth to ask for. Required in practice: discovery refuses an
+      # intent that narrows nothing, and the refusal mirrors zero catalogs with
+      # no error anywhere.
+      federationIntent: '__FEDERATION_INTENT__'
+
+modules:
+  # consumer: unsigned calls from this deployment's own app. NEVER on an
+  # Ingress -- it checks no signature and no agreement. discover goes to
+  # /network, transactions to /provider.
+  - name: consumer-adapter
+    path: /consumer/
+    handler:
+      type: std
+      role: bap
+      subscriberId: "__CONSUMER_SUBSCRIBER_ID__"
+      # Outbound connection pool; responseHeaderTimeout includes the upstream
+      # API call on the consumer -> provider hop.
+      httpClientConfig:
+        maxIdleConns: 512
+        maxIdleConnsPerHost: 128
+        idleConnTimeout: 90s
+        responseHeaderTimeout: 30s
+      plugins:
+        registry:
+          id: sunbirdRegistry
+          config:
+            url: http://registry.registry.svc.cluster.local:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            maxResponseBytes: 1048576
+            cacheTTL: 0
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: "__CONSUMER_SUBSCRIBER_ID__"
+            keyId: "__CONSUMER_KEY_ID__"
+            signingPrivateKey: "__CONSUMER_SIGNING_PRIVATE__"
+            signingPublicKey: "__CONSUMER_SIGNING_PUBLIC__"
+            encrPrivateKey: "__CONSUMER_ENCR_PRIVATE__"
+            encrPublicKey: "__CONSUMER_ENCR_PUBLIC__"
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml"
+            cacheTTL: "3600"
+            extendedSchema_enabled: "true"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
+        signValidator:
+          id: signvalidator
+        signer:
+          id: signer
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/routing-network-adapter-consumer.yaml
+        middleware:
+          - id: reqpreprocessor
+            config:
+              contextKeys: transaction_id,message_id
+              role: bap
+      steps:
+        - validateSchema
+        - addRoute
+        - sign
+
+  # network: the door another network calls. Checks the signature and the
+  # agreement, then forwards discover and publish to discovery.
+  - name: network-adapter
+    path: /network/
+    handler:
+      type: std
+      role: bpp
+      subscriberId: "__NETWORK_SUBSCRIBER_ID__"
+      httpClientConfig:
+        maxIdleConns: 512
+        maxIdleConnsPerHost: 128
+        idleConnTimeout: 90s
+        responseHeaderTimeout: 30s
+      plugins:
+        registry:
+          id: sunbirdRegistry
+          config:
+            url: http://registry.registry.svc.cluster.local:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            maxResponseBytes: 1048576
+            cacheTTL: 0
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: "__NETWORK_SUBSCRIBER_ID__"
+            keyId: "__NETWORK_KEY_ID__"
+            signingPrivateKey: "__NETWORK_SIGNING_PRIVATE__"
+            signingPublicKey: "__NETWORK_SIGNING_PUBLIC__"
+            encrPrivateKey: "__NETWORK_ENCR_PRIVATE__"
+            encrPublicKey: "__NETWORK_ENCR_PUBLIC__"
+        # Extended layer off: it fetches each resource's @context per payload.
+        # The extendedSchema_* settings apply only when it is on.
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml"
+            cacheTTL: "3600"
+            extendedSchema_enabled: "false"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
+        signValidator:
+          id: signvalidator
+        signer:
+          id: signer
+        router:
+          id: router
+          config:
+            # The multi-adapter network routing, unchanged: discover and
+            # publish to discovery.
+            routingConfig: /app/config/routing-network.yaml
+        middleware:
+          - id: reqpreprocessor
+            config:
+              contextKeys: transaction_id,message_id
+              role: bpp
+      steps:
+        - validateSign
+        - checkCrossNetworkRequester
+        - addRoute
+
+  # provider: another network's select lands here. Checks the signature and the
+  # agreement, then answers from the upstreams (credentials via envFromSecrets).
+  - name: oanProvider
+    path: /provider/
+    handler:
+      type: std
+      role: bpp
+      subscriberId: "__PROVIDER_SUBSCRIBER_ID__"
+      httpClientConfig:
+        maxIdleConns: 512
+        maxIdleConnsPerHost: 128
+        idleConnTimeout: 90s
+        responseHeaderTimeout: 30s
+      plugins:
+        registry:
+          id: sunbirdRegistry
+          config:
+            url: http://registry.registry.svc.cluster.local:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            maxResponseBytes: 1048576
+            cacheTTL: 0
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: "__PROVIDER_SUBSCRIBER_ID__"
+            keyId: "__PROVIDER_KEY_ID__"
+            signingPrivateKey: "__PROVIDER_SIGNING_PRIVATE__"
+            signingPublicKey: "__PROVIDER_SIGNING_PUBLIC__"
+            encrPrivateKey: "__PROVIDER_ENCR_PRIVATE__"
+            encrPublicKey: "__PROVIDER_ENCR_PUBLIC__"
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml"
+            cacheTTL: "3600"
+            extendedSchema_enabled: "true"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
+        signValidator:
+          id: signvalidator
+        signer:
+          id: signer
+        mapper:
+          id: jsonmapper
+          config:
+            fetchTimeout: 10s
+            maxMappingBytes: 262144
+            cacheTTL: 1m
+            negativeTTL: 1m
+            maxCacheEntries: 200
+        middleware:
+          - id: reqpreprocessor
+            config:
+              contextKeys: transaction_id,message_id
+              role: bpp
+        providerSteps:
+          - id: WeatherObservation
+            config:
+              bindingKeys: "mausamgram|openagrinet:WeatherObservation"
+              mausamgram:
+                authScheme: header
+                headerName: Authorization
+                headerValueEnv: MAUSAMGRAM_AUTH
+
+          - id: MandiPrice
+            config:
+              bindingKeys: "agmarknet|openagrinet:MandiPrice"
+              agmarknet:
+                authScheme: tokenQuery
+                # Substituted from the provider Secret (agmarknetTokenUrl) via
+                # adapterKeys.extraSubstitutions; the login is read from
+                # AGMARKNET_ACCESS_NAME and AGMARKNET_PASSWORD.
+                tokenUrl: "__AGMARKNET_TOKEN_URL__"
+                tokenUserField: access_name
+                tokenUserEnv: AGMARKNET_ACCESS_NAME
+                tokenSecretField: password
+                tokenSecretEnv: AGMARKNET_PASSWORD
+                tokenResponseField: token
+                queryName: token
+                tokenTtl: 10m
+
+          - id: KnowledgeAdvisory
+            config:
+              bindingKeys: "bharat-vistaar|openagrinet:KnowledgeAdvisory"
+              bharat-vistaar:
+                authScheme: oauth2
+                # Substituted from the provider Secret (vistaarTokenUrl) via
+                # adapterKeys.extraSubstitutions.
+                tokenUrl: "__VISTAAR_TOKEN_URL__"
+                clientIdEnv: VISTAAR_CLIENT_ID
+                clientSecretEnv: VISTAAR_CLIENT_SECRET
+              maxResponseBytes: 1048576
+
+          - id: AgricultureFacility
+            config:
+              bindingKeys: "pocra|openagrinet:AgricultureFacility"
+              pocra:
+                authScheme: none
+              searchConcurrency: 1
+
+          # PMFBY: no OTP. The call is made with a token exchanged at the
+          # provider's login, so the login URL is substituted from the keys
+          # Secret like the other token URLs, and the login itself is read from
+          # the environment.
+          #
+          # PM-KISAN: one participant with two capabilities, each on its own
+          # host (the binding's baseUrl in the registry) and its own envelope,
+          # so their settings are blocks named by binding key. Grievance asks
+          # for and checks its OTP on the SchemeApplication binding's host.
+          # Keys and tokens come from the environment (provider-upstream):
+          # PMKISAN_GRIEVANCE_KEY, PMKISAN_GRIEVANCE_IV, PMKISAN_SERVICE_TOKEN
+          # and PMKISAN_OTP_TOKEN.
+          - id: Grievance
+            config:
+              bindingKeys: "pmfby|openagrinet:Grievance,pmkisan|openagrinet:Grievance,pmkisan|openagrinet:SchemeApplication"
+              # Paired by position, tried in order: status names the binding on
+              # its contract, support on its channel.
+              providerIdAt: "message.contract.commitments[].offer.provider.id, message.support.channels[].provider.id"
+              capabilityCodeAt: "message.contract.commitments[].commitmentAttributes.@type, message.support.channels[].@type"
+              # The token is sent bare in Authorization and held until the
+              # login reply's own validTo.
+              pmfby:
+                authScheme: tokenHeader
+                tokenUrl: "__PMFBY_TOKEN_URL__"
+                tokenUserField: appAccessUID
+                tokenUserEnv: PMFBY_ACCESS_UID
+                tokenSecretField: appAccessPWD
+                tokenSecretEnv: PMFBY_ACCESS_PWD
+                tokenResponseField: responseDynamic.token.Token
+                tokenExpiryField: responseDynamic.token.validTo
+                headerName: Authorization
+              pmkisan:
+                authScheme: none
+              "pmkisan|openagrinet:Grievance":
+                envelope: aesGcm
+                envelopeKeyEnv: PMKISAN_GRIEVANCE_KEY
+                envelopeNonceEnv: PMKISAN_GRIEVANCE_IV
+                envelopeTokenEnv: PMKISAN_SERVICE_TOKEN
+                envelopeTokenField: TokenNo
+                envelopeRequestField: EncryptedRequest
+                envelopeResponsePaths: "d.output,output"
+                otpEnvelope: aesCbcKeyInBand
+                otpBindingKey: "pmkisan|openagrinet:SchemeApplication"
+                otpTokenEnv: PMKISAN_OTP_TOKEN
+                otpTokenField: Token
+                otpRequestField: EncryptedRequest
+                otpResponsePaths: "d.output,output"
+                otpActions: init
+                otpVerifyPath: /ChatbotOTPVerified
+                otpVerifyActions: "support,status"
+                otpVerifyTimeoutMs: "10000"
+              # The binding's host is the OTP service itself: OTP, the record,
+              # then a follow-up read of its blockers.
+              "pmkisan|openagrinet:SchemeApplication":
+                envelope: aesCbcKeyInBand
+                envelopeTokenEnv: PMKISAN_OTP_TOKEN
+                envelopeTokenField: Token
+                envelopeRequestField: EncryptedRequest
+                envelopeResponsePaths: "d.output,output"
+                otpVerifyPath: /ChatbotOTPVerified
+                otpVerifyActions: status
+                otpVerifyTimeoutMs: "10000"
+                followUpPath: /ChatbotBeneficiaryStatus
+                followUpField: _beneficiaryStatus
+                followUpActions: status
+                followUpTimeoutMs: "10000"
+      steps:
+        - validateSign
+        - checkCrossNetworkRequester
+        - validateSchema
+        - WeatherObservation
+        - MandiPrice
+        - KnowledgeAdvisory
+        - AgricultureFacility
+        - Grievance
+        - sign
+
+  # provider-publish: the catalogue system publishes at /publish, signed as the
+  # provider. No validateSign: never expose it on an Ingress.
+  - name: oanProviderPublish
+    path: /publish
+    handler:
+      type: std
+      role: bap
+      subscriberId: "__PROVIDER_SUBSCRIBER_ID__"
+      httpClientConfig:
+        maxIdleConns: 512
+        maxIdleConnsPerHost: 128
+        idleConnTimeout: 90s
+        responseHeaderTimeout: 30s
+      plugins:
+        registry:
+          id: sunbirdRegistry
+          config:
+            url: http://registry.registry.svc.cluster.local:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            maxResponseBytes: 1048576
+            cacheTTL: 0
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: "__PROVIDER_SUBSCRIBER_ID__"
+            keyId: "__PROVIDER_KEY_ID__"
+            signingPrivateKey: "__PROVIDER_SIGNING_PRIVATE__"
+            signingPublicKey: "__PROVIDER_SIGNING_PUBLIC__"
+            encrPrivateKey: "__PROVIDER_ENCR_PRIVATE__"
+            encrPublicKey: "__PROVIDER_ENCR_PUBLIC__"
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml"
+            cacheTTL: "3600"
+            extendedSchema_enabled: "true"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
+        signer:
+          id: signer
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/routing-network-adapter-provider.yaml
+        middleware:
+          - id: reqpreprocessor
+            config:
+              contextKeys: transaction_id,message_id
+              role: bap
+      steps:
+        - validateSchema
+        - addRoute
+        - sign

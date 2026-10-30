@@ -37,10 +37,21 @@
 
 {{/*
 JDBC URL for the registry database.
+
+sslMode is appended as a query parameter when set. It matters against CNPG:
+pgjdbc defaults to sslmode=prefer, which falls back to plaintext only when the
+server REFUSES SSL -- a failed handshake is fatal. A stock postgres image has
+SSL off, so prefer falls back cleanly; CNPG always has it on, so the handshake
+is attempted and this registry's Java 8 runtime cannot complete it.
 */}}
 {{- define "registry.jdbcUrl" -}}
 {{- $db := .Values.database -}}
-{{- printf "jdbc:postgresql://%s:%v/%s" $db.host $db.port $db.name -}}
+{{- $url := printf "jdbc:postgresql://%s:%v/%s" $db.host $db.port $db.name -}}
+{{- if $db.sslMode -}}
+{{- printf "%s?sslmode=%s" $url $db.sslMode -}}
+{{- else -}}
+{{- $url -}}
+{{- end -}}
 {{- end }}
 
 {{/*
@@ -96,19 +107,24 @@ is rejected as unauthorised.
 {{- $db := .Values.database -}}
 {{- $kc := .Values.keycloak -}}
 {{- if not $db.host }}
-{{- fail (printf "%s: database.host is required - point it at the PostgreSQL primary service, e.g. registry-db-rw" .Chart.Name) }}
+{{- fail (printf "%s: database.host is required - point it at the PostgreSQL primary service, e.g. postgres-rw" .Chart.Name) }}
 {{- end }}
 {{- if not $db.passwordSecret.name }}
 {{- fail (printf "%s: database.passwordSecret.name is required - this chart renders no passwords" .Chart.Name) }}
 {{- end }}
+{{- /* Keycloak is only needed while authentication is on. With it off the
+       registry checks no token, so demanding a realm URL and a client secret
+       would be asking for the address of something nothing talks to. */}}
+{{- if .Values.authenticationEnabled }}
 {{- if not $kc.url }}
-{{- fail (printf "%s: keycloak.url is required, including the /auth context path, e.g. http://keycloak:8080/auth" .Chart.Name) }}
+{{- fail (printf "%s: keycloak.url is required while authenticationEnabled is true, including the /auth context path, e.g. http://keycloak:8080/auth" .Chart.Name) }}
 {{- end }}
 {{- if not $kc.adminClientSecret.name }}
-{{- fail (printf "%s: keycloak.adminClientSecret.name is required. Regenerate the admin-api client secret in the Keycloak console after the realm import, then store it." .Chart.Name) }}
+{{- fail (printf "%s: keycloak.adminClientSecret.name is required while authenticationEnabled is true. Regenerate the admin-api client secret in the Keycloak console after the realm import, then store it." .Chart.Name) }}
 {{- end }}
 {{- if and .Values.keycloakUserSetPassword (not .Values.defaultUserPasswordSecret.name) }}
 {{- fail (printf "%s: keycloakUserSetPassword is true, so defaultUserPasswordSecret.name is required - it is the password the registry sets on Keycloak users it creates" .Chart.Name) }}
+{{- end }}
 {{- end }}
 {{- $kcUrl := $kc.url | trimSuffix "/" }}
 - name: connectionInfo_uri
@@ -122,6 +138,7 @@ is rejected as unauthorised.
       key: {{ $db.passwordSecret.key }}
 - name: authentication_enabled
   value: {{ .Values.authenticationEnabled | quote }}
+{{- if .Values.authenticationEnabled }}
 - name: sunbird_sso_realm
   value: {{ $kc.realm | quote }}
 - name: sunbird_sso_url
@@ -149,6 +166,7 @@ is rejected as unauthorised.
     secretKeyRef:
       name: {{ . }}
       key: {{ $.Values.defaultUserPasswordSecret.key }}
+{{- end }}
 {{- end }}
 {{- with (include "common.env" . | trim) }}
 {{ . }}

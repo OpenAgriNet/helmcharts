@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
 #
-# Lint and render every chart under charts/.
+# Lint and render every chart under charts/, at the top level (charts/<name>)
+# or grouped one directory deeper (charts/<group>/<name>, e.g.
+# charts/dss/model-gateway) - anywhere a Chart.yaml is
+# found up to two directories below charts/.
+#
+# A chart lives at charts/<chart>, or one level down at charts/<group>/<chart>
+# when it belongs to a group of related charts (charts/lite-llm). A
+# group directory has no Chart.yaml of its own.
 #
 # Run locally exactly as CI runs it:
 #   ./scripts/lint-charts.sh
 #
-# Charts depending on common via file://../common carry no committed
-# dependency artifact, so the dependency is rebuilt here before linting. That
-# also means a local edit to common is only picked up after this runs (or
-# after `helm dependency update <chart>`).
+# Charts depending on common via file://../common (or file://../../common one
+# directory deeper) carry no committed dependency artifact, so the dependency
+# is rebuilt here before linting. That also means a local edit to common is
+# only picked up after this runs (or after `helm dependency update <chart>`).
 #
 # A chart whose defaults deliberately fail the render - because it requires a
 # database host or a secret reference that has no safe default - supplies the
@@ -21,9 +28,22 @@ cd "$(dirname "$0")/.."
 
 failed=0
 
-for chart_dir in charts/*/; do
-  chart_dir="${chart_dir%/}"
-  [[ -f "$chart_dir/Chart.yaml" ]] || continue
+# Collect charts/<chart> and charts/<group>/<chart>. A chart's own charts/
+# directory (vendored dependencies) is never descended into.
+chart_dirs=()
+for dir in charts/*/; do
+  dir="${dir%/}"
+  if [[ -f "$dir/Chart.yaml" ]]; then
+    chart_dirs+=("$dir")
+    continue
+  fi
+  for sub in "$dir"/*/; do
+    sub="${sub%/}"
+    [[ -f "$sub/Chart.yaml" ]] && chart_dirs+=("$sub")
+  done
+done
+
+for chart_dir in "${chart_dirs[@]}"; do
 
   name="$(basename "$chart_dir")"
   chart_type="$(helm show chart "$chart_dir" 2>/dev/null | awk '/^type:/ {print $2}')"
@@ -78,6 +98,36 @@ for chart_dir in charts/*/; do
     done
   fi
 done
+
+# Grafana dashboards and alerting exist twice: in charts/grafana-provisioning
+# for the cluster, and in the quick-start's config/grafana for Compose. They
+# must be the same set of files with the same contents, or a dashboard or alert
+# changed -- or added -- in one path silently differs in the other. So both
+# sides are listed, and a file on either side without a twin fails too.
+#
+# infra-overview.json is the exception: the cluster copy reads kubelet metrics,
+# the quick-start copy Docker container stats, so the two differ by design.
+echo "==> grafana provisioning: chart and quick-start copies"
+chart=charts/grafana-provisioning
+qs=quick-start/config/grafana
+platform_specific_dashboard=infra-overview.json
+# nullglob: a pattern matching nothing expands to nothing, not to itself.
+shopt -s nullglob
+for pair in "$chart/dashboards:$qs/provisioning/dashboards/json:json" \
+            "$chart/alerting:$qs/alerting-true:yaml"; do
+  IFS=: read -r chart_dir qs_dir ext <<<"$pair"
+  names=$( { for file in "$chart_dir"/*."$ext" "$qs_dir"/*."$ext"; do basename "$file"; done; } | sort -u)
+  for name in $names; do
+    if [[ ! -f "$chart_dir/$name" || ! -f "$qs_dir/$name" ]]; then
+      echo "!!! $name is in only one of $chart_dir and $qs_dir -- add it to the other"
+      failed=1
+    elif [[ "$name" != "$platform_specific_dashboard" ]] && ! cmp -s "$chart_dir/$name" "$qs_dir/$name"; then
+      echo "!!! $chart_dir/$name and $qs_dir/$name differ -- copy one over the other"
+      failed=1
+    fi
+  done
+done
+shopt -u nullglob
 
 if [[ "$failed" -ne 0 ]]; then
   echo "chart validation FAILED"
