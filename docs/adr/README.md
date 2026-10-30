@@ -15,3 +15,4 @@ Start from [`0000-template.md`](0000-template.md).
 | [0004](0004-schema-pack-list-as-a-separate-file.md) | The schema pack list is a separate file | network-adapter#74 |
 | [0005](0005-filling-the-registry.md) | Filling the registry: create-only rows, and what that costs | helmcharts#72 |
 | [0006](0006-bringing-the-stack-up.md) | The stack starts in an order, and `down` means down | helmcharts#72 |
+| [0007](0007-network-adapter-mount-paths-and-the-edge-rewrite.md) | Tier mounts carry the tier name; the edge rewrites the public path | helmcharts#73 |

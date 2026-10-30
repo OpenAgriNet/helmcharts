@@ -1,4 +1,4 @@
-# ADR-0002 — Tier mounts carry the tier name; the edge rewrites the public path
+# ADR-0007 — Tier mounts carry the tier name; the edge rewrites the public path
 
 **Status:** Proposed
 **Date:** 2026-10-27
