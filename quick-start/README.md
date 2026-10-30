@@ -28,8 +28,23 @@ make register-provider PROVIDER=mausamgram   # repeat per provider
 make configure-adapter                       # render the config, start the adapter
 ```
 
-Providers are `mausamgram`, `agmarknet`, `vistaar`, `pocra` and `pmkisan`. The adapter
-serves the ones you register.
+The adapter serves the providers you register, and asks for a credential only
+when you register the provider that needs it:
+
+| provider | capability | needs |
+|---|---|---|
+| `pocra` | Agriculture Facility | nothing |
+| `mausamgram` | Weather Observation | `MAUSAMGRAM_AUTH` |
+| `agmarknet` | Mandi Price | base URL, token URL, access name, password |
+| `vistaar` | Knowledge Advisory | base URL, token URL, client id, secret |
+| `pmkisan` | Grievance and Scheme Application | two hosts, an AES key and nonce, two service tokens |
+
+`pocra` needs nothing, so it is the one to start with. `pmkisan` is the odd one:
+two capabilities on two hosts, registered together by the one command.
+
+Every `*_MAPPING_URL` must point at a tag that exists in the published
+helmcharts repo. One that 404s breaks every select for that capability, and
+nothing in the error names the mapping.
 
 `make configure-adapter` asks which deployment mode and whether to crawl other
 networks, and remembers both in `.env`.

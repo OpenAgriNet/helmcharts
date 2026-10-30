@@ -132,6 +132,9 @@ make register-provider PROVIDER=<name>
 make configure-adapter
 ```
 
+[README.md](README.md) lists the providers and what each one asks for. `pocra`
+asks for nothing, so a run with no credentials at all still reaches a select.
+
 `configure-adapter` renders the adapter config from the registry **and**
 restarts the adapters. That is the restart; there is no separate one. Editing
 a rendered config by hand achieves nothing — it is overwritten from the
