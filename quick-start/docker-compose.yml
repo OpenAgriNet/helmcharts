@@ -95,6 +95,11 @@ networks:
     name: ${STACK_PREFIX:-}oan-internal
   oan-edge:
     name: ${STACK_PREFIX:-}oan-edge
+  # The one bridge every network on this machine shares, and the only crossing
+  # point. Created by `make up`; only the network adapter and NPM are on it.
+  oan-federation:
+    name: oan-federation
+    external: true
 
 volumes:
   sunbird-registry-postgres-data:
@@ -177,6 +182,10 @@ x-adapter-env: &adapter-env
   # suggests the transport is configurable from this file.
   OTEL_EXPORTER_OTLP_ENDPOINT: http://${OTLP_ENDPOINT:-otel-collector:4317}
   OTEL_EXPORTER_OTLP_INSECURE: "true"
+  # Go reads SSL_CERT_FILE for the system roots on Linux, so an outbound call
+  # to another network verifies its certificate against the local CA with no
+  # adapter code that knows local CAs exist.
+  SSL_CERT_FILE: /etc/oan/ca.crt
 
 services:
   # ==========================================================================
@@ -610,6 +619,9 @@ services:
   network-adapter:
     <<: *adapter
     container_name: ${STACK_PREFIX:-}network-adapter
+    # The only adapter that calls another network, so the only one on the
+    # shared bridge -- which is what makes the boundary real, not decorative.
+    networks: [oan-internal, oan-edge, oan-federation]
     depends_on:
       sunbird-registry-service:
         condition: service_healthy
@@ -634,6 +646,7 @@ services:
       PMKISAN_OTP_TOKEN: ${PMKISAN_OTP_TOKEN:-}
     volumes:
       - ./config/adapters/${NETWORK_ADAPTER_DEPLOYMENT_MODE:-single-adapter}/network-adapter.yaml:/app/config/adapter.yaml:ro
+      - ./tls/ca.crt:/etc/oan/ca.crt:ro
       - ./config/adapters/multi-adapter/routing-network.yaml:/app/config/routing-network.yaml:ro
       - ./config/adapters/single-adapter/routing-network-adapter-consumer.yaml:/app/config/routing-network-adapter-consumer.yaml:ro
       - ./config/adapters/single-adapter/routing-network-adapter-provider.yaml:/app/config/routing-network-adapter-provider.yaml:ro
@@ -956,7 +969,13 @@ services:
     # Putting NPM on oan-internal to "make things easier" would remove that
     # bound entirely and put the registry's write API one form field away from
     # the internet. Do not.
-    networks: [oan-edge]
+    networks:
+      oan-edge:
+      oan-federation:
+        # This is what makes our networkId resolve for another network's
+        # adapter: it reaches this container and nothing else behind it.
+        aliases:
+          - ${BECKN_NETWORK_ID}
 
     ports:
       # Public. Both of these must be reachable from anywhere, not just from
@@ -1005,6 +1024,18 @@ services:
 
       # Federation documents from `make host-descriptor`, served by server_proxy.conf.
       - ./.well-known:/srv/well-known:ro
+
+      # The federation front door: a whole server block answering on our
+      # networkId. NPM includes /data/nginx/custom/http.conf on its own, so
+      # this needs no proxy host and no certificate in the admin UI.
+      #
+      # A one-line file that only pulls in server.conf, NOT the rendered block
+      # itself. NPM's start-up chowns everything under /data/nginx to root, so
+      # anything mounted here stops being ours to rewrite. Not :ro either --
+      # that chown failing aborts NPM's init and nginx never starts.
+      - ./config/reverse-proxy/federation/include.conf:/data/nginx/custom/http.conf
+      - ./config/reverse-proxy/federation:/etc/nginx/federation:ro
+      - ./tls:/etc/nginx/tls:ro
 
     depends_on:
       # Ordering only; the adapter image has no healthcheck.

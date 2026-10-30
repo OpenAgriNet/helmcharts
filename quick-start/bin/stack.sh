@@ -130,6 +130,95 @@ preflight() {
         true|false) ;;
         *) die "GRAFANA_ALERTING_ENABLED must be exactly true or false, not '$alerting'" ;;
     esac
+
+    command -v openssl >/dev/null 2>&1 \
+        || die "openssl is not installed -- bin/network-certs.sh needs it"
+
+    command -v envsubst >/dev/null 2>&1 \
+        || die "envsubst is not installed -- it renders the federation front door (apt install gettext-base)"
+
+    federation_prerequisites
+}
+
+# ------------------------------------------------------- federation plumbing
+
+# The shared bridge, this network's certificate, and the file NPM includes.
+# All three are prerequisites of `docker compose up`, not of federation: the
+# bridge is declared external, and a bind mount whose source is missing becomes
+# a DIRECTORY, which fails later and says nothing about why.
+federation_prerequisites() {
+    if ! docker network inspect oan-federation >/dev/null 2>&1; then
+        docker network create oan-federation >/dev/null
+        info "created the oan-federation bridge -- every network on this machine shares it"
+    fi
+
+    # Re-issued when BECKN_NETWORK_ID changes, because a certificate for the
+    # old name fails at the far end and says nothing about why. Not when
+    # `make certs` is the command: it re-issues straight after.
+    if [ -z "${REISSUING_CERTS:-}" ] && ! certificate_names "$(dotenv_get BECKN_NETWORK_ID)"; then
+        certs
+    fi
+
+    # Empty until `make host-descriptor` renders it. nginx accepts an empty
+    # include; a missing one stops it from starting at all.
+    mkdir -p config/reverse-proxy/federation
+    [ -f config/reverse-proxy/federation/server.conf ] \
+        || : > config/reverse-proxy/federation/server.conf
+}
+
+# Where every network on this machine answers, so admitting one needs no
+# address on the command line. Written by `make host-descriptor`.
+LOCAL_NETWORKS="${OAN_HOME:-$HOME/.oan}/networks.json"
+
+remember_front_door() { # $1 networkId  $2 https port
+    mkdir -p "$(dirname "$LOCAL_NETWORKS")"
+    python3 -c '
+import json, os, sys
+path, network, port = sys.argv[1:4]
+known = json.load(open(path)) if os.path.exists(path) else {}
+known[network] = "127.0.0.1:" + port
+json.dump(known, open(path, "w"), indent=2, sort_keys=True)
+' "$LOCAL_NETWORKS" "$1" "$2"
+}
+
+# Empty for a network that has never run here, which is the right answer: it is
+# then somewhere else, and reached by DNS like any other.
+front_door_of() { # $1 networkId
+    [ -f "$LOCAL_NETWORKS" ] || return 0
+    python3 -c '
+import json, sys
+print(json.load(open(sys.argv[1])).get(sys.argv[2], ""))
+' "$LOCAL_NETWORKS" "$1"
+}
+
+# Whether the certificate on disk is for this network.
+certificate_names() { # $1 networkId
+    [ -f tls/server.crt ] && [ -f tls/ca.crt ] || return 1
+    openssl x509 -in tls/server.crt -noout -ext subjectAltName 2>/dev/null \
+        | grep -qE "DNS:$1(,|$| )"
+}
+
+# A certificate for this network's own name, signed by the shared local CA.
+certs() {
+    local network_id
+    network_id=$(dotenv_get BECKN_NETWORK_ID)
+    [ -n "$network_id" ] || die "BECKN_NETWORK_ID is not set in .env"
+    bin/network-certs.sh "$network_id"
+}
+
+# Where the federation front door sends what another network asks for.
+#
+# CONTAINER names, not service names: every network runs a service called
+# network-adapter and they share the bridge, so the service name resolves to
+# all of them and nginx round-robins between networks.
+federation_upstreams() {
+    local prefix
+    prefix=$(container "")
+    export NETWORK_UPSTREAM="${prefix}network-adapter:9201"
+    case "$RUNNING_MODE$MODE" in
+        *multi-adapter*) export PROVIDER_UPSTREAM="${prefix}provider-adapter:9200" ;;
+        *)               export PROVIDER_UPSTREAM="$NETWORK_UPSTREAM" ;;
+    esac
 }
 
 # ------------------------------------------------------------------- up
@@ -481,14 +570,21 @@ configure_adapter() {
 # Sign the federation documents into .well-known/ and admit another network.
 # Each run of host-descriptor publishes the next revision.
 #
-# PEER, DIRECTION and PACKS come from the environment. RESOLVE and CA_FILE are
-# for two networks on one machine, behind a local CA.
+# PEER, DIRECTION and PACKS come from the environment. RESOLVE and CA_FILE fall
+# back to what this machine already knows -- where that network answers, and our
+# own CA -- so two networks on one laptop need neither on the command line.
 peer_access() {
-    printf '%s' "${RESOLVE:+--resolve $RESOLVE} ${CA_FILE:+--ca-file $CA_FILE} ${SCHEME:+--scheme $SCHEME}"
+    local resolve ca
+    resolve="${RESOLVE:-$(front_door_of "${PEER:-}")}"
+    # Only for a network on this machine. --ca-file REPLACES the trust store,
+    # so defaulting it for a real network would reject its public certificate.
+    ca="${CA_FILE:-}"
+    if [ -z "$ca" ] && [ -n "$resolve" ] && [ -f tls/ca.crt ]; then ca=tls/ca.crt; fi
+    printf '%s' "${resolve:+--resolve $resolve} ${ca:+--ca-file $ca} ${SCHEME:+--scheme $SCHEME}"
 }
 
 need_peer() {
-    [ -n "${PEER:-}" ] || die "which peer? e.g. make $1 PEER=net-b.oan.local"
+    [ -n "${PEER:-}" ] || die "which peer? e.g. make $1 PEER=net-b.oan.dev"
 }
 
 need_direction() {
@@ -536,7 +632,7 @@ verify_peer() {
 
 host_descriptor() {
     preflight
-    step 1 3 "bin/oanfed.py publish -- the Network Descriptor, JWKS and schema-pack list"
+    step 1 4 "bin/oanfed.py publish -- the Network Descriptor, JWKS and schema-pack list"
     local revision=1
     if [ -f .well-known/openagrinet ]; then
         revision=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["revision"] + 1)' \
@@ -554,7 +650,19 @@ print(setup.env("BECKN_NETWORK_ID"), setup.registry_url(),
         --keys keys/keys.json --revision "$revision" \
         ${ttl:+--projection-ttl "$ttl"} --out .
 
-    step 2 3 "nginx-proxy-manager -- serves .well-known/ on every proxy host"
+    remember_front_door "$network_id" "$https_port"
+
+    step 2 4 "the federation front door -- an nginx server block answering on $network_id"
+    federation_upstreams
+    # nginx holds this file open by inode, so it is rewritten, never replaced.
+    [ -w config/reverse-proxy/federation/server.conf ] \
+        || die "config/reverse-proxy/federation/server.conf is not yours to write -- sudo chown $(id -un):$(id -gn) config/reverse-proxy/federation/server.conf"
+    NETWORK_ID="$network_id" envsubst '${NETWORK_ID} ${NETWORK_UPSTREAM} ${PROVIDER_UPSTREAM}' \
+        < config/reverse-proxy/federation/server.conf.template \
+        > config/reverse-proxy/federation/server.conf
+    info "discover goes to $NETWORK_UPSTREAM, transactions to $PROVIDER_UPSTREAM"
+
+    step 3 4 "nginx-proxy-manager -- serves .well-known/ on every proxy host"
     local was_running
     was_running=$(docker inspect -f '{{.State.Running}}' "$(container nginx-proxy-manager)" 2>/dev/null || true)
     docker compose --profile reverse-proxy up -d nginx-proxy-manager
@@ -565,18 +673,23 @@ print(setup.env("BECKN_NETWORK_ID"), setup.registry_url(),
         info "NPM just started. Change its default login before anything else: make reverse-proxy says how."
     fi
 
-    step 3 3 "checking https://$network_id/.well-known/openagrinet through NPM"
-    # Checks routing only (-k); a peer checks the certificate.
-    local served
-    served=$(curl -fsSk --max-time 10 --resolve "$network_id:$https_port:127.0.0.1" \
-             "https://$network_id:$https_port/.well-known/openagrinet" 2>/dev/null \
-             | python3 -c 'import json,sys; print(json.load(sys.stdin)["revision"])' 2>/dev/null || true)
+    step 4 4 "checking https://$network_id/.well-known/openagrinet through NPM"
+    # Against our own CA, exactly as another network does it. Retried because
+    # an nginx reload is not instant and a first miss says nothing useful.
+    local served attempt
+    for attempt in 1 2 3 4 5; do
+        served=$(curl -fsS --cacert tls/ca.crt --max-time 10 --resolve "$network_id:$https_port:127.0.0.1" \
+                 "https://$network_id:$https_port/.well-known/openagrinet" 2>/dev/null \
+                 | python3 -c 'import json,sys; print(json.load(sys.stdin)["revision"])' 2>/dev/null || true)
+        [ "$served" = "$revision" ] && break
+        sleep 2
+    done
     if [ "$served" = "$revision" ]; then
         info "served at revision $revision -- peers can fetch it now"
     else
         warn "written, but NPM is not serving it for $network_id yet${served:+ (it serves revision $served)}"
-        info "NPM needs a proxy host, with a certificate, for $network_id."
-        info "Create it, then re-run make host-descriptor."
+        info "NPM serves this from the block rendered above -- no proxy host needed."
+        info "Try make restart-edge, then re-run make host-descriptor."
     fi
 }
 
@@ -609,6 +722,7 @@ bin/stack.sh <command>
   refresh          re-read an admitted peer's documents            PEER=
   suspend          withdraw one direction          PEER= DIRECTION=
   verify           fetch and check a peer's documents, changing nothing   PEER=
+  certs          re-issue this network's TLS certificate from the shared local CA
   reverse-proxy  start nginx-proxy-manager on its own (public, 80/443)
   observability  start clickhouse, otel-collector and grafana on their own
   pull           git pull, fixing the npm-custom ownership first
@@ -628,6 +742,7 @@ case "${1:-}" in
     down)           down ;;
     destroy)        destroy ;;
     keys)           keys ;;
+    certs)          REISSUING_CERTS=1 preflight; certs ;;
     register-network) register_network ;;
     register-provider) register_provider ;;
     configure-adapter) configure_adapter ;;

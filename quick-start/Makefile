@@ -16,7 +16,7 @@
 
 STACK := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))bin/stack.sh
 
-.PHONY: help up up-core down destroy keys register-network register-provider configure-adapter host-descriptor admit refresh suspend verify reverse-proxy observability pull restart restart-edge ps logs
+.PHONY: help up up-core down destroy keys certs register-network register-provider configure-adapter host-descriptor admit refresh suspend verify reverse-proxy observability pull restart restart-edge ps logs
 
 # Default target: running a bare `make` in a directory that can delete a
 # Postgres volume should print the menu, not pick something from it.
@@ -44,6 +44,10 @@ observability: ; @$(STACK) observability
 # configure-adapter. One provider at a time keeps a wrong value to one provider.
 
 keys:              ; @$(STACK) keys
+
+# A certificate for this network's own name, signed by a CA shared by every
+# network on this machine. `make up` issues one if there is none; this re-issues.
+certs:             ; @$(STACK) certs
 register-network:  ; @$(STACK) register-network
 
 # PROVIDER is one of mausamgram, agmarknet, vistaar, pocra.
@@ -62,9 +66,10 @@ configure-adapter: ; @$(STACK) configure-adapter
 host-descriptor: ; @$(STACK) host-descriptor
 
 # One direction at a time, and ours says nothing about theirs -- run it both
-# ways for a pair. RESOLVE and CA_FILE are for two networks on one machine.
+# ways for a pair. A network that has run on this machine needs no address:
+# `make host-descriptor` recorded where it answers, and our CA signed it.
 #
-#   make admit PEER=net-b.oan.local DIRECTION=source PACKS=all
+#   make admit PEER=net-b.oan.dev DIRECTION=source PACKS=all
 admit:         ; @$(STACK) admit
 refresh:       ; @$(STACK) refresh
 suspend:       ; @$(STACK) suspend

@@ -67,15 +67,16 @@ make admit PEER=<their-host> DIRECTION=source PACKS=all
 is its own decision, so a pair that reads from each other needs four admits
 across the two networks.
 
-For another network to reach you, paste
-`config/reverse-proxy/npm-advanced/network.conf` into the network proxy host's
-Advanced tab. Without it `/discover` is a 404 and they collect nothing.
+`make host-descriptor` also starts the front door another network reaches you
+at: a server block answering on your networkId, serving the three documents and
+mapping `/discover` to the network module. It needs no proxy host and no
+certificate in the admin UI.
 
-To run two networks on one machine, set `STACK_NAME` and `STACK_PREFIX` in the
-second one's `.env`, along with its own ports, `BECKN_NETWORK_ID` and
-`NETWORK_BASE_URL`. The last two are the network's identity and the address it
-publishes, so two stacks sharing either are one network as far as anyone else
-can tell.
+**To run two networks on one machine, see [FEDERATION.md](FEDERATION.md).** It
+covers the second directory, the ports, the local certificate authority, and
+the two traps worth knowing up front: `NETWORK_BASE_URL` must carry no port,
+and a published catalogue needs `visibleTo` naming the other network or the
+crawl collects nothing.
 
 ## When it breaks
 
@@ -86,6 +87,7 @@ can tell.
 | a capability answers 404 | register its provider |
 | `AUT_SUBSCRIBER_NOT_FOUND` | `make register-network` — it reads the key id back |
 | the registry never comes up | give it two minutes on a cold volume, then `make logs SVC=sunbird-registry-service` |
+| a select fails though discover worked | that capability's `*_MAPPING_URL` 404s — check the tag exists |
 
 ## Commands
 

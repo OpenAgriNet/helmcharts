@@ -40,3 +40,10 @@ config/discovery/instance.yaml
 
 # Signed by `make host-descriptor`, per deployment. Never committed.
 .well-known/
+
+# This network's TLS material and the CA copied beside it, from `make certs`.
+tls/
+
+# The federation front door, rendered from the .template beside it by
+# `make host-descriptor`. The template is the tracked source.
+config/reverse-proxy/federation/server.conf
