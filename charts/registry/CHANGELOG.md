@@ -8,11 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.6.0] - 2026-10-28
 
 ### Added
-- `files/schemas/Participant.json` carries the federation fields: `revision`,
-  `discoveryUrl` and `federationRole`, with a `source` and/or `requester`
-  admission per direction (`schemaPacks`, `descriptorRevision`, `admittedAt`,
-  `updatedAt`, `status`, `suspendedAt`; `projectionTtl` on `source` only).
-  `PublicKey` gains an optional `keyId`, a peer's own `kid`. See ADR-0002.
+- `files/schemas/Participant.json` carries the federation fields: `revision`
+  and `federationRole`, with a `source` and/or `requester` admission per
+  direction (`schemaPacks`, `descriptorRevision`, `admittedAt`, `updatedAt`,
+  `status`, `suspendedAt`; `projectionTtl` on `source` only). See ADR-0002.
 
 ### Changed
 - **BREAKING.** `role` is an array. In 0.4.1 it was a single string, so
@@ -41,8 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   type: JSONArray, found: String`. Rehearsed against sunbird-rc-core v2.0.0:
   the rows keep their keys and can then be admitted as peers. Tracked per
   deployment by #98.
-- `baseUrl` is required for an upstream and for a node without
-  `discoveryUrl`; an entry with `federationRole` requires `discoveryUrl`.
+- `baseUrl` is required on every entry. An admitted network is reached there
+  too: its discover endpoint is its `baseUrl`, so there is no separate field
+  for it.
 - `PublicKey.validFrom` is optional, and nested objects declare the registry's
   system fields (as strings) so an update passes.
 
