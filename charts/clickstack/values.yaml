@@ -96,7 +96,7 @@ hyperdx:
         "host": "http://{{ include "clickstack.fullname" . }}-clickhouse:8123",
         "port": 8123,
         "username": "app",
-        "password": "{{ .Values.clickhouse.config.users.appUserPassword }}"
+        "password": "{{ include "clickstack.clickhouseAppPassword" . }}"
       }
     ]
 
@@ -355,6 +355,11 @@ clickhouse:
     users:
       appUserPassword: "hyperdx"
       otelUserPassword: "otelcollectorpass"
+      # Name of an existing Secret with keys `appUserPassword` and
+      # `otelUserPassword`. When set, both values above are ignored: ClickHouse,
+      # the OTel collector and HyperDX read the passwords from the Secret, and
+      # the chart renders no <release>-clickhouse-secrets of its own.
+      existingSecret: ""
       otelUserName: "otelcollector"
     # Network CIDRs for Kubernetes cluster access control
     # These CIDRs ensure ClickHouse connections are locked down to intra-cluster only

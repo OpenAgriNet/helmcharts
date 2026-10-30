@@ -16,8 +16,8 @@
 {{- if not (has $pt (list "Prefix" "Exact")) }}
 {{- fail (printf "%s: ingress path %q has pathType %s, which is not allowed in the single deployment mode. Use Prefix or Exact." $.Chart.Name $p $pt) }}
 {{- end }}
-{{- if or (not (regexMatch "^/[A-Za-z0-9_.-]+$" $p)) (hasPrefix "/_internal" $p) (eq $p "/publish") }}
-{{- fail (printf "%s: ingress path %q is not allowed in the single deployment mode. Allowed: one literal segment, /<action> (e.g. /discover, /select). /, /publish and /_internal* are never public." $.Chart.Name $p) }}
+{{- if or (not (regexMatch "^/[A-Za-z0-9_.-]+$" $p)) (hasPrefix "/_internal" $p) (and (eq $p "/publish") (not $.Values.ingress.allowPublicPublish)) }}
+{{- fail (printf "%s: ingress path %q is not allowed in the single deployment mode. Allowed: one literal segment, /<action> (e.g. /discover, /select). / and /_internal* are never public; /publish only with ingress.allowPublicPublish." $.Chart.Name $p) }}
 {{- end }}
 {{- end }}
 {{- end }}
