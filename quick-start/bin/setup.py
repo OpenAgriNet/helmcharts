@@ -136,6 +136,21 @@ PROVIDERS = {
         "method": "POST", "default_path": None,
         "needs": [],
     },
+    # Two capabilities on two hosts, each answering several actions. No schema
+    # rows: neither pack is published on network-specs yet.
+    "pmkisan": {
+        "prefix": "PMKISAN", "name": "PM-KISAN",
+        "needs": ["PMKISAN_BASE_URL", "PMKISAN_CHATBOT_BASE_URL"],
+        "capabilities": (
+            ("openagrinet:Grievance", None, (
+                ("init", "/ChatbotOTP", "grievance.init.yaml", 20000, 0),
+                ("support", "/LodgeGrievance", "grievance.support.yaml", 30000, 0),
+                ("status", "/GrievanceStatusCheck", "grievance.status.yaml", 30000, 2))),
+            ("openagrinet:SchemeApplication", "PMKISAN_CHATBOT_BASE_URL", (
+                ("init", "/ChatbotOTP", "application-status.init.yaml", 20000, 0),
+                ("status", "/ChatbotUserDetails", "application-status.status.yaml", 30000, 0))),
+        ),
+    },
 }
 
 
@@ -147,6 +162,11 @@ def provider_requirements(name):
     """What this provider needs filled in before anything is written. Its
     credential variables are here too, so a placeholder is caught before the row."""
     provider = PROVIDERS[name]
+    # A provider carrying several capabilities names its own paths and
+    # mappings in the table above, so it asks for the folder, not one URL.
+    if provider.get("capabilities"):
+        return [f"{provider['prefix']}_{s}" for s in
+                ("PARTICIPANT_ID", "MAPPING_BASE_URL")] + provider["needs"]
     keys = [f"{provider['prefix']}_{s}" for s in
             ("PARTICIPANT_ID", "CAPABILITY", "BASE_URL", "MAPPING_URL")]
     if provider["default_path"] is None:
@@ -332,6 +352,24 @@ def ensure_binding(participant_id, capability, path, mapping_url,
     created(result, binding)
 
 
+def ensure_actions_binding(participant_id, capability, actions, base_url=None):
+    """Create a binding that answers more than select, only when absent.
+    base_url overrides the participant's, for a capability on another host."""
+    binding = f"{participant_id}|{capability}"
+    if search("ProviderSchema", {"bindingKey": {"eq": binding}}):
+        print(f"  {binding}: already present")
+        return
+    row = {"bindingKey": binding, "participantId": participant_id,
+           "capabilityCode": capability, "status": "active",
+           "actions": [{"action": action, "method": "POST", "path": path,
+                        "mappings": mappings, "timeoutMs": timeout,
+                        "retryMax": retries, "status": "active"}
+                       for action, path, mappings, timeout, retries in actions]}
+    if base_url:
+        row["baseUrl"] = base_url
+    created(post("ProviderSchema", row), binding)
+
+
 def schema_url(capability, version):
     """The pack URL for a capability code, derived so the two cannot drift.
     The host is the one catalogs carry in their @context."""
@@ -386,18 +424,35 @@ def register_provider(name):
     wait_for_registry()
 
     participant = env(f"{provider['prefix']}_PARTICIPANT_ID")
-    capability = env(f"{provider['prefix']}_CAPABILITY")
 
     print(f"registry: {name}")
     ensure_participant(participant,
                        upstream(participant, provider["name"],
                                 env(f"{provider['prefix']}_BASE_URL")))
+    if provider.get("capabilities"):
+        register_capabilities(provider, participant)
+        return
+
+    capability = env(f"{provider['prefix']}_CAPABILITY")
     ensure_binding(participant, capability,
                    env(f"{provider['prefix']}_PATH", provider["default_path"]),
                    env(f"{provider['prefix']}_MAPPING_URL"),
                    method=provider["method"])
     ensure_capability_schema(capability, provider["capability_name"], provider["version"])
     print(f"  binding key {participant}|{capability}")
+
+
+def register_capabilities(provider, participant):
+    """A provider answering more than one capability. Mappings come from this
+    repo's published copies, so the folder name is all the entry carries."""
+    mappings = env(f"{provider['prefix']}_MAPPING_BASE_URL").rstrip("/")
+    for capability, host_var, actions in provider["capabilities"]:
+        ensure_actions_binding(
+            participant, capability,
+            [(action, path, f"{mappings}/{mapping}", timeout, retries)
+             for action, path, mapping, timeout, retries in actions],
+            base_url=env(host_var) if host_var else None)
+        print(f"  binding key {participant}|{capability}")
 
 
 def key_osid(identity):
@@ -452,12 +507,23 @@ def provider_steps(providers):
     """The providerSteps entries and their names, one fragment per provider --
     the auth shape is the one thing the registry does not hold."""
     blocks, ids = [], []
-    for name, binding, participant in providers:
+    # Grouped by provider: one serving two capabilities is one step, because
+    # its two bindings refer to each other -- PM-KISAN's OTP is the case.
+    for name, bindings, participant in grouped(providers):
         fragment = (ADAPTERS / "providers" / f"{name}.yaml.tmpl").read_text()
-        blocks.append(fragment.replace("__BINDING_KEY__", binding)
+        blocks.append(fragment.replace("__BINDING_KEY__", ",".join(bindings))
                               .replace("__PARTICIPANT_ID__", participant))
-        ids.append(f"        - {step_id(binding)}")
+        ids.append(f"        - {step_id(bindings[0])}")
     return "".join(blocks).rstrip("\n"), "\n".join(ids)
+
+
+def grouped(providers):
+    """(name, [binding, ...], participant) per provider, bindings in order."""
+    by_name = {}
+    for name, binding, participant in providers:
+        by_name.setdefault(name, (participant, []))[1].append(binding)
+    return [(name, bindings, participant)
+            for name, (participant, bindings) in by_name.items()]
 
 
 def step_id(binding_key):

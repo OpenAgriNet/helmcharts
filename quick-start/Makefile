@@ -50,7 +50,7 @@ keys:              ; @$(STACK) keys
 certs:             ; @$(STACK) certs
 register-network:  ; @$(STACK) register-network
 
-# PROVIDER is one of mausamgram, agmarknet, vistaar, pocra.
+# PROVIDER is one of mausamgram, agmarknet, vistaar, pocra, pmkisan.
 register-provider: ; @$(STACK) register-provider
 
 # Renders from the registry's bindings, then starts the adapters -- together,
