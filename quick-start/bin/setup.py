@@ -436,7 +436,7 @@ def registered_providers():
     """The providers the registry holds a binding for, carrying the key as the
     REGISTRY spells it -- so the adapter and the caller use the same string."""
     by_participant = {env(f"{provider['prefix']}_PARTICIPANT_ID", ""): name
-                      for name, p in PROVIDERS.items()}
+                      for name, provider in PROVIDERS.items()}
     found = []
     for row in search("ProviderSchema", {"status": {"eq": "active"}}):
         name = by_participant.get(row["participantId"])
@@ -483,6 +483,15 @@ def publish_url(folder):
     return "http://provider-adapter:9200/publish"
 
 
+def token_url(provider, variable, serving):
+    """A provider's login endpoint, read only when that provider is served.
+
+    Its placeholder is in that provider's fragment, so a registry without it
+    renders nothing that needs the value -- and asking for it anyway refuses a
+    deployment over a credential it will never use."""
+    return env(variable, "") if provider in serving else ""
+
+
 def configure_adapter(identity):
     wait_for_registry()
     providers = registered_providers()
@@ -491,7 +500,8 @@ def configure_adapter(identity):
                  "would answer nothing.\n"
                  "  Register at least one first:\n"
                  "    make register-provider PROVIDER=mausamgram")
-    print("configs: serving " + ", ".join(name for name, _, _ in providers))
+    serving = {name for name, _, _ in providers}
+    print("configs: serving " + ", ".join(sorted(serving)))
     steps, step_ids = provider_steps(providers)
 
     # The three tier configs (multi-adapter/), then single-adapter/network-adapter,
@@ -520,8 +530,8 @@ def configure_adapter(identity):
                 # fact, not a credential, so it is rendered directly -- the
                 # access name and password stay as variable NAMES in the config
                 # and reach the adapter through its environment.
-                ("__AGMARKNET_TOKEN_URL__", env("AGMARKNET_TOKEN_URL", "")),
-                ("__VISTAAR_TOKEN_URL__", env("VISTAAR_TOKEN_URL", "")),
+                ("__AGMARKNET_TOKEN_URL__", token_url("agmarknet", "AGMARKNET_TOKEN_URL", serving)),
+                ("__VISTAAR_TOKEN_URL__", token_url("vistaar", "VISTAAR_TOKEN_URL", serving)),
                 # The crawler hands a crawled catalog to /publish, which signs it
                 # and forwards it on. /network/publish expects a signature the
                 # crawl does not carry, and in multi mode /publish is elsewhere.
