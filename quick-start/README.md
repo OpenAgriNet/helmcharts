@@ -28,7 +28,7 @@ make register-provider PROVIDER=mausamgram   # repeat per provider
 make configure-adapter                       # render the config, start the adapter
 ```
 
-Providers are `mausamgram`, `agmarknet`, `vistaar` and `pocra`. The adapter
+Providers are `mausamgram`, `agmarknet`, `vistaar`, `pocra` and `pmkisan`. The adapter
 serves the ones you register.
 
 `make configure-adapter` asks which deployment mode and whether to crawl other
