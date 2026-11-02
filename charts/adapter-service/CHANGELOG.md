@@ -5,6 +5,17 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-11-02
+
+### Changed
+- An ingress path may now carry a tier: `/<tier>/<action>` is accepted where
+  only `/<action>` was. One hostname can then serve our own app and another
+  network at the same time, telling them apart by the path they arrive on.
+  `/select` can route to the provider mount while `/consumer/select` routes to
+  the consumer mount. Paths of three segments or more are still refused, and
+  a path landing on `/consumer/` or `/publish` still needs
+  `ingress.allowUnsignedMounts`.
+
 ## [0.8.0] - 2026-10-28
 
 ### Added

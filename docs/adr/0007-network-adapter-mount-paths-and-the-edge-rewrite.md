@@ -52,6 +52,12 @@ learns a mapping it did not need when one mount answered everything.
 `NETWORK_BASE_URL` therefore stays bare -- no `/network` suffix -- because the
 descriptor advertises the public path, not the mount.
 
+Our own app is the exception, added 2026-11-02. It calls `/consumer/<action>`,
+a public path that does carry a tier name. The flat paths stay as they are and
+stay for another network, so what a caller outside sees is unchanged; the
+prefix exists only so one hostname can tell our app apart from a network that
+has to be signature-checked. Paths of three segments or more are still refused.
+
 A change complies with this decision if:
 
 - **Mounts:** `/consumer/`, `/network/`, `/provider/`, and `/publish` for the

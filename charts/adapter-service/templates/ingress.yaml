@@ -30,8 +30,10 @@ objects (ADR-0002).
 {{- if not (has $pt (list "Prefix" "Exact")) }}
 {{- fail (printf "%s: ingress path %q has pathType %s, which is not allowed in the single deployment mode. Use Prefix or Exact." $root.Chart.Name $p $pt) }}
 {{- end }}
-{{- if not (regexMatch "^/[A-Za-z0-9_.-]+$" $p) }}
-{{- fail (printf "%s: ingress path %q is not allowed in the single deployment mode. Allowed: one literal segment, /<action> (e.g. /discover, /select)." $root.Chart.Name $p) }}
+{{- /* Two segments, so one hostname can carry our own app and another
+       network at once: /select is theirs, /consumer/select is ours. */}}
+{{- if not (regexMatch "^/[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)?$" $p) }}
+{{- fail (printf "%s: ingress path %q is not allowed in the single deployment mode. Allowed: /<action>, or /<tier>/<action>." $root.Chart.Name $p) }}
 {{- end }}
 {{- $lands := $rewrite | default $p }}
 {{- $mount := regexFind "^/[A-Za-z0-9_.-]+" $lands }}
