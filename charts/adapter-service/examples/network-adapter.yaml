@@ -22,7 +22,7 @@ fullnameOverride: network-adapter
 image:
   registry: ghcr.io
   repository: openagrinet/network-adapter
-  tag: "latest"
+  tag: "0.2.0"
 
 keys:
   existingSecret:

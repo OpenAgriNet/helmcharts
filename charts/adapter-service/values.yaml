@@ -65,7 +65,7 @@ replicaCount: 1
 image:
   registry: ghcr.io
   repository: openagrinet/network-adapter  # one image for all three roles
-  tag: "latest"
+  tag: "0.2.0"
   digest: ""
   pullPolicy: IfNotPresent
   pullSecrets: []
@@ -242,7 +242,7 @@ routing:
 # can fail on the request path.
 # ---------------------------------------------------------------------------
 becknSpec:
-  url: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml"
+  url: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/tags/core-v2.1.0-lts/api/v2.0.0/beckn.yaml"
   cacheTTL: "3600"
   extendedSchema:
     enabled: false
