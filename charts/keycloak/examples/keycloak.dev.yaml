@@ -1,10 +1,14 @@
 # Example: Keycloak for the registry, dev environment.
 #
 #   helm install keycloak charts/keycloak \
-#     -n oan-registry -f charts/keycloak/examples/keycloak.dev.yaml
+#     -n keycloak -f charts/keycloak/examples/keycloak.dev.yaml
 #
-# Install order: postgresql-cnpg -> THIS -> regenerate admin-api secret ->
-# registry. See charts/registry/README.md.
+# Its OWN namespace, not the registry's: Keycloak is the stack's identity
+# provider, and `get secrets` in the namespace holding the registry's database
+# should not also reach the credential that mints tokens for it.
+#
+# Install order: postgresql-cnpg -> Secrets -> THIS -> registry.
+# See charts/registry/README.md.
 
 # No fullnameOverride needed: the chart is named "keycloak", so a release named
 # "keycloak" already produces Service/keycloak. Set it only if you install under
@@ -19,9 +23,11 @@
 # needs superuser rights.
 #
 # To reproduce compose exactly instead, set name: registry, user: postgres, and
-# point passwordSecret at registry-db-superuser.
+# point passwordSecret at postgres-superuser.
 database:
-  host: registry-db-rw
+  # FQDN, not the bare name: the Cluster lives in the `postgres` namespace
+  # and this release does not, so `postgres-rw` alone would not resolve.
+  host: postgres-rw.postgres.svc.cluster.local
   port: 5432
   name: keycloak
   user: keycloak
@@ -34,18 +40,29 @@ database:
 admin:
   username: admin
   # Create by hand until ESO is available:
-  #   kubectl -n oan-registry create secret generic keycloak-admin \
+  #   kubectl -n registry create secret generic keycloak-admin \
   #     --from-literal=keycloakAdminPassword='<password>'
   passwordSecret:
     name: keycloak-admin
     key: keycloakAdminPassword
 
-# Ships the realm the registry expects. Its admin-api client secret is masked
-# and must be regenerated in the console after first start.
+# Ships the realm the registry expects. Its admin-api client secret is
+# substituted from adminClientSecret above, so there is no console step.
 # Uses the realm shipped with the chart (files/realm-export.json), so nothing
 # needs preparing before install.
 realmImport:
   enabled: true
+  # Substituted into the realm's admin-api client at import. The same Secret the
+  # registry chart reads as keycloak.adminClientSecret, so the two cannot drift.
+  adminClientSecret:
+    name: keycloak-admin-api
+  # The password for `no-user`, the identity registry-seed writes as. The key
+  # defaults to registrySeedPassword; naming the admin-api key here instead
+  # gave Keycloak and registry-seed two different passwords for the same
+  # account, and the seed failed with HTTP 401 against a realm that looked
+  # correct.
+  seedUserSecret:
+    name: registry-seed
 
 # Dev: reach it with `kubectl port-forward` rather than an ingress. Enabling
 # ingress means the controller must set X-Forwarded-Host / X-Forwarded-Proto,
@@ -71,7 +88,7 @@ waitFor:
   enabled: true
   database: true
 
-# `helm test keycloak -n oan-registry` checks /auth and the imported realm.
+# `helm test keycloak -n registry` checks /auth and the imported realm.
 tests:
   enabled: true
   realm: sunbird-rc

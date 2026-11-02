@@ -133,7 +133,8 @@ logLevel: info
 # consumes and nothing keeps true.
 # ---------------------------------------------------------------------------
 database:
-  # PostgreSQL primary service, e.g. "discovery-db-rw"
+  # PostgreSQL primary service. The CNPG Clusters run in their own namespace,
+  # so this is an FQDN: "discovery-db-rw.postgres.svc.cluster.local"
   host: ""
   port: 5432
   name: discovery
@@ -190,7 +191,7 @@ database:
 # ---------------------------------------------------------------------------
 becknSpec:
   # VALIDATION_SPEC_URL. Upstream is
-  #   https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/main/api/v2.0.0/beckn.yaml
+  #   https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml
   # which tracks `main` and therefore pins nothing. Prefer a pinned URL, or the
   # ConfigMap below, for a reproducible boot.
   url: ""

@@ -1,0 +1,36 @@
+Thank you for installing {{ .Chart.Name }} (release: {{ .Release.Name }}).
+
+Bharat Vistaar Docs Pipeline Keycloak (realm: see the realm-import JSON baked
+into the image; auth path: {{ .Values.httpRelativePath }}).
+
+Resources in namespace "{{ .Release.Namespace }}":
+  - Deployment/{{ include "knowledge-provider-keycloak.fullname" . }} ({{ .Values.replicaCount }} replica(s))
+  - Service/{{ include "knowledge-provider-keycloak.fullname" . }} ({{ .Values.service.type }} on port {{ .Values.service.port }})
+  - ConfigMap/{{ include "knowledge-provider-keycloak.envConfigMapName" . }}
+{{- if .Values.serviceAccount.enabled }}
+  - ServiceAccount/{{ include "knowledge-provider-keycloak.serviceAccountName" . }}
+{{- end }}
+{{- if .Values.ingress.enabled }}
+  - Ingress/{{ include "knowledge-provider-keycloak.fullname" . }}
+{{- end }}
+{{- if .Values.persistence.enabled }}
+  - PersistentVolumeClaim/{{ .Values.persistence.existingClaim | default (printf "%s-data" (include "knowledge-provider-keycloak.fullname" .)) }}
+{{- end }}
+
+Image in use:
+  {{ include "knowledge-provider-keycloak.image" . }}
+{{- if not .Values.image.repository }}
+
+WARNING: image.repository is empty. Set image.registry/repository/tag before a
+real deployment, e.g. --set image.repository=openagrinet/knowledge-provider-keycloak
+{{- end }}
+
+REMINDER: --import-realm only imports on first boot (when no realm exists yet
+in the database). Editing the realm-import JSON baked into a new image tag
+does not re-import it into an existing deployment - see README.md.
+
+Check the rollout:
+  kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "knowledge-provider-keycloak.fullname" . }}
+
+Reach the admin console in-cluster:
+  http://{{ include "knowledge-provider-keycloak.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}{{ .Values.httpRelativePath }}

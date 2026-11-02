@@ -207,6 +207,10 @@
                 "Maximum",
                 "Modal"
               ],
+              "validity": {
+                "startsAt": "2026-09-01T00:00:00+05:30",
+                "endsAt": "2026-09-16T23:59:59+05:30"
+              },
               "historicalDataAvailable": true,
               "historyPeriod": "P1Y",
               "updateFrequency": "P1D",
@@ -562,6 +566,10 @@
                 "Maximum",
                 "Modal"
               ],
+              "validity": {
+                "startsAt": "2026-09-01T00:00:00+05:30",
+                "endsAt": "2026-09-16T23:59:59+05:30"
+              },
               "historicalDataAvailable": true,
               "historyPeriod": "P1Y",
               "updateFrequency": "P1D",

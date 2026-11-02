@@ -81,8 +81,10 @@ hiding them:
   `clickhouse.config.users.appUserPassword: hyperdx`,
   `otelUserPassword: otelcollectorpass`, and a placeholder `hyperdx.apiKey`.
   Every one of those must be overridden per environment. No repo chart is
-  supposed to render a Secret at all; closing this properly means moving to
-  `hyperdx.useExistingConfigSecret` and externally created Secrets.
+  supposed to render a Secret at all. The ClickHouse passwords are closed:
+  set `clickhouse.config.users.existingSecret` to a Secret holding
+  `appUserPassword` and `otelUserPassword` and the chart reads them from it
+  and renders no ClickHouse Secret. The API key is still open.
 - **No `common` dependency**, so no `app.kubernetes.io/part-of: oan` label
   and none of the shared helpers.
 - **No resource requests or limits by default.** `clickhouse.resources`,

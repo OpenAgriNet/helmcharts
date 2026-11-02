@@ -2,6 +2,6 @@
 # fails the render when the host and password Secret are unset, so bare defaults
 # cannot be templated. Dummy references only - see examples/ for real config.
 postgresql:
-  host: registry-db-rw
+  host: postgres-rw
   passwordSecret:
-    name: registry-db-superuser
+    name: postgres-superuser

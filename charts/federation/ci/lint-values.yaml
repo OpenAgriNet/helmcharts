@@ -1,0 +1,22 @@
+networkId: oan.example.org
+registryUrl: http://registry.registry.svc.cluster.local:8081/api/v1
+keys:
+  existingSecret:
+    name: network-adapter-keys
+ingress:
+  enabled: true
+  className: kong
+  hosts:
+    - host: oan.example.org
+      paths:
+        - path: /.well-known/openagrinet
+          pathType: Exact
+        - path: /.well-known/jwks.json
+          pathType: Exact
+        - path: /.well-known/schema-packs.json
+          pathType: Exact
+admissions:
+  - networkId: net-b.example.org
+    direction: source
+    schemaPacks:
+      - https://openagrinet.github.io/network-specs/schema/AgricultureFacility/v0.1/attributes.yaml

@@ -1,0 +1,37 @@
+{{ .Chart.Name }} is installed (release: {{ .Release.Name }}).
+
+Every model call the assistant makes now passes through it.
+
+Resources in namespace "{{ .Release.Namespace }}":
+  - Deployment/{{ include "model-gateway.fullname" . }} ({{ .Values.replicaCount }} replica(s))
+  - Service/{{ include "model-gateway.fullname" . }} ({{ .Values.service.type }} on port {{ .Values.service.port }})
+  - ConfigMap/{{ include "model-gateway.modelsConfigMapName" . }} ({{ len .Values.models }} model(s), {{ len .Values.credentials }} vendor account(s))
+{{- if .Values.serviceAccount.enabled }}
+  - ServiceAccount/{{ include "model-gateway.serviceAccountName" . }}
+{{- end }}
+
+The reconcile Job has applied the model list through the gateway's API. See what
+it did:
+
+  kubectl -n {{ .Release.Namespace }} logs job/{{ include "model-gateway.fullname" . }}-reconcile
+
+Point the assistant at it:
+
+  DSS_GATEWAY_URL={{ include "model-gateway.internalURL" . }}/v1
+  DSS_GATEWAY_API_KEY=<a virtual key issued by this gateway>
+  DSS_COMPOSER_MODEL=<one of the names below>
+
+Names this gateway answers to:
+{{- range .Values.models }}
+  - {{ .name }}
+{{- end }}
+{{- if .Values.adminUI.enabled }}
+
+The admin screen is ON. Anything changed there is invisible to this chart and is
+overwritten on the next sync. Leave it off outside development.
+{{- end }}
+{{- if not .Values.otel.enabled }}
+
+Tracing is off. With it on, point otel.endpoint at a collector that drops this
+gateway's internal spans - unfiltered they roughly triple the spans in a turn.
+{{- end }}

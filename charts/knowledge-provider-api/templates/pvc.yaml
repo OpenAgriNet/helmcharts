@@ -1,0 +1,21 @@
+{{- $fullname := include "knowledge-provider-api.fullname" . -}}
+{{- range $volName, $spec := (dict "sqlite" .Values.persistence.sqlite "documents" .Values.persistence.documents "books" .Values.persistence.books "hf-cache" .Values.persistence.hfCache) }}
+{{- if and $spec.enabled (not $spec.existingClaim) }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ printf "%s-%s" $fullname $volName }}
+  labels:
+    {{- include "knowledge-provider-api.labels" $ | nindent 4 }}
+spec:
+  accessModes:
+    - {{ $spec.accessMode | default "ReadWriteOnce" }}
+  {{- with $spec.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $spec.size }}
+{{- end }}
+{{- end }}

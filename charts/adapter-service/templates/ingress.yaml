@@ -1,33 +1,75 @@
-{{- if .Values.ingress.enabled }}
-{{/*
-Off by default, and worth a thought before turning on.
+{{- /*
+One Ingress per entry in .Values.ingress.routes, plus the legacy single
+.Values.ingress when no routes are given.
 
-This adapter takes SIGNED requests -- validateSign is its first step -- so
-publishing it is not the same risk as publishing an adapter that does not. But
-it is still a Beckn peer endpoint, and the thing that makes it safe is that
-every caller must hold a key the registry publishes. That is a property of the
-registry's contents, not of this Ingress.
-*/}}
-apiVersion: {{ include "common.ingress.apiVersion" . }}
+Several, rather than one with a list of paths, because a rewrite is an
+annotation on the Ingress and holds ONE target. Single mode serves /discover
+from the /network/ mount and /select from /provider/ -- two targets, so two
+objects (ADR-0002).
+*/ -}}
+{{- define "adapter-service.ingress.guard" -}}
+{{- $root := .root -}}
+{{- $route := .route -}}
+{{- if eq (include "adapter-service.deploymentMode" $root) "single-adapter" -}}
+{{- /* Single mode: literal one-segment /<action> paths (Prefix/Exact), and a
+       rewrite onto any mount except the two that take unsigned calls. */ -}}
+{{- /* Where a request actually lands: the rewrite if there is one, else the
+       path unchanged. Only its FIRST SEGMENT decides -- /publish is the mount
+       that takes unsigned writes, /network/publish is the mount that checks
+       the caller and happens to serve the same action. */ -}}
+{{- $rewrite := "" -}}
+{{- range $k, $v := $route.annotations }}
+{{- if regexMatch "(?i)(snippet|rewrite|regex)" $k }}
+{{- $rewrite = toString $v }}
+{{- end }}
+{{- end }}
+{{- range $route.hosts }}
+{{- range .paths }}
+{{- $p := .path | default "" }}
+{{- $pt := .pathType | default "Prefix" }}
+{{- if not (has $pt (list "Prefix" "Exact")) }}
+{{- fail (printf "%s: ingress path %q has pathType %s, which is not allowed in the single deployment mode. Use Prefix or Exact." $root.Chart.Name $p $pt) }}
+{{- end }}
+{{- if not (regexMatch "^/[A-Za-z0-9_.-]+$" $p) }}
+{{- fail (printf "%s: ingress path %q is not allowed in the single deployment mode. Allowed: one literal segment, /<action> (e.g. /discover, /select)." $root.Chart.Name $p) }}
+{{- end }}
+{{- $lands := $rewrite | default $p }}
+{{- $mount := regexFind "^/[A-Za-z0-9_.-]+" $lands }}
+{{- if and (or (eq $mount "/publish") (eq $mount "/consumer")) (not $root.Values.ingress.allowUnsignedMounts) }}
+{{- fail (printf "%s: %q lands on %s, a mount that takes UNSIGNED calls.\n\n  /publish writes anything into the catalogue and /consumer/ answers anyone --\n  their caller is this deployment's own software, inside the trust boundary.\n  Publishing %s from outside means rewriting onto a mount that checks the\n  caller: /network/publish serves the same action behind validateSign and\n  checkCrossNetworkRequester. Reach the unsigned mount by port-forward." $root.Chart.Name $p $mount $p) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+{{- $base := dict "name" "" "annotations" (.Values.ingress.annotations | default dict) "hosts" .Values.ingress.hosts "tls" .Values.ingress.tls -}}
+{{- $routes := .Values.ingress.routes | default (list $base) -}}
+{{- range $i, $route := $routes }}
+{{- $ann := merge (dict) ($route.annotations | default dict) ($.Values.commonAnnotations | default dict) -}}
+{{- include "adapter-service.ingress.guard" (dict "root" $ "route" (dict "annotations" $ann "hosts" $route.hosts)) }}
+---
+apiVersion: {{ include "common.ingress.apiVersion" $ }}
 kind: Ingress
 metadata:
-  name: {{ include "adapter-service.fullname" . }}
+  name: {{ printf "%s%s" (include "adapter-service.fullname" $) (ternary "" (printf "-%s" ($route.name | default (printf "%d" $i))) (empty $route.name)) }}
   labels:
-    {{- include "adapter-service.labels" . | nindent 4 }}
-  {{- with (merge (dict) .Values.ingress.annotations (.Values.commonAnnotations | default dict)) }}
+    {{- include "adapter-service.labels" $ | nindent 4 }}
+  {{- with $ann }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- with .Values.ingress.className }}
+  {{- with $.Values.ingress.className }}
   ingressClassName: {{ . }}
   {{- end }}
-  {{- with .Values.ingress.tls }}
+  {{- with $route.tls }}
   tls:
     {{- toYaml . | nindent 4 }}
   {{- end }}
   rules:
-    {{- range .Values.ingress.hosts }}
+    {{- range $route.hosts }}
     - host: {{ .host | quote }}
       http:
         paths:
@@ -41,4 +83,5 @@ spec:
                   number: {{ $.Values.service.port }}
           {{- end }}
     {{- end }}
+{{- end }}
 {{- end }}

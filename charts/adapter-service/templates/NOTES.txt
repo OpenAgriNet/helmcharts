@@ -1,12 +1,21 @@
+{{- $single := eq (include "adapter-service.deploymentMode" .) "single-adapter" -}}
 {{ .Chart.Name }} {{ .Chart.Version }} — {{ include "adapter-service.fullname" . }}
+
+{{- if $single }}
+
+  mode       single: consumer, network and provider in one adapter (/, /publish, /_internal/*)
+{{- else }}
 
   role       {{ include "adapter-service.role" . }} ({{ include "adapter-service.handlerRole" . }})
   steps      {{ include "adapter-service.steps" . | fromYamlArray | join " -> " }}
+{{- end }}
   image      {{ include "adapter-service.image" . }}
   service    {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}
+{{- if not $single }}
   registry   {{ .Values.registry.url }}
-  routes to  {{ range $i, $r := .Values.routing.rules }}{{ if $i }}, {{ end }}{{ $r.target.url }}{{ end }}
+  routes     from config/multi-adapter/routing-{{ include "adapter-service.role" . }}.yaml
   telemetry  {{ if .Values.otel.enabled }}{{ .Values.otel.endpoint }}{{ else }}off{{ end }}
+{{- end }}
 
 This Service is reachable in-cluster as {{ include "adapter-service.fullname" . }}:{{ .Values.service.port }}.
 That name comes from the RELEASE name — whatever routes here must use it, so
@@ -22,19 +31,22 @@ chart's appVersion.
 
 TWO THINGS THIS CHART CANNOT CHECK FOR YOU
 
+{{ if $single -}}
+1. The Participant rows. Each tier signs from its own Secret
+   (adapterKeys); each registry row must carry that tier's public key.
+{{- else -}}
 1. The Participant row. This adapter signs as {{ .Values.keys.existingSecret.name }}'s
    subscriberId, and every peer verifies that signature against the public key
    the registry publishes for it. If the row is missing, or carries a different
    key, this pod runs and reports Ready while every peer rejects what it signs
    — and the error appears in their logs, not yours.
+{{- end }}
 
-2. Key rotation. The keys live in Secret/{{ include "adapter-service.keysSecretName" . }},
-   which this chart does not render and therefore cannot include in the config
-   checksum. Changing that Secret does not restart anything:
+2. Key rotation. Changing a keys Secret does not restart anything:
 
      kubectl -n {{ include "common.namespace" . }} rollout restart deploy/{{ include "adapter-service.fullname" . }}
 
-{{- if not .Values.otel.enabled }}
+{{- if and (not .Values.otel.enabled) (not $single) }}
 
 Telemetry is off, which is the right setting until a collector exists: with it
 on and nothing listening the exporter logs a failure every interval.
@@ -42,8 +54,10 @@ on and nothing listening the exporter logs a failure every interval.
 {{- if .Values.ingress.enabled }}
 
 Ingress is ON.
-{{- if eq (include "adapter-service.role" .) "experience" }}
-This is the experience role, which accepts UNSIGNED requests — it is inside the trust
+{{- if $single }}
+/<action> is the unsigned consumer: rate-limit this host. /publish and /_internal* are never exposed.
+{{- else if eq (include "adapter-service.role" .) "consumer" }}
+This is the consumer role, which accepts UNSIGNED requests — it is inside the trust
 boundary and has no validateSign step. An Ingress therefore exposes an
 unauthenticated entry point to the network: rate-limit this host, and do not
 route it from anywhere you would not trust to call the network directly.

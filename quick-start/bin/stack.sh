@@ -3,24 +3,14 @@
 # Bring the stack up in the order it has to come up in, and take it back down.
 #
 #     bin/stack.sh up            the whole stack, in the order it has to start
-#     bin/stack.sh up-core       the same minus the gateway and hyperdx
+#     bin/stack.sh up-core       the same minus the gateway and observability
 #     bin/stack.sh down          stop everything, keep the data
 #     bin/stack.sh destroy       stop everything, DELETE the data
 #
-# Everything here is also a make target: `make up`, `make down`. The Makefile is
-# the front door; this file is where the reasoning lives.
+# Everything here is also a make target: `make up`, `make down`.
 #
-# ------------------------------------------------------------ why a script
-#
-# The steps in `up` are not interchangeable and the failure mode of getting
-# them wrong is not obvious. An adapter's config is a bind-mounted
-# FILE that setup.py renders. Docker creates a DIRECTORY at any bind-mount
-# source that does not exist yet -- so starting an adapter before step 2 both
-# wedges that container on a directory it cannot parse AND leaves a directory
-# sitting where step 2 needs to write a file. Recovering means `rm -rf`ing
-# paths under config/adapters/ that look like they should be there.
-#
-# So the ordering is worth encoding once rather than remembering three times.
+# The order the steps run in, and why teardown names every profile, are
+# docs/adr/0006-bringing-the-stack-up.md.
 
 set -euo pipefail
 
@@ -30,11 +20,80 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-# Both optional profiles, named explicitly. This matters for `down`: compose
-# only acts on services whose profile is active, so a plain `docker compose
-# down` leaves the gateway and hyperdx containers running and then reports
-# success. Naming them on teardown is what makes "down" mean down.
-PROFILES=(--profile reverse-proxy --profile observability)
+# Every optional profile, named explicitly: compose acts only on services whose
+# profile is active, which is what makes `down` mean down (ADR-0006).
+PROFILES=(--profile reverse-proxy --profile observability --profile multi-adapter)
+
+# Deployment mode for `up`: NETWORK_ADAPTER_DEPLOYMENT_MODE from the shell, else .env, else
+# single-adapter (ADR-0001).
+# Other commands keep the running mode so depends_on never swaps network-adapter's config.
+
+# A key's value in .env (quotes, inline comment and CR stripped); empty if absent.
+dotenv_get() {
+    local v
+    v=$(grep -E "^$1=" .env 2>/dev/null | tail -1 | cut -d= -f2-) || true
+    v=${v%%#*}
+    printf '%s' "$v" | tr -d '"'"'"' \t\r'
+}
+
+# Write a key back to .env, replacing the line or appending it. An answer given
+# at a prompt belongs in the file, so .env never disagrees with what is running.
+dotenv_set() {
+    local key=$1 value=$2 tmp
+    tmp=$(mktemp)
+    awk -v k="$key" -v v="$value" '
+        index($0, k "=") == 1 { print k "=" v; found = 1; next }
+        { print }
+        END { if (!found) print k "=" v }
+    ' .env > "$tmp"
+    cat "$tmp" > .env   # not mv: keeps the file's own mode and ownership
+    rm -f "$tmp"
+    info ".env: $key -> $value"
+}
+
+# What this network's containers are called. Empty for a single network, so the
+# names are what they always were; a second network sets STACK_PREFIX in its own
+# .env and every name it touches moves with it.
+container() {
+    printf '%s%s' "${STACK_PREFIX:-$(dotenv_get STACK_PREFIX)}" "$1"
+}
+
+# Running mode, from the config network-adapter mounts; empty if not running.
+running_mode() {
+    [ "$(docker inspect -f '{{.State.Running}}' "$(container network-adapter)" 2>/dev/null)" = true ] || return 0
+    case "$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/app/config/adapter.yaml"}}{{.Source}}{{end}}{{end}}' "$(container network-adapter)" 2>/dev/null)" in
+        */multi-adapter/*) echo multi-adapter ;;
+        *) echo single-adapter ;;
+    esac
+}
+
+# An environment variable is an answer already: configure-adapter does not ask
+# for something it was told.
+MODE_GIVEN="${NETWORK_ADAPTER_DEPLOYMENT_MODE:-${MODE:-}}"
+MODE="${MODE_GIVEN:-$(dotenv_get NETWORK_ADAPTER_DEPLOYMENT_MODE)}"
+MODE="${MODE:-single-adapter}"
+case "$MODE" in single|multi) MODE="$MODE-adapter" ;; esac   # old values still accepted
+RUNNING_MODE="$(running_mode)"
+
+# compose mounts config/adapters/<mode>/network-adapter.yaml from this variable.
+export NETWORK_ADAPTER_DEPLOYMENT_MODE="${RUNNING_MODE:-$MODE}"
+check_mode() {
+    case "$MODE" in single-adapter|multi-adapter) ;; *) die "NETWORK_ADAPTER_DEPLOYMENT_MODE must be single-adapter or multi-adapter, not '$MODE'" ;; esac
+}
+
+adapters_for() { # $1 mode
+    case "$1" in
+        single-adapter) echo network-adapter ;;
+        multi-adapter)  echo provider-adapter network-adapter consumer-adapter ;;
+    esac
+}
+# The rendered config files (config/adapters/<path>.yaml) a deployment mode mounts.
+configs_for() { # $1 mode
+    case "$1" in
+        single-adapter) echo single-adapter/network-adapter ;;
+        multi-adapter)  echo multi-adapter/provider-adapter multi-adapter/network-adapter multi-adapter/consumer-adapter ;;
+    esac
+}
 
 # ------------------------------------------------------------------ output
 
@@ -47,10 +106,8 @@ die()   { printf '\033[1;31mstack: %s\033[0m\n' "$1" >&2; exit 1; }
 
 # -------------------------------------------------------------- preflight
 
-# Checked before anything starts, not when it is first needed. Step 1 blocks on
-# Keycloak's healthcheck, which is 30 retries at 10s -- so a missing python3 or
-# an unimportable `cryptography` would surface several minutes in, after a wait
-# that had nothing to do with the problem. These take a millisecond each.
+# Checked up front, not when first needed: step 1 blocks on a healthcheck, so a
+# missing python3 would otherwise surface minutes later.
 preflight() {
     [ -f .env ] || die ".env is missing -- cp .env.example .env, then change every credential in it"
 
@@ -62,45 +119,136 @@ preflight() {
 
     python3 -c 'import cryptography' >/dev/null 2>&1 \
         || die "the python 'cryptography' package is missing -- pip install cryptography"
+
+    # Grafana's alerting mount is ./config/grafana/alerting-<this value>, and
+    # only alerting-true and alerting-false exist. Anything else (True, 1, yes)
+    # is not an error to Docker: it creates an empty alerting-True/ and Grafana
+    # silently loads no rules. The shell environment wins over .env, as it does
+    # for compose.
+    local alerting="${GRAFANA_ALERTING_ENABLED:-$(sed -n 's/^GRAFANA_ALERTING_ENABLED=//p' .env | tail -n 1 | tr -d "\"'")}"
+    case "${alerting:-true}" in
+        true|false) ;;
+        *) die "GRAFANA_ALERTING_ENABLED must be exactly true or false, not '$alerting'" ;;
+    esac
+
+    command -v openssl >/dev/null 2>&1 \
+        || die "openssl is not installed -- bin/network-certs.sh needs it"
+
+    command -v envsubst >/dev/null 2>&1 \
+        || die "envsubst is not installed -- it renders the federation front door (apt install gettext-base)"
+
+    federation_prerequisites
+}
+
+# ------------------------------------------------------- federation plumbing
+
+# The shared bridge, this network's certificate, and the file NPM includes.
+# All three are prerequisites of `docker compose up`, not of federation: the
+# bridge is declared external, and a bind mount whose source is missing becomes
+# a DIRECTORY, which fails later and says nothing about why.
+federation_prerequisites() {
+    if ! docker network inspect oan-federation >/dev/null 2>&1; then
+        docker network create oan-federation >/dev/null
+        info "created the oan-federation bridge -- every network on this machine shares it"
+    fi
+
+    # Re-issued when BECKN_NETWORK_ID changes, because a certificate for the
+    # old name fails at the far end and says nothing about why. Not when
+    # `make certs` is the command: it re-issues straight after.
+    if [ -z "${REISSUING_CERTS:-}" ] && ! certificate_names "$(dotenv_get BECKN_NETWORK_ID)"; then
+        certs
+    fi
+
+    # Empty until `make host-descriptor` renders it. nginx accepts an empty
+    # include; a missing one stops it from starting at all.
+    mkdir -p config/reverse-proxy/federation
+    [ -f config/reverse-proxy/federation/server.conf ] \
+        || : > config/reverse-proxy/federation/server.conf
+}
+
+# Where every network on this machine answers, so admitting one needs no
+# address on the command line. Written by `make host-descriptor`.
+LOCAL_NETWORKS="${OAN_HOME:-$HOME/.oan}/networks.json"
+
+remember_front_door() { # $1 networkId  $2 https port
+    mkdir -p "$(dirname "$LOCAL_NETWORKS")"
+    python3 -c '
+import json, os, sys
+path, network, port = sys.argv[1:4]
+known = json.load(open(path)) if os.path.exists(path) else {}
+known[network] = "127.0.0.1:" + port
+json.dump(known, open(path, "w"), indent=2, sort_keys=True)
+' "$LOCAL_NETWORKS" "$1" "$2"
+}
+
+# Empty for a network that has never run here, which is the right answer: it is
+# then somewhere else, and reached by DNS like any other.
+front_door_of() { # $1 networkId
+    [ -f "$LOCAL_NETWORKS" ] || return 0
+    python3 -c '
+import json, sys
+print(json.load(open(sys.argv[1])).get(sys.argv[2], ""))
+' "$LOCAL_NETWORKS" "$1"
+}
+
+# Whether the certificate on disk is for this network.
+certificate_names() { # $1 networkId
+    [ -f tls/server.crt ] && [ -f tls/ca.crt ] || return 1
+    openssl x509 -in tls/server.crt -noout -ext subjectAltName 2>/dev/null \
+        | grep -qE "DNS:$1(,|$| )"
+}
+
+# A certificate for this network's own name, signed by the shared local CA.
+certs() {
+    local network_id
+    network_id=$(dotenv_get BECKN_NETWORK_ID)
+    [ -n "$network_id" ] || die "BECKN_NETWORK_ID is not set in .env"
+    bin/network-certs.sh "$network_id"
+}
+
+# Where the federation front door sends what another network asks for.
+#
+# CONTAINER names, not service names: every network runs a service called
+# network-adapter and they share the bridge, so the service name resolves to
+# all of them and nginx round-robins between networks.
+federation_upstreams() {
+    local prefix
+    prefix=$(container "")
+    export NETWORK_UPSTREAM="${prefix}network-adapter:9201"
+    case "$RUNNING_MODE$MODE" in
+        *multi-adapter*) export PROVIDER_UPSTREAM="${prefix}provider-adapter:9200" ;;
+        *)               export PROVIDER_UPSTREAM="$NETWORK_UPSTREAM" ;;
+    esac
 }
 
 # ------------------------------------------------------------------- up
 
-# The full stack, in the order the compose file's own header documents. Five
-# steps rather than three: the gateway and hyperdx are behind profiles, which
-# means they are opt-in for compose, but "opt-in" and "not part of bringing the
-# stack up" are different claims and only the first one is true.
-#
-# `up-core` below is the same thing minus steps 4 and 5, for when you want
-# neither a public port nor ClickHouse's memory.
+# Containers only. No adapter starts here: its config does not exist until
+# `make configure-adapter` renders it, and Docker would make a directory there.
 up() {
     preflight
-    up_registry_tier 5
-    up_setup         5
-    up_adapters      5
+    up_registry_tier 3
 
     # NPM. This is the step that makes the VM reachable from the internet --
     # 0.0.0.0:80 and :443, deliberately not scoped, because Let's Encrypt
     # validates HTTP-01 from its own servers.
-    step 4 5 "nginx-proxy-manager -- the public edge (80 and 443, all interfaces)"
+    step 2 3 "nginx-proxy-manager -- the public edge (80 and 443, all interfaces)"
+    mkdir -p .well-known  # before Docker can create it root-owned
     docker compose --profile reverse-proxy up -d nginx-proxy-manager
 
-    # ClickStack. Heaviest thing here by a wide margin: ClickHouse alone wants
-    # 2-4 GB, which is what takes this VM from 8 GB to 16 GB.
-    step 5 5 "hyperdx -- ClickStack (OTLP ingest, ClickHouse, UI)"
-    docker compose --profile observability up -d hyperdx
+    # ClickHouse, the collector, and Grafana. Heaviest thing here by a wide
+    # margin: ClickHouse alone wants 2-4 GB, which is what takes this VM from
+    # 8 GB to 16 GB.
+    step 3 3 "clickhouse, otel-collector, grafana -- OTLP ingest, storage, UI"
+    docker compose --profile observability up -d clickhouse otel-collector grafana
 
     done_banner
 }
 
-# Steps 1-3 only. Nothing publishes on a routable interface and nothing needs
-# 16 GB -- this is the stack you can actually exercise, which is the reason the
-# profiles exist in the first place.
+# Step 1 only. Nothing public, no ClickHouse -- the stack you can exercise.
 up_core() {
     preflight
-    up_registry_tier 3
-    up_setup         3
-    up_adapters      3
+    up_registry_tier 1
     done_banner
 }
 
@@ -108,48 +256,70 @@ up_core() {
 #
 # Each takes the step total so the numbering reads correctly in both.
 
-# Naming registry and discovery also starts sunbird-registry-postgres, sunbird-registry-keycloak and
-# discovery-postgres: all are depends_on with condition: service_healthy, so compose
-# blocks here until they pass their healthchecks rather than racing ahead.
+# Naming these two also starts their Postgres: both are depends_on with
+# condition: service_healthy, so compose blocks until they are ready.
 #
-# discovery belongs in this step and not in step 3. It would be dragged in
-# anyway by network-adapter's depends_on, but then a discovery-postgres that failed
-# to come up would surface as an adapter problem three steps later.
-#
-# No --wait. It would only add a second wait on the registry's own healthcheck,
-# and setup.py already polls with an error message that says what to check.
+# discovery belongs here, not with the adapters -- a failed discovery-postgres
+# would otherwise surface as an adapter problem three steps later.
 up_registry_tier() {
-    step 1 "$1" "registry and discovery (also starts sunbird-registry-postgres, sunbird-registry-keycloak, discovery-postgres)"
-    info "sunbird-registry-keycloak's healthcheck allows up to 5 minutes on a cold volume"
+    step 1 "$1" "registry and discovery (also starts sunbird-registry-postgres, discovery-postgres)"
     docker compose up -d sunbird-registry-service discovery-service
+
+    # `up -d` waits for a service's DEPENDENCIES, never the service itself, so
+    # without this the next step races the registry's first boot.
+    info "waiting for the registry to answer"
+    local waited=0
+    until [ "$(docker inspect -f '{{.State.Health.Status}}' "$(container sunbird-registry-service)" 2>/dev/null)" = healthy ]; do
+        [ "$waited" -ge 300 ] && die "the registry did not become healthy in 5 minutes -- docker logs $(container sunbird-registry-service)"
+        sleep 5
+        waited=$((waited + 5))
+    done
 }
 
-# Generates the adapter keypairs, registers the three adapter identities, and
-# renders config/adapters/{provider,network,consumer}.yaml from the .tmpl files
-# beside them. Safe to re-run: keys come from keys/keys.json once it exists,
-# and participants already registered are left alone.
-up_setup() {
-    step 2 "$1" "bin/setup.py -- keys, seven registry participants, adapter configs"
-    python3 bin/setup.py
-}
-
-# Only now do the bind-mounted config files exist.
+# Started only by configure_adapter: before that there is no config to mount.
 up_adapters() {
-    # The mocks are NOT started. All four capabilities point at real external
-    # upstreams, so starting them would pull two images and run two containers
-    # nothing calls. They are still defined in docker-compose.yml, so
-    # `docker compose up -d mock-imd mock-agmarknet` brings them up for anyone
-    # debugging a mapping without the real credentials -- but that also needs a
-    # new participant id and base URL in .env plus a setup.py re-run, because
-    # the registry cannot repoint an existing row.
-    step 3 "$1" "adapters (provider, network, consumer)"
-    docker compose up -d provider-adapter network-adapter consumer-adapter
+    # The mocks are NOT started: every capability points at a real upstream.
+    # `docker compose up -d mock-imd mock-agmarknet` brings them up by hand.
+    check_mode
+    local f
+    # `up` starts the requested mode, not the running one.
+    NETWORK_ADAPTER_DEPLOYMENT_MODE="$MODE"
+    step 2 2 "adapters, mode $MODE ($(adapters_for "$MODE"))"
+    # A pre-merge stack's network-adapter container (service network-adapter-layer)
+    # is unknown to compose and would clash by name.
+    if [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' "$(container network-adapter)" 2>/dev/null)" = network-adapter-layer ]; then
+        docker rm -f network-adapter >/dev/null
+    fi
+    # Single runs network-adapter alone: remove the multi-only adapters.
+    if [ "$MODE" = single-adapter ]; then
+        docker compose --profile multi-adapter rm -sf provider-adapter consumer-adapter >/dev/null 2>&1 || true
+    fi
+    # Never let compose create a directory where a bind-mounted config belongs.
+    for f in $(configs_for "$MODE"); do
+        [ -f "config/adapters/$f.yaml" ] \
+            || die "config/adapters/$f.yaml was not rendered (a directory there? rm -r it, then re-run)"
+    done
+    # shellcheck disable=SC2046
+    docker compose --profile multi-adapter up -d --force-recreate $(adapters_for "$MODE")
+    # NPM resolves adapter names when nginx loads and caches the addresses, so
+    # a recreated or switched adapter 502s through it until it restarts.
+    if [ "$(docker inspect -f '{{.State.Running}}' "$(container nginx-proxy-manager)" 2>/dev/null)" = true ]; then
+        info "restarting nginx-proxy-manager so it re-resolves the adapter addresses"
+        docker compose --profile reverse-proxy restart nginx-proxy-manager >/dev/null
+    fi
 }
 
 done_banner() {
-    printf '\n\033[1;32m==> stack is up\033[0m\n'
+    printf '\n\033[1;32m==> containers are up\033[0m\n'
     docker compose "${PROFILES[@]}" ps
     cat <<'NEXT'
+
+  The registry is empty and no adapter is running yet. In order:
+
+      make keys
+      make register-network
+      make register-provider PROVIDER=mausamgram    (once per provider)
+      make configure-adapter                        (renders, then starts them)
 
   Everything except NPM's 80 and 443 is bound to 127.0.0.1 on this host.
   From your laptop:
@@ -192,7 +362,8 @@ This deletes every named volume in the project:
                    it up, the click-through starts over.
   sunbird-registry-postgres-data    the registry's Postgres: participants, keys, schemas.
   discovery-postgres-data   the discovery catalogue.
-  hyperdx-clickhouse-data     collected telemetry.
+  clickhouse-data     collected telemetry.
+  grafana-data        Grafana's own settings and dashboards (not telemetry).
 
 keys/keys.json is NOT deleted, and should not be -- it is what lets setup.py
 re-register the adapters under their existing identities on the next `up`.
@@ -211,10 +382,11 @@ WARN
 # ------------------------------------------------------- optional tiers
 
 # Separate targets rather than part of `up` because neither is needed to
-# exercise the stack, and hyperdx (ClickHouse) alone wants 2-4 GB.
+# exercise the stack, and ClickHouse alone wants 2-4 GB.
 reverse_proxy() {
     preflight
     step 1 1 "nginx-proxy-manager -- publishes 80 and 443 on ALL interfaces"
+    mkdir -p .well-known  # before Docker can create it root-owned
     docker compose --profile reverse-proxy up -d nginx-proxy-manager
     cat <<'NEXT'
 
@@ -228,9 +400,9 @@ NEXT
 
 observability() {
     preflight
-    step 1 1 "hyperdx -- ClickStack (OTLP ingest, ClickHouse, UI)"
-    docker compose --profile observability up -d hyperdx
-    info "UI on 127.0.0.1:8085. There is no login in front of it -- keep it on loopback."
+    step 1 1 "clickhouse, otel-collector, grafana -- OTLP ingest, storage, UI"
+    docker compose --profile observability up -d clickhouse otel-collector grafana
+    info "UI on 127.0.0.1:8085. Grafana has its own login (GF_SECURITY_ADMIN_USER/PASSWORD) -- change it before exposing this, and keep it on loopback or behind an NPM Access List regardless."
 }
 
 # ------------------------------------------------------------------ pull
@@ -273,16 +445,14 @@ NEXT
 
 # The services that hold OAN's own code and config, and nothing else.
 #
-# Deliberately excludes the two Postgres instances and keycloak: those are
-# state, they are slow to come back, and nothing you change in this repo
-# alters their behaviour -- keycloak reads its realm from a database that was
-# seeded on first boot, not from a file you can edit. Restarting them to pick
-# up a config change is a minute of downtime that cannot have helped.
+# Deliberately excludes the two Postgres instances: those are state, they are
+# slow to come back, and nothing you change in this repo alters their
+# behaviour. Restarting them to pick up a config change is downtime that cannot
+# have helped.
 #
 # It also excludes nginx-proxy-manager, whose routing table lives in a SQLite
 # database rather than in anything a restart would re-read. `restart-edge` is
 # the separate target for the one case that does need it.
-APP_SERVICES=(registry discovery provider-adapter network-adapter consumer-adapter)
 
 # `restart`, not `up -d --force-recreate`. A restart keeps the container and
 # therefore its address, so NPM's cached proxy_pass targets stay valid -- a
@@ -294,10 +464,13 @@ APP_SERVICES=(registry discovery provider-adapter network-adapter consumer-adapt
 # up is a changed image or a changed environment, both of which need the
 # container recreated -- use `make up` for those.
 restart_app() {
-    step 1 1 "restarting registry, discovery and the three adapters"
-    info "keycloak, both databases and the edge are left alone"
-    docker compose restart "${APP_SERVICES[@]}"
-    docker compose ps --format 'table {{.Service}}\t{{.Status}}'
+    [ -n "$RUNNING_MODE" ] && MODE=$RUNNING_MODE
+    check_mode
+    step 1 1 "restarting registry, discovery and the $MODE-mode adapters"
+    info "both databases and the edge are left alone"
+    # shellcheck disable=SC2046
+    docker compose --profile multi-adapter restart sunbird-registry-service discovery-service $(adapters_for "$MODE")
+    docker compose --profile multi-adapter ps --format 'table {{.Service}}\t{{.Status}}'
 }
 
 # ----------------------------------------------------------------- misc
@@ -312,26 +485,246 @@ restart_edge() {
     docker compose --profile reverse-proxy restart nginx-proxy-manager
 }
 
-# Just step 2. Re-run it after editing a .tmpl, or to re-render configs that
-# were deleted. It is idempotent, so this is always safe.
-setup() {
+# ------------------------------------------------- filling the registry
+#
+# All four CREATE ONLY: an existing row is left alone, never overwritten. A
+# wrong value is corrected with a PUT, so one provider at a time limits it.
+
+# Generated once and reused. The private halves never leave keys/keys.json.
+keys() {
     preflight
-    step 1 1 "bin/setup.py"
-    python3 bin/setup.py
+    step 1 1 "keys/keys.json"
+    python3 bin/setup.py keys
+}
+
+# Our one entry, shared by all three adapters, and the key id read back out of
+# it. Nothing can sign until this has run.
+register_network() {
+    preflight
+    step 1 1 "our network entry"
+    python3 bin/setup.py register-network
+}
+
+# One upstream, its binding and its schema. PROVIDER=mausamgram.
+register_provider() {
+    preflight
+    [ -n "${PROVIDER:-}" ] \
+        || die "which provider? e.g. make register-provider PROVIDER=mausamgram"
+    step 1 1 "provider $PROVIDER"
+    python3 bin/setup.py register-provider "$PROVIDER"
+}
+
+# Asked rather than passed as a flag. Skipped when given as an environment
+# variable, or when there is no terminal -- CI keeps working off .env.
+
+ask_mode() {
+    if [ -n "$MODE_GIVEN" ] || [ ! -t 0 ]; then return 0; fi
+    local answer marker_single="" marker_multi=""
+    [ "$MODE" = single-adapter ] && marker_single="   [default]"
+    [ "$MODE" = multi-adapter ]  && marker_multi="   [default]"
+    printf '\nDeployment mode?\n'
+    printf '  1) single-adapter   one container serving all three tiers%s\n' "$marker_single"
+    printf '  2) multi-adapter    consumer, network and provider separately%s\n' "$marker_multi"
+    read -rp '> ' answer
+    case "$answer" in
+        1|single|single-adapter) MODE=single-adapter ;;
+        2|multi|multi-adapter)   MODE=multi-adapter ;;
+        "")                      ;;   # the default stands
+        *) die "answer 1 or 2, not '$answer'" ;;
+    esac
+    dotenv_set NETWORK_ADAPTER_DEPLOYMENT_MODE "$MODE"
+}
+
+# Whether this network crawls others. It still ANSWERS another network's crawl
+# either way -- that is the network tier's job and this does not touch it.
+ask_crawler() {
+    if [ -n "${FEDERATION_CRAWL_PEERS:-}" ] || [ ! -t 0 ]; then return 0; fi
+    local answer prompt crawl
+    crawl=$(dotenv_get FEDERATION_CRAWL_PEERS)
+    crawl=${crawl:-off}
+    if [ "$crawl" = on ]; then prompt='[Y/n]'; else prompt='[y/N]'; fi
+    read -rp "Enable the federation crawler? $prompt " answer
+    case "$answer" in
+        [Yy]*) crawl=on ;;
+        [Nn]*) crawl=off ;;
+        "")    ;;   # the default stands
+        *) die "answer y or n, not '$answer'" ;;
+    esac
+    export FEDERATION_CRAWL_PEERS="$crawl"
+    dotenv_set FEDERATION_CRAWL_PEERS "$crawl"
+}
+
+# Render from what the registry holds, then start the adapters. One command,
+# because a rendered config nothing picked up is a change that did nothing.
+configure_adapter() {
+    preflight
+    ask_mode
+    ask_crawler
+    check_mode
+    step 1 2 "adapter configs, from the registry's bindings"
+    python3 bin/setup.py configure-adapter
+    up_adapters
+    printf '\n\033[1;32m==> adapters are up\033[0m\n'
+}
+
+# Sign the federation documents into .well-known/ and admit another network.
+# Each run of host-descriptor publishes the next revision.
+#
+# PEER, DIRECTION and PACKS come from the environment. RESOLVE and CA_FILE fall
+# back to what this machine already knows -- where that network answers, and our
+# own CA -- so two networks on one laptop need neither on the command line.
+peer_access() {
+    local resolve ca
+    resolve="${RESOLVE:-$(front_door_of "${PEER:-}")}"
+    # Only for a network on this machine. --ca-file REPLACES the trust store,
+    # so defaulting it for a real network would reject its public certificate.
+    ca="${CA_FILE:-}"
+    if [ -z "$ca" ] && [ -n "$resolve" ] && [ -f tls/ca.crt ]; then ca=tls/ca.crt; fi
+    printf '%s' "${resolve:+--resolve $resolve} ${ca:+--ca-file $ca} ${SCHEME:+--scheme $SCHEME}"
+}
+
+need_peer() {
+    [ -n "${PEER:-}" ] || die "which peer? e.g. make $1 PEER=net-b.oan.dev"
+}
+
+need_direction() {
+    case "${DIRECTION:-}" in
+        source|requester) ;;
+        *) die "DIRECTION must be source (we read from them) or requester (they read from us)" ;;
+    esac
+}
+
+admit() {
+    preflight
+    need_peer admit
+    need_direction
+    # With none, oanfed lists what this direction can cover and refuses.
+    #   PACKS=all   everything they publish today, or a comma-separated subset
+    step 1 1 "bin/oanfed.py admit -- $DIRECTION, $PEER"
+    # shellcheck disable=SC2046
+    python3 bin/oanfed.py admit --network-id "$PEER" --direction "$DIRECTION" \
+        --schema-packs "${PACKS:-}" --out . $(peer_access)
+}
+
+refresh_peer() {
+    preflight
+    need_peer refresh
+    step 1 1 "bin/oanfed.py refresh -- $PEER"
+    # shellcheck disable=SC2046
+    python3 bin/oanfed.py refresh --network-id "$PEER" $(peer_access)
+}
+
+suspend_peer() {
+    preflight
+    need_peer suspend
+    need_direction
+    step 1 1 "bin/oanfed.py suspend -- $DIRECTION, $PEER"
+    python3 bin/oanfed.py suspend --network-id "$PEER" --direction "$DIRECTION"
+}
+
+verify_peer() {
+    preflight
+    need_peer verify
+    step 1 1 "bin/oanfed.py verify -- $PEER"
+    # shellcheck disable=SC2046
+    python3 bin/oanfed.py verify --network-id "$PEER" $(peer_access)
+}
+
+host_descriptor() {
+    preflight
+    step 1 4 "bin/oanfed.py publish -- the Network Descriptor, JWKS and schema-pack list"
+    local revision=1
+    if [ -f .well-known/openagrinet ]; then
+        revision=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["revision"] + 1)' \
+                   .well-known/openagrinet)
+    fi
+    # TTL last: it may be empty.
+    local values
+    values=$(python3 -c 'import os, sys; sys.path.insert(0, "bin"); import setup
+setup.load_dotenv()
+print(setup.env("BECKN_NETWORK_ID"), setup.registry_url(),
+      setup.env("REVERSE_PROXY_HTTPS_PORT", "443"), os.environ.get("FEDERATION_PROJECTION_TTL", ""))')
+    read -r network_id registry https_port ttl <<<"$values"
+    python3 bin/oanfed.py publish \
+        --network-id "$network_id" --registry-url "$registry" \
+        --keys keys/keys.json --revision "$revision" \
+        ${ttl:+--projection-ttl "$ttl"} --out .
+
+    remember_front_door "$network_id" "$https_port"
+
+    step 2 4 "the federation front door -- an nginx server block answering on $network_id"
+    federation_upstreams
+    # nginx holds this file open by inode, so it is rewritten, never replaced.
+    [ -w config/reverse-proxy/federation/server.conf ] \
+        || die "config/reverse-proxy/federation/server.conf is not yours to write -- sudo chown $(id -un):$(id -gn) config/reverse-proxy/federation/server.conf"
+    NETWORK_ID="$network_id" envsubst '${NETWORK_ID} ${NETWORK_UPSTREAM} ${PROVIDER_UPSTREAM}' \
+        < config/reverse-proxy/federation/server.conf.template \
+        > config/reverse-proxy/federation/server.conf
+    info "discover goes to $NETWORK_UPSTREAM, transactions to $PROVIDER_UPSTREAM"
+
+    step 3 4 "nginx-proxy-manager -- serves .well-known/ on every proxy host"
+    local was_running
+    was_running=$(docker inspect -f '{{.State.Running}}' "$(container nginx-proxy-manager)" 2>/dev/null || true)
+    docker compose --profile reverse-proxy up -d nginx-proxy-manager
+    if [ "$was_running" = true ]; then
+        docker exec "$(container nginx-proxy-manager)" nginx -s reload >/dev/null 2>&1 \
+            || warn "NPM did not reload; run make restart-edge if the check below fails"
+    else
+        info "NPM just started. Change its default login before anything else: make reverse-proxy says how."
+    fi
+
+    step 4 4 "checking https://$network_id/.well-known/openagrinet through NPM"
+    # Against our own CA, exactly as another network does it. Retried because
+    # an nginx reload is not instant and a first miss says nothing useful.
+    local served attempt
+    for attempt in 1 2 3 4 5; do
+        served=$(curl -fsS --cacert tls/ca.crt --max-time 10 --resolve "$network_id:$https_port:127.0.0.1" \
+                 "https://$network_id:$https_port/.well-known/openagrinet" 2>/dev/null \
+                 | python3 -c 'import json,sys; print(json.load(sys.stdin)["revision"])' 2>/dev/null || true)
+        [ "$served" = "$revision" ] && break
+        sleep 2
+    done
+    if [ "$served" = "$revision" ]; then
+        info "served at revision $revision -- peers can fetch it now"
+    else
+        warn "written, but NPM is not serving it for $network_id yet${served:+ (it serves revision $served)}"
+        info "NPM serves this from the block rendered above -- no proxy host needed."
+        info "Try make restart-edge, then re-run make host-descriptor."
+    fi
 }
 
 usage() {
     cat <<'USAGE'
 bin/stack.sh <command>
 
-  up             the whole stack: registry+discovery -> setup.py -> adapters
-                 -> gateway (public, 80/443) -> hyperdx (wants 16 GB)
-  up-core        steps 1-3 only. Nothing public, no ClickHouse.
+  up             the containers: registry+discovery -> gateway (public, 80/443)
+                 -> observability (wants 16 GB). No registry writes, no adapters.
+  up-core        the registry and discovery only. Nothing public, no ClickHouse.
   down           stop everything, keep the data
   destroy        stop everything and DELETE every volume
-  setup          re-run bin/setup.py only
+
+  then, in order -- each is idempotent:
+  keys               generate keys/keys.json
+  register-network   publish our own entry and read its key id back
+  register-provider  one upstream, its binding and its schema   PROVIDER=
+  configure-adapter  render the adapter configs from the registry, start them
+                     Asks for the deployment mode and whether to crawl other
+                     networks, and writes both answers back to .env. Set
+                     NETWORK_ADAPTER_DEPLOYMENT_MODE or FEDERATION_CRAWL_PEERS
+                     to answer without being asked; with no terminal it does
+                     not ask at all.
+
+  host-descriptor  sign the descriptor, JWKS and schema packs into .well-known/
+                   and serve them through nginx-proxy-manager (public, 80/443)
+  admit            admit a peer in one direction   PEER= DIRECTION= PACKS=
+                   PACKS is `all` or a comma-separated subset; omit it to be
+                   shown what this direction can cover
+  refresh          re-read an admitted peer's documents            PEER=
+  suspend          withdraw one direction          PEER= DIRECTION=
+  verify           fetch and check a peer's documents, changing nothing   PEER=
+  certs          re-issue this network's TLS certificate from the shared local CA
   reverse-proxy  start nginx-proxy-manager on its own (public, 80/443)
-  observability  start hyperdx on its own
+  observability  start clickhouse, otel-collector and grafana on their own
   pull           git pull, fixing the npm-custom ownership first
   restart        restart registry, discovery and the adapters only
   restart-edge   restart NPM after recreating an adapter (fixes a 502)
@@ -341,12 +734,23 @@ bin/stack.sh <command>
 USAGE
 }
 
+# Every command takes no arguments except logs; an extra one is a mistake, not a mode.
+[ $# -le 1 ] || [ "${1:-}" = logs ] || { usage; die "unexpected argument: $2"; }
 case "${1:-}" in
     up)             up ;;
     up-core)        up_core ;;
     down)           down ;;
     destroy)        destroy ;;
-    setup)          setup ;;
+    keys)           keys ;;
+    certs)          REISSUING_CERTS=1 preflight; certs ;;
+    register-network) register_network ;;
+    register-provider) register_provider ;;
+    configure-adapter) configure_adapter ;;
+    host-descriptor) host_descriptor ;;
+    admit)          admit ;;
+    refresh)        refresh_peer ;;
+    suspend)        suspend_peer ;;
+    verify)         verify_peer ;;
     reverse-proxy)  reverse_proxy ;;
     observability)  observability ;;
     pull)           pull ;;

@@ -1,0 +1,1565 @@
+{
+	"info": {
+		"_postman_id": "bd1ad563-7140-4476-9ddd-1ca6f7d54ec2",
+		"name": "OpenAgriNet Grievance",
+		"description": "Grievance and application status capabilities on the OAN network: PM-KISAN and PMFBY.\n\nImport api-collection/OpenAgriNet.grievance-local-environment.json (or ...-cluster-environment.json for the cluster) alongside this and select it, or every {{...-host}} resolves to nothing.\n\nGrievance > PM-KISAN: registry, publish, discover, then file a grievance with an OTP, check it with a new OTP, and the refusals.\nGrievance > PMFBY: registry, publish, discover, then lodge a grievance and read the ticket back.\nApplication status: PM-KISAN payment status, with its own registry, publish, discover and refusals.\n\nRun the folders of each group in order.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "43099899",
+		"_collection_link": "https://blue-resonance-485134.postman.co/workspace/OAN---Grievance~3f13addc-6aea-4c76-a961-22a5d9881b09/collection/43099899-bd1ad563-7140-4476-9ddd-1ca6f7d54ec2?action=share&source=collection_link&creator=43099899"
+	},
+	"item": [
+		{
+			"name": "Grievance",
+			"item": [
+				{
+					"name": "PM-KISAN",
+					"item": [
+						{
+							"name": "Registry",
+							"item": [
+								{
+									"name": "Read - Grievance schema",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+													"pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+													"pm.test('the Grievance pack', () => pm.expect(pm.response.json().data[0].schemaUrl).to.include('/schema/Grievance/'));"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"filters\": {\n    \"capabilityCode\": {\n      \"eq\": \"openagrinet:Grievance\"\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{registry-host}}/api/v1/SchemaRegistry/search",
+											"host": [
+												"{{registry-host}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"SchemaRegistry",
+												"search"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Read - participant",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+													"pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+													"pm.test('an upstream', () => pm.expect(pm.response.json().data[0].type).to.eql('upstream'));"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"filters\": {\n    \"participantId\": {\n      \"eq\": \"pmkisan\"\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{registry-host}}/api/v1/Participant/search",
+											"host": [
+												"{{registry-host}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"Participant",
+												"search"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Read - Grievance binding",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+													"pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+													"pm.test('init, status and support', () => pm.expect(pm.response.json().data[0].actions.map(a => a.action)).to.have.members(['init', 'status', 'support']));"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"filters\": {\n    \"bindingKey\": {\n      \"eq\": \"pmkisan|openagrinet:Grievance\"\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{registry-host}}/api/v1/ProviderSchema/search",
+											"host": [
+												"{{registry-host}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"ProviderSchema",
+												"search"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Publish",
+							"item": [
+								{
+									"name": "Publish - PM-KISAN grievance desk",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+													"",
+													"// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+													"// status code alone does not tell you the call worked.",
+													"pm.test('not a NACK', () => {",
+													"    const b = pm.response.json();",
+													"    const err = (b.error) || (b.message && b.message.error);",
+													"    if (err) throw new Error(`${err.code}: ${err.message}`);",
+													"});"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"context\": {\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\"\n  },\n  \"message\": {\n    \"publishDirectives\": [\n      {\n        \"catalogId\": \"catalog:grievance:pmkisan\",\n        \"catalogType\": \"REGULAR\",\n        \"updateMode\": \"MERGE\",\n        \"visibleTo\": [\n          \"{{network-id}}\"\n        ]\n      }\n    ],\n    \"catalogs\": [\n      {\n        \"id\": \"catalog:grievance:pmkisan\",\n        \"descriptor\": {\n          \"name\": \"PM-KISAN grievance desk\"\n        },\n        \"provider\": {\n          \"id\": \"pmkisan\",\n          \"descriptor\": {\n            \"name\": \"PM-KISAN\"\n          }\n        },\n        \"resources\": [\n          {\n            \"id\": \"res:pmkisan:grievance\",\n            \"resourceAttributes\": {\n              \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n              \"@type\": \"openagrinet:Grievance\",\n              \"informationMode\": \"OnDemand\",\n              \"scheme\": {\n                \"code\": \"PM-KISAN\",\n                \"name\": \"Pradhan Mantri Kisan Samman Nidhi\"\n              },\n              \"challenge\": {\n                \"methods\": [\n                  {\n                    \"method\": \"OTP\",\n                    \"channel\": \"SMS\",\n                    \"length\": 4,\n                    \"valueType\": \"NUMERIC\"\n                  }\n                ]\n              },\n              \"grievanceOptions\": {\n                \"categories\": [\n                  {\n                    \"code\": \"G001\",\n                    \"name\": \"Account number not correct\",\n                    \"help\": \"The bank account held against your registration is wrong, so money cannot reach you.\"\n                  },\n                  {\n                    \"code\": \"G002\",\n                    \"name\": \"Online application pending for approval\",\n                    \"help\": \"You applied online and the application has not yet been approved.\"\n                  },\n                  {\n                    \"code\": \"G003\",\n                    \"name\": \"Installment not received\",\n                    \"help\": \"Your registration is approved but an instalment has not reached your account.\"\n                  },\n                  {\n                    \"code\": \"G004\",\n                    \"name\": \"Transaction failed\",\n                    \"help\": \"A payment was attempted and the transfer did not go through.\"\n                  },\n                  {\n                    \"code\": \"G005\",\n                    \"name\": \"Problem in Aadhaar correction\",\n                    \"help\": \"A correction to your Aadhaar details has not gone through.\"\n                  },\n                  {\n                    \"code\": \"G006\",\n                    \"name\": \"Gender not correct\",\n                    \"help\": \"The gender recorded against your registration is wrong.\"\n                  },\n                  {\n                    \"code\": \"G007\",\n                    \"name\": \"Payment related\",\n                    \"help\": \"Any other problem with a payment that the options above do not cover.\"\n                  },\n                  {\n                    \"code\": \"G008\",\n                    \"name\": \"Problem in OTP-based eKYC\",\n                    \"help\": \"eKYC by OTP is failing.\"\n                  },\n                  {\n                    \"code\": \"G009\",\n                    \"name\": \"Problem in biometric-based eKYC\",\n                    \"help\": \"eKYC by fingerprint or iris is failing.\"\n                  },\n                  {\n                    \"code\": \"G010\",\n                    \"name\": \"Problem in facial-based eKYC\",\n                    \"help\": \"eKYC by face scan is failing.\"\n                  }\n                ]\n              },\n              \"actions\": [\n                {\n                  \"action\": \"init\",\n                  \"description\": \"Ask PM-KISAN to send a four-digit OTP to the mobile registered against this enrolment number. Needs only the enrolment number. Call before status or support: both require challenge.response carrying this OTP.\",\n                  \"schema\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/attributes.yaml#/components/schemas/PMKISANInit\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                },\n                {\n                  \"action\": \"status\",\n                  \"description\": \"Read a grievance already filed against this enrolment number: its status code, the officer's reply and when it was given. Needs the OTP from init and case.filedOn, the filing date support returned, which picks one case out of all those on the registration.\",\n                  \"schema\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/attributes.yaml#/components/schemas/PMKISANStatus\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                },\n                {\n                  \"action\": \"support\",\n                  \"description\": \"File a new grievance against this enrolment number, under one of the categories published above. Needs the OTP from init. Returns case.ticketNo and case.filedOn; keep filedOn, because status selects a case by it.\",\n                  \"schema\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/attributes.yaml#/components/schemas/PMKISANSupport\",\n                  \"attributesAt\": \"$.message.support.channels[0]\"\n                }\n              ]\n            }\n          }\n        ]\n      }\n    ]\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{provider-adapter-host}}/publish",
+											"host": [
+												"{{provider-adapter-host}}"
+											],
+											"path": [
+												"publish"
+											]
+										},
+										"description": "PM-KISAN publishes its Grievance resource."
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Discover",
+							"item": [
+								{
+									"name": "Discover - PM-KISAN grievance",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+													"",
+													"// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+													"// status code alone does not tell you the call worked.",
+													"pm.test('not a NACK', () => {",
+													"    const b = pm.response.json();",
+													"    const err = (b.error) || (b.message && b.message.error);",
+													"    if (err) throw new Error(`${err.code}: ${err.message}`);",
+													"});",
+													"",
+													"// Discovery may answer later (on_discover); check the catalog only when it is in this reply.",
+													"const catalogs = (pm.response.json().message || {}).catalogs;",
+													"(catalogs ? pm.test : pm.test.skip)('pmkisan is discovered', () => {",
+													"    pm.expect(catalogs.some(c => c.provider && c.provider.id === 'pmkisan')).to.be.true;",
+													"});"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"context\": {\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\",\n    \"networkId\": \"{{network-id}}\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.resourceAttributes.\\\"@type\\\" == \\\"openagrinet:Grievance\\\" && @.resourceAttributes.informationMode == \\\"OnDemand\\\")\"\n      }\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{consumer-adapter-host}}/discover",
+											"host": [
+												"{{consumer-adapter-host}}"
+											],
+											"path": [
+												"discover"
+											]
+										},
+										"description": "A consumer looks for an on-demand PM-KISAN Grievance desk."
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "File",
+							"item": [
+								{
+									"name": "Init - ask for the OTP",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+													"const j = pm.response.json();",
+													"pm.test(\"DRAFT\", () => pm.expect(j.message.contract.commitments[0].status.descriptor.code).to.eql(\"DRAFT\"));",
+													"pm.test(\"OnDemand\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.informationMode).to.eql(\"OnDemand\"));",
+													"pm.test(\"method\", () => { pm.expect(j.message.contract.commitments[0].commitmentAttributes.challenge.issued.method).to.eql(\"OTP\"); pm.expect(j.message.contract.commitments[0].commitmentAttributes.challenge.issued.channel).to.eql(\"SMS\"); });",
+													"pm.test('no sentTo, no enrolmentId', () => { pm.expect(j.message.contract.commitments[0].commitmentAttributes.challenge.issued).to.not.have.property('sentTo'); pm.expect(j.message.contract.commitments[0].commitmentAttributes).to.not.have.property('enrolmentId'); });",
+													"pm.test(\"OTP shape: length 4, NUMERIC\", () => { const c = pm.response.json().message.contract.commitments[0].commitmentAttributes.challenge.issued; pm.expect(c.length).to.eql(4); pm.expect(c.valueType).to.eql(\"NUMERIC\"); });"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"context\": {\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"5e2704c8-9d31-4f6a-b8c0-1a73e6d2f094\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:grievance\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"enrolmentId\": \"UP12345678A\"\n          }\n        }\n      ]\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{consumer-adapter-host}}/init",
+											"host": [
+												"{{consumer-adapter-host}}"
+											],
+											"path": [
+												"init"
+											]
+										},
+										"description": "Asks PM-KISAN to send an OTP to the farmer. Goes to the OTP host (mock-pmkisan-chatbot /ChatbotOTP)."
+									},
+									"response": []
+								},
+								{
+									"name": "Support - lodge with the OTP",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+													"const j = pm.response.json();",
+													"pm.test(\"enrolmentId echoed on the channel, no orderId\", () => { pm.expect(j.message.support).to.not.have.property(\"orderId\"); pm.expect(j.message.support.channels[0].enrolmentId).to.eql(\"UP12345678A\"); });",
+													"pm.test(\"case\", () => { const c = j.message.support.channels[0].case; pm.expect(c.ticketNo).to.be.a(\"string\").and.not.empty; pm.expect(c.status.code).to.eql(\"Registered\"); pm.expect(c.filedOn).to.match(/^\\d{4}-\\d{2}-\\d{2}$/); });",
+													"pm.test(\"grievance echoed\", () => pm.expect(j.message.support.channels[0].grievance).to.eql({\"category\": {\"code\": \"G003\"}, \"description\": \"Third instalment for 2026 has not been credited.\"}));",
+													"pm.test(\"OnDemand\", () => pm.expect(j.message.support.channels[0].informationMode).to.eql(\"OnDemand\"));",
+													"pm.test('challenge not echoed', () => pm.expect(j.message.support.channels[0]).to.not.have.property('challenge'));"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"context\": {\n    \"action\": \"support\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\"\n  },\n  \"message\": {\n    \"support\": {\n      \"channels\": [\n        {\n          \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n          \"@type\": \"openagrinet:Grievance\",\n          \"informationMode\": \"OnDemand\",\n          \"provider\": {\n            \"id\": \"pmkisan\",\n            \"descriptor\": {\n              \"name\": \"PM-KISAN\"\n            }\n          },\n          \"scheme\": {\n            \"code\": \"PM-KISAN\"\n          },\n          \"enrolmentId\": \"UP12345678A\",\n          \"grievance\": {\n            \"category\": {\n              \"code\": \"G003\"\n            },\n            \"description\": \"Third instalment for 2026 has not been credited.\"\n          },\n          \"challenge\": {\n            \"response\": {\n              \"method\": \"OTP\",\n              \"value\": \"4821\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{consumer-adapter-host}}/support",
+											"host": [
+												"{{consumer-adapter-host}}"
+											],
+											"path": [
+												"support"
+											]
+										},
+										"description": "Lodges the grievance. The chatbot mock logs /ChatbotOTPVerified (OTP present) before the lodge."
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Check",
+							"item": [
+								{
+									"name": "Init - ask for a new OTP",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+													"const j = pm.response.json();",
+													"pm.test(\"DRAFT\", () => pm.expect(j.message.contract.commitments[0].status.descriptor.code).to.eql(\"DRAFT\"));",
+													"pm.test(\"OTP shape: length 4, NUMERIC\", () => { const c = pm.response.json().message.contract.commitments[0].commitmentAttributes.challenge.issued; pm.expect(c.method).to.eql(\"OTP\"); pm.expect(c.channel).to.eql(\"SMS\"); pm.expect(c.length).to.eql(4); pm.expect(c.valueType).to.eql(\"NUMERIC\"); });"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"context\": {\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"c9b31a45-0f78-4e2d-9a60-84b7d3e15c02\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:grievance\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"enrolmentId\": \"UP12345678A\"\n          }\n        }\n      ]\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{consumer-adapter-host}}/init",
+											"host": [
+												"{{consumer-adapter-host}}"
+											],
+											"path": [
+												"init"
+											]
+										},
+										"description": "Asks for a fresh OTP."
+									},
+									"response": []
+								},
+								{
+									"name": "Status - read the grievance with the new OTP",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+													"const j = pm.response.json();",
+													"pm.test(\"ACTIVE\", () => pm.expect(j.message.contract.commitments[0].status.descriptor.code).to.eql(\"ACTIVE\"));",
+													"pm.test(\"grievance description returned\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.grievance.description).to.be.a(\"string\").and.not.empty);",
+													"pm.test(\"OnDemand\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.informationMode).to.eql(\"OnDemand\"));",
+													"pm.test(\"case\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.case).to.eql({\"status\": {\"code\": \"Replied\"}, \"filedOn\": \"2026-09-28\", \"reply\": \"Bank account seeded with Aadhaar; payment in next cycle.\", \"repliedOn\": \"2026-10-01\"}));",
+													"pm.test('no ticketNo, no enrolmentId, no personal data', () => { pm.expect(j.message.contract.commitments[0].commitmentAttributes.case).to.not.have.property('ticketNo'); pm.expect(j.message.contract.commitments[0].commitmentAttributes).to.not.have.property('enrolmentId'); ['SURESH','9999999999','Barhan'].forEach(s => pm.expect(pm.response.text()).to.not.include(s)); });"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"context\": {\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"c9b31a45-0f78-4e2d-9a60-84b7d3e15c02\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:grievance\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"enrolmentId\": \"UP12345678A\",\n            \"case\": {\n              \"filedOn\": \"2026-09-28\"\n            },\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"7390\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{consumer-adapter-host}}/status",
+											"host": [
+												"{{consumer-adapter-host}}"
+											],
+											"path": [
+												"status"
+											]
+										},
+										"description": "Reads the grievance back. OTP 7390."
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Errors",
+							"item": [
+								{
+									"name": "Support - wrong or expired OTP",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+													"const j = pm.response.json();",
+													"pm.test(\"error.code\", () => pm.expect(j.message.error.code).to.eql(\"BIZ_GENERIC_ERROR\"));"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"context\": {\n    \"action\": \"support\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\"\n  },\n  \"message\": {\n    \"support\": {\n      \"channels\": [\n        {\n          \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n          \"@type\": \"openagrinet:Grievance\",\n          \"informationMode\": \"OnDemand\",\n          \"provider\": {\n            \"id\": \"pmkisan\",\n            \"descriptor\": {\n              \"name\": \"PM-KISAN\"\n            }\n          },\n          \"scheme\": {\n            \"code\": \"PM-KISAN\"\n          },\n          \"enrolmentId\": \"UP12345678A\",\n          \"grievance\": {\n            \"category\": {\n              \"code\": \"G003\"\n            },\n            \"description\": \"Third instalment for 2026 has not been credited.\"\n          },\n          \"challenge\": {\n            \"response\": {\n              \"method\": \"OTP\",\n              \"value\": \"0000\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{consumer-adapter-host}}/support",
+											"host": [
+												"{{consumer-adapter-host}}"
+											],
+											"path": [
+												"support"
+											]
+										},
+										"description": "The lodge is never made."
+									},
+									"response": []
+								},
+								{
+									"name": "Support - unknown registration number",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+													"const j = pm.response.json();",
+													"pm.test(\"error.code\", () => pm.expect(j.message.error.code).to.eql(\"BIZ_GENERIC_ERROR\"));",
+													"pm.test(\"details.path names enrolmentId\", () => pm.expect(j.message.error.details.path).to.eql(\"$.message.support.channels[0].enrolmentId\"));",
+													"pm.test(\"the portal's text is not returned\", () => pm.expect(j.message.error.message).to.not.include(\"not found\"));"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"context\": {\n    \"action\": \"support\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\"\n  },\n  \"message\": {\n    \"support\": {\n      \"channels\": [\n        {\n          \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n          \"@type\": \"openagrinet:Grievance\",\n          \"informationMode\": \"OnDemand\",\n          \"provider\": {\n            \"id\": \"pmkisan\",\n            \"descriptor\": {\n              \"name\": \"PM-KISAN\"\n            }\n          },\n          \"scheme\": {\n            \"code\": \"PM-KISAN\"\n          },\n          \"enrolmentId\": \"FAIL0000000\",\n          \"grievance\": {\n            \"category\": {\n              \"code\": \"G003\"\n            },\n            \"description\": \"Third instalment for 2026 has not been credited.\"\n          },\n          \"challenge\": {\n            \"response\": {\n              \"method\": \"OTP\",\n              \"value\": \"4821\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{consumer-adapter-host}}/support",
+											"host": [
+												"{{consumer-adapter-host}}"
+											],
+											"path": [
+												"support"
+											]
+										},
+										"description": "The mock PM-KISAN refuses FAIL0000000."
+									},
+									"response": []
+								},
+								{
+									"name": "Status - no grievance found",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+													"const j = pm.response.json();",
+													"pm.test(\"error.code\", () => pm.expect(j.message.error.code).to.eql(\"BIZ_GENERIC_ERROR\"));"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"context\": {\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"c9b31a45-0f78-4e2d-9a60-84b7d3e15c02\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:grievance\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"enrolmentId\": \"UP12345678A\",\n            \"case\": {\n              \"filedOn\": \"2026-09-27\"\n            },\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"7390\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{consumer-adapter-host}}/status",
+											"host": [
+												"{{consumer-adapter-host}}"
+											],
+											"path": [
+												"status"
+											]
+										},
+										"description": "The filedOn date matches no grievance."
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "PMFBY",
+					"item": [
+						{
+							"name": "Registry",
+							"item": [
+								{
+									"name": "Read - schema",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+													"pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+													"const r = pm.response.json().data[0];",
+													"pm.test('the Grievance pack', () => pm.expect(r.schemaUrl).to.eql(pm.variables.get('schema-url')));"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"filters\": {\n    \"capabilityCode\": {\n      \"eq\": \"{{capability-code}}\"\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{registry-host}}/api/v1/SchemaRegistry/search",
+											"host": [
+												"{{registry-host}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"SchemaRegistry",
+												"search"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Read - participant",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+													"pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+													"const r = pm.response.json().data[0];",
+													"pm.test('upstream at the PMFBY base URL', () => {",
+													"    pm.expect(r.type).to.eql('upstream');",
+													"    pm.expect(r.baseUrl).to.eql(pm.variables.get('pmfby-base-url'));",
+													"});"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"filters\": {\n    \"participantId\": {\n      \"eq\": \"{{provider-id}}\"\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{registry-host}}/api/v1/Participant/search",
+											"host": [
+												"{{registry-host}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"Participant",
+												"search"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Read - binding",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+													"pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+													"const r = pm.response.json().data[0];",
+													"pm.test('support and status', () => pm.expect(r.actions.map(a => a.action).sort()).to.eql(['status', 'support']));",
+													"pm.test('support is never retried', () => pm.expect(r.actions.find(a => a.action === 'support').retryMax).to.eql(0));"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"filters\": {\n    \"bindingKey\": {\n      \"eq\": \"{{provider-id}}|{{capability-code}}\"\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{registry-host}}/api/v1/ProviderSchema/search",
+											"host": [
+												"{{registry-host}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"ProviderSchema",
+												"search"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Publish",
+							"item": [
+								{
+									"name": "Publish - PMFBY catalog",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+													"pm.test('catalog accepted', () => pm.expect(pm.response.json().message.results[0].status).to.eql('ACCEPTED'));"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"context\": {\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{now}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\"\n  },\n  \"message\": {\n    \"publishDirectives\": [\n      {\n        \"catalogId\": \"cat-pmfby-grievance\",\n        \"catalogType\": \"REGULAR\",\n        \"updateMode\": \"MERGE\",\n        \"visibleTo\": [\n          \"{{network-id}}\"\n        ]\n      }\n    ],\n    \"catalogs\": [\n      {\n        \"id\": \"cat-pmfby-grievance\",\n        \"descriptor\": {\n          \"code\": \"PMFBY-GRIEVANCE\",\n          \"name\": \"PMFBY Grievance Desk\"\n        },\n        \"provider\": {\n          \"id\": \"{{provider-id}}\",\n          \"descriptor\": {\n            \"code\": \"PMFBY\",\n            \"name\": \"PMFBY Grievance Portal\"\n          }\n        },\n        \"resources\": [\n          {\n            \"id\": \"{{resource-id}}\",\n            \"resourceAttributes\": {\n              \"@context\": \"{{pack-context}}\",\n              \"@type\": \"{{capability-code}}\",\n              \"informationMode\": \"OnDemand\",\n              \"scheme\": {\n                \"code\": \"PMFBY\",\n                \"name\": \"Pradhan Mantri Fasal Bima Yojana\"\n              },\n              \"grievanceOptions\": {\n                \"categories\": [\n                  {\n                    \"code\": \"3\",\n                    \"name\": \"Enrollment / Portal Issues\",\n                    \"help\": \"The only category this desk sends. PMFBY publishes no category list, so every grievance is filed under this one.\"\n                  }\n                ],\n                \"subCategories\": [\n                  {\n                    \"code\": \"10\",\n                    \"name\": \"Login\",\n                    \"help\": \"The only sub-category this desk sends, paired with category 3.\"\n                  }\n                ]\n              },\n              \"actions\": [\n                {\n                  \"action\": \"support\",\n                  \"description\": \"File a new grievance. Needs the enrolment number, the applicant's mobile, the crop year, the season and a description of the problem. Returns case.ticketNo, which status requires. Needs no OTP, so it can be called without init.\",\n                  \"schema\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/attributes.yaml#/components/schemas/PMFBYSupport\",\n                  \"attributesAt\": \"$.message.support.channels[0]\"\n                },\n                {\n                  \"action\": \"status\",\n                  \"description\": \"Read where a filed grievance stands: its status code, the portal's reply and the crop it concerns. Needs case.ticketNo from an earlier support call, plus the applicant's mobile. Cases cannot be listed by enrolment number, so support must come first.\",\n                  \"schema\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/attributes.yaml#/components/schemas/PMFBYStatus\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                }\n              ]\n            }\n          }\n        ],\n        \"offers\": [\n          {\n            \"id\": \"{{offer-id}}\",\n            \"resourceIds\": [\n              \"{{resource-id}}\"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{provider-adapter-host}}/publish",
+											"host": [
+												"{{provider-adapter-host}}"
+											],
+											"path": [
+												"publish"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Discover",
+							"item": [
+								{
+									"name": "Discover - PMFBY",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+													"const id = pm.variables.get('provider-id');",
+													"const cat = (pm.response.json().message.catalogs || []).find(k => k.provider.id === id);",
+													"pm.test('the PMFBY desk is listed', () => pm.expect(cat).to.be.ok);",
+													"const res = cat.resources[0];",
+													"pm.test('no OTP: no challenge published', () => pm.expect(res.resourceAttributes.challenge).to.be.undefined);",
+													"pm.collectionVariables.set('offer-id', cat.offers[0].id);",
+													"pm.collectionVariables.set('resource-id', res.id);"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"context\": {\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{now}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\",\n    \"networkId\": \"{{network-id}}\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.resourceAttributes.\\\"@type\\\" == \\\"openagrinet:Grievance\\\")\"\n      }\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{consumer-adapter-host}}/discover",
+											"host": [
+												"{{consumer-adapter-host}}"
+											],
+											"path": [
+												"discover"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Support",
+							"item": [
+								{
+									"name": "Support - lodge a grievance",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"exec": [
+													"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+													"const ch = pm.response.json().message.support.channels[0];",
+													"pm.test('OnDemand, with the enrolment echoed', () => {",
+													"    pm.expect(ch.informationMode).to.eql('OnDemand');",
+													"    pm.expect(ch.enrolmentId).to.eql(pm.variables.get('application-no'));",
+													"pm.test('category 3 and sub-category 10 echoed', () => { pm.expect(ch.grievance.category.code).to.eql('3'); pm.expect(ch.grievance.subCategory.code).to.eql('10'); });",
+													"});",
+													"pm.test('a ticket, Registered, filedOn is the IST date', () => {",
+													"    pm.expect(ch.case.ticketNo).to.be.a('string').and.not.empty;",
+													"    pm.expect(ch.case.status.code).to.eql('Registered');",
+													"    pm.expect(ch.case.filedOn).to.match(/^\\d{4}-\\d{2}-\\d{2}$/);",
+													"});",
+													"pm.test('the mobile number is not echoed', () => pm.expect(ch.applicantMobile).to.be.undefined);",
+													"pm.collectionVariables.set('ticket-no', ch.case.ticketNo);"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"context\": {\n    \"action\": \"support\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{now}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\"\n  },\n  \"message\": {\n    \"support\": {\n      \"channels\": [\n        {\n          \"@context\": \"{{pack-context}}\",\n          \"@type\": \"{{capability-code}}\",\n          \"informationMode\": \"OnDemand\",\n          \"provider\": {\n            \"id\": \"{{provider-id}}\",\n            \"descriptor\": {\n              \"name\": \"PMFBY Grievance Portal\"\n            }\n          },\n          \"scheme\": {\n            \"code\": \"PMFBY\"\n          },\n          \"enrolmentId\": \"{{application-no}}\",\n          \"applicantMobile\": \"{{mobile}}\",\n          \"cropYear\": \"{{crop-year}}\",\n          \"season\": \"{{season}}\",\n          \"grievance\": {\n            \"category\": {\n              \"code\": \"{{category-code}}\"\n            },\n            \"subCategory\": {\n              \"code\": \"{{sub-category-code}}\"\n            },\n            \"description\": \"{{description}}\"\n          }\n        }\n      ]\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{consumer-adapter-host}}/support",
+											"host": [
+												"{{consumer-adapter-host}}"
+											],
+											"path": [
+												"support"
+											]
+										},
+										"description": "On an application that already has a ticket, PMFBY answers \"Ticket Already Raised\" and returns that ticket; the adapter reports it like a new one (known gap)."
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Status",
+							"item": [
+								{
+									"name": "Status - read the grievance",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+													"const a = pm.response.json().message.contract.commitments[0].commitmentAttributes;",
+													"pm.test('OnDemand, with the case', () => {",
+													"    pm.expect(a.informationMode).to.eql('OnDemand');",
+													"    pm.expect(a.case.ticketNo).to.eql(pm.variables.get('ticket-no'));",
+													"    pm.expect(['Registered', 'UnderReview', 'AwaitingApplicant', 'Replied', 'Resolved', 'Rejected', 'Closed']).to.include(a.case.status.code);",
+													"    pm.expect(a.case.filedOn).to.match(/^\\d{4}-\\d{2}-\\d{2}$/);",
+													"});",
+													"pm.test('category with code and name', () => {",
+													"    pm.expect(a.grievance.category.code).to.match(/^[0-9]+$/);",
+													"    pm.expect(a.grievance.category.name).to.be.a('string');",
+													"});",
+													"pm.test('crop year and season', () => {",
+													"    pm.expect(a.cropYear).to.match(/^[0-9]{4}$/);",
+													"    pm.expect(['Kharif', 'Rabi', 'Zaid']).to.include(a.season);",
+													"});",
+													"pm.test('no personal data', () => {",
+													"    const text = JSON.stringify(a);",
+													"    pm.expect(a.applicantMobile).to.be.undefined;",
+													"    pm.expect(text).not.to.include(pm.variables.get('mobile'));",
+													"});"
+												],
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {}
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"context\": {\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{now}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"{{offer-id}}\",\n            \"provider\": {\n              \"id\": \"{{provider-id}}\",\n              \"descriptor\": {\n                \"name\": \"PMFBY Grievance Portal\"\n              }\n            },\n            \"resourceIds\": [\n              \"{{resource-id}}\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"{{resource-id}}\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{pack-context}}\",\n            \"@type\": \"{{capability-code}}\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PMFBY\"\n            },\n            \"case\": {\n              \"ticketNo\": \"{{ticket-no}}\"\n            },\n            \"applicantMobile\": \"{{mobile}}\"\n          }\n        }\n      ]\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{consumer-adapter-host}}/status",
+											"host": [
+												"{{consumer-adapter-host}}"
+											],
+											"path": [
+												"status"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Application status",
+			"item": [
+				{
+					"name": "Registry",
+					"item": [
+						{
+							"name": "Read - SchemeApplication schema",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+											"pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+											"pm.test('the SchemeApplication pack', () => pm.expect(pm.response.json().data[0].schemaUrl).to.include('/schema/SchemeApplication/'));"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"filters\": {\n    \"capabilityCode\": {\n      \"eq\": \"openagrinet:SchemeApplication\"\n    }\n  }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{registry-host}}/api/v1/SchemaRegistry/search",
+									"host": [
+										"{{registry-host}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"SchemaRegistry",
+										"search"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Read - participant",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+											"pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+											"pm.test('an upstream', () => pm.expect(pm.response.json().data[0].type).to.eql('upstream'));"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"filters\": {\n    \"participantId\": {\n      \"eq\": \"pmkisan\"\n    }\n  }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{registry-host}}/api/v1/Participant/search",
+									"host": [
+										"{{registry-host}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"Participant",
+										"search"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Read - application status binding",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+											"pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+											"pm.test('init and status', () => pm.expect(pm.response.json().data[0].actions.map(a => a.action)).to.have.members(['init', 'status']));"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"filters\": {\n    \"bindingKey\": {\n      \"eq\": \"pmkisan|openagrinet:SchemeApplication\"\n    }\n  }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{registry-host}}/api/v1/ProviderSchema/search",
+									"host": [
+										"{{registry-host}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"ProviderSchema",
+										"search"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Publish",
+					"item": [
+						{
+							"name": "Publish - PM-KISAN application status",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+											"",
+											"// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+											"// status code alone does not tell you the call worked.",
+											"pm.test('not a NACK', () => {",
+											"    const b = pm.response.json();",
+											"    const err = (b.error) || (b.message && b.message.error);",
+											"    if (err) throw new Error(`${err.code}: ${err.message}`);",
+											"});"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"context\": {\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\"\n  },\n  \"message\": {\n    \"publishDirectives\": [\n      {\n        \"catalogId\": \"catalog:scheme-application:pmkisan\",\n        \"catalogType\": \"REGULAR\",\n        \"updateMode\": \"MERGE\",\n        \"visibleTo\": [\n          \"{{network-id}}\"\n        ]\n      }\n    ],\n    \"catalogs\": [\n      {\n        \"id\": \"catalog:scheme-application:pmkisan\",\n        \"descriptor\": {\n          \"name\": \"PM-KISAN application status\"\n        },\n        \"provider\": {\n          \"id\": \"pmkisan\",\n          \"descriptor\": {\n            \"name\": \"PM-KISAN\"\n          }\n        },\n        \"resources\": [\n          {\n            \"id\": \"res:pmkisan:application-status\",\n            \"resourceAttributes\": {\n              \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.1/context.jsonld\",\n              \"@type\": \"openagrinet:SchemeApplication\",\n              \"informationMode\": \"OnDemand\",\n              \"scheme\": {\n                \"code\": \"PM-KISAN\",\n                \"name\": \"Pradhan Mantri Kisan Samman Nidhi\"\n              },\n              \"challenge\": {\n                \"methods\": [\n                  {\n                    \"method\": \"OTP\",\n                    \"channel\": \"SMS\",\n                    \"length\": 4,\n                    \"valueType\": \"NUMERIC\"\n                  }\n                ]\n              },\n              \"actions\": [\n                {\n                  \"action\": \"init\",\n                  \"description\": \"Ask PM-KISAN to send a four-digit OTP, identified by either the registration number or the registered mobile. Call before status, which requires challenge.response carrying this OTP.\",\n                  \"schema\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.1/attributes.yaml#/components/schemas/PMKISANApplicationInit\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                },\n                {\n                  \"action\": \"status\",\n                  \"description\": \"Read how far the application has got: when it was registered, the latest instalment paid, whether eKYC is done, and anything blocking payment. Needs the OTP from init, and either the registration number or the registered mobile.\",\n                  \"schema\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.1/attributes.yaml#/components/schemas/PMKISANApplicationStatus\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                }\n              ]\n            }\n          }\n        ]\n      }\n    ]\n  }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{provider-adapter-host}}/publish",
+									"host": [
+										"{{provider-adapter-host}}"
+									],
+									"path": [
+										"publish"
+									]
+								},
+								"description": "PM-KISAN publishes its SchemeApplication resource."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Discover",
+					"item": [
+						{
+							"name": "Discover - PM-KISAN application status",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+											"",
+											"// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+											"// status code alone does not tell you the call worked.",
+											"pm.test('not a NACK', () => {",
+											"    const b = pm.response.json();",
+											"    const err = (b.error) || (b.message && b.message.error);",
+											"    if (err) throw new Error(`${err.code}: ${err.message}`);",
+											"});",
+											"",
+											"// Discovery may answer later (on_discover); check the catalog only when it is in this reply.",
+											"const catalogs = (pm.response.json().message || {}).catalogs;",
+											"(catalogs ? pm.test : pm.test.skip)('pmkisan application status is discovered', () => {",
+											"    pm.expect(catalogs.some(c => c.provider && c.provider.id === 'pmkisan')).to.be.true;",
+											"});"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"context\": {\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\",\n    \"networkId\": \"{{network-id}}\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.resourceAttributes.\\\"@type\\\" == \\\"openagrinet:SchemeApplication\\\" && @.resourceAttributes.informationMode == \\\"OnDemand\\\")\"\n      }\n    }\n  }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{consumer-adapter-host}}/discover",
+									"host": [
+										"{{consumer-adapter-host}}"
+									],
+									"path": [
+										"discover"
+									]
+								},
+								"description": "A consumer looks for an on-demand PM-KISAN SchemeApplication desk."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Check",
+					"item": [
+						{
+							"name": "Init - ask for the OTP by mobile number",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+											"const j = pm.response.json();",
+											"pm.test(\"DRAFT\", () => pm.expect(j.message.contract.commitments[0].status.descriptor.code).to.eql(\"DRAFT\"));",
+											"pm.test(\"method\", () => { pm.expect(j.message.contract.commitments[0].commitmentAttributes.challenge.issued.method).to.eql(\"OTP\"); pm.expect(j.message.contract.commitments[0].commitmentAttributes.challenge.issued.channel).to.eql(\"SMS\"); });",
+											"pm.test('applicant not echoed', () => pm.expect(j.message.contract.commitments[0].commitmentAttributes).to.not.have.property('applicant'));",
+											"pm.test(\"OTP shape: length 4, NUMERIC\", () => { const c = pm.response.json().message.contract.commitments[0].commitmentAttributes.challenge.issued; pm.expect(c.length).to.eql(4); pm.expect(c.valueType).to.eql(\"NUMERIC\"); });"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"context\": {\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"a9f3b062-5e17-4c84-9d20-6b48f1c7e053\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:application-status\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:application-status\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:application-status\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"applicant\": {\n              \"mobile\": \"9812345670\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{consumer-adapter-host}}/init",
+									"host": [
+										"{{consumer-adapter-host}}"
+									],
+									"path": [
+										"init"
+									]
+								},
+								"description": "Asks for an OTP, identifying the farmer by mobile number."
+							},
+							"response": []
+						},
+						{
+							"name": "Status - payment blocked",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+											"const j = pm.response.json();",
+											"pm.test(\"CLOSED\", () => pm.expect(j.message.contract.commitments[0].status.descriptor.code).to.eql(\"CLOSED\"));",
+											"pm.test(\"OnDemand\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.informationMode).to.eql(\"OnDemand\"));",
+											"pm.test(\"enrolmentId\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.enrolmentId).to.eql(\"UP45678901C\"));",
+											"pm.test(\"registeredOn\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.application.registeredOn).to.eql(\"2021-06-14T00:00:00+05:30\"));",
+											"pm.test(\"latestInstalmentPaid\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.application.latestInstalmentPaid).to.eql(15));",
+											"pm.test(\"ekyc.code\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.application.ekyc.code).to.eql(\"Pending\"));",
+											"pm.test('blockers', () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.application.blockers).to.have.deep.members([{code:'LandSeedingPending',name:'Land Seeding, KYS'},{code:'Other',name:'Bank account details could not be verified'}]));"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"context\": {\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"a9f3b062-5e17-4c84-9d20-6b48f1c7e053\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:application-status\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:application-status\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:application-status\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"applicant\": {\n              \"mobile\": \"9812345670\"\n            },\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"4827\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{consumer-adapter-host}}/status",
+									"host": [
+										"{{consumer-adapter-host}}"
+									],
+									"path": [
+										"status"
+									]
+								},
+								"description": "Payment blocked. OTP 4827. ekyc has no name: the portal sends only Y or N."
+							},
+							"response": []
+						},
+						{
+							"name": "Status - nothing blocking",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+											"const j = pm.response.json();",
+											"pm.test(\"enrolmentId\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.enrolmentId).to.eql(\"UP77554433D\"));",
+											"pm.test(\"application\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.application).to.eql({\"blockers\": [], \"ekyc\": {\"code\": \"Done\"}, \"latestInstalmentPaid\": 16, \"registeredOn\": \"2021-02-08T00:00:00+05:30\"}));"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"context\": {\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"a9f3b062-5e17-4c84-9d20-6b48f1c7e053\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:application-status\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:application-status\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:application-status\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"enrolmentId\": \"UP77554433D\",\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"4827\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{consumer-adapter-host}}/status",
+									"host": [
+										"{{consumer-adapter-host}}"
+									],
+									"path": [
+										"status"
+									]
+								},
+								"description": "A different farmer, looked up by registration number. No blockers."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Errors",
+					"item": [
+						{
+							"name": "Status - no registration found",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+											"const j = pm.response.json();",
+											"pm.test(\"error.code\", () => pm.expect(j.message.error.code).to.eql(\"BIZ_GENERIC_ERROR\"));"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"context\": {\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"a9f3b062-5e17-4c84-9d20-6b48f1c7e053\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:application-status\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:application-status\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:application-status\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"applicant\": {\n              \"mobile\": \"9111111111\"\n            },\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"4827\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{consumer-adapter-host}}/status",
+									"host": [
+										"{{consumer-adapter-host}}"
+									],
+									"path": [
+										"status"
+									]
+								},
+								"description": "The registration number is unknown."
+							},
+							"response": []
+						},
+						{
+							"name": "Init - mobile is not a mobile number",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+											"const j = pm.response.json();",
+											"pm.test(\"error.code\", () => pm.expect(j.message.error.code).to.eql(\"SCH_SCHEMA_VALIDATION_FAILED\"));",
+											"pm.test(\"details.path\", () => pm.expect(j.message.error.details.path).to.eql(\"message.contract.commitments[0].commitmentAttributes.applicant/mobile\"));"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"context\": {\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{sender-id}}\",\n    \"receiverId\": \"{{receiver-id}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"a9f3b062-5e17-4c84-9d20-6b48f1c7e053\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:application-status\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:application-status\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:application-status\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"applicant\": {\n              \"mobile\": \"UP45678901\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{consumer-adapter-host}}/init",
+									"host": [
+										"{{consumer-adapter-host}}"
+									],
+									"path": [
+										"init"
+									]
+								},
+								"description": "Refused by the schema before it reaches the portal."
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.collectionVariables.set('now', new Date().toISOString());"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "now",
+			"value": ""
+		},
+		{
+			"key": "ticket-no",
+			"value": ""
+		},
+		{
+			"key": "offer-id",
+			"value": ""
+		},
+		{
+			"key": "resource-id",
+			"value": ""
+		}
+	]
+}

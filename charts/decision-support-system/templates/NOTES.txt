@@ -1,0 +1,65 @@
+{{ .Chart.Name }} installed as release "{{ .Release.Name }}".
+
+Resources in namespace "{{ .Release.Namespace }}":
+  - Deployment/{{ include "decision-support-system.fullname" . }} ({{ if .Values.autoscaling.enabled }}autoscaled {{ .Values.autoscaling.minReplicas }}-{{ .Values.autoscaling.maxReplicas }}{{ else }}{{ .Values.replicaCount }} replica(s){{ end }})
+  - Service/{{ include "decision-support-system.fullname" . }} ({{ .Values.service.type }} on port {{ .Values.service.port }})
+  - ConfigMap/{{ include "decision-support-system.envConfigMapName" . }}
+{{- if .Values.serviceAccount.enabled }}
+  - ServiceAccount/{{ include "decision-support-system.serviceAccountName" . }}
+{{- end }}
+{{- if .Values.ingress.enabled }}
+  - Ingress/{{ include "decision-support-system.fullname" . }}
+{{- end }}
+{{- if .Values.podDisruptionBudget.enabled }}
+  - PodDisruptionBudget/{{ include "decision-support-system.fullname" . }}
+{{- end }}
+
+Wired to:
+  intent model:      {{ .Values.models.intent }}
+  moderation model:   {{ .Values.models.moderation }}
+  planner model:      {{ .Values.models.planner }}
+  composer model:     {{ .Values.models.composer }}
+  provider network:   {{ if .Values.network.discoveryBaseUrl }}{{ .Values.network.discoveryBaseUrl }} / {{ .Values.network.invocationBaseUrl }}{{ else }}UNWIRED - every turn answers intent + moderation only, outcome.status "no_match"{{ end }}
+  schema packs:       ref {{ .Values.schemaPacks.ref }}, cached at {{ .Values.schemaPacks.mountPath }} (emptyDir - refetched on every reschedule)
+  evidence:           {{ .Values.evidence.mountPath }} (emptyDir - lost on pod restart by design, see README.md)
+  tracing:            {{ if .Values.tracing.otlpEndpoint }}{{ .Values.tracing.otlpEndpoint }}{{ else }}OFF - no OTEL_EXPORTER_OTLP_ENDPOINT set{{ end }}
+
+In-cluster endpoint:
+  http://{{ include "decision-support-system.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+No auth and no CORS on this service, by design (entrypoint/app.py) - it
+expects only this deployment's own channel/gateway service to reach it, never
+a client directly. ingress.enabled defaults to false for the same reason.
+
+Check it:
+  kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "decision-support-system.fullname" . }}
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "decision-support-system.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+  curl http://localhost:{{ .Values.service.port }}/openapi.json   # liveness only - see README.md, "Health checks"
+  curl -X POST http://localhost:{{ .Values.service.port }}/v1/turns \
+    -H 'Content-Type: application/json' -H 'Accept: application/json' \
+    --data-binary @docs/api-contracts/examples/answered_streaming.json
+  # (in the app repo's checkout - the field is `context.version`, not
+  # `envelopeVersion`; docs/RUNNING.md's own inline curl is stale on this,
+  # verified against a real deployment while writing this chart)
+
+If the pods crashloop before serving, check these in order - the first two are
+startup failures the service raises deliberately, and log the real cause
+before exiting:
+  1. "AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY" in the crash log means a
+     models.* value uses azure: but azureOpenai.* was left unset - this chart
+     should have caught it at render time (see _helpers.tpl), so seeing it at
+     runtime instead means values were set through some other path (--set,
+     a second -f) that bypassed the guard.
+  2. "the network is configured but no schema packs loaded" means
+     network.discoveryBaseUrl/invocationBaseUrl are set, the schema-pack
+     emptyDir came up empty, AND the pod's own GitHub fetch on boot also found
+     nothing at schemaPacks.ref - check the ref is real
+     (network-specs@schema-packs-v0.1 as of this chart's writing, not `main`)
+     and that the pod has egress to api.github.com.
+  3. A key in `envConfig` matching no Settings field is silently ignored, NOT
+     a boot failure - Settings uses extra="ignore" precisely so a real
+     deployment's non-DSS_ vars (OPENAI_API_KEY, the Langfuse OTEL_* keys)
+     don't raise. A typo'd DSS_* key in envConfig therefore looks like it took
+     effect and quietly did not; there is no render-time or boot-time check
+     for this, unlike the guards this chart adds for models.*/network.*.

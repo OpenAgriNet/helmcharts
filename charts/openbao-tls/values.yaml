@@ -1,0 +1,39 @@
+# ============================================================================
+# openbao-tls
+#
+# A private CA for OpenBao, and the certificate OpenBao serves on 8200. Install
+# it into OpenBao's namespace, BEFORE the openbao release: the pod mounts the
+# server Secret and does not start without it.
+#
+#   Issuer openbao-selfsigned  -> Certificate openbao-ca (the CA, 10 years)
+#   Issuer openbao-ca          -> Certificate openbao-server-tls (90 days)
+#
+# openbao-server-tls holds tls.crt, tls.key and ca.crt. OpenBao serves the
+# first two; everything that calls it trusts ca.crt -- ESO through the
+# ClusterSecretStore's caProvider, the bao CLI in the pod through BAO_CACERT,
+# raft peers through leader_ca_cert_file.
+#
+# cert-manager renews the server certificate on its own; OpenBao reads it only
+# at start and on SIGHUP, so the openbao values run a sidecar that sends one
+# when the file changes.
+#
+# Needs cert-manager running, with its CRDs.
+# ============================================================================
+
+# The openbao release's Service name -- the release name. Every name the
+# server is reached by is derived from it and the namespace.
+serviceName: openbao
+
+ca:
+  # Long, because rotating it means re-trusting it everywhere at once.
+  duration: 87600h # 10 years
+  commonName: OAN OpenBao CA
+
+server:
+  # Short, because renewal is automatic and so is the reload.
+  duration: 2160h    # 90 days
+  renewBefore: 720h  # 30 days
+  # Names beyond the derived ones.
+  extraDnsNames: []
+
+commonLabels: {}
