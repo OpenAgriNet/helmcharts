@@ -155,6 +155,27 @@
       "enabled": true,
       "type": "default",
       "description": "The pack version, and the row's version field. All eight packs are v0.1 today. Per capability in setup.py rather than one setting for all four, because a capability can move to v0.2 while the others stay -- so if you point capability-code at one that has, change this too."
+    },
+    {
+      "key": "network-id",
+      "value": "oan-dev",
+      "enabled": true,
+      "type": "default",
+      "description": "context.networkId on Grievance and Application status discover, and the visibleTo on their publish. BECKN_NETWORK_ID in .env: a discover naming another network finds nothing."
+    },
+    {
+      "key": "sender-id",
+      "value": "consumer.oan.dev",
+      "enabled": true,
+      "type": "default",
+      "description": "context.senderId on every Grievance and Application status request. CONSUMER_SUBSCRIBER_ID in .env."
+    },
+    {
+      "key": "receiver-id",
+      "value": "provider.oan.dev",
+      "enabled": true,
+      "type": "default",
+      "description": "context.receiverId on every Grievance and Application status request. PROVIDER_SUBSCRIBER_ID in .env."
     }
   ],
   "_postman_variable_scope": "environment",
