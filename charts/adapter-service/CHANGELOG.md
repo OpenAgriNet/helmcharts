@@ -5,6 +5,15 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2026-11-02
+
+### Fixed
+- The crawler pushes a crawled catalogue to the discovery service directly,
+  where it used to go to this adapter's own `/network/publish`. That mount runs
+  `validateSign` and the crawler's push carries no signature, so every crawled
+  catalogue was refused with `AUT_SIGNATURE_MISSING` and nothing was ever
+  stored. The address is the one the network mount forwards a publish to.
+
 ## [0.9.0] - 2026-11-02
 
 ### Changed
