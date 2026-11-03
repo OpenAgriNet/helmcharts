@@ -63,10 +63,10 @@ plugins:
   crawler:
     id: catalogcrawler
     config:
-      # Where a crawled catalog is published: this adapter's own network mount,
-      # which is what a local publish goes through too. The port must match
-      # service.targetPort.
-      discoveryPushUrl: "http://localhost:__ADAPTER_PORT__/network/publish"
+      # Where a crawled catalog is published: discovery itself, the same address
+      # the network mount forwards a publish to. The crawler does not sign what
+      # it pushes, so a mount that checks a signature refuses it.
+      discoveryPushUrl: "http://discovery.discovery.svc.cluster.local:8080/publish"
       participantId: "__NETWORK_SUBSCRIBER_ID__"
 
       federationEnabled: "__FEDERATION_ENABLED__"
