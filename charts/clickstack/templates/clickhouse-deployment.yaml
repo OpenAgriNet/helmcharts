@@ -43,6 +43,19 @@ spec:
           env:
             - name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT
               value: "1"
+            {{- with .Values.clickhouse.config.users.existingSecret }}
+            # users.xml reads both passwords with from_env.
+            - name: CLICKHOUSE_APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: appUserPassword
+            - name: CLICKHOUSE_OTEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: otelUserPassword
+            {{- end }}
           {{- if .Values.clickhouse.resources }}
           resources:
             {{- toYaml .Values.clickhouse.resources | nindent 12 }}

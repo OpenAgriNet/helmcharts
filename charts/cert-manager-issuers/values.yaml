@@ -1,0 +1,59 @@
+# ---------------------------------------------------------------------------
+# Let's Encrypt ClusterIssuers
+#
+# This chart creates cert-manager custom resources and nothing else: no
+# workload, no Service, no image. cert-manager itself must be installed and its
+# CRDs registered before this renders, or every object here is an unknown kind.
+#
+# Install order is therefore not optional:
+#   1. cert-manager CRDs      (kubectl apply --server-side, see below)
+#   2. cert-manager           (charts/cert-manager)
+#   3. these issuers          (this chart)
+#
+# THE CRDs GO ON OUT OF BAND. Three of them exceed the 262144-byte cap on
+# metadata.annotations that a client-side apply writes into
+# `kubectl.kubernetes.io/last-applied-configuration`:
+#
+#   clusterissuers  325618 bytes
+#   issuers         325487 bytes
+#   challenges      268992 bytes
+#
+# so `crds.enabled` stays false in the cert-manager chart -- which is its own
+# default -- and they are applied server-side instead:
+#
+#   kubectl apply --server-side -f \
+#     https://github.com/cert-manager/cert-manager/releases/download/v1.21.2/cert-manager.crds.yaml
+# ---------------------------------------------------------------------------
+
+# Contact address for every issuer that does not set its own. Let's Encrypt
+# sends expiry warnings here.
+email: ""
+
+# The ingress controller that answers the HTTP-01 challenge. Must match the
+# ingressClassName on the Ingress objects being certified.
+ingressClassName: kong
+
+commonAnnotations: {}
+
+# One ClusterIssuer per key. The key IS the resource name, and it is what an
+# Ingress references in cert-manager.io/cluster-issuer, so renaming one orphans
+# every certificate pointing at it.
+issuers:
+  # Untrusted by browsers and by anything else, on purpose. Its rate limits are
+  # far looser than production's, so failed orders here cost nothing -- and
+  # production's limit of 5 failed authorizations per hostname per hour is easy
+  # to exhaust while DNS or port 80 is still wrong.
+  #
+  # Get a certificate issued by this one FIRST, then switch the Ingress to
+  # letsencrypt-prod.
+  letsencrypt-staging:
+    enabled: true
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+
+  # Trusted, and rate-limited accordingly: 50 certificates per registered
+  # domain per week. sslip.io is on the Public Suffix List, so each
+  # <ip>.sslip.io counts as its own registered domain rather than sharing one
+  # bucket with every other sslip.io user.
+  letsencrypt-prod:
+    enabled: true
+    server: https://acme-v02.api.letsencrypt.org/directory

@@ -1,0 +1,24 @@
+# Where the network adapter hands requests on.
+#
+# Mounted verbatim, like the adapter config beside it. Routing is topology, not
+# environment: these are in-cluster names built from the namespace-per-component
+# convention, and they are the same in every environment. An environment that
+# genuinely differs sets `routing.config` in values, which replaces this file
+# whole.
+#
+# targetType "url" APPENDS THE ACTION to whatever base is given, so a base is a
+# bare host and port with no path and no trailing slash -- a slash produces
+# //discover. The render refuses one.
+#
+# One job: hand the catalogue actions to the discovery service. Both are one
+# rule because they share a target. publish arrives from the provider adapter,
+# discover from the consumer adapter, and neither is answered here -- this
+# adapter verifies the caller and forwards.
+routingRules:
+  - version: "2.0.0"
+    targetType: url
+    target:
+      url: http://discovery.discovery.svc.cluster.local:8080
+    endpoints:
+      - discover
+      - publish

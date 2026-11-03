@@ -1,0 +1,117 @@
+# What another network reads before it will talk to us: the signed descriptor,
+# our public key, and the packs we publish.
+#
+# A Job signs them into a ConfigMap; a small server answers for them. The
+# private key is in the Job and nowhere else.
+# ---------------------------------------------------------------------------
+
+nameOverride: ""
+fullnameOverride: ""
+
+# The same registry the adapter reads: the descriptor is built from this entry
+# and signed with the key it publishes.
+networkId: ""
+
+# WITHOUT /api/v1 -- oanfed appends it. The adapter's own registry.url DOES
+# carry it, so the two values differ by that suffix and cannot be copied across.
+#   http://registry.registry.svc.cluster.local:8081
+registryUrl: ""
+
+# For the descriptor. The entry's name is used when empty.
+operator: ""
+
+# Seconds another network may keep what it crawls from us. Keep it above their
+# refresh interval, or what they hold expires between crawls.
+projectionTtl: ""
+
+# The Secret the ADAPTER reads, not a copy. oanfed refuses to sign with a key
+# the registry does not publish for us.
+keys:
+  existingSecret:
+    name: ""
+    signingPrivateKey: signingPrivateKey
+    signingPublicKey: signingPublicKey
+
+# Where the signed documents sit between the Job and the server.
+documentsConfigMap: ""   # defaults to <fullname>-documents
+
+image:
+  registry: docker.io
+  repository: python
+  # oanfed needs `cryptography`, installed at start -- so this needs egress to
+  # PyPI. Air-gapped: use an image that carries it and clear pipInstall.
+  tag: "3.13-slim"
+  pullPolicy: IfNotPresent
+pipInstall: "cryptography"
+
+# Re-run on every upgrade: the descriptor is re-signed whenever the registry
+# entry changes, and each run publishes the next revision.
+job:
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: before-hook-creation
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 200m, memory: 256Mi}
+
+# Answers for the documents. Holds nothing secret.
+server:
+  replicaCount: 1
+  image:
+    registry: docker.io
+    repository: nginxinc/nginx-unprivileged
+    tag: "1.27-alpine"
+    pullPolicy: IfNotPresent
+  port: 8080
+  resources:
+    requests: {cpu: 10m, memory: 16Mi}
+    limits: {cpu: 100m, memory: 64Mi}
+
+service:
+  type: ClusterIP
+  port: 80
+
+# Public by necessity -- any network considering us fetches these. Leave tls
+# empty if the adapter's Ingress already holds the certificate for this name.
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  tls: []
+
+# One direction per entry, one Job each. Declarative so who we agreed to talk
+# to is reviewable in git.
+#
+#   admissions:
+#     - networkId: net-b.example.org
+#       direction: source        # source = we may read from them
+#       schemaPacks: [https://.../AgricultureFacility/v0.1/attributes.yaml]
+admissions: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 101
+  # A secret volume is owned by root, so without a group the publish Job cannot
+  # read the key it signs with. fsGroup is what gives the file a readable group.
+  fsGroup: 101
+  seccompProfile: {type: RuntimeDefault}
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities: {drop: ["ALL"]}
+
+commonLabels: {}
+commonAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

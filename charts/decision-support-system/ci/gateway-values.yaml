@@ -1,0 +1,16 @@
+# Exercises the gateway branch (ADR-0013) ci/lint-values.yaml and
+# ci/azure-network-values.yaml do not: gateway.url set, which requires
+# gateway.apiKeySecret and skips the azure/openai guards entirely, even
+# though models.* below is not an openai:/azure: string at all - see
+# _helpers.tpl's usesGateway guard.
+models:
+  intent: "dss-intent"
+  moderation: "dss-moderation"
+  planner: "dss-planner"
+  composer: "dss-composer"
+
+gateway:
+  url: "http://litellm.dss-gateway.svc.cluster.local:4000/v1"
+  apiKeySecret:
+    name: dss-gateway
+    key: api-key

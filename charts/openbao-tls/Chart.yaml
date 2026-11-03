@@ -1,0 +1,16 @@
+apiVersion: v2
+name: openbao-tls
+description: >-
+  The certificate OpenBao serves its API with: a CA of its own and a server
+  certificate signed by it, both issued and renewed by cert-manager. Installed
+  before the openbao chart, which mounts the server Secret.
+type: application
+version: 0.1.0
+# The cert-manager release these resources are written against.
+appVersion: "1.21.2"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts

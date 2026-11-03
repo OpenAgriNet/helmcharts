@@ -1,0 +1,27 @@
+# Dashboard provisioning, the counterpart to datasources/clickhouse.yaml.
+# Grafana scans `path` on boot and every updateIntervalSeconds, so a dashboard
+# committed here exists on a fresh stack with no import step -- which is the
+# whole point: a dashboard built by clicking lives only in the grafana-data
+# volume, so `make destroy` deletes it and nobody else on the team ever gets it.
+#
+# docker-compose.yml already mounts ./config/grafana/provisioning read-only,
+# so this file and the JSON beside it need no compose change.
+apiVersion: 1
+
+providers:
+  - name: oan
+    orgId: 1
+    folder: OAN
+    type: file
+
+    # Dashboards are reloaded from disk, so edits made in the UI are
+    # overwritten on the next scan. That is deliberate -- the file is the
+    # source and the UI is a scratchpad. allowUiUpdates: true would invert
+    # that and make the volume authoritative again.
+    allowUiUpdates: false
+    disableDeletion: false
+    updateIntervalSeconds: 30
+
+    options:
+      path: /etc/grafana/provisioning/dashboards/json
+      foldersFromFilesStructure: false

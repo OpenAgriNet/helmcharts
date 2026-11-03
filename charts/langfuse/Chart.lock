@@ -1,0 +1,15 @@
+dependencies:
+- name: postgres
+  repository: https://groundhog2k.github.io/helm-charts/
+  version: 1.6.3
+- name: valkey
+  repository: https://valkey-io.github.io/valkey-helm
+  version: 0.9.4
+- name: seaweedfs
+  repository: https://seaweedfs.github.io/seaweedfs/helm
+  version: 4.23.0
+- name: clickhouse-operator-helm
+  repository: ""
+  version: 0.0.8
+digest: sha256:981a9e752ab2c26cee374dab0d818f6064879d951b06fac47446818d78addaff
+generated: "2026-10-08T15:28:31.739833+05:30"

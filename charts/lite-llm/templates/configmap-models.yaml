@@ -1,0 +1,19 @@
+{{/*
+The desired state: which model each named step resolves to, and which vendor
+account it uses. This is the file a change is reviewed in.
+
+It is read by the reconcile Job, not by the gateway. Editing it changes nothing
+on its own - and neither does editing the rendered ConfigMap with kubectl. Only
+a Helm upgrade or an Argo sync runs the Job that applies it.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "model-gateway.modelsConfigMapName" . }}
+  labels:
+    {{- include "model-gateway.labels" . | nindent 4 }}
+data:
+  models.json: |
+    {{- include "model-gateway.modelsJSON" . | nindent 4 }}
+  credentials.json: |
+    {{- include "model-gateway.credentialsJSON" . | nindent 4 }}

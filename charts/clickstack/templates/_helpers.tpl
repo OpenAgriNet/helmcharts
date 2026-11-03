@@ -47,3 +47,17 @@ Selector labels
 app.kubernetes.io/name: {{ include "clickstack.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }} 
+
+{{/*
+The ClickHouse app user's password as it appears in HyperDX's connection list:
+the plain value, or, with clickhouse.config.users.existingSecret, a reference
+Kubernetes expands from the CLICKHOUSE_APP_PASSWORD env var the HyperDX
+container defines first.
+*/}}
+{{- define "clickstack.clickhouseAppPassword" -}}
+{{- if .Values.clickhouse.config.users.existingSecret -}}
+$(CLICKHOUSE_APP_PASSWORD)
+{{- else -}}
+{{ .Values.clickhouse.config.users.appUserPassword }}
+{{- end -}}
+{{- end }}

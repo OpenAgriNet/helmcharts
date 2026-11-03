@@ -1,0 +1,50 @@
+# Example: the DSS reasoning runtime, routed through the self-hosted LiteLLM
+# model gateway (ADR-0013) instead of calling a vendor directly.
+#
+# This chart does not deploy the gateway itself (LiteLLM + its own Postgres,
+# the per-deployment model-list sync job) - that is a separate component.
+# This file only wires the DSS side: point gateway.url at wherever that
+# gateway's service lives, and hold this deployment's own gateway credential
+# in a Secret.
+#
+#   kubectl -n dss create secret generic dss-gateway \
+#     --from-literal=api-key=<this deployment's own gateway key>
+#   kubectl -n dss create secret docker-registry ghcr -n dss \
+#     --docker-server=ghcr.io --docker-username=<user> \
+#     --docker-password=<a PAT with read:packages>
+#
+#   helm install decision-support-system charts/decision-support-system \
+#     -n dss -f charts/decision-support-system/examples/decision-support-system.litellm.yaml
+#
+# The four models.* values below are NOT vendor model ids once gateway.url is
+# set - they are fixed labels the gateway resolves (ADR-0013). Which vendor
+# or model actually answers dss-composer is the gateway's own config, changed
+# there with no restart of this deployment - see
+# OpenAgriNet/decision-support-system docs/RUNNING-GATEWAY.md. Do not repoint
+# these four strings per environment or per model change; that belongs in the
+# gateway, that is the entire point of this path.
+
+image:
+  pullSecrets:
+    - ghcr
+
+models:
+  intent: "dss-intent"
+  moderation: "dss-moderation"
+  planner: "dss-planner"
+  composer: "dss-composer"
+
+gateway:
+  url: "http://litellm.dss-gateway.svc.cluster.local:4000/v1"
+  apiKeySecret:
+    name: dss-gateway
+    key: api-key
+
+schemaPacks:
+  ref: schema-packs-v0.1
+
+ingress:
+  enabled: false
+
+tests:
+  enabled: true

@@ -20,15 +20,22 @@ Give the registry chart this URL:
   keycloak.url: {{ include "keycloak.url" . }}
 
 {{ if .Values.realmImport.enabled }}
-NEXT STEP - the registry cannot authenticate until you do this:
+VERIFY ONCE - the admin-api client secret:
 
-  The realm export ships with a masked admin-api client secret, so it is not a
-  working credential. Once Keycloak is up:
+  The realm carries "${env.KEYCLOAK_ADMIN_CLIENT_SECRET}" for that client and
+  the import substitutes it from Secret/{{ .Values.realmImport.adminClientSecret.name }}. No console step is
+  needed any more. Confirm the substitution actually happened, because if it
+  did not, the secret is the literal placeholder and every registry admin call
+  fails without naming the realm:
 
   1. kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "keycloak.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
   2. Open http://localhost:{{ .Values.service.port }}/auth/admin and sign in as "{{ .Values.admin.username }}".
-  3. Realm "sunbird-rc" -> Clients -> admin-api -> Credentials -> Regenerate Secret.
-  4. Store that value, and set it as the registry's admin client secret.
+  3. Realm "sunbird-rc" -> Clients -> admin-api -> Credentials. The secret must
+     match Secret/{{ .Values.realmImport.adminClientSecret.name }} key {{ .Values.realmImport.adminClientSecret.key }},
+     and must not read "${env....}".
+
+  Give the registry chart the same Secret:
+    keycloak.adminClientSecret.name: {{ .Values.realmImport.adminClientSecret.name }}
 {{- end }}
 
 Watch the rollout (first start imports the realm and migrates the schema, so

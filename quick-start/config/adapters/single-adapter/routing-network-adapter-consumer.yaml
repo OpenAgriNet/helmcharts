@@ -1,0 +1,22 @@
+# Single-mode consumer routing: tier hops are HTTP calls to this same adapter's
+# listener (localhost:9201 must match http.port in network-adapter.yaml.tmpl).
+routingRules:
+  # Discovery, via the network module.
+  - version: "2.0.0"
+    targetType: "url"
+    target:
+      url: "http://localhost:9201/network"
+    endpoints:
+      - discover
+
+  # Transactions go to the provider module; context.bppUri passes through untouched.
+  - version: "2.0.0"
+    targetType: "url"
+    target:
+      url: "http://localhost:9201/provider"
+    endpoints:
+      - select
+      - init
+      - confirm
+      - support
+      - status

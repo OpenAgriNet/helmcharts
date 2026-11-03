@@ -51,7 +51,7 @@ replicaCount: 1
 image:
   registry: ghcr.io
   repository: openagrinet/discovery-service
-  tag: "latest"
+  tag: "0.2.0"
   digest: ""
   pullPolicy: IfNotPresent
   pullSecrets: []
@@ -133,7 +133,8 @@ logLevel: info
 # consumes and nothing keeps true.
 # ---------------------------------------------------------------------------
 database:
-  # PostgreSQL primary service, e.g. "discovery-db-rw"
+  # PostgreSQL primary service. The CNPG Clusters run in their own namespace,
+  # so this is an FQDN: "discovery-db-rw.postgres.svc.cluster.local"
   host: ""
   port: 5432
   name: discovery
@@ -190,8 +191,8 @@ database:
 # ---------------------------------------------------------------------------
 becknSpec:
   # VALIDATION_SPEC_URL. Upstream is
-  #   https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/main/api/v2.0.0/beckn.yaml
-  # which tracks `main` and therefore pins nothing. Prefer a pinned URL, or the
+  #   https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/tags/core-v2.1.0-lts/api/v2.0.0/beckn.yaml
+  # a tag, so it stays fixed. Prefer a pinned URL, or the
   # ConfigMap below, for a reproducible boot.
   url: ""
   # A ConfigMap holding the document, mounted as the cache. Set this for an

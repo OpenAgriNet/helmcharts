@@ -1,0 +1,27 @@
+apiVersion: v2
+name: otel-agent
+description: >-
+  A per-node OTel collector that reads each kubelet and emits pod and container
+  metrics under the OpenTelemetry semantic conventions — the names HyperDX's
+  Kubernetes dashboard queries, and ships every container's stdout as logs. A
+  DaemonSet because a kubelet and its pod logs can only be read on their node.
+type: application
+version: 0.2.0
+appVersion: "0.161.0"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - observability
+  - opentelemetry
+  - metrics
+  - logs
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
+dependencies:
+  - name: common
+    version: "0.2.x"
+    repository: "file://../common"

@@ -6,7 +6,7 @@
 image:
   registry: ghcr.io
   repository: openagrinet/discovery-service
-  tag: "0.1.0"
+  tag: "0.2.0"
 
 app:
   networkId: local-network
@@ -14,7 +14,7 @@ app:
 database:
   host: discovery-db-rw
   passwordSecret:
-    name: discovery-db-app
+    name: discovery-db
 
 becknSpec:
   url: https://example.invalid/beckn.yaml

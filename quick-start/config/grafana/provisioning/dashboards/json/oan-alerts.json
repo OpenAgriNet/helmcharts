@@ -1,0 +1,658 @@
+{
+  "uid": "oan-alerts",
+  "title": "OAN Alerts",
+  "description": "One place to check every OAN alert: errors, response time, services restarting, and logs, for all services. Slack alerts link here. Provisioned from a file -- edits made in the UI are overwritten; change the file instead.",
+  "tags": [
+    "oan",
+    "alerts",
+    "clickhouse",
+    "otel"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-3h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "1h"
+    ]
+  },
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "clickhouse"
+        },
+        "query": {
+          "refId": "service-variable",
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "sql",
+          "rawSql": "SELECT DISTINCT service FROM (\n  SELECT ServiceName AS service FROM otel_logs WHERE Timestamp >= now() - INTERVAL 1 DAY\n  UNION ALL\n  SELECT ServiceName AS service FROM otel_traces WHERE Timestamp >= now() - INTERVAL 1 DAY\n  UNION ALL\n  SELECT ServiceName AS service FROM otel_metrics_gauge WHERE TimeUnix >= now() - INTERVAL 1 DAY\n)\nWHERE service != ''\nORDER BY service"
+        },
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [],
+        "sort": 1,
+        "hide": 0
+      },
+      {
+        "name": "level",
+        "label": "Level",
+        "type": "custom",
+        "query": "error,warn,info,debug,unknown",
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [],
+        "hide": 0
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "alertlist",
+      "title": "Alerts right now",
+      "description": "Every OAN alert that is firing or about to fire. Click one to open it in Alerting.",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 6
+      },
+      "options": {
+        "viewMode": "list",
+        "groupMode": "default",
+        "groupBy": [],
+        "maxItems": 50,
+        "sortOrder": 1,
+        "dashboardAlerts": false,
+        "alertName": "",
+        "alertInstanceLabelFilter": "",
+        "datasource": "grafana",
+        "showInstances": true,
+        "stateFilter": {
+          "firing": true,
+          "pending": true,
+          "recovering": true,
+          "error": true,
+          "noData": false,
+          "normal": false
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "API failure rate",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Error rate by service",
+      "description": "Share of requests that failed with a server error (HTTP 5xx), per service. The alert fires above the red line (5%) for 2 minutes in a row, once a service has at least 20 requests in 5 minutes.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 24,
+        "h": 8
+      },
+      "interval": "1m",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "rawSql": "SELECT\n  $__timeInterval(Timestamp) AS time,\n  ServiceName AS service,\n  100 * countIf(toUInt16OrZero(if(SpanAttributes['http.response.status_code'] != '', SpanAttributes['http.response.status_code'], SpanAttributes['http.status_code'])) >= 500) / count() AS error_pct\nFROM otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(ServiceName IN ($service), $service)\nGROUP BY time, service\nORDER BY time",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "displayName": "${__field.labels.service}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "sortBy": "Max",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "row",
+      "title": "High latency",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 15,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Response time (p95) by service",
+      "description": "How long the slowest 5% of requests take, per service and route. The alert fires above the red line (2 seconds) for 10 minutes in a row.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 8
+      },
+      "interval": "1m",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "rawSql": "SELECT\n  $__timeInterval(Timestamp) AS time,\n  concat(ServiceName, ' ', SpanName) AS route,\n  quantile(0.95)(Duration) / 1e9 AS p95_seconds\nFROM otel_traces\nWHERE $__timeFilter(Timestamp)\n  AND SpanKind = 'Server'\n  AND $__conditionalAll(ServiceName IN ($service), $service)\nGROUP BY time, route\nORDER BY time",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "displayName": "${__field.labels.route}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "sortBy": "Max",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "row",
+      "title": "Service restarting",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Data received per service",
+      "description": "Log lines, traces and metrics received from each service per minute. A service that stops or restarts drops to zero here. The alert fires when a service sends nothing for 5 minutes while the others still do.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 16,
+        "h": 8
+      },
+      "interval": "1m",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "rawSql": "SELECT time, service, sum(n) AS received\nFROM (\n  SELECT $__timeInterval(Timestamp) AS time, ServiceName AS service, count() AS n\n  FROM otel_logs WHERE $__timeFilter(Timestamp) AND $__conditionalAll(ServiceName IN ($service), $service) GROUP BY time, service\n  UNION ALL\n  SELECT $__timeInterval(Timestamp) AS time, ServiceName AS service, count() AS n\n  FROM otel_traces WHERE $__timeFilter(Timestamp) AND $__conditionalAll(ServiceName IN ($service), $service) GROUP BY time, service\n  UNION ALL\n  SELECT $__timeInterval(TimeUnix) AS time, ServiceName AS service, count() AS n\n  FROM otel_metrics_gauge WHERE $__timeFilter(TimeUnix) AND $__conditionalAll(ServiceName IN ($service), $service) GROUP BY time, service\n)\nWHERE service != ''\nGROUP BY time, service\nORDER BY time",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "displayName": "${__field.labels.service}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "sortBy": "Max",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "bargauge",
+      "title": "Time since last data",
+      "description": "How long since each service last sent anything, compared with the most recent service. Red means over 5 minutes: the alert fires for that service.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 25,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "rawSql": "SELECT\n  service,\n  silent - min(silent) OVER () AS silent_seconds\nFROM (\n  SELECT service, dateDiff('second', max(last_seen), now()) AS silent\n  FROM (\n    SELECT ServiceName AS service, max(Timestamp) AS last_seen FROM otel_logs\n    WHERE Timestamp >= now() - INTERVAL 1 DAY GROUP BY service\n    UNION ALL\n    SELECT ServiceName AS service, max(Timestamp) AS last_seen FROM otel_traces\n    WHERE Timestamp >= now() - INTERVAL 1 DAY GROUP BY service\n    UNION ALL\n    SELECT ServiceName AS service, max(TimeUnix) AS last_seen FROM otel_metrics_gauge\n    WHERE TimeUnix >= now() - INTERVAL 1 DAY GROUP BY service\n  )\n  WHERE service != ''\n  GROUP BY service\n)\nWHERE $__conditionalAll(service IN ($service), $service)\nORDER BY silent_seconds DESC",
+          "format": 1,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "max": 600,
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 120
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "auto",
+        "minVizHeight": 10,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "row",
+      "title": "Logs",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Log lines by service",
+      "description": "Log lines per minute, per service. Use Service and Level at the top to narrow it down -- Level = error shows only errors. A jump here usually comes with one of the alerts above.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 34,
+        "w": 24,
+        "h": 7
+      },
+      "interval": "1m",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "rawSql": "SELECT\n  $__timeInterval(Timestamp) AS time,\n  ServiceName AS service,\n  count() AS lines\nFROM otel_logs\nWHERE $__timeFilter(Timestamp)\n  AND $__conditionalAll(ServiceName IN ($service), $service)\n  AND $__conditionalAll(multiIf(SeverityNumber >= 17 OR lower(SeverityText) IN ('error', 'fatal', 'panic'), 'error', SeverityNumber >= 13 OR lower(SeverityText) IN ('warn', 'warning'), 'warn', SeverityNumber >= 9 OR lower(SeverityText) = 'info', 'info', SeverityNumber >= 1 OR lower(SeverityText) = 'debug', 'debug', 'unknown') IN ($level), $level)\nGROUP BY time, service\nORDER BY time",
+          "format": 0,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "displayName": "${__field.labels.service}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "sortBy": "Max",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "logs",
+      "title": "Logs",
+      "description": "The latest log lines, newest first. Use Service and Level at the top to see only what you need.",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 41,
+        "w": 24,
+        "h": 14
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse"
+          },
+          "editorType": "sql",
+          "rawSql": "SELECT\n  Timestamp AS timestamp,\n  Body AS body,\n  multiIf(SeverityNumber >= 17 OR lower(SeverityText) IN ('error', 'fatal', 'panic'), 'error', SeverityNumber >= 13 OR lower(SeverityText) IN ('warn', 'warning'), 'warn', SeverityNumber >= 9 OR lower(SeverityText) = 'info', 'info', SeverityNumber >= 1 OR lower(SeverityText) = 'debug', 'debug', 'unknown') AS level,\n  ServiceName AS service\nFROM otel_logs\nWHERE $__timeFilter(Timestamp)\n  AND $__conditionalAll(ServiceName IN ($service), $service)\n  AND $__conditionalAll(multiIf(SeverityNumber >= 17 OR lower(SeverityText) IN ('error', 'fatal', 'panic'), 'error', SeverityNumber >= 13 OR lower(SeverityText) IN ('warn', 'warning'), 'warn', SeverityNumber >= 9 OR lower(SeverityText) = 'info', 'info', SeverityNumber >= 1 OR lower(SeverityText) = 'debug', 'debug', 'unknown') IN ($level), $level)\nORDER BY Timestamp DESC\nLIMIT 500",
+          "format": 2,
+          "queryType": "sql",
+          "pluginVersion": "4.21.3"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending",
+        "showLabels": true,
+        "showCommonLabels": false,
+        "prettifyLogMessage": false
+      }
+    }
+  ]
+}

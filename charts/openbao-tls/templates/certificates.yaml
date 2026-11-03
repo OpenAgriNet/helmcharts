@@ -1,0 +1,71 @@
+# The CA signs itself; that is all this Issuer is for.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ .Values.serviceName }}-selfsigned
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "openbao-tls.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.serviceName }}-ca
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "openbao-tls.labels" . | nindent 4 }}
+spec:
+  isCA: true
+  commonName: {{ .Values.ca.commonName | quote }}
+  secretName: {{ .Values.serviceName }}-ca
+  duration: {{ .Values.ca.duration }}
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    kind: Issuer
+    name: {{ .Values.serviceName }}-selfsigned
+---
+# Signs with the CA above. Namespaced, so nothing outside this namespace can
+# have a certificate issued that OpenBao's clients would trust.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ .Values.serviceName }}-ca
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "openbao-tls.labels" . | nindent 4 }}
+spec:
+  ca:
+    secretName: {{ .Values.serviceName }}-ca
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.serviceName }}-server-tls
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "openbao-tls.labels" . | nindent 4 }}
+spec:
+  secretName: {{ .Values.serviceName }}-server-tls
+  duration: {{ .Values.server.duration }}
+  renewBefore: {{ .Values.server.renewBefore }}
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    # A new key on every renewal, so a leaked key expires with its certificate.
+    rotationPolicy: Always
+  usages:
+    - server auth
+    - digital signature
+  commonName: {{ .Values.serviceName }}.{{ .Release.Namespace }}.svc
+  dnsNames:
+    {{- include "openbao-tls.dnsNames" . | nindent 4 }}
+  # BAO_ADDR inside the pod is https://127.0.0.1:8200.
+  ipAddresses:
+    - 127.0.0.1
+  issuerRef:
+    kind: Issuer
+    name: {{ .Values.serviceName }}-ca
