@@ -33,7 +33,10 @@ plugins:
       enableTracing: "true"
       enableLogs: "true"
 
-  # __CACHE_PLUGIN__
+  cache:
+    id: cache
+    config:
+      addr: __REDIS_ADDR__
   # The crawler's own registry: it verifies a crawled catalog's signature
   # against the publisher's key there. The image refuses to start a crawler
   # without one. Separate from the modules' registries below.
@@ -95,7 +98,10 @@ modules:
         idleConnTimeout: 90s
         responseHeaderTimeout: 30s
       plugins:
-        # __CACHE_PLUGIN__
+        cache:
+          id: cache
+          config:
+            addr: __REDIS_ADDR__
         registry:
           id: sunbirdRegistry
           config:
@@ -160,7 +166,10 @@ modules:
         idleConnTimeout: 90s
         responseHeaderTimeout: 30s
       plugins:
-        # __CACHE_PLUGIN__
+        cache:
+          id: cache
+          config:
+            addr: __REDIS_ADDR__
         registry:
           id: sunbirdRegistry
           config:
@@ -229,7 +238,10 @@ modules:
         idleConnTimeout: 90s
         responseHeaderTimeout: 30s
       plugins:
-        # __CACHE_PLUGIN__
+        cache:
+          id: cache
+          config:
+            addr: __REDIS_ADDR__
         registry:
           id: sunbirdRegistry
           config:
@@ -415,7 +427,10 @@ modules:
         idleConnTimeout: 90s
         responseHeaderTimeout: 30s
       plugins:
-        # __CACHE_PLUGIN__
+        cache:
+          id: cache
+          config:
+            addr: __REDIS_ADDR__
         registry:
           id: sunbirdRegistry
           config:

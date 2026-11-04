@@ -58,7 +58,10 @@ modules:
       subscriberId: "__ADAPTER_SUBSCRIBER_ID__"
 
       plugins:
-        # __CACHE_PLUGIN__
+        cache:
+          id: cache
+          config:
+            addr: __REDIS_ADDR__
         # Serves the sender's signing key and the capability call plans.
         registry:
           id: sunbirdRegistry
@@ -249,7 +252,10 @@ modules:
       subscriberId: "__ADAPTER_SUBSCRIBER_ID__"
 
       plugins:
-        # __CACHE_PLUGIN__
+        cache:
+          id: cache
+          config:
+            addr: __REDIS_ADDR__
         registry:
           id: sunbirdRegistry
           config:

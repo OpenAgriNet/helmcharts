@@ -7,11 +7,12 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ## [0.10.0] - 2026-11-04
 
+### Changed
+- **Breaking:** registry lookups are cached in Redis; `cache.addr` is required.
+  `cache.ttl` sets `cacheTTL` (default 30s).
+
 ### Added
-- `cache.addr` turns on the registry lookup cache: every registry plugin gets
-  the `cache` plugin pointed at that Redis and `cacheTTL` set to `cache.ttl`
-  (default 30s). Empty, as before, leaves caching off. `cache.passwordSecret`
-  passes the Redis password in as `REDIS_PASSWORD`.
+- `cache.passwordSecret` for `REDIS_PASSWORD`.
 
 ## [0.9.1] - 2026-11-02
 

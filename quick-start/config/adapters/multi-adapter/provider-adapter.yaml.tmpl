@@ -54,7 +54,6 @@ modules:
             url: http://sunbird-registry-service:8081/api/v1
             entity: Participant
             providerEntity: ProviderSchema
-            # Also how long a suspension takes to apply. REGISTRY_CACHE_TTL.
             cacheTTL: __REGISTRY_CACHE_TTL__
             # Plain seconds, per attempt. Two registry calls happen per request.
             timeout: 2
@@ -207,7 +206,6 @@ __PROVIDER_STEP_IDS__
             url: http://sunbird-registry-service:8081/api/v1
             entity: Participant
             providerEntity: ProviderSchema
-            # Also how long a suspension takes to apply. REGISTRY_CACHE_TTL.
             cacheTTL: __REGISTRY_CACHE_TTL__
             timeout: 2
             retry_max: 1

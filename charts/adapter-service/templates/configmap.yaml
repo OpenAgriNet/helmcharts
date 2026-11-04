@@ -18,15 +18,9 @@ already pins to the config's http.port.
 {{- $cfg = $cfg | replace "__FEDERATION_REFRESH_SECONDS__" (toString ($f.refreshSeconds | default 900)) -}}
 {{- $cfg = $cfg | replace "__FEDERATION_PAGE_SIZE__" (toString ($f.pageSize | default 100)) -}}
 {{- $cfg = $cfg | replace "__FEDERATION_INTENT__" ($f.intent | default "") -}}
-{{- /* Registry cache: on only when a Redis address is set. */ -}}
 {{- $c := $v.cache | default dict -}}
-{{- if $c.addr -}}
-{{- $cfg = $cfg | replace "# __CACHE_PLUGIN__" (printf "cache: {id: cache, config: {addr: %q}}" $c.addr) -}}
+{{- $cfg = $cfg | replace "__REDIS_ADDR__" (required "cache.addr is required: the adapter caches registry lookups in Redis and will not start without it" $c.addr) -}}
 {{- $cfg = $cfg | replace "__REGISTRY_CACHE_TTL__" ($c.ttl | default "30s") -}}
-{{- else -}}
-{{- $cfg = regexReplaceAll "(?m)^ *# __CACHE_PLUGIN__\n" $cfg "" -}}
-{{- $cfg = $cfg | replace "__REGISTRY_CACHE_TTL__" "0" -}}
-{{- end -}}
 {{- $cfg -}}
 {{- end }}
 

@@ -559,7 +559,7 @@ services:
     ports:
       - "127.0.0.1:${MOCKAGMARKNET_PORT}:9101"
 
-  # Registry lookup cache for the adapters (cacheTTL in their configs).
+  # Registry lookup cache for the adapters.
   redis:
     image: redis:7-alpine
     pull_policy: missing
