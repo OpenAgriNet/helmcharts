@@ -160,6 +160,18 @@
       "enabled": true
     },
     {
+      "key": "bppId",
+      "value": "net-a.oan.dev",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "bppUri",
+      "value": "https://net-a.oan.dev",
+      "type": "default",
+      "enabled": true
+    },
+    {
       "key": "registry-token",
       "value": "",
       "type": "default",
