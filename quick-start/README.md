@@ -56,7 +56,7 @@ make ps
 curl -s localhost:9201/health
 ```
 
-Then the Postman collection — 18 requests:
+Then the Postman collection — 38 requests:
 
 ```sh
 newman run ../api-collection/OpenAgriNet.api-collection.json \
