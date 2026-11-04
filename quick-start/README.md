@@ -60,7 +60,17 @@ Then the Postman collection — 18 requests:
 
 ```sh
 newman run ../api-collection/OpenAgriNet.api-collection.json \
-  -e ../api-collection/OpenAgriNet.network-adapter.local-environment.json
+  -e ../api-collection/environments/OpenAgriNet.api.local-environment.json
+```
+
+The environment targets single mode. In multi mode, point the two adapter
+variables at the separate consumer and provider adapters:
+
+```sh
+newman run ../api-collection/OpenAgriNet.api-collection.json \
+  -e ../api-collection/environments/OpenAgriNet.api.local-environment.json \
+  --env-var network-adapter-host=http://127.0.0.1:9202/consumer \
+  --env-var network-adapter-publish=http://127.0.0.1:9200/publish
 ```
 
 Green means the registry is seeded, signatures verify, the mappings work and

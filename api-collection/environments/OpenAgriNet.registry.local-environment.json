@@ -1,62 +1,13 @@
 {
-  "id": "oan-local-environment",
-  "name": "OpenAgriNet local",
+  "id": "oan-registry-local-environment",
+  "name": "OpenAgriNet registry local",
   "values": [
-    {
-      "key": "network-adapter-host",
-      "value": "http://127.0.0.1:9202/consumer",
-      "enabled": true,
-      "type": "default",
-      "description": "Called by no request but the health check, on purpose: both its endpoints verify signatures and Postman does not sign. NETWORK_ADAPTER_PORT in .env."
-    },
-    {
-      "key": "discovery-host",
-      "value": "http://127.0.0.1:8090",
-      "enabled": true,
-      "type": "default",
-      "description": "The catalogue index. Reached through an adapter, not directly, so only its health check is here. DISCOVERY_PORT in .env."
-    },
     {
       "key": "registry-host",
       "value": "http://127.0.0.1:8081",
       "enabled": true,
       "type": "default",
       "description": "Participants and capability bindings, seeded by bin/setup.py. HOST ONLY: the API base is /api/v1, so a request spells it out. REGISTRY_PORT in .env."
-    },
-    {
-      "key": "keycloak-host",
-      "value": "http://127.0.0.1:8080",
-      "enabled": true,
-      "type": "default",
-      "description": "Issues the registry write token, and authenticates nothing else -- it is Sunbird RC's, not the network's. KEYCLOAK_PORT in .env."
-    },
-    {
-      "key": "keycloak-realm",
-      "value": "sunbird-rc",
-      "enabled": true,
-      "type": "default",
-      "description": "KEYCLOAK_REALM in .env."
-    },
-    {
-      "key": "keycloak-client-id",
-      "value": "registry-frontend",
-      "enabled": true,
-      "type": "default",
-      "description": "The client that logs a user in. admin-api is the one that mints tokens and is not used from here. KEYCLOAK_CLIENT_ID in .env."
-    },
-    {
-      "key": "registry-user",
-      "value": "no-user",
-      "enabled": true,
-      "type": "default",
-      "description": "REGISTRY_ADMIN_USER in .env. A shipped default, so it is public until changed."
-    },
-    {
-      "key": "registry-password",
-      "value": "no-user-password",
-      "enabled": true,
-      "type": "default",
-      "description": "REGISTRY_ADMIN_PASSWORD in .env. A shipped default, so it is public until changed."
     },
     {
       "key": "consumer-participant-id",
@@ -126,7 +77,7 @@
       "value": "openagrinet:WeatherObservation",
       "enabled": true,
       "type": "default",
-      "description": "WHICH CAPABILITY THE 4. Capability Schemas FOLDER OPERATES ON -- the one variable to change to work on another, because the schemaUrl and the display name are derived from it rather than written down. The four this deployment serves are openagrinet:WeatherObservation, openagrinet:MandiPrice, openagrinet:KnowledgeAdvisory and openagrinet:AgricultureFacility; network-specs carries four more packs no capability uses yet."
+      "description": "WHICH CAPABILITY THE 3. Capability Schemas FOLDER OPERATES ON -- the one variable to change to work on another, because the schemaUrl and the display name are derived from it rather than written down. The four this deployment serves are openagrinet:WeatherObservation, openagrinet:MandiPrice, openagrinet:KnowledgeAdvisory and openagrinet:AgricultureFacility; network-specs carries four more packs no capability uses yet."
     },
     {
       "key": "schema-pack-version",
@@ -134,72 +85,6 @@
       "enabled": true,
       "type": "default",
       "description": "The pack version, and the row's version field. All eight packs are v0.1 today. Per capability in setup.py rather than one setting for all four, because a capability can move to v0.2 while the others stay -- so if you point capability-code at one that has, change this too."
-    },
-    {
-      "key": "networkId",
-      "value": "net-a.oan.dev",
-      "type": "default",
-      "enabled": true
-    },
-    {
-      "key": "otherNetworkId",
-      "value": "net-b.oan.dev",
-      "type": "default",
-      "enabled": true
-    },
-    {
-      "key": "senderId",
-      "value": "net-a.oan.dev",
-      "type": "default",
-      "enabled": true
-    },
-    {
-      "key": "receiverId",
-      "value": "net-a.oan.dev",
-      "type": "default",
-      "enabled": true
-    },
-    {
-      "key": "bppId",
-      "value": "net-a.oan.dev",
-      "type": "default",
-      "enabled": true
-    },
-    {
-      "key": "bppUri",
-      "value": "https://net-a.oan.dev",
-      "type": "default",
-      "enabled": true
-    },
-    {
-      "key": "registry-token",
-      "value": "",
-      "type": "default",
-      "enabled": true
-    },
-    {
-      "key": "schema-name",
-      "value": "Weather Observation",
-      "type": "default",
-      "enabled": true
-    },
-    {
-      "key": "schema-url",
-      "value": "https://openagrinet.github.io/network-specs/schema/WeatherObservation/v0.1/attributes.yaml",
-      "type": "default",
-      "enabled": true
-    },
-    {
-      "key": "network-adapter-publish",
-      "value": "http://127.0.0.1:9200/publish",
-      "type": "default",
-      "enabled": true
-    },
-    {
-      "key": "ticket-no",
-      "value": "",
-      "type": "default",
-      "enabled": true
     }
   ],
   "_postman_variable_scope": "environment",
