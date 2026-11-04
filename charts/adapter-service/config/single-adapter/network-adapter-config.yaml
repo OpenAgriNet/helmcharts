@@ -33,6 +33,7 @@ plugins:
       enableTracing: "true"
       enableLogs: "true"
 
+  # __CACHE_PLUGIN__
   # The crawler's own registry: it verifies a crawled catalog's signature
   # against the publisher's key there. The image refuses to start a crawler
   # without one. Separate from the modules' registries below.
@@ -47,7 +48,7 @@ plugins:
       retry_wait_min: 100ms
       retry_wait_max: 500ms
       maxResponseBytes: 1048576
-      cacheTTL: 0
+      cacheTTL: __REGISTRY_CACHE_TTL__
 
   # Off builds no schedule and never dials, so a cluster that federates with
   # nobody stays quiet. Answering someone else's crawl is unaffected.
@@ -94,6 +95,7 @@ modules:
         idleConnTimeout: 90s
         responseHeaderTimeout: 30s
       plugins:
+        # __CACHE_PLUGIN__
         registry:
           id: sunbirdRegistry
           config:
@@ -105,7 +107,7 @@ modules:
             retry_wait_min: 100ms
             retry_wait_max: 500ms
             maxResponseBytes: 1048576
-            cacheTTL: 0
+            cacheTTL: __REGISTRY_CACHE_TTL__
         keyManager:
           id: simplekeymanager
           config:
@@ -158,6 +160,7 @@ modules:
         idleConnTimeout: 90s
         responseHeaderTimeout: 30s
       plugins:
+        # __CACHE_PLUGIN__
         registry:
           id: sunbirdRegistry
           config:
@@ -169,7 +172,7 @@ modules:
             retry_wait_min: 100ms
             retry_wait_max: 500ms
             maxResponseBytes: 1048576
-            cacheTTL: 0
+            cacheTTL: __REGISTRY_CACHE_TTL__
         keyManager:
           id: simplekeymanager
           config:
@@ -226,6 +229,7 @@ modules:
         idleConnTimeout: 90s
         responseHeaderTimeout: 30s
       plugins:
+        # __CACHE_PLUGIN__
         registry:
           id: sunbirdRegistry
           config:
@@ -237,7 +241,7 @@ modules:
             retry_wait_min: 100ms
             retry_wait_max: 500ms
             maxResponseBytes: 1048576
-            cacheTTL: 0
+            cacheTTL: __REGISTRY_CACHE_TTL__
         keyManager:
           id: simplekeymanager
           config:
@@ -411,6 +415,7 @@ modules:
         idleConnTimeout: 90s
         responseHeaderTimeout: 30s
       plugins:
+        # __CACHE_PLUGIN__
         registry:
           id: sunbirdRegistry
           config:
@@ -422,7 +427,7 @@ modules:
             retry_wait_min: 100ms
             retry_wait_max: 500ms
             maxResponseBytes: 1048576
-            cacheTTL: 0
+            cacheTTL: __REGISTRY_CACHE_TTL__
         keyManager:
           id: simplekeymanager
           config:

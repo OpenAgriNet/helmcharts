@@ -349,6 +349,21 @@ federation:
   intent: ""
 
 # ---------------------------------------------------------------------------
+# Registry cache
+#
+# Redis the adapter keeps registry answers in. Empty addr leaves caching off.
+# Set, the adapter refuses to start without Redis. ttl is also how long a
+# suspension takes to apply.
+# ---------------------------------------------------------------------------
+cache:
+  addr: ""            # e.g. redis-master.redis.svc.cluster.local:6379
+  ttl: 30s
+  # Secret holding the Redis password, passed in as REDIS_PASSWORD.
+  passwordSecret:
+    name: ""
+    key: password
+
+# ---------------------------------------------------------------------------
 # Wait for the upstreams before starting.
 #
 # Off by default. The adapter reads the registry per request rather than at

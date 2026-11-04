@@ -53,6 +53,7 @@ modules:
       subscriberId: "__ADAPTER_SUBSCRIBER_ID__"
 
       plugins:
+        # __CACHE_PLUGIN__
         registry:
           id: sunbirdRegistry
           config:
@@ -62,9 +63,7 @@ modules:
             url: http://registry.registry.svc.cluster.local:8081/api/v1
             entity: Participant
             providerEntity: ProviderSchema
-            # 0 because no cache plugin is configured. A non-zero TTL here only
-            # warns at startup and caches nothing.
-            cacheTTL: 0
+            cacheTTL: __REGISTRY_CACHE_TTL__
             # Plain seconds, per attempt.
             timeout: 2
             retry_max: 1

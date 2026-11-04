@@ -5,6 +5,14 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-11-04
+
+### Added
+- `cache.addr` turns on the registry lookup cache: every registry plugin gets
+  the `cache` plugin pointed at that Redis and `cacheTTL` set to `cache.ttl`
+  (default 30s). Empty, as before, leaves caching off. `cache.passwordSecret`
+  passes the Redis password in as `REDIS_PASSWORD`.
+
 ## [0.9.1] - 2026-11-02
 
 ### Fixed

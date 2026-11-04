@@ -559,6 +559,20 @@ services:
     ports:
       - "127.0.0.1:${MOCKAGMARKNET_PORT}:9101"
 
+  # Registry lookup cache for the adapters (cacheTTL in their configs).
+  redis:
+    image: redis:7-alpine
+    pull_policy: missing
+    container_name: ${STACK_PREFIX:-}redis
+    restart: unless-stopped
+    logging: *logging
+    networks: [oan-internal]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   # Verifies the caller, calls the upstream provider, answers synchronously.
   # It has no provider address of its own: it reads the ProviderSchema row,
   # so repointing it at a different upstream is a registry write, not a
@@ -573,6 +587,8 @@ services:
     # nothing calls them. They stay defined below so they can still be started
     # by name for debugging.
     depends_on:
+      redis:
+        condition: service_healthy
       sunbird-registry-service:
         condition: service_healthy
     environment:
@@ -623,6 +639,8 @@ services:
     # shared bridge -- which is what makes the boundary real, not decorative.
     networks: [oan-internal, oan-edge, oan-federation]
     depends_on:
+      redis:
+        condition: service_healthy
       sunbird-registry-service:
         condition: service_healthy
       discovery-service:
@@ -662,6 +680,8 @@ services:
     profiles: ["multi-adapter"]
     container_name: ${STACK_PREFIX:-}consumer-adapter
     depends_on:
+      redis:
+        condition: service_healthy
       network-adapter:
         condition: service_started
       provider-adapter:
