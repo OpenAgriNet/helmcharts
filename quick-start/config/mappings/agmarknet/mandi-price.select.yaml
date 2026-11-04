@@ -67,25 +67,72 @@ required:
   - check: |
       (
         $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
-        /* Shape, not just presence. The pack describes district and state as
-           "name or governed code", so the names form is pack-legal -- and the
-           existence-only check passed it, after which it went to Agmarknet
-           verbatim as codes. Agmarknet answered nothing, and the caller got a
-           signed, spec-valid "no prices" for a market that had prices.
-        
-           Agmarknet wants a numeric district and a short alphabetic state (96,
-           CG), so a district that is not all digits or a state longer than four
-           letters is a name and is refused with the reason. */
-        $match($ra.market.district, /^[0-9]+$/)
-          and $match($ra.market.state, /^[A-Za-z]{2,4}$/)
+        /* Mandatory, and a code: Agmarknet wants a numeric district (96). The pack
+           allows a name, which Agmarknet answers with nothing. */
+        $type($ra.market.district) = "string"
+          and $count($match($ra.market.district, /^[0-9]+$/)) > 0
       )
-    message: "this capability needs Agmarknet's codes in market: a numeric district and a short alphabetic state, not their names"
+    message: "this capability needs Agmarknet's codes in market: a numeric district, not a name"
+  - check: |
+      (
+        $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
+        /* Mandatory, and a code: a short alphabetic state (CG), not a name. */
+        $type($ra.market.state) = "string"
+          and $count($match($ra.market.state, /^[A-Za-z]{2,4}$/)) > 0
+      )
+    message: "this capability needs Agmarknet's codes in market: a short alphabetic state, not a name"
+  - check: |
+      (
+        $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
+        /* Optional; absent means the whole district. When given it must be a
+           non-empty string, or the query widens silently. */
+        $exists($ra.market.marketCode)
+          ? ($type($ra.market.marketCode) = "string" and $ra.market.marketCode != "")
+          : true
+      )
+    message: "market.marketCode, when given, must be a non-empty string; omit it to search the whole district"
+  - check: |
+      (
+        $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
+        /* Agmarknet takes no market name, so a name alone would return the whole
+           district. Refused: send the code, or neither for a district search. */
+        $not($exists($ra.market.marketName) and $not($exists($ra.market.marketCode)))
+      )
+    message: "market.marketName alone is not enough: send market.marketCode for that market, or omit marketName to search the whole district"
+  - check: |
+      (
+        $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
+        /* Only the pack's Minimum, Maximum, Modal. Absent (or empty) means all
+           three; anything else would return rows with no price. */
+        $exists($ra.supportedPriceFields)
+          ? $count($ra.supportedPriceFields[$ in ["Minimum", "Maximum", "Modal"]])
+              = $count($ra.supportedPriceFields)
+          : true
+      )
+    message: "supportedPriceFields must list only Minimum, Maximum or Modal"
   - check: |
       (
         $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
         $exists($ra.validity.startsAt) and $exists($ra.validity.endsAt)
       )
     message: "this capability needs a validity window; it reports prices over a date range"
+  - check: |
+      (
+        $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
+        /* Sent as from_date and to_date, so both must be dates (a date-time is
+           fine). Empty or free text used to go upstream as "--" or crash. */
+        $type($ra.validity.startsAt) = "string"
+          and $type($ra.validity.endsAt) = "string"
+          and $contains($ra.validity.startsAt, /^[0-9]{4}-[0-9]{2}-[0-9]{2}/)
+          and $contains($ra.validity.endsAt, /^[0-9]{4}-[0-9]{2}-[0-9]{2}/)
+      )
+    message: "validity.startsAt and validity.endsAt must be dates (yyyy-MM-dd); the upstream takes them as from_date and to_date"
+  - check: |
+      (
+        $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
+        $substring($ra.validity.startsAt, 0, 10) <= $substring($ra.validity.endsAt, 0, 10)
+      )
+    message: "validity.startsAt must not be after validity.endsAt"
 
 # The upstream is a GET, so this object becomes the query string. The token is
 # not here and must never be: it comes from the adapter's authScheme query,
@@ -338,19 +385,11 @@ response: |
                     "commodityGroup": $r.Group,
                     "variety":        $r.Variety,
                     "grade":          $r.Grade,
-                    /* Every member comes from the RECORD, so the answer describes what
-                       the provider reported rather than what was asked for.
-                    
-                       marketCode is absent, and that is not an omission. This upstream
-                       TAKES a market code as a query parameter and reports none back --
-                       there is no such field anywhere in its response. Restating the
-                       requested code against a returned row would assert something
-                       unverified, and district-wide there is no requested code at all
-                       while the rows come from several markets, so one code would have
-                       been wrong for most of them. The pack requires only marketName
-                       and calls marketCode "when available"; here it is not. */
+                    /* From the record, except marketCode: Agmarknet reports none, so it is the
+                       requested one, and omitted district-wide. marketName is trimmed. */
                     "market": {
-                      "marketName": $r.Market,
+                      "marketCode": $ra.market.marketCode,
+                      "marketName": $trim($r.Market),
                       "district":   $r.District,
                       "state":      $r.State
                     },
