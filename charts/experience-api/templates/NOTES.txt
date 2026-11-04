@@ -1,0 +1,6 @@
+{{ .Chart.Name }} (release {{ .Release.Name }}) calls the DSS at {{ .Values.dssBaseUrl }}.
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "experience-api.fullname" . }} {{ .Values.service.port }}
+  curl -s localhost:{{ .Values.service.port }}/healthz
+
+A chat turn fails with 500 until that DSS answers.

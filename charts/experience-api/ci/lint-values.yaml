@@ -1,0 +1,3 @@
+# The two values the render refuses to go without.
+senderId: consumer.oan.dev
+dssBaseUrl: http://decision-support-system.dss.svc.cluster.local:8077
