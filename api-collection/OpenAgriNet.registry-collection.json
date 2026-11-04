@@ -7,11 +7,6 @@
   },
   "variable": [
     {
-      "key": "registry-token",
-      "value": "",
-      "type": "string"
-    },
-    {
       "key": "participant-osid",
       "value": "",
       "type": "string"
@@ -44,88 +39,7 @@
   ],
   "item": [
     {
-      "name": "1. Auth",
-      "description": "One request, and everything that writes needs what it returns. Search does not: bin/setup.py sends no Authorization header on any /search call, and that is what wait_for_registry() polls with.",
-      "item": [
-        {
-          "name": "Registry write token",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/x-www-form-urlencoded"
-              },
-              {
-                "key": "X-Forwarded-Host",
-                "value": "sunbird-registry-keycloak:8080"
-              },
-              {
-                "key": "X-Forwarded-Proto",
-                "value": "http"
-              }
-            ],
-            "body": {
-              "mode": "urlencoded",
-              "urlencoded": [
-                {
-                  "key": "client_id",
-                  "value": "{{keycloak-client-id}}"
-                },
-                {
-                  "key": "grant_type",
-                  "value": "password"
-                },
-                {
-                  "key": "username",
-                  "value": "{{registry-user}}"
-                },
-                {
-                  "key": "password",
-                  "value": "{{registry-password}}"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{keycloak-host}}/auth/realms/{{keycloak-realm}}/protocol/openid-connect/token",
-              "host": [
-                "{{keycloak-host}}"
-              ],
-              "path": [
-                "auth",
-                "realms",
-                "{{keycloak-realm}}",
-                "protocol",
-                "openid-connect",
-                "token"
-              ]
-            },
-            "description": "token(), setup.py:204. The two X-Forwarded headers are not optional -- drop either and the response is 200 with an empty body, which reads as a Postman parse error rather than an auth problem."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-                  "",
-                  "// An empty body here means the X-Forwarded headers did not reach",
-                  "// Keycloak, not that the credentials are wrong.",
-                  "pm.test('a token came back', () => {",
-                  "    const t = pm.response.json().access_token;",
-                  "    if (!t) throw new Error('no access_token in the response');",
-                  "    pm.collectionVariables.set('registry-token', t);",
-                  "});"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "2. Participants",
+      "name": "1. Participants",
       "description": "Seven rows once bin/setup.py has run: three adapter nodes and four upstreams.\n\nBOTH CREATES CHECK BEFORE WRITING, the way ensure_participant() does in setup.py: a pre-request script searches for the id and skips the write when it is already there, so a run against a seeded stack reads as skipped rather than failed.\n\nTWO GUARDS SIT UNDER THAT ANYWAY. A second row for an id that exists is refused by a unique index -- public_V_Participant_participantId_sqlgIdx, by name, in the errmsg -- and the node create is refused on its key pattern while consumer-participant-key is empty. The script only stops you seeing errors that say nothing new; remove it and nothing becomes possible that was not before.\n\nWHAT IS NOT RECOVERABLE IS THE FIRST WRITE. Delete is soft and leaves that index in place, so a participantId is never reusable: a row seeded with a wrong baseUrl or a stale public key is permanent, and the only fix is a new id in .env plus a re-run.",
       "item": [
         {
@@ -243,10 +157,6 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{registry-token}}"
               }
             ],
             "body": {
@@ -331,10 +241,6 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{registry-token}}"
               }
             ],
             "body": {
@@ -405,7 +311,7 @@
       ]
     },
     {
-      "name": "3. Capability Bindings",
+      "name": "2. Capability Bindings",
       "description": "The ProviderSchema entity: what each upstream answers, and where the adapter fetches the mapping that shapes it.\n\nTHE BINDING KEY IS <participantId>|<capabilityCode>. The provider adapter builds it from the incoming payload and matches it against this row, so a mismatch is a 404 -- NET_ENTITY_NOT_FOUND or \"no active record\".",
       "item": [
         {
@@ -527,10 +433,6 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{registry-token}}"
               }
             ],
             "body": {
@@ -606,10 +508,6 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{registry-token}}"
               }
             ],
             "body": {
@@ -664,7 +562,7 @@
       ]
     },
     {
-      "name": "4. Capability Schemas",
+      "name": "3. Capability Schemas",
       "description": "The SchemaRegistry entity: what a capabilityCode MEANS, as opposed to who serves it. One row per capability, pointing at the schema pack in OpenAgriNet/network-specs that defines its attributes.\n\nSEEDED, AS OF THE COMMIT THAT ADDED THIS FOLDER. bin/setup.py now writes all four rows, so a fresh stack comes up with them and every request here reads or re-reads rather than filling a gap. It did not before: the entity was mounted, uniquely indexed and empty, with nothing in the quick-start able to put a row in it.\n\nONE VARIABLE DRIVES THE WHOLE FOLDER. Set capability-code and every request follows, the two writes included -- schemaUrl and the display name are derived from it by a pre-request script, the same way setup.py's schema_url() derives them, because a capability code already contains its pack's directory name. Nothing in a request body needs editing to work on a different capability, and the code cannot end up naming a different pack than the URL does.\n\nTHE ENTITY IS REAL, not a leftover: config/registry/schemas/SchemaRegistry.json is mounted at /home/sunbirdrc/config/public/_schemas alongside Participant and ProviderSchema. Schemas are read at startup, so editing one needs sunbird-registry-service restarted before the registry honours it.\n\nschemaUrl IS PATTERN-CHECKED, and narrowly: a raw.githubusercontent URL under OpenAgriNet/network-specs, with a schema/<Capability>/v<major>.<minor>/<name>.yaml path. version is checked against ^v[0-9]+\\.[0-9]+$ and capabilityCode against ^openagrinet:[A-Z][A-Za-z0-9]*$, so a typo in any of the three is refused rather than stored.",
       "item": [
         {
@@ -785,10 +683,6 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{registry-token}}"
               }
             ],
             "body": {
@@ -893,10 +787,6 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{registry-token}}"
               }
             ],
             "body": {
