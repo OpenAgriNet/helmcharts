@@ -962,7 +962,7 @@
               ]
             },
             {
-              "name": "File",
+              "name": "Support",
               "item": [
                 {
                   "name": "Init - ask for the OTP",
@@ -1065,7 +1065,7 @@
               ]
             },
             {
-              "name": "Check",
+              "name": "Status",
               "item": [
                 {
                   "name": "Init - ask for a new OTP",
@@ -1960,7 +1960,7 @@
           ]
         },
         {
-          "name": "Check",
+          "name": "Status",
           "item": [
             {
               "name": "Init - ask for the OTP by mobile number",
