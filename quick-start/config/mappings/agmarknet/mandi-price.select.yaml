@@ -124,7 +124,6 @@ request: |
       "commoditycode": $ra.supportedCommodities[0].code,
       "from_date":     $ddmmyyyy($ra.validity.startsAt),
       "to_date":       $ddmmyyyy($ra.validity.endsAt),
-      /* Dropped when absent: JSONata omits a key whose value is undefined. */
       "marketcode":    $ra.market.marketCode
     }
   )
