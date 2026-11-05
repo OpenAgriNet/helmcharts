@@ -202,7 +202,7 @@ modules:
             # The multi-adapter network routing, unchanged: discover and
             # publish to discovery.
             routingConfig: /app/config/routing-network.yaml
-        # providerstatus (network-adapter#118) needs an image with the plugin.
+        # providerstatus needs an image with the plugin.
         registrySteps:
           - id: providerstatus
         middleware:
