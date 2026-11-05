@@ -21,20 +21,40 @@ instance already running at `dpg-dev.openagrinet.global` — vendoring the chart
 that produced what is actually deployed, rather than the newest one, so this
 import describes the running system instead of silently proposing an upgrade.
 
-## What it renders
+## Everything Langfuse needs is in this directory
 
-With upstream defaults (`helm install langfuse charts/langfuse`), every
-bundled dependency deploys:
+This is one product chart. Its sub-charts live under `charts/`, all committed,
+so nothing is fetched at render time:
+
+| Sub-chart (alias) | Source | What it runs |
+|---|---|---|
+| `postgresql-cnpg` (`postgresCluster`) | copy of this repo's `charts/postgresql-cnpg` | Langfuse's metadata Postgres, a CloudNativePG `Cluster` named `langfuse-db` |
+| `minio` (`objectStorage`) | copy of this repo's `charts/minio` | S3 store for events, media and exports, `langfuse-minio`, bucket `langfuse` |
+| `valkey` (`redis`) | upstream valkey-io, vendored | queue and cache |
+| `clickhouse-operator-helm` (`clickhouse-operator`) | upstream, vendored | the operator that runs ClickHouse and Keeper |
+| `common` | copy of this repo's `charts/common` | the helpers the two copies above use |
+
+The copies drop their own `dependencies:` on `common`: Helm template names are
+global across a chart and its sub-charts, so the one `common` here serves both.
+For the same reason upstream valkey's `common.image` helper is renamed
+`valkey.commonImage`, so it does not clash with OAN's `common.image`.
+
+**When a shared chart changes**, copy it here again (`Chart.yaml`, `values.yaml`,
+`templates/`), remove its `dependencies:` block, run `helm dependency update`
+and commit.
+
+## What it renders
 
 | Resource | Notes |
 |---|---|
+
 | Deployment `langfuse-web` | The UI and API, `ClusterIP` on 3000 |
 | Deployment `langfuse-worker` | Ingestion, batch export, evaluators — no inbound Service |
 | `ClickHouseCluster` / `KeeperCluster` (`clickhouse.com/v1alpha1`) | Trace/observation storage — **needs the ClickHouse operator, bundled in this chart as a subchart**, the same operator relationship `postgresql-cnpg` has with CNPG |
-| StatefulSet (bundled `postgres` subchart) | Langfuse's own metadata Postgres — **not** `postgresql-cnpg`; see below |
-| Deployment (bundled `redis`/valkey subchart) | Queueing for the worker |
-| Deployment + PVC (bundled `s3`/seaweedfs subchart) | S3-compatible storage for event/media uploads |
-| Secrets | App (salt/encryption key/NextAuth), Postgres, Redis, ClickHouse, S3 — **all rendered by the chart, from values** |
+| CloudNativePG `Cluster` `langfuse-db` (`postgresCluster`) | Metadata Postgres; CNPG generates the owner's password into `Secret/langfuse-db-app`, which Langfuse reads |
+| Deployment + PVC `langfuse-minio` (`objectStorage`), bucket-init Job | S3 store; needs `objectStorage.credentialsSecret.name`, and `s3.accessKeyId`/`s3.secretAccessKey` pointing at the same Secret |
+| Deployment (`redis`/valkey sub-chart) | Queueing for the worker |
+| Secrets | Rendered from values only where no `existingSecret`/`secretKeyRef` is given |
 | PodDisruptionBudgets, ServiceAccounts, HPAs/VPAs (optional) | One set per component |
 | Ingress | Optional, off by default |
 
@@ -45,7 +65,7 @@ helm install langfuse charts/langfuse -n langfuse \
   -f charts/langfuse/ci/lint-values.yaml   # or your own values
 ```
 
-The `postgres`, `valkey`, `seaweedfs` and `clickhouse-operator-helm` subcharts are committed under `charts/` with `Chart.lock`. Argo CD renders from a git clone and has no `helm dependency build` step, so a dependency missing from `charts/` fails the render even when its condition is false. To bump one, run `helm dependency update`, untar the archives and commit them.
+All sub-charts are committed under `charts/` with `Chart.lock`, every one with an empty `repository`. Argo CD renders from a git clone with no `helm dependency build` step, so a dependency missing from `charts/` would fail the render even when its condition is false.
 
 **The ClickHouse operator is bundled** as the `clickhouse-operator-helm` subchart
 (alias `clickhouse-operator`), so nothing else has to be installed; only cert-manager
@@ -66,38 +86,14 @@ expects an OTLP endpoint, not Langfuse's native API directly — Langfuse accept
 OTLP (ADR-0007 in the app repo). This chart does not configure that collector
 hop; it only stands up Langfuse itself.
 
-## Its own metadata Postgres, deliberately separate from `postgresql-cnpg`
+## Postgres and S3 come from this repo's charts, not upstream's
 
-Langfuse's bundled `postgres` subchart (`postgresql.deploy: true` by default)
-is a plain Postgres `StatefulSet` from `groundhog2k/helm-charts` — not a CNPG
-`Cluster`, and not the `postgresql-cnpg` chart this repo uses for `registry`
-and `discovery`. Pointing Langfuse at a CNPG-managed instance instead means
-setting `postgresql.deploy: false` and filling in `postgresql.externalHost`
-(see upstream's own `examples/external-components/external-postgres.yaml` in
-[`langfuse/langfuse-k8s`](https://github.com/langfuse/langfuse-k8s)) against a
-`postgresql-cnpg` release created for it. That consolidation is **not done by
-this import** — it is the first thing to decide before a shared-cluster
-install, not something vendoring silently assumes.
-
-## The bundled S3 store does not render under this repo's pinned Helm
-
-`s3.deploy: true` (the upstream default) bundles the `seaweedfs` sub-chart.
-Its own `templates/shared/security-configmap.yaml` calls Sprig's `fromToml` —
-a function this repo's CI Helm (`v3.16.4`, pinned in
-`.github/workflows/helm-lint.yml`) does not have:
-
-```
-[ERROR] templates/: parse error at (langfuse/charts/s3/templates/shared/security-configmap.yaml:21): function "fromToml" not defined
-```
-
-This is **not a CI-only quirk** — any real install of this chart through a
-Helm or Argo CD toolchain old enough to lack `fromToml` fails identically,
-with `s3.deploy` left at its own upstream default. `ci/lint-values.yaml` sets
-`s3.deploy: false` for exactly this reason, pointed at a placeholder external
-store, which happens to match what the README already recommends anyway —
-reuse an existing S3-compatible store rather than bundling a private one. Set
-`s3.deploy: true` only after confirming whatever Helm actually deploys this
-chart is new enough to have `fromToml`.
+Upstream bundles a groundhog2k Postgres `StatefulSet` and SeaweedFS. Both are
+removed: Postgres is a CloudNativePG `Cluster` like every other OAN database,
+and S3 is MinIO like every other OAN store. (SeaweedFS also needed Sprig's
+`fromToml`, which the Helm this repo pins does not have.) Langfuse is wired to
+them as if they were external, so `postgresql.deploy` and `s3.deploy` stay
+`false`; the render fails if either is set to `true`.
 
 ## Departures from repo conventions
 

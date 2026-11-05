@@ -10,6 +10,26 @@ nothing else. The moment an OAN modification lands, this chart's version has to
 fork from upstream's and follow [`CONVENTIONS.md`](../../CONVENTIONS.md)
 instead — record that switch in this file when it happens.
 
+**From 3.0.0 this chart's version is OAN's.** 3.0.0 is the first OAN
+modification; it is based on upstream 2.2.0 (`oan.in/upstream-version` in
+`Chart.yaml`) and follows `CONVENTIONS.md` from here.
+
+## [3.0.0] - 2026-11-05
+
+### Changed
+- **Breaking:** Postgres is now a CloudNativePG `Cluster` from a copy of this
+  repo's `postgresql-cnpg` chart (alias `postgresCluster`, `langfuse-db`),
+  replacing upstream's groundhog2k `postgres` sub-chart.
+- **Breaking:** S3 is now MinIO from a copy of this repo's `minio` chart
+  (alias `objectStorage`, `langfuse-minio`), replacing upstream's `seaweedfs`
+  sub-chart.
+- `postgresql.deploy` and `s3.deploy` default to `false`, with Langfuse wired
+  to the two sub-charts above; the render fails if either is `true`.
+- Every dependency is vendored under `charts/` with an empty `repository`,
+  including a copy of this repo's `common`.
+- Upstream valkey's `common.image` helper is renamed `valkey.commonImage`: it
+  clashed with OAN `common.image` once both are in one render.
+
 ## [2.2.0] - 2026-10-08
 
 **This chart no longer tracks upstream's version.** It is upstream 2.1.1 plus one OAN dependency, so `version` now follows [`CONVENTIONS.md`](../../CONVENTIONS.md). `appVersion` is unchanged (4.35.0).
