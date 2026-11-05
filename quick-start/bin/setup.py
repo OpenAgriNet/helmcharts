@@ -617,14 +617,6 @@ def configure_adapter(identity):
                 ("__OTLP_ENDPOINT__", env("OTLP_ENDPOINT", "otel-collector:4317")),
                 ("__OTEL_ENVIRONMENT__", env("OTEL_ENVIRONMENT", "dev"))):
             template = template.replace(placeholder, value)
-        # PROVIDER_STATUS_ENABLED fills the network module's two marker comments.
-        provider_status = env("PROVIDER_STATUS_ENABLED", "false").lower()
-        if provider_status not in ("true", "false"):
-            sys.exit("setup: PROVIDER_STATUS_ENABLED must be true or false")
-        if provider_status == "true":
-            template = (template
-                        .replace("#providerstatus-registry", "registrySteps:\n          - id: providerstatus")
-                        .replace("#providerstatus-step", "- providerstatus"))
         if "__" in template:
             sys.exit(f"setup: {fname}.yaml still has unrendered placeholders")
         out = ADAPTERS / folder / f"{fname}.yaml"

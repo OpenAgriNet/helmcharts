@@ -160,7 +160,10 @@ modules:
           id: router
           config:
             routingConfig: /app/config/routing-network.yaml
-        #providerstatus-registry
+        # providerstatus (network-adapter#118): uncomment here and in steps to
+        # enable; needs an image with the plugin.
+        # registrySteps:
+        #   - id: providerstatus
 
       # This tier VALIDATES the caller's signature and forwards unsigned.
       #
@@ -178,5 +181,5 @@ modules:
       steps:
         - validateSign
         - checkCrossNetworkRequester
-        #providerstatus-step
+        # - providerstatus
         - addRoute

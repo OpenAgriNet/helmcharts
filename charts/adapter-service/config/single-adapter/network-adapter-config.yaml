@@ -202,7 +202,10 @@ modules:
             # The multi-adapter network routing, unchanged: discover and
             # publish to discovery.
             routingConfig: /app/config/routing-network.yaml
-        #providerstatus-registry
+        # providerstatus (network-adapter#118): uncomment here and in steps to
+        # enable; needs an image with the plugin.
+        # registrySteps:
+        #   - id: providerstatus
         middleware:
           - id: reqpreprocessor
             config:
@@ -211,7 +214,7 @@ modules:
       steps:
         - validateSign
         - checkCrossNetworkRequester
-        #providerstatus-step
+        # - providerstatus
         - addRoute
 
   # provider: another network's select lands here. Checks the signature and the

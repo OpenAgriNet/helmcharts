@@ -28,6 +28,3 @@ ingress:
           pathType: Prefix
         - path: /status
           pathType: Exact
-
-providerStatus:
-  enabled: true

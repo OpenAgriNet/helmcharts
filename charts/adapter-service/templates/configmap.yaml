@@ -21,21 +21,6 @@ already pins to the config's http.port.
 {{- $cfg -}}
 {{- end }}
 
-{{- /*
-providerStatus.enabled fills the network config's two marker comments (kept at
-8 spaces: the second line is written at 10). Fails if there was nothing to fill.
-*/ -}}
-{{- define "adapter-service.providerStatusSubst" -}}
-{{- $cfg := .cfg -}}
-{{- if (.root.Values.providerStatus | default dict).enabled -}}
-{{- $cfg = $cfg | replace "#providerstatus-registry" "registrySteps:\n          - id: providerstatus" | replace "#providerstatus-step" "- providerstatus" -}}
-{{- if not (contains "id: providerstatus" $cfg) -}}
-{{- fail (printf "%s: providerStatus.enabled is true but the config has no network module to add it to. It applies to role network-adapter only, and a `config` override must list the providerstatus step itself." .root.Chart.Name) -}}
-{{- end -}}
-{{- end -}}
-{{- $cfg -}}
-{{- end }}
-
 {{/*
 The adapter's two config files.
 
@@ -75,7 +60,6 @@ in `helm get values` -- so the render refuses it.
 {{- if not $nlCfg }}
 {{- fail (printf "%s: role network-adapter in single mode reads config/single-adapter/network-adapter-config.yaml, which is missing from the chart." .Chart.Name) }}
 {{- end }}
-{{- $nlCfg = include "adapter-service.providerStatusSubst" (dict "root" . "cfg" $nlCfg) }}
 {{- $nlParsed := $nlCfg | fromYaml }}
 {{- if or (not $nlParsed) (hasKey $nlParsed "Error") }}
 {{- fail (printf "%s: the single-mode adapter config (`config` override or config/single-adapter/network-adapter-config.yaml) does not parse as YAML, so its private keys cannot be checked." .Chart.Name) }}
@@ -140,7 +124,6 @@ data:
     {{- if not $raw }}
     {{- fail (printf "%s: no config. Expected %s in the chart, or `config` set in values. The role decides the filename, so a new role needs a new file." .Chart.Name $file) }}
     {{- end }}
-    {{- $raw = include "adapter-service.providerStatusSubst" (dict "root" . "cfg" $raw) }}
     {{- $raw | nindent 4 }}
 
   {{ include "adapter-service.routingFile" . }}: |
