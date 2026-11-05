@@ -5,6 +5,17 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-11-05
+
+### Added
+- `providerStatus.enabled` (default `false`), role `network-adapter`: adds the
+  `providerstatus` step (network-adapter#118) to the network module in both
+  deployment modes. Needs an image with the plugin.
+
+### Changed
+- The network config files carry two marker comments the switch fills, so
+  `checksum/config` changes and the pods roll once on upgrade.
+
 ## [0.9.1] - 2026-11-02
 
 ### Fixed

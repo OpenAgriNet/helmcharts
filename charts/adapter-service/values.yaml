@@ -41,6 +41,12 @@ role: ""
 # network tier alone. provider-adapter and consumer-adapter ignore it.
 deploymentMode: single-adapter
 
+# Role network-adapter: true adds the providerstatus step to the network module
+# (only active registry providers publish and are discovered). Needs an image
+# with the plugin; a `config` override must list the step itself.
+providerStatus:
+  enabled: false
+
 # Overrides for what the role implies. Leave empty to take the role's default.
 appName: ""
 

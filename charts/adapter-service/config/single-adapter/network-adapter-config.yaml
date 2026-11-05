@@ -202,6 +202,7 @@ modules:
             # The multi-adapter network routing, unchanged: discover and
             # publish to discovery.
             routingConfig: /app/config/routing-network.yaml
+        #providerstatus-registry
         middleware:
           - id: reqpreprocessor
             config:
@@ -210,6 +211,7 @@ modules:
       steps:
         - validateSign
         - checkCrossNetworkRequester
+        #providerstatus-step
         - addRoute
 
   # provider: another network's select lands here. Checks the signature and the

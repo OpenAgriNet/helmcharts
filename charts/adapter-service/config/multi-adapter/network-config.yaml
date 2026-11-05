@@ -160,6 +160,7 @@ modules:
           id: router
           config:
             routingConfig: /app/config/routing-network.yaml
+        #providerstatus-registry
 
       # This tier VALIDATES the caller's signature and forwards unsigned.
       #
@@ -177,4 +178,5 @@ modules:
       steps:
         - validateSign
         - checkCrossNetworkRequester
+        #providerstatus-step
         - addRoute
