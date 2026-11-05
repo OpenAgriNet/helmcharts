@@ -1,9 +1,10 @@
-{{- /* OAN: the bundled groundhog2k Postgres and SeaweedFS sub-charts were
-       replaced by the `postgresCluster` (CloudNativePG) and `objectStorage` (MinIO)
-       sub-charts, so their deploy switches no longer deploy anything. */ -}}
+{{- /* OAN: the bundled groundhog2k Postgres sub-chart was replaced by the
+       `postgresCluster` sub-chart (CloudNativePG), so postgresql.deploy no
+       longer deploys anything. S3 is either the bundled SeaweedFS
+       (s3.deploy) or the OAN MinIO (`objectStorage`), never both. */ -}}
 {{- if .Values.postgresql.deploy }}
 {{- fail "langfuse: postgresql.deploy is no longer supported - the database is the `postgresCluster` sub-chart (CloudNativePG). Leave postgresql.deploy false." }}
 {{- end }}
-{{- if .Values.s3.deploy }}
-{{- fail "langfuse: s3.deploy is no longer supported - object storage is the `objectStorage` sub-chart (MinIO). Leave s3.deploy false." }}
+{{- if and .Values.s3.deploy (.Values.objectStorage).enabled }}
+{{- fail "langfuse: s3.deploy (SeaweedFS) and objectStorage.enabled (MinIO) are both on - pick one S3 store." }}
 {{- end }}

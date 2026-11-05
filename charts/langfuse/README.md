@@ -31,6 +31,7 @@ so nothing is fetched at render time:
 | `postgresql-cnpg` (`postgresCluster`) | copy of this repo's `charts/postgresql-cnpg` | Langfuse's metadata Postgres, a CloudNativePG `Cluster` named `langfuse-db` |
 | `minio` (`objectStorage`) | copy of this repo's `charts/minio` | S3 store for events, media and exports, `langfuse-minio`, bucket `langfuse` |
 | `valkey` (`redis`) | upstream valkey-io, vendored | queue and cache |
+| `seaweedfs` (`s3`) | upstream, vendored | an alternative S3 store, **off by default**; see below |
 | `clickhouse-operator-helm` (`clickhouse-operator`) | upstream, vendored | the operator that runs ClickHouse and Keeper |
 | `common` | copy of this repo's `charts/common` | the helpers the two copies above use |
 
@@ -86,14 +87,20 @@ expects an OTLP endpoint, not Langfuse's native API directly — Langfuse accept
 OTLP (ADR-0007 in the app repo). This chart does not configure that collector
 hop; it only stands up Langfuse itself.
 
-## Postgres and S3 come from this repo's charts, not upstream's
+## Postgres and S3
 
-Upstream bundles a groundhog2k Postgres `StatefulSet` and SeaweedFS. Both are
-removed: Postgres is a CloudNativePG `Cluster` like every other OAN database,
-and S3 is MinIO like every other OAN store. (SeaweedFS also needed Sprig's
-`fromToml`, which the Helm this repo pins does not have.) Langfuse is wired to
-them as if they were external, so `postgresql.deploy` and `s3.deploy` stay
-`false`; the render fails if either is set to `true`.
+**Postgres** is a CloudNativePG `Cluster` like every other OAN database.
+Upstream's groundhog2k Postgres sub-chart is removed; Langfuse is wired to the
+cluster as if it were external, so `postgresql.deploy` stays `false` and the
+render fails if it is set to `true`.
+
+**S3** is MinIO (`objectStorage`) by default, like every other OAN store.
+Upstream's SeaweedFS sub-chart is still here, unchanged, for anyone who uses
+it: set `s3.deploy: true` and `objectStorage.enabled: false`. The render fails
+if both are on. Langfuse finds whichever is on: an explicit `s3.endpoint` wins,
+else SeaweedFS's Service when `s3.deploy` is true, else MinIO's. SeaweedFS
+needs Sprig's `fromToml`, which this repo's pinned Helm (3.16) does not have, so
+it renders only with Helm 3.17 or later; CI renders the MinIO default.
 
 ## Departures from repo conventions
 

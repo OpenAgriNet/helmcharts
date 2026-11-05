@@ -11,8 +11,11 @@ dependencies:
 - name: valkey
   repository: ""
   version: 0.9.4
+- name: seaweedfs
+  repository: ""
+  version: 4.23.0
 - name: clickhouse-operator-helm
   repository: ""
   version: 0.0.8
-digest: sha256:9e297b9a92746f89a87cdbd657cfa213d0b942a810eca67f5791dbeeea08b925
-generated: "2026-11-05T12:29:45.019691+05:30"
+digest: sha256:196c34fe0143e9e321f400ec2b6b61fdb3f7a9090320ec4f8e77d5500d0e2725
+generated: "2026-11-05T13:01:54.421208+05:30"

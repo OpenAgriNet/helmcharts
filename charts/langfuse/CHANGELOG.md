@@ -20,11 +20,14 @@ modification; it is based on upstream 2.2.0 (`oan.in/upstream-version` in
 - **Breaking:** Postgres is now a CloudNativePG `Cluster` from a copy of this
   repo's `postgresql-cnpg` chart (alias `postgresCluster`, `langfuse-db`),
   replacing upstream's groundhog2k `postgres` sub-chart.
-- **Breaking:** S3 is now MinIO from a copy of this repo's `minio` chart
-  (alias `objectStorage`, `langfuse-minio`), replacing upstream's `seaweedfs`
-  sub-chart.
-- `postgresql.deploy` and `s3.deploy` default to `false`, with Langfuse wired
-  to the two sub-charts above; the render fails if either is `true`.
+- **Breaking:** S3 is now MinIO by default, from a copy of this repo's `minio`
+  chart (alias `objectStorage`, `langfuse-minio`). Upstream's `seaweedfs`
+  sub-chart stays, unchanged, and is off by default: set `s3.deploy: true` and
+  `objectStorage.enabled: false` to use it. Both on fails the render.
+- `postgresql.deploy` defaults to `false`, with Langfuse wired to the
+  `postgresCluster` sub-chart; the render fails if it is `true`.
+- The S3 endpoint is found in this order: `s3.endpoint`, else SeaweedFS's
+  Service when `s3.deploy` is true, else MinIO's (`langfuse.s3.endpoint`).
 - Every dependency is vendored under `charts/` with an empty `repository`,
   including a copy of this repo's `common`.
 - Upstream valkey's `common.image` helper is renamed `valkey.commonImage`: it

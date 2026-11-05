@@ -16,7 +16,7 @@ sources:
 # Everything Langfuse needs is vendored under charts/: nothing is fetched at
 # render time (Argo CD renders from git with no dependency build).
 #   common, postgresql-cnpg, minio  copies of this repo's own charts
-#   valkey, clickhouse-operator-helm  upstream, committed whole
+#   valkey, seaweedfs, clickhouse-operator-helm  upstream, committed whole
 dependencies:
   - name: common
     version: 0.2.0
@@ -36,6 +36,11 @@ dependencies:
     repository: ""
     condition: redis.deploy
     alias: redis
+  - name: seaweedfs
+    version: 4.23.0
+    repository: ""
+    condition: s3.deploy
+    alias: s3
   - name: clickhouse-operator-helm
     version: 0.0.8
     repository: ""

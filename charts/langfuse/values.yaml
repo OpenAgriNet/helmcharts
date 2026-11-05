@@ -843,9 +843,10 @@ clickhouse:
     priorityClassName: ""
 
 # S3 / Object Storage Configuration
-# OAN: object storage is the `objectStorage` sub-chart below (MinIO), so
-# Langfuse always talks to it as external S3. The bundled SeaweedFS sub-chart
-# is removed; `deploy: true` fails the render.
+# OAN: object storage is the `objectStorage` sub-chart below (MinIO) by
+# default. The upstream SeaweedFS sub-chart is still here for anyone who wants
+# it: set `s3.deploy: true` and `objectStorage.enabled: false` (both on fails
+# the render). SeaweedFS needs Sprig's fromToml, which Helm < 3.17 lacks.
 s3:
   deploy: false
 
@@ -856,8 +857,9 @@ s3:
   bucket: "langfuse"
   # -- S3 region for uploads (overridable per upload type).
   region: "auto"
-  # -- OAN: the `objectStorage` sub-chart's Service.
-  endpoint: "http://langfuse-minio:9000"
+  # -- S3 endpoint for uploads (overridable per upload type). Empty: the
+  # SeaweedFS Service when s3.deploy is true, else the `objectStorage` (MinIO) Service.
+  endpoint: ""
   # -- Whether to force path style on requests. Required for SeaweedFS / MinIO. Can be overridden per upload type.
   forcePathStyle: true
   # -- S3 accessKeyId to use for all uploads. Can be overridden per upload type.
