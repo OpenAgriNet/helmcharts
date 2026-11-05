@@ -1,8 +1,26 @@
 # Changelog
 
-All notable changes to the `model-gateway` chart are documented here. The format
+All notable changes to the `litellm` chart are documented here. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this chart
 follows [Semantic Versioning](https://semver.org/).
+
+## [0.2.0] - 2026-11-05
+
+### Changed
+
+- **Breaking:** renamed from `model-gateway` (directory `charts/lite-llm`) to
+  `litellm` (directory `charts/litellm`), named after the product. Template
+  helpers are now `litellm.*`; a release named `litellm` gets a Service, and
+  an `OTEL_SERVICE_NAME`, of `litellm`.
+
+### Added
+
+- The gateway's Postgres is now part of this chart: a CloudNativePG `Cluster`
+  `litellm-db` from a copy of this repo's `postgresql-cnpg` chart (alias
+  `postgresCluster`). `database.urlSecret` defaults to the Secret CNPG
+  generates for it, `litellm-db-app`. Disable it to use a Postgres of your own.
+- Every dependency, including a copy of this repo's `common`, is vendored under
+  `charts/` with an empty `repository`.
 
 ## [0.1.1] - 2026-10-12
 

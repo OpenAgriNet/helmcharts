@@ -7,31 +7,31 @@
 # ============================================================================
 */}}
 
-{{- define "model-gateway.name" -}}
+{{- define "litellm.name" -}}
 {{- include "common.name" . -}}
 {{- end }}
 
-{{- define "model-gateway.fullname" -}}
+{{- define "litellm.fullname" -}}
 {{- include "common.fullname" . -}}
 {{- end }}
 
-{{- define "model-gateway.labels" -}}
+{{- define "litellm.labels" -}}
 {{- include "common.labels" . -}}
 {{- end }}
 
-{{- define "model-gateway.selectorLabels" -}}
+{{- define "litellm.selectorLabels" -}}
 {{- include "common.selectorLabels" . -}}
 {{- end }}
 
-{{- define "model-gateway.serviceAccountName" -}}
+{{- define "litellm.serviceAccountName" -}}
 {{- include "common.serviceAccount.name" . -}}
 {{- end }}
 
-{{- define "model-gateway.image" -}}
+{{- define "litellm.image" -}}
 {{- include "common.image" . -}}
 {{- end }}
 
-{{- define "model-gateway.envConfigMapName" -}}
+{{- define "litellm.envConfigMapName" -}}
 {{- include "common.envConfigMapName" . -}}
 {{- end }}
 
@@ -39,16 +39,16 @@
 The in-cluster address of the gateway's own API. The reconcile Job talks to it
 here, so it never needs an Ingress and the admin API is never published.
 */}}
-{{- define "model-gateway.internalURL" -}}
-{{- printf "http://%s:%v" (include "model-gateway.fullname" .) .Values.service.port -}}
+{{- define "litellm.internalURL" -}}
+{{- printf "http://%s:%v" (include "litellm.fullname" .) .Values.service.port -}}
 {{- end }}
 
-{{- define "model-gateway.modelsConfigMapName" -}}
-{{- printf "%s-models" (include "model-gateway.fullname" .) -}}
+{{- define "litellm.modelsConfigMapName" -}}
+{{- printf "%s-models" (include "litellm.fullname" .) -}}
 {{- end }}
 
-{{- define "model-gateway.reconcileConfigMapName" -}}
-{{- printf "%s-reconcile" (include "model-gateway.fullname" .) -}}
+{{- define "litellm.reconcileConfigMapName" -}}
+{{- printf "%s-reconcile" (include "litellm.fullname" .) -}}
 {{- end }}
 
 {{/*
@@ -58,7 +58,7 @@ Rendered from values rather than pasted in as a document, so a model is a value
 key like everything else: reviewable in a diff, overridable per environment, and
 checked below before it reaches the cluster.
 */}}
-{{- define "model-gateway.modelsJSON" -}}
+{{- define "litellm.modelsJSON" -}}
 {{- $models := .Values.models -}}
 {{- if not $models }}
 {{- fail (printf "%s: models is empty. The assistant asks for names this chart has not defined, and every turn would fail on an unknown model." .Chart.Name) }}
@@ -85,7 +85,7 @@ The vendor accounts, as the reconcile Job reads them: a name, and where to read
 the key from. Never a key. This repository renders no Secrets and holds no
 secret values.
 */}}
-{{- define "model-gateway.credentialsJSON" -}}
+{{- define "litellm.credentialsJSON" -}}
 {{- range .Values.credentials }}
 {{- if not .secretName }}
 {{- fail (printf "%s: credential %q has no secretName - the key is read from a Secret that exists in the cluster already" $.Chart.Name .name) }}
@@ -99,7 +99,7 @@ Everything the gateway needs that this chart derives from its structured values.
 Guardrails refuse to render what the gateway would refuse to run on, or - worse
 - would run on while quietly doing the wrong thing.
 */}}
-{{- define "model-gateway.env" -}}
+{{- define "litellm.env" -}}
 {{- $db := .Values.database -}}
 {{- if not $db.urlSecret.name }}
 {{- fail (printf "%s: database.urlSecret.name is required. The gateway keeps its keys, spend and model list in PostgreSQL; CNPG writes a ready-made `uri` key into Secret/<cluster>-app." .Chart.Name) }}
@@ -153,14 +153,14 @@ Guardrails refuse to render what the gateway would refuse to run on, or - worse
 {{- end }}
 {{- if .Values.otel.enabled }}
 {{- if not .Values.otel.endpoint }}
-{{- fail (printf "%s: otel.enabled is true, so otel.endpoint is required - point it at the collector that filters this gateway's internal spans, e.g. http://model-gateway-collector:4318/v1/traces" .Chart.Name) }}
+{{- fail (printf "%s: otel.enabled is true, so otel.endpoint is required - point it at the collector that filters this gateway's internal spans, e.g. http://litellm-collector:4318/v1/traces" .Chart.Name) }}
 {{- end }}
 - name: OTEL_EXPORTER
   value: {{ .Values.otel.exporter | quote }}
 - name: OTEL_ENDPOINT
   value: {{ .Values.otel.endpoint | quote }}
 - name: OTEL_SERVICE_NAME
-  value: {{ include "model-gateway.fullname" . | quote }}
+  value: {{ include "litellm.fullname" . | quote }}
 {{- end }}
 {{- with (include "common.env" . | trim) }}
 {{ . }}

@@ -6,9 +6,9 @@ stops the assistant outright.
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "model-gateway.fullname" . }}
+  name: {{ include "litellm.fullname" . }}
   labels:
-    {{- include "model-gateway.labels" . | nindent 4 }}
+    {{- include "litellm.labels" . | nindent 4 }}
 spec:
   {{- with .Values.podDisruptionBudget.minAvailable }}
   minAvailable: {{ . }}
@@ -18,5 +18,5 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      {{- include "model-gateway.selectorLabels" . | nindent 6 }}
+      {{- include "litellm.selectorLabels" . | nindent 6 }}
 {{- end }}

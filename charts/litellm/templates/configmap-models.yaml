@@ -9,11 +9,11 @@ a Helm upgrade or an Argo sync runs the Job that applies it.
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "model-gateway.modelsConfigMapName" . }}
+  name: {{ include "litellm.modelsConfigMapName" . }}
   labels:
-    {{- include "model-gateway.labels" . | nindent 4 }}
+    {{- include "litellm.labels" . | nindent 4 }}
 data:
   models.json: |
-    {{- include "model-gateway.modelsJSON" . | nindent 4 }}
+    {{- include "litellm.modelsJSON" . | nindent 4 }}
   credentials.json: |
-    {{- include "model-gateway.credentialsJSON" . | nindent 4 }}
+    {{- include "litellm.credentialsJSON" . | nindent 4 }}

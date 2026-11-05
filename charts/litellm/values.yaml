@@ -1,5 +1,5 @@
 # ============================================================================
-# model-gateway - default values
+# litellm - default values
 #
 # The single seam every model call passes through (LiteLLM). The assistant asks
 # for a NAME - dss-composer, dss-intent - and this chart decides what that name
@@ -51,7 +51,9 @@ ingress:
 # and treat the backup as a secret: it holds vendor keys, encrypted.
 database:
   urlSecret:
-    name: ""
+    # The URI CloudNativePG generates for the `postgresCluster` sub-chart's
+    # owner (<cluster>-app). Point it at another Secret to use your own Postgres.
+    name: "litellm-db-app"
     key: uri
 
 # --- secrets -----------------------------------------------------------------
@@ -81,7 +83,7 @@ saltKeySecret:
 # credentials:
 #   - name: azure-oan
 #     description: Azure OpenAI, OAN account
-#     secretName: model-gateway-azure
+#     secretName: litellm-azure
 #     keys:
 #       api_key: AZURE_OPENAI_API_KEY
 #     values:
@@ -221,3 +223,25 @@ podLabels: {}
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+# ---------------------------------------------------------------------------
+# The gateway's Postgres: a CloudNativePG Cluster (a copy of this repo's
+# postgresql-cnpg chart, under charts/). Its name is fixed here because
+# database.urlSecret above names the Secret CNPG generates from it. It holds
+# the vendor keys (encrypted with the salt key) and the spend history.
+# Disable it to use a Postgres of your own.
+# ---------------------------------------------------------------------------
+postgresCluster:
+  enabled: true
+  fullnameOverride: litellm-db
+  # The postgresql-cnpg default (pgvector) is not needed here.
+  image:
+    registry: ghcr.io
+    repository: cloudnative-pg/postgresql
+    tag: "16-standard-trixie"
+  bootstrap:
+    database: litellm
+    owner: litellm
+  enableSuperuserAccess: false
+  backup:
+    enabled: false

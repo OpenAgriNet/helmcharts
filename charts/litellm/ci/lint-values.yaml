@@ -3,19 +3,19 @@
 # renders them.
 database:
   urlSecret:
-    name: model-gateway-db-app
+    name: litellm-db-app
 masterKeySecret:
-  name: model-gateway-master-key
+  name: litellm-master-key
 saltKeySecret:
-  name: model-gateway-salt-key
+  name: litellm-salt-key
 
 redis:
-  host: model-gateway-redis
+  host: litellm-redis
 
 credentials:
   - name: azure-oan
     description: Azure OpenAI, OAN account
-    secretName: model-gateway-azure
+    secretName: litellm-azure
     keys:
       api_key: AZURE_OPENAI_API_KEY
     values:

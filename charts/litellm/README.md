@@ -1,4 +1,4 @@
-# model-gateway
+# litellm
 
 The single seam every model call passes through.
 
@@ -9,6 +9,24 @@ reviewed diff, applied by a Job, with nothing restarted.
 
 Implemented with LiteLLM. PostgreSQL holds the vendor accounts, the model list
 and the spending history.
+
+## Everything LiteLLM needs is in this directory
+
+| Sub-chart (alias) | Source | What it runs |
+|---|---|---|
+| `postgresql-cnpg` (`postgresCluster`) | copy of this repo's `charts/postgresql-cnpg` | the gateway's Postgres, a CloudNativePG `Cluster` named `litellm-db` |
+| `common` | copy of this repo's `charts/common` | the helpers this chart and the copy above use |
+
+Both are committed under `charts/` with an empty `repository`, so nothing is
+fetched at render time. The `postgresql-cnpg` copy drops its own
+`dependencies:` on `common`; the one here serves it, because Helm template
+names are global across a chart and its sub-charts. To take a newer shared
+chart, copy it here again, remove that block, run `helm dependency update` and
+commit.
+
+`database.urlSecret` defaults to `litellm-db-app`, the Secret CNPG generates
+for that cluster. Set `postgresCluster.enabled: false` and point
+`database.urlSecret` elsewhere to use a Postgres of your own.
 
 ## How a change reaches the gateway
 
@@ -84,7 +102,7 @@ arrives.
 ```yaml
 credentials:
   - name: azure-oan
-    secretName: model-gateway-azure
+    secretName: litellm-azure
     keys:
       api_key: AZURE_OPENAI_API_KEY
     values:
@@ -116,11 +134,11 @@ answer.
 ## Install
 
 ```bash
-helm dependency update charts/lite-llm
-helm upgrade --install model-gateway charts/lite-llm \
-  -f charts/lite-llm/examples/model-gateway.prod.yaml \
+helm dependency update charts/litellm
+helm upgrade --install litellm charts/litellm \
+  -f charts/litellm/examples/litellm.prod.yaml \
   --wait --timeout 10m
-helm test model-gateway
+helm test litellm
 ```
 
 **Use `--timeout 10m`.** Helm's default is 5 minutes and covers the whole release,
@@ -132,6 +150,6 @@ Job runs as a PostSync hook and Helm's timeout does not apply. If you shorten
 the timeout, shorten `activeDeadlineSeconds` with it.
 
 The assistant is then pointed at it with its own settings: the four names below,
-`DSS_GATEWAY_URL` set to `http://model-gateway:4000/v1`, and `DSS_GATEWAY_API_KEY`
+`DSS_GATEWAY_URL` set to `http://litellm:4000/v1`, and `DSS_GATEWAY_API_KEY`
 holding a virtual key this gateway issued. No vendor is named anywhere in the
 assistant — that is what makes a model change a change to this chart alone.

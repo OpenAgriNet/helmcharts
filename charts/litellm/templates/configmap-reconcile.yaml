@@ -6,9 +6,9 @@ the models it applies.
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "model-gateway.reconcileConfigMapName" . }}
+  name: {{ include "litellm.reconcileConfigMapName" . }}
   labels:
-    {{- include "model-gateway.labels" . | nindent 4 }}
+    {{- include "litellm.labels" . | nindent 4 }}
 data:
   reconcile.py: |
     """Make the gateway match models.json and credentials.json.

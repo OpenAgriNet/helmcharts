@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: "{{ include "model-gateway.fullname" . }}-test-connection"
+  name: "{{ include "litellm.fullname" . }}-test-connection"
   labels:
-    {{- include "model-gateway.labels" . | nindent 4 }}
+    {{- include "litellm.labels" . | nindent 4 }}
   annotations:
     "helm.sh/hook": test
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
@@ -17,7 +17,7 @@ spec:
         - -c
         - |
           import json, urllib.request
-          url = "{{ include "model-gateway.internalURL" . }}/health/readiness"
+          url = "{{ include "litellm.internalURL" . }}/health/readiness"
           with urllib.request.urlopen(url, timeout=10) as r:
               body = json.load(r)
           print(body)

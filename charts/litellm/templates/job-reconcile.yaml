@@ -21,9 +21,9 @@ creating a Job of this name without deleting the first one fails the release.
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "model-gateway.fullname" . }}-reconcile
+  name: {{ include "litellm.fullname" . }}-reconcile
   labels:
-    {{- include "model-gateway.labels" . | nindent 4 }}
+    {{- include "litellm.labels" . | nindent 4 }}
   annotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "5"
@@ -37,11 +37,11 @@ spec:
   template:
     metadata:
       labels:
-        {{- include "model-gateway.selectorLabels" . | nindent 8 }}
+        {{- include "litellm.selectorLabels" . | nindent 8 }}
     spec:
       restartPolicy: Never
       {{- if .Values.serviceAccount.enabled }}
-      serviceAccountName: {{ include "model-gateway.serviceAccountName" . }}
+      serviceAccountName: {{ include "litellm.serviceAccountName" . }}
       {{- end }}
       {{- with (include "common.imagePullSecrets" . | trim) }}
       {{- . | nindent 6 }}
@@ -61,7 +61,7 @@ spec:
           command: ["python", "/script/reconcile.py"]
           env:
             - name: GATEWAY_URL
-              value: {{ include "model-gateway.internalURL" . | quote }}
+              value: {{ include "litellm.internalURL" . | quote }}
             - name: LITELLM_MASTER_KEY
               valueFrom:
                 secretKeyRef:
@@ -88,10 +88,10 @@ spec:
       volumes:
         - name: script
           configMap:
-            name: {{ include "model-gateway.reconcileConfigMapName" . }}
+            name: {{ include "litellm.reconcileConfigMapName" . }}
         - name: spec
           configMap:
-            name: {{ include "model-gateway.modelsConfigMapName" . }}
+            name: {{ include "litellm.modelsConfigMapName" . }}
         {{- range .Values.credentials }}
         - name: {{ printf "credential-%s" .name }}
           secret:

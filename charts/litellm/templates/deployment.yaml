@@ -1,9 +1,9 @@
 apiVersion: {{ include "common.deployment.apiVersion" . }}
 kind: Deployment
 metadata:
-  name: {{ include "model-gateway.fullname" . }}
+  name: {{ include "litellm.fullname" . }}
   labels:
-    {{- include "model-gateway.labels" . | nindent 4 }}
+    {{- include "litellm.labels" . | nindent 4 }}
   {{- with .Values.commonAnnotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -12,11 +12,11 @@ spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "model-gateway.selectorLabels" . | nindent 6 }}
+      {{- include "litellm.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "model-gateway.selectorLabels" . | nindent 8 }}
+        {{- include "litellm.selectorLabels" . | nindent 8 }}
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -32,7 +32,7 @@ spec:
              mid-sentence in front of a farmer. */}}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       {{- if .Values.serviceAccount.enabled }}
-      serviceAccountName: {{ include "model-gateway.serviceAccountName" . }}
+      serviceAccountName: {{ include "litellm.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
       {{- end }}
       {{- with (include "common.imagePullSecrets" . | trim) }}
@@ -44,7 +44,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          image: {{ include "model-gateway.image" . }}
+          image: {{ include "litellm.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- with (include "common.securityContext" .) }}
           securityContext:
@@ -55,10 +55,10 @@ spec:
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
           env:
-            {{- include "model-gateway.env" . | nindent 12 }}
+            {{- include "litellm.env" . | nindent 12 }}
           envFrom:
             - configMapRef:
-                name: {{ include "model-gateway.envConfigMapName" . }}
+                name: {{ include "litellm.envConfigMapName" . }}
             {{- range .Values.envFromSecrets }}
             - secretRef:
                 name: {{ . }}
