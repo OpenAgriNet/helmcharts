@@ -191,9 +191,11 @@ modules:
           id: router
           config:
             routingConfig: /app/config/routing-network.yaml
+        #providerstatus-registry
       steps:
         - validateSign
         - checkCrossNetworkRequester
+        #providerstatus-step
         - addRoute
 
   # oanProvider: another network's select lands here. Checks the signature and

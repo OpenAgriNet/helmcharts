@@ -144,10 +144,12 @@ modules:
           id: router
           config:
             routingConfig: /app/config/routing-network.yaml
+        #providerstatus-registry
 
       # A door: checks the signature and the agreement, then routes. No
       # validateSchema -- the tier that answers does that.
       steps:
         - validateSign
         - checkCrossNetworkRequester
+        #providerstatus-step
         - addRoute
