@@ -1,15 +1,21 @@
 dependencies:
-- name: postgres
-  repository: https://groundhog2k.github.io/helm-charts/
-  version: 1.6.3
+- name: common
+  repository: ""
+  version: 0.2.0
+- name: postgresql-cnpg
+  repository: ""
+  version: 0.2.1
+- name: minio
+  repository: ""
+  version: 0.2.0
 - name: valkey
-  repository: https://valkey-io.github.io/valkey-helm
+  repository: ""
   version: 0.9.4
 - name: seaweedfs
-  repository: https://seaweedfs.github.io/seaweedfs/helm
+  repository: ""
   version: 4.23.0
 - name: clickhouse-operator-helm
   repository: ""
   version: 0.0.8
-digest: sha256:981a9e752ab2c26cee374dab0d818f6064879d951b06fac47446818d78addaff
-generated: "2026-10-08T15:28:31.739833+05:30"
+digest: sha256:196c34fe0143e9e321f400ec2b6b61fdb3f7a9090320ec4f8e77d5500d0e2725
+generated: "2026-11-05T13:01:54.421208+05:30"

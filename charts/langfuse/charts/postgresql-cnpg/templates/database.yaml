@@ -1,0 +1,64 @@
+{{- range .Values.databases }}
+{{- if not .name }}
+{{- fail (printf "%s: every entry in databases needs a name" $.Chart.Name) }}
+{{- end }}
+{{- if not .owner }}
+{{- fail (printf "%s: database %q needs an owner. The role must exist - declare it under managed.roles, or use the cluster's bootstrap owner." $.Chart.Name .name) }}
+{{- end }}
+{{- if eq .name ($.Values.bootstrap.database | default "") }}
+{{- fail (printf "%s: database %q is already created by bootstrap.database. Remove it from `databases`, or rename one of them - the operator would otherwise be asked to create a database that already exists." $.Chart.Name .name) }}
+{{- end }}
+---
+{{/*
+A database created declaratively by the CNPG operator, alongside the single
+database that bootstrap.initdb creates.
+
+Requires CNPG >= 1.25, which is where the Database CRD was introduced. On an
+older operator this object is simply ignored - no database, no error - so check
+the operator version if a database does not appear.
+*/}}
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: {{ printf "%s-%s" (include "postgresql-cnpg.fullname" $) .name | trunc 63 | trimSuffix "-" }}
+  namespace: {{ include "postgresql-cnpg.namespace" $ }}
+  labels:
+    {{- include "postgresql-cnpg.labels" $ | nindent 4 }}
+    oan.in/database: {{ .name | quote }}
+  {{- with $.Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  cluster:
+    name: {{ include "postgresql-cnpg.fullname" $ }}
+  name: {{ .name | quote }}
+  owner: {{ .owner | quote }}
+  ensure: {{ .ensure | default "present" }}
+  # retain: dropping this object leaves the database in place. Databases hold
+  # data that outlives a Helm release, so deletion is deliberately not automatic.
+  databaseReclaimPolicy: {{ .databaseReclaimPolicy | default "retain" }}
+  {{- with .encoding }}
+  encoding: {{ . | quote }}
+  {{- end }}
+  {{- with .locale }}
+  locale: {{ . | quote }}
+  {{- end }}
+  {{- with .template }}
+  template: {{ . | quote }}
+  {{- end }}
+  {{- if hasKey . "allowConnections" }}
+  allowConnections: {{ .allowConnections }}
+  {{- end }}
+  {{- with .connectionLimit }}
+  connectionLimit: {{ . }}
+  {{- end }}
+  {{- with .extensions }}
+  extensions:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .schemas }}
+  schemas:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
