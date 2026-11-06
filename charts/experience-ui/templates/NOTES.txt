@@ -1,0 +1,7 @@
+{{ .Chart.Name }} (release {{ .Release.Name }}) serves the chat client on {{ .Values.service.port }}.
+
+The published image is built for /experience/: put it behind a proxy that
+strips that prefix, and route /experience/api to the Experience API.
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "experience-ui.fullname" . }} {{ .Values.service.port }}
+  curl -s localhost:{{ .Values.service.port }}/healthz

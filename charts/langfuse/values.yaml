@@ -487,14 +487,14 @@ langfuse:
         key: ""
 
 # PostgreSQL Configuration
-# Deploys a single-instance PostgreSQL via the groundhog2k/postgres sub-chart (image `docker.io/postgres`).
-# For HA / managed Postgres, set `postgresql.deploy: false` and configure `host` + auth fields below.
+# OAN: the database is the `postgresCluster` sub-chart below (CloudNativePG), so
+# Langfuse always connects as to an external Postgres. The bundled groundhog2k
+# sub-chart is removed; `deploy: true` fails the render.
 postgresql:
-  # -- Deploy PostgreSQL via the bundled groundhog2k/postgres sub-chart. Disable to use an external or managed Postgres.
-  deploy: true
+  deploy: false
 
-  # -- PostgreSQL host to connect to. If postgresql.deploy is true, this will be set automatically based on the release name.
-  host: ""
+  # -- The `postgresCluster` sub-chart's read-write Service (CNPG names it <cluster>-rw).
+  host: "langfuse-db-rw"
   # -- Port of the postgres server to use. Defaults to 5432.
   port: null
   # -- Additional database connection arguments
@@ -513,8 +513,8 @@ postgresql:
     username: langfuse
     # -- Password Langfuse uses to connect to PostgreSQL. Leave empty to have the chart generate one (stored in a release-managed Secret).
     password: ""
-    # -- If you want to use an existing secret for the postgres password, set the name of the secret here. (`postgresql.auth.password` will be ignored and picked up from this secret).
-    existingSecret: ""
+    # -- OAN: the Secret CloudNativePG generates for the `postgresCluster` sub-chart's owner (<cluster>-app).
+    existingSecret: "langfuse-db-app"
     # -- Keys in existingSecret: userPasswordKey for Langfuse; adminPasswordKey for the Postgres superuser when deploy is true.
     secretKeys:
       userPasswordKey: password
@@ -843,11 +843,12 @@ clickhouse:
     priorityClassName: ""
 
 # S3 / Object Storage Configuration
-# Deploys SeaweedFS in allInOne mode via the seaweedfs/seaweedfs sub-chart (image `chrislusf/seaweedfs`).
-# For production, set `s3.deploy: false` and point Langfuse at S3 / Azure Blob / GCS.
+# OAN: object storage is the `objectStorage` sub-chart below (MinIO) by
+# default. The upstream SeaweedFS sub-chart is still here for anyone who wants
+# it: set `s3.deploy: true` and `objectStorage.enabled: false` (both on fails
+# the render). SeaweedFS needs Sprig's fromToml, which Helm < 3.17 lacks.
 s3:
-  # -- Deploy SeaweedFS via the bundled seaweedfs sub-chart. Disable to use external S3-compatible storage.
-  deploy: true
+  deploy: false
 
   # -- Object storage provider for Langfuse uploads: s3 (default), azure, or gcs.
   storageProvider: "s3"
@@ -856,7 +857,8 @@ s3:
   bucket: "langfuse"
   # -- S3 region for uploads (overridable per upload type).
   region: "auto"
-  # -- S3 endpoint for uploads (overridable per upload type). Auto-set to the SeaweedFS Service when deploy is true.
+  # -- S3 endpoint for uploads (overridable per upload type). Empty: the
+  # SeaweedFS Service when s3.deploy is true, else the `objectStorage` (MinIO) Service.
   endpoint: ""
   # -- Whether to force path style on requests. Required for SeaweedFS / MinIO. Can be overridden per upload type.
   forcePathStyle: true
@@ -1038,3 +1040,38 @@ s3:
 
 # Additional manifests
 extraManifests: []
+
+# ---------------------------------------------------------------------------
+# OAN sub-charts (copies of this repo's own charts, under charts/)
+# ---------------------------------------------------------------------------
+
+# Langfuse's Postgres: a CloudNativePG Cluster, the same as every other OAN
+# service. Its names are fixed here because Langfuse is wired to them above:
+# Service langfuse-db-rw, and Secret langfuse-db-app, which CNPG generates
+# with the owner's password.
+postgresCluster:
+  enabled: true
+  fullnameOverride: langfuse-db
+  # The postgresql-cnpg default (pgvector) is not needed here.
+  image:
+    registry: ghcr.io
+    repository: cloudnative-pg/postgresql
+    tag: "16-standard-trixie"
+  bootstrap:
+    database: langfuse
+    owner: langfuse
+  enableSuperuserAccess: false
+  backup:
+    enabled: false
+
+# Langfuse's S3 store: MinIO, the same as every other OAN service. The bucket
+# matches s3.bucket above. Set credentialsSecret.name, and point
+# s3.accessKeyId / s3.secretAccessKey at the same Secret.
+objectStorage:
+  enabled: true
+  fullnameOverride: langfuse-minio
+  bucket: langfuse
+  credentialsSecret:
+    name: ""
+    accessKeyKey: access-key
+    secretKeyKey: secret-key

@@ -68,20 +68,23 @@ Create the name of the service account to use
 Returns the Valkey container image
 */}}
 {{- define "valkey.image" -}}
-{{- include "common.image" (dict "image" (dict "registry" .Values.image.registry "repository" .Values.image.repository "tag" (.Values.image.tag | default .Chart.AppVersion)) "global" .Values.global) }}
+{{- include "valkey.commonImage" (dict "image" (dict "registry" .Values.image.registry "repository" .Values.image.repository "tag" (.Values.image.tag | default .Chart.AppVersion)) "global" .Values.global) }}
 {{- end -}}
 
 {{/*
 Returns the Valkey exporter container image
 */}}
 {{- define "valkey.metrics.exporter.image" -}}
-{{- include "common.image" (dict "image" .Values.metrics.exporter.image "global" .Values.global) }}
+{{- include "valkey.commonImage" (dict "image" .Values.metrics.exporter.image "global" .Values.global) }}
 {{- end -}}
 
 {{/*
-The common image function that renders the container image
+The common image function that renders the container image.
+OAN: renamed from upstream's "common.image". Template names are global across
+a chart and its sub-charts, and the OAN `common` library vendored beside this
+chart in langfuse defines "common.image" too, with different arguments.
 */}}
-{{- define "common.image" -}}
+{{- define "valkey.commonImage" -}}
 {{- $registryName := .image.registry }}
 {{- $repositoryName := .image.repository }}
 {{- $tag := .image.tag }}

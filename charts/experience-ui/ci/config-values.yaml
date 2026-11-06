@@ -1,0 +1,6 @@
+# A deployment's own config.json, mounted over the image's.
+config:
+  api:
+    baseUrl: /experience/api
+  features:
+    voiceInput: false

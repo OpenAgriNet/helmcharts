@@ -1,0 +1,26 @@
+apiVersion: v2
+name: experience-ui
+description: >-
+  The Experience UI: the reference web chat client for the OpenAgriNet
+  Experience Layer, served by nginx. Talks to the Experience API.
+type: application
+version: 0.1.0
+# The app has cut no release yet. CI tags every image with its commit, so
+# appVersion is the commit of main this chart was written against.
+appVersion: "d6d4a2cfce561ebee613466b3c76d7c0afd96247"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - experience
+  - ui
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
+  - https://github.com/OpenAgriNet/experience-ui
+dependencies:
+  - name: common
+    version: "0.2.x"
+    repository: "file://../common"

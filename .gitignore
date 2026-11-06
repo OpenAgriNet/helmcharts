@@ -24,6 +24,14 @@ charts/**/Chart.lock
 !charts/reflector/charts/
 !charts/reflector/charts/**
 !charts/reflector/Chart.lock
+# Products that carry everything they need under their own directory: their
+# sub-charts are copies of this repo's charts plus upstream ones, all committed.
+!charts/langfuse/charts/
+!charts/langfuse/charts/**
+!charts/langfuse/Chart.lock
+!charts/litellm/charts/
+!charts/litellm/charts/**
+!charts/litellm/Chart.lock
 *.tgz
 
 # Rendered output
