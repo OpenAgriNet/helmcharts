@@ -70,6 +70,7 @@ func (c *config) validate() error {
 // the parts a select has to echo back are read; the rest is left alone.
 type published struct {
 	ResourceID  string
+	MarketCode  string
 	MarketName  string
 	District    string
 	State       string
@@ -98,6 +99,7 @@ type publishPayload struct {
 					Type        string      `json:"@type"`
 					Commodities []commodity `json:"supportedCommodities"`
 					Market      struct {
+						MarketCode string `json:"marketCode"`
 						MarketName string `json:"marketName"`
 						District   string `json:"district"`
 						State      string `json:"state"`
@@ -241,6 +243,7 @@ func loadPublished(dir string) ([]published, error) {
 				}
 				resources = append(resources, published{
 					ResourceID:  r.ID,
+					MarketCode:  a.Market.MarketCode,
 					MarketName:  a.Market.MarketName,
 					District:    a.Market.District,
 					State:       a.Market.State,
@@ -334,6 +337,7 @@ func generate(cfg *config, contract map[string]any, resources []published, outDi
 
 		text := map[string]string{
 			"RESOURCE_ID":      r.ResourceID,
+			"MARKET_CODE":      r.MarketCode,
 			"MARKET_NAME":      r.MarketName,
 			"DISTRICT":         r.District,
 			"STATE":            r.State,

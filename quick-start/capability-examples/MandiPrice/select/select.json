@@ -52,6 +52,7 @@
                   "Modal"
                 ],
                 "market": {
+                  "marketCode": "1634",
                   "marketName": "Rahuri APMC",
                   "district": "338",
                   "state": "MH"
