@@ -25,14 +25,14 @@
 # peer set are fixed at first start, and moving a live store between them is a
 # procedure, not a values change.
 #
-# BEFORE INSTALLING, the unseal key Secret must exist, exactly as for dev (see
-# the header of openbao.dev.yaml). All three pods mount the same key.
+# BEFORE INSTALLING, openbao-tls and the unseal key Secret must exist, exactly
+# as for dev (see the header of openbao.dev.yaml). All three pods mount the
+# same key and the same certificate, which names each of them.
 # ============================================================================
 
 global:
-  # As in dev: ESO is the only client and talks over the pod network. Turn on
-  # with listener TLS before anything outside the cluster may reach OpenBao.
-  tlsDisable: true
+  # As in dev: TLS on, with the certificate from charts/openbao-tls.
+  tlsDisable: false
 
 injector:
   enabled: false
@@ -88,10 +88,60 @@ server:
       secret:
         secretName: openbao-unseal-key
         defaultMode: 0400
+    - name: tls
+      secret:
+        secretName: openbao-server-tls
+        defaultMode: 0440
   volumeMounts:
     - name: unseal-key
       mountPath: /openbao/unseal
       readOnly: true
+    - name: tls
+      mountPath: /openbao/tls
+      readOnly: true
+
+  # TLS. The certificate is charts/openbao-tls's (install it first):
+  # tls.crt and tls.key for the listener, ca.crt for every client. The bao
+  # CLI in the pod calls https://127.0.0.1:8200 and checks it against
+  # BAO_CACERT.
+  extraEnvironmentVars:
+    BAO_CACERT: /openbao/tls/ca.crt
+
+  # OpenBao reads its certificate at start and on SIGHUP only, and
+  # cert-manager renews it every 60 days. The sidecar watches the mounted
+  # file and sends SIGHUP to the server -- the oldest bao process, so probes
+  # and `kubectl exec` are left alone -- when it changes.
+  shareProcessNamespace: true
+  extraContainers:
+    - name: tls-reloader
+      image: quay.io/openbao/openbao:2.6.3
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          f=/openbao/tls/tls.crt
+          last="$(sha256sum "$f")"
+          while sleep 60; do
+            now="$(sha256sum "$f")"
+            if [ "$now" != "$last" ] && pkill -HUP -o -x bao; then
+              echo "certificate changed; sent SIGHUP to bao"
+              last="$now"
+            fi
+          done
+      volumeMounts:
+        - name: tls
+          mountPath: /openbao/tls
+          readOnly: true
+      resources:
+        requests:
+          cpu: 5m
+          memory: 8Mi
+        limits:
+          memory: 32Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
 
   standalone:
     enabled: false
@@ -113,22 +163,26 @@ server:
         ui = true
 
         listener "tcp" {
-          tls_disable = 1
           address = "[::]:8200"
           cluster_address = "[::]:8201"
+          tls_cert_file = "/openbao/tls/tls.crt"
+          tls_key_file = "/openbao/tls/tls.key"
         }
 
         storage "raft" {
           path = "/openbao/data"
 
           retry_join {
-            leader_api_addr = "http://openbao-0.openbao-internal:8200"
+            leader_api_addr = "https://openbao-0.openbao-internal:8200"
+            leader_ca_cert_file = "/openbao/tls/ca.crt"
           }
           retry_join {
-            leader_api_addr = "http://openbao-1.openbao-internal:8200"
+            leader_api_addr = "https://openbao-1.openbao-internal:8200"
+            leader_ca_cert_file = "/openbao/tls/ca.crt"
           }
           retry_join {
-            leader_api_addr = "http://openbao-2.openbao-internal:8200"
+            leader_api_addr = "https://openbao-2.openbao-internal:8200"
+            leader_ca_cert_file = "/openbao/tls/ca.crt"
           }
         }
 
@@ -167,6 +221,20 @@ snapshotAgent:
   enabled: true
   schedule: "0 * * * *"
   s3CredentialsSecret: openbao-snapshot-s3
+  # The job calls OpenBao over https and trusts the same CA.
+  extraEnvironmentVars:
+    BAO_CACERT: /openbao/tls/ca.crt
+  extraVolumes:
+    - name: openbao-ca
+      secret:
+        secretName: openbao-server-tls
+        items:
+          - key: ca.crt
+            path: ca.crt
+  extraVolumeMounts:
+    - name: openbao-ca
+      mountPath: /openbao/tls
+      readOnly: true
   config:
     s3Host: s3.ap-south-1.amazonaws.com
     s3Bucket: oan-openbao-snapshots-prod

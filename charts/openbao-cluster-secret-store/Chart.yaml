@@ -5,7 +5,7 @@ description: >-
   external-secrets chart: that one installs the operator, this one tells it
   which store to read and how to authenticate to it.
 type: application
-version: 0.1.0
+version: 0.2.0
 appVersion: "0.10.7"
 maintainers:
   - name: OpenAgriNet Engineering Team

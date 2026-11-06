@@ -11,24 +11,29 @@
 # The chart itself is the official one, unmodified. Everything OAN decides is
 # in this file.
 #
-# BEFORE INSTALLING, the unseal key Secret must exist -- the pod mounts it and
-# will not start without it:
+# BEFORE INSTALLING, two things must exist -- the pod mounts both and will not
+# start without them:
 #
-#   openssl rand -out unseal.key 32
-#   kubectl create namespace openbao
+#   # the server certificate (needs cert-manager)
+#   helm install openbao-tls charts/openbao-tls -n openbao --create-namespace
+#
+#   # the unseal key -- in $HOME, not the repo: a relative path from the repo
+#   # root puts the master key in the working tree
+#   openssl rand -out "$HOME/openbao-dev-unseal.key" 32
 #   kubectl -n openbao create secret generic openbao-unseal-key \
-#     --from-file=unseal.key=unseal.key
-#   # then move unseal.key somewhere safe OFF the cluster, and delete it here
+#     --from-file=unseal.key="$HOME/openbao-dev-unseal.key"
+#   # then move the key file somewhere safe OFF the cluster, and delete it here
 #
 # Lose that key and the data is gone: it is what decrypts the store. Keep a copy
 # outside the cluster (the password manager, not a laptop).
 # ============================================================================
 
 global:
-  # No TLS inside the cluster yet: only ESO talks to OpenBao, over the pod
-  # network. Turn this on, with server TLS below, before anything outside the
-  # cluster is allowed to reach it.
-  tlsDisable: true
+  # TLS on the API: every read returns credentials, and the pod network is not
+  # private enough for them in clear. The listener below serves the
+  # certificate charts/openbao-tls issues; this switches the chart's BAO_ADDR,
+  # probes and Service ports to https.
+  tlsDisable: false
 
 # The Agent Injector is OpenBao's way of getting secrets into pods. OAN uses
 # External Secrets Operator for that instead, so the webhook would be a second,
@@ -100,10 +105,60 @@ server:
       secret:
         secretName: openbao-unseal-key
         defaultMode: 0400
+    - name: tls
+      secret:
+        secretName: openbao-server-tls
+        defaultMode: 0440
   volumeMounts:
     - name: unseal-key
       mountPath: /openbao/unseal
       readOnly: true
+    - name: tls
+      mountPath: /openbao/tls
+      readOnly: true
+
+  # TLS. The certificate is charts/openbao-tls's (install it first):
+  # tls.crt and tls.key for the listener, ca.crt for every client. The bao
+  # CLI in the pod calls https://127.0.0.1:8200 and checks it against
+  # BAO_CACERT.
+  extraEnvironmentVars:
+    BAO_CACERT: /openbao/tls/ca.crt
+
+  # OpenBao reads its certificate at start and on SIGHUP only, and
+  # cert-manager renews it every 60 days. The sidecar watches the mounted
+  # file and sends SIGHUP to the server -- the oldest bao process, so probes
+  # and `kubectl exec` are left alone -- when it changes.
+  shareProcessNamespace: true
+  extraContainers:
+    - name: tls-reloader
+      image: quay.io/openbao/openbao:2.6.3
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          f=/openbao/tls/tls.crt
+          last="$(sha256sum "$f")"
+          while sleep 60; do
+            now="$(sha256sum "$f")"
+            if [ "$now" != "$last" ] && pkill -HUP -o -x bao; then
+              echo "certificate changed; sent SIGHUP to bao"
+              last="$now"
+            fi
+          done
+      volumeMounts:
+        - name: tls
+          mountPath: /openbao/tls
+          readOnly: true
+      resources:
+        requests:
+          cpu: 5m
+          memory: 8Mi
+        limits:
+          memory: 32Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
 
   standalone:
     enabled: true
@@ -122,9 +177,10 @@ server:
       ui = true
 
       listener "tcp" {
-        tls_disable = 1
         address = "[::]:8200"
         cluster_address = "[::]:8201"
+        tls_cert_file = "/openbao/tls/tls.crt"
+        tls_key_file = "/openbao/tls/tls.key"
       }
 
       storage "raft" {
@@ -191,6 +247,20 @@ snapshotAgent:
   enabled: false
   schedule: "0 * * * *"
   s3CredentialsSecret: openbao-snapshot-s3
+  # The job calls OpenBao over https and trusts the same CA.
+  extraEnvironmentVars:
+    BAO_CACERT: /openbao/tls/ca.crt
+  extraVolumes:
+    - name: openbao-ca
+      secret:
+        secretName: openbao-server-tls
+        items:
+          - key: ca.crt
+            path: ca.crt
+  extraVolumeMounts:
+    - name: openbao-ca
+      mountPath: /openbao/tls
+      readOnly: true
   config:
     s3Host: s3.ap-south-1.amazonaws.com
     s3Bucket: oan-openbao-snapshots-dev

@@ -23,7 +23,11 @@
             <quota>default</quota>
         </default>
         <app>
+            {{- if .Values.clickhouse.config.users.existingSecret }}
+            <password from_env="CLICKHOUSE_APP_PASSWORD"></password>
+            {{- else }}
             <password>{{ .Values.clickhouse.config.users.appUserPassword }}</password>
+            {{- end }}
             <networks>
                 {{- if .Values.clickhouse.config.clusterCidrs }}
                 {{- range .Values.clickhouse.config.clusterCidrs }}
@@ -43,7 +47,11 @@
             </grants>
         </app>
         <{{ .Values.otel.clickhouseUser | default .Values.clickhouse.config.users.otelUserName }}>
+            {{- if .Values.clickhouse.config.users.existingSecret }}
+            <password from_env="CLICKHOUSE_OTEL_PASSWORD"></password>
+            {{- else }}
             <password>{{ .Values.otel.clickhousePassword | default .Values.clickhouse.config.users.otelUserPassword }}</password>
+            {{- end }}
             <networks>
                 {{- if .Values.clickhouse.config.clusterCidrs }}
                 {{- range .Values.clickhouse.config.clusterCidrs }}

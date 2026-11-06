@@ -22,6 +22,7 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`cert-manager-issuers`](charts/cert-manager-issuers) | application | Let's Encrypt `ClusterIssuer`s. Separate from `cert-manager` because one release cannot register a CRD and create an instance of it. |
 | [`clickstack`](charts/clickstack) | application | Observability — ClickHouse, an OTel collector and the HyperDX UI. A verbatim copy of the official upstream chart, with no OAN changes yet. |
 | [`openbao`](charts/openbao) | application | The secret store. The official `openbao` chart 0.29.6 (OpenBao v2.6.3) committed whole and unmodified; OAN's settings are in `examples/openbao.dev.yaml` (one pod) and `examples/openbao.prod.yaml` (three-pod raft cluster). |
+| [`openbao-tls`](charts/openbao-tls) | application | OpenBao's private CA and the certificate it serves its API with, issued and renewed by cert-manager. Installed before `openbao`, which mounts it. |
 | [`openbao-cluster-secret-store`](charts/openbao-cluster-secret-store) | application | The `ClusterSecretStore` that lets External Secrets Operator read OpenBao, logging in with Kubernetes auth. |
 | [`openbao-secrets`](charts/openbao-secrets) | application | One `ExternalSecret` per credential: pulls `oan/<env>/<name>` from OpenBao into a Secret and mirrors it, via Reflector, to the namespaces that read it. |
 | [`grafana`](charts/grafana) | application | Grafana — dashboards and Explore over the OTel data in ClickHouse. The official `grafana` chart 13.2.6 (Grafana 13.2.2, from `grafana-community`) committed whole and unmodified. |
@@ -47,6 +48,7 @@ charts/
 ├── discovery/           # the Beckn discover-and-publish service
 ├── adapter-service/     # the Beckn adapters — one release per role
 ├── clickstack/          # observability — vendored upstream, not yet OAN-shaped
+├── openbao-tls/         # its CA and API certificate, from cert-manager
 ├── openbao/             # the secret store — vendored upstream
 ├── openbao-cluster-secret-store/ # how ESO reads it
 └── openbao-secrets/     # what ESO reads from it
@@ -190,12 +192,18 @@ OpenBao holds every value; External Secrets Operator copies them into
 Kubernetes Secrets; Reflector mirrors those into the namespaces that read them.
 
 ```bash
+# 0. The API certificate. OpenBao serves https; cert-manager issues a private
+#    CA and the server certificate into the openbao namespace and renews it,
+#    and a sidecar in the OpenBao pod reloads it. Needs cert-manager running.
+helm install openbao-tls charts/openbao-tls -n openbao --create-namespace
+
 # 1. The unseal key. OpenBao's "static" seal reads it on every start, so a
 #    restarted pod unseals itself -- no AWS KMS, no manual unseal. Keep a copy
-#    of unseal.key OFF the cluster: without it the data cannot be decrypted.
-openssl rand -out unseal.key 32
-kubectl create namespace openbao
-kubectl -n openbao create secret generic openbao-unseal-key --from-file=unseal.key=unseal.key
+#    OFF the cluster: without it the data cannot be decrypted. Write it to
+#    $HOME, not here: a relative path puts the master key in the working tree.
+openssl rand -out "$HOME/openbao-dev-unseal.key" 32
+kubectl -n openbao create secret generic openbao-unseal-key \
+  --from-file=unseal.key="$HOME/openbao-dev-unseal.key"
 
 # 2. OpenBao. openbao.dev.yaml is one pod; production uses openbao.prod.yaml,
 #    three pods in a raft cluster on three nodes -- start prod that way rather
@@ -213,10 +221,13 @@ helm install openbao charts/openbao -n openbao -f charts/openbao/examples/openba
 # 4. The operator, the mirror, and the store they read
 helm install external-secrets charts/external-secrets -n external-secrets --create-namespace
 helm install reflector        charts/reflector        -n reflector        --create-namespace
-helm install openbao-store    charts/openbao-cluster-secret-store
+helm install openbao-store    charts/openbao-cluster-secret-store \
+  --set server=https://openbao.openbao.svc.cluster.local:8200 \
+  --set caProvider.type=Secret --set caProvider.name=openbao-server-tls \
+  --set caProvider.namespace=openbao
 
 # 5. Write the values, then declare which ones reach the cluster
-kubectl -n openbao exec -it openbao-0 -- bao kv put secret/oan/dev/registry-db username=... password=...
+kubectl -n openbao exec -it openbao-0 -c openbao -- bao kv put secret/oan/dev/registry-db username=... password=...
 helm install openbao-secrets charts/openbao-secrets -n external-secrets
 ```
 
@@ -225,15 +236,17 @@ helm install openbao-secrets charts/openbao-secrets -n external-secrets
 | Check | Command | Expect |
 |---|---|---|
 | Chart renders | `helm lint --strict charts/openbao -f charts/openbao/examples/openbao.dev.yaml` | `0 chart(s) failed` |
-| Unsealed | `kubectl -n openbao exec openbao-0 -- bao status` | `Seal Type static`, `Sealed false` |
+| Unsealed | `kubectl -n openbao exec openbao-0 -c openbao -- bao status` | `Seal Type static`, `Sealed false` |
 | Unseals on restart | `kubectl -n openbao delete pod openbao-0`, then `bao status` again | `Sealed false`, with nobody unsealing it |
-| Audit log on | `kubectl -n openbao exec openbao-0 -- bao audit list` (with `BAO_TOKEN`) | `file/` and `stdout/` |
+| Audit log on | `kubectl -n openbao exec openbao-0 -c openbao -- bao audit list` (with `BAO_TOKEN`) | `file/` and `stdout/` |
 | ESO can log in | `kubectl get clustersecretstore openbao` | `READY True` |
 | Values arrive | `kubectl -n external-secrets get externalsecret` | every row `SecretSynced` |
 | Mirrored | `kubectl -n registry get secret registry-db` | exists |
 | Policy is tight | an `ExternalSecret` for `oan/prod/...` on the dev cluster | `SecretSyncedError`, "permission denied" |
 | Store is fenced | an `ExternalSecret` on the `openbao` store in any namespace but `external-secrets` | `SecretSyncedError`, "not allowed from namespace" |
-| Network is fenced | `curl http://openbao.openbao.svc:8200/v1/sys/health` from a pod in `default` | times out |
+| Network is fenced | `curl -k https://openbao.openbao.svc:8200/v1/sys/health` from a pod in `default` | times out |
+| TLS verifies | `kubectl -n openbao exec openbao-0 -c openbao -- bao status` | no x509 error (it checks `BAO_CACERT`) |
+| Certificate renews | `kubectl -n openbao get certificate openbao-server-tls` | `READY True`; after a renewal the `tls-reloader` log says `sent SIGHUP` |
 | Backups work | `kubectl -n openbao create job snap-now --from=cronjob/openbao-snapshot` | a new `bao_<date>.snapshot` in the bucket |
 | HA formed (prod) | `bao operator raft list-peers` (with `BAO_TOKEN`) | three voters, one `leader` |
 
@@ -265,9 +278,12 @@ in place, and diff before against after.
 
 ```bash
 ./scripts/secrets-snapshot.sh > before.txt              # hashes only, no values
-BAO_TOKEN=<root token> ./scripts/asm-to-openbao.sh --env dev --dry-run
-BAO_TOKEN=<root token> ./scripts/asm-to-openbao.sh --env dev
-helm install openbao-store charts/openbao-cluster-secret-store
+BAO_TOKEN="$(../infra-automation/scripts/openbao-login.sh --env dev)" ./scripts/asm-to-openbao.sh --env dev --dry-run
+BAO_TOKEN="$(../infra-automation/scripts/openbao-login.sh --env dev)" ./scripts/asm-to-openbao.sh --env dev
+helm install openbao-store charts/openbao-cluster-secret-store \
+  --set server=https://openbao.openbao.svc.cluster.local:8200 \
+  --set caProvider.type=Secret --set caProvider.name=openbao-server-tls \
+  --set caProvider.namespace=openbao
 helm upgrade asm-secrets charts/openbao-secrets -n external-secrets   # the EXISTING release
 kubectl -n external-secrets get externalsecret           # every row: openbao, SecretSynced
 ./scripts/secrets-snapshot.sh > after.txt

@@ -33,24 +33,35 @@ plugins:
       enableTracing: "__OTEL_ENABLED__"
       enableLogs: "__OTEL_ENABLED__"
 
-  # Scheduled catalog publishing: the crawler runs each registry binding's
-  # `publish` pipeline when due and POSTs the catalogs to /publish (README,
-  # Appendix O). This registry block is the crawler's own lookup.
+  # The crawler's OWN registry, separate from the modules' below. It is key
+  # distribution for verifying what a crawl fetches, not request handling, and
+  # the crawler refuses to start without it.
   registry:
     id: sunbirdRegistry
     config:
       url: http://sunbird-registry-service:8081/api/v1
       entity: Participant
       providerEntity: ProviderSchema
+      cacheTTL: 0
+      timeout: 2
+      retry_max: 1
+      retry_wait_min: 100ms
+      retry_wait_max: 500ms
+      maxResponseBytes: 1048576
 
+  # The crawler: a background pass, not something a request reaches. Its run
+  # log (when each publish pipeline last ran) is crawler-postgres.
   crawler:
     id: catalogcrawler
     config:
+      # The /publish mount, which signs a crawled catalog and forwards it on.
+      # Not /network/publish: that one expects a signature the crawl has none of.
+      discoveryPushUrl: "__DISCOVERY_PUSH_URL__"
+      participantId: "__NETWORK_SUBSCRIBER_ID__"
       dbDsn: "postgres://crawler:crawler@crawler-postgres:5432/catalogcrawler?sslmode=disable"
-      # Where built catalogs are POSTed: this process's own /publish module.
-      discoveryPushUrl: "http://localhost:9201/publish"
-      # Who the catalogs are published AS (context.senderId) and TO (receiverId).
-      participantId: "__PROVIDER_SUBSCRIBER_ID__"
+
+      # Scheduled catalog publishing: each registry binding's `publish` pipeline
+      # runs when due and its catalogs go to discoveryPushUrl (README).
       receiverId: "discovery.oan.dev"
       publishPipelines: "true"
       publishEnabled: "true"
@@ -68,11 +79,27 @@ plugins:
       publish.mandi-price.participantId: "__AGMARKNET_PARTICIPANT_ID__"
       publish.mandi-price.networkId: "__BECKN_NETWORK_ID__"
 
+      # Off means this network never crawls. It still ANSWERS another network's
+      # crawl, which is the network module's job and unaffected by this.
+      federationEnabled: "__FEDERATION_ENABLED__"
+      signingPrivateKey: "__NETWORK_SIGNING_PRIVATE__"
+      keyId: "__NETWORK_KEY_ID__"
+      # How often every admitted network is asked.
+      federationRefreshSeconds: "__FEDERATION_REFRESH_SECONDS__"
+      # How many catalogs one call asks for. Discovery's own default is 20, so
+      # without this a network sharing more is only partly collected and
+      # nothing says so.
+      federationPageSize: "__FEDERATION_PAGE_SIZE__"
+      # What breadth of another network's catalogue to ask for. Required in
+      # practice: discovery refuses an intent that narrows nothing, so leaving
+      # it unset mirrors zero catalogs with no error anywhere.
+      federationIntent: '__FEDERATION_INTENT__'
+
 modules:
-  # consumer-adapter: the app calls /<action>; discover to /_internal/network, transactions
-  # to /_internal/provider (routing-network-adapter-consumer.yaml).
+  # consumer-adapter: our own app, never another network's. Checks no
+  # signature, so the edge never exposes it.
   - name: consumer-adapter
-    path: /
+    path: /consumer/
     handler:
       type: std
       role: bap
@@ -112,7 +139,7 @@ modules:
           id: schemav2validator
           config:
             type: url
-            location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml
+            location: https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/tags/core-v2.1.0-lts/api/v2.0.0/beckn.yaml
             cacheTTL: '3600'
             extendedSchema_enabled: "false"
             extendedSchema_cacheTTL: '86400'
@@ -126,10 +153,12 @@ modules:
       steps:
         - validateSchema
         - addRoute
+        - sign
 
-  # network-adapter: forwards discover and publish to discovery (routing-network.yaml).
+  # network-adapter: the door another network calls. Checks the signature and
+  # the agreement, then forwards discover and publish to discovery.
   - name: network-adapter
-    path: /_internal/network/
+    path: /network/
     handler:
       type: std
       role: bpp
@@ -171,7 +200,7 @@ modules:
           id: schemav2validator
           config:
             type: url
-            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/tags/core-v2.1.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "false"
             extendedSchema_cacheTTL: "86400"
@@ -183,11 +212,14 @@ modules:
           config:
             routingConfig: /app/config/routing-network.yaml
       steps:
+        - validateSign
+        - checkCrossNetworkRequester
         - addRoute
 
-  # oanProvider: answers from the upstream APIs itself (no router).
+  # oanProvider: another network's select lands here. Checks the signature and
+  # the agreement, then answers from the upstream APIs.
   - name: oanProvider
-    path: /_internal/provider/
+    path: /provider/
     handler:
       type: std
       role: bpp
@@ -227,7 +259,7 @@ modules:
           id: schemav2validator
           config:
             type: url
-            location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml
+            location: https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/tags/core-v2.1.0-lts/api/v2.0.0/beckn.yaml
             cacheTTL: '3600'
             extendedSchema_enabled: "true"
             extendedSchema_allowedDomains: raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io
@@ -242,51 +274,19 @@ modules:
             negativeTTL: 1m
             maxMappingBytes: 262144
             maxCacheEntries: 200
+        # One per provider the registry holds a binding for, assembled from
+        # config/adapters/providers/<provider>.yaml.tmpl.
         providerSteps:
-          - id: WeatherObservation
-            config:
-              bindingKeys: "__MAUSAMGRAM_BINDING_KEY__"
-              __MAUSAMGRAM_PARTICIPANT_ID__:
-                authScheme: header
-                headerName: Authorization
-                headerValueEnv: MAUSAMGRAM_AUTH
-          - id: MandiPrice
-            config:
-              bindingKeys: "__AGMARKNET_BINDING_KEY__"
-              __AGMARKNET_PARTICIPANT_ID__:
-                authScheme: tokenQuery
-                tokenUrl: "__AGMARKNET_TOKEN_URL__"
-                tokenUserField: access_name
-                tokenUserEnv: AGMARKNET_ACCESS_NAME
-                tokenSecretField: password
-                tokenSecretEnv: AGMARKNET_PASSWORD
-                tokenResponseField: token
-                queryName: token
-                tokenTtl: 10m
-          - id: KnowledgeAdvisory
-            config:
-              bindingKeys: "__VISTAAR_BINDING_KEY__"
-              __VISTAAR_PARTICIPANT_ID__:
-                authScheme: oauth2
-                tokenUrl: "__VISTAAR_TOKEN_URL__"
-                clientIdEnv: VISTAAR_CLIENT_ID
-                clientSecretEnv: VISTAAR_CLIENT_SECRET
-              maxResponseBytes: 1048576
-          - id: AgricultureFacility
-            config:
-              bindingKeys: "__POCRA_BINDING_KEY__"
-              __POCRA_PARTICIPANT_ID__:
-                authScheme: none
-              searchConcurrency: 1
+__PROVIDER_STEPS__
       steps:
+        - validateSign
+        - checkCrossNetworkRequester
         - validateSchema
-        - WeatherObservation
-        - MandiPrice
-        - KnowledgeAdvisory
-        - AgricultureFacility
+__PROVIDER_STEP_IDS__
+        - sign
 
   # oanProviderPublish: the catalogue publishes at /publish; routed to
-  # /_internal/network/publish (routing-network-adapter-provider.yaml).
+  # /network/publish (routing-network-adapter-provider.yaml).
   - name: oanProviderPublish
     path: /publish
     handler:
@@ -326,7 +326,7 @@ modules:
           id: schemav2validator
           config:
             type: url
-            location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml
+            location: https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/tags/core-v2.1.0-lts/api/v2.0.0/beckn.yaml
             cacheTTL: '3600'
             extendedSchema_enabled: "true"
             extendedSchema_allowedDomains: raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io
@@ -340,3 +340,4 @@ modules:
       steps:
         - validateSchema
         - addRoute
+        - sign
