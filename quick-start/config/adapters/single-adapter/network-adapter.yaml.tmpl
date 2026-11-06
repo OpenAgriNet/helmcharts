@@ -191,9 +191,13 @@ modules:
           id: router
           config:
             routingConfig: /app/config/routing-network.yaml
+        # providerstatus needs an image with the plugin.
+        registrySteps:
+          - id: providerstatus
       steps:
         - validateSign
         - checkCrossNetworkRequester
+        - providerstatus
         - addRoute
 
   # oanProvider: another network's select lands here. Checks the signature and
