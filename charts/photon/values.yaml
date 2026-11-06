@@ -1,0 +1,167 @@
+# ============================================================================
+# photon - default values
+#
+# Photon (github.com/komoot/photon), the geocoder the DSS asks for place names
+# its bundled area file lacks (DSS_PHOTON_BASE_URL). Mirrors the photon-index
+# and photon services in decision-support-system/docker-compose.yml:
+#
+#   initContainer `index`  downloads the Photon jar and a regional place index
+#                          into the volume, once. A marker file holds the URL
+#                          of the index that finished downloading, so a
+#                          restart skips the download and a changed URL (or a
+#                          download cut short) fetches it again.
+#   container `photon`     java -jar photon-<version>.jar serve, on 2322.
+#
+# The DSS treats a Photon that is down or slow as "no answer" and the turn
+# still finishes, so nothing waits on this.
+#
+# Single replica against one ReadWriteOnce volume; the Deployment uses the
+# Recreate strategy so a rollout never has two pods holding it.
+# ============================================================================
+
+replicaCount: 1
+
+# The JRE the jar runs on. tag falls through to appVersion ("21-jre").
+image:
+  registry: docker.io
+  repository: eclipse-temurin
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+service:
+  type: ClusterIP
+  port: 2322
+  targetPort: 2322
+  annotations: {}
+
+photon:
+  # The Photon release. Photon 1.x reads only the `1.0` index format.
+  version: "1.3.0"
+  # Where the jar comes from. Empty: the GitHub release for `version`.
+  jarUrl: ""
+  # The place index, a .tar.bz2 from GraphHopper's mirror. India (about
+  # 600 MB compressed) is what the DSS's docker-compose.yml uses; there are
+  # continent and planet indexes, but no per-country ones outside a few.
+  # Changing it re-downloads on the next start.
+  indexUrl: https://download1.graphhopper.com/public/asia/india/photon-db-india-1.0-latest.tar.bz2
+  # Extra arguments after `serve`.
+  extraArgs: []
+
+# JAVA_TOOL_OPTIONS for the server. Sizes the heap from the container limit.
+javaOpts: "-XX:MaxRAMPercentage=75"
+
+# The download step. Alpine's BusyBox carries wget (with TLS), bunzip2 and
+# tar, so nothing is installed at start - unlike compose, which apt-get
+# installs bzip2 into the JRE image. Needs egress to github.com and
+# download1.graphhopper.com.
+index:
+  image:
+    registry: docker.io
+    repository: alpine
+    tag: "3.20"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 256Mi
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 1Gi
+  limits:
+    cpu: "1"
+    memory: 2Gi
+
+# The index (extracted) and the jar. India extracts to a few GB; a continent
+# needs far more. Measure before trusting the default for another region.
+persistence:
+  enabled: true
+  existingClaim: ""
+  size: 10Gi
+  storageClassName: ""
+  accessMode: ReadWriteOnce
+  mountPath: /photon
+
+# Photon answers /api only once the index is open, which takes a minute or
+# two on a cold volume. A query on a common word is region-agnostic: any
+# index answers it with 200, matches or not.
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /api?q=a&limit=1
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 60
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /api?q=a&limit=1
+    port: http
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /api?q=a&limit=1
+    port: http
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Off, as in the other charts here: the JRE image runs as root, and so does
+# the download step writing into the volume.
+podSecurityContext:
+  enabled: false
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  enabled: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+
+extraVolumes: []
+extraVolumeMounts: []
+
+envConfig: {}
+envFromSecrets: []
+secretEnv: {}
+extraEnv: []
+
+commonLabels: {}
+commonAnnotations: {}

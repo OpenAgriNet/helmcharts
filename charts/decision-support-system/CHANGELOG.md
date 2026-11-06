@@ -5,6 +5,44 @@ All notable changes to the `decision-support-system` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-11-04
+
+Brings the chart up to `OpenAgriNet/decision-support-system` `main`
+(`src/dss/config/settings.py` and `docker-compose.yml`). The new settings
+need an image built after `v0.1.0`; `appVersion` stays `v0.1.0` until the
+app cuts a newer tag.
+
+### Changed
+- **Breaking:** `network.receiverId` is now `network.hostId`, rendered as
+  `DSS_NETWORK_HOST_ID`. The app renamed the setting and no longer reads
+  `DSS_NETWORK_RECEIVER_ID`, so the old value was being dropped silently.
+  The render fails if `network.receiverId` is still set.
+- The render fails if `DSS_STUB_LLM` or `DSS_TRACE_INCLUDE_MESSAGE_CONTENT`
+  is `"true"` in `envConfig` or `extraEnv`. Both were documented as never-in-a-
+  deployment; now the chart enforces it.
+
+### Added
+- `network.senderFromTurnEnabled` → `DSS_NETWORK_SENDER_FROM_TURN_ENABLED`.
+- `providerPreferences.{baseUrl,timeoutSeconds}` →
+  `DSS_PROVIDER_PREFERENCES_*` (ADR-0019, ADR-0020).
+- `photon.{baseUrl,timeoutSeconds,countryCodes,cache.*}` → `DSS_PHOTON_*`.
+- `schemes.configPath` → `DSS_SCHEMES_CONFIG_PATH`, defaulting to the
+  catalog in the image as `docker-compose.yml` does (ADR-0021).
+- `redaction.{enabled,configPath}` → `DSS_REDACTION_*` (ADR-0015); the render
+  fails if it is enabled with no path.
+- `edgeTranslation.configPath` → `DSS_EDGE_TRANSLATION_CONFIG_PATH` (#174).
+- `files` and `filesMountPath`: a ConfigMap of files mounted read-only, for
+  settings that take a path (translation, schemes, redaction rules). A
+  `checksum/files` annotation rolls the pod when they change.
+- `modelProfile` → `DSS_MODEL_PROFILE`.
+- `DSS_RELEASE`, from `image.tag` or `appVersion`, so `context.version`
+  names the build that answered. `envConfig.DSS_RELEASE` overrides it.
+- `tracing.serviceName` → `OTEL_SERVICE_NAME` (default `dss`),
+  `tracing.resourceAttributes` → `OTEL_RESOURCE_ATTRIBUTES`,
+  `tracing.metricsTemporality` →
+  `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE`.
+- `ci/full-values.yaml`, rendering every optional setting at once.
+
 ## [0.1.0] - 2026-09-22
 
 ### Added

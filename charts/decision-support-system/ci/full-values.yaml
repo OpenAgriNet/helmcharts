@@ -1,0 +1,54 @@
+# Every optional setting on at once, as a dev cluster runs it: the gateway,
+# the provider network, provider preferences, Photon, redaction, and edge
+# translation read from a file mounted through `files`.
+models:
+  intent: "dss-intent"
+  moderation: "dss-moderation"
+  planner: "dss-planner"
+  composer: "dss-composer"
+
+gateway:
+  url: "http://model-gateway:4000/v1"
+  apiKeySecret:
+    name: dss-gateway
+    key: api-key
+
+network:
+  discoveryBaseUrl: "http://discovery.discovery.svc.cluster.local:8080"
+  invocationBaseUrl: "http://discovery.discovery.svc.cluster.local:8080"
+  senderFromTurnEnabled: true
+
+providerPreferences:
+  baseUrl: "http://registry.registry.svc.cluster.local:8081"
+
+photon:
+  baseUrl: "http://photon:2322"
+  countryCodes: [IN]
+  cache:
+    enabled: true
+
+redaction:
+  enabled: true
+
+files:
+  edge-translation.yaml: |
+    languages:
+      gu:
+        to: en
+        adapter: llm
+        model: dss-intent
+        temperature: 0.0
+        timeout_seconds: 20
+
+edgeTranslation:
+  configPath: /etc/dss/edge-translation.yaml
+
+modelProfile: dev-gpt-4o-mini
+
+tracing:
+  otlpEndpoint: "http://langfuse-web.langfuse.svc.cluster.local:3000/api/public/otel"
+  headersSecret:
+    name: dss-langfuse
+    key: otlp-headers
+  resourceAttributes:
+    deployment.environment.name: dev

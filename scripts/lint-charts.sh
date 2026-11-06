@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
 # Lint and render every chart under charts/, at the top level (charts/<name>)
-# or grouped one directory deeper (charts/<group>/<name>, e.g.
-# charts/dss/model-gateway) - anywhere a Chart.yaml is
-# found up to two directories below charts/.
+# or grouped one directory deeper (charts/<group>/<name>) - anywhere a
+# Chart.yaml is found up to two directories below charts/. A group directory
+# has no Chart.yaml of its own.
 #
-# A chart lives at charts/<chart>, or one level down at charts/<group>/<chart>
-# when it belongs to a group of related charts (charts/lite-llm). A
-# group directory has no Chart.yaml of its own.
+# A product chart such as charts/langfuse carries its sub-charts in its own
+# charts/ directory; that is never descended into, so they are linted as part
+# of the product, not on their own.
 #
 # Run locally exactly as CI runs it:
 #   ./scripts/lint-charts.sh
