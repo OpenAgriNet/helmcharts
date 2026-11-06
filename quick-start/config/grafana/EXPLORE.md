@@ -28,8 +28,8 @@ query renders as an unreadable table.
 ## Step 1 — What does each service actually have?
 
 **Run this first.** Most services in this stack have logs and nothing else, so
-without it you will run a trace query against Keycloak, get nothing, and think
-the query is wrong.
+without it you will run a trace query against one that has none, get nothing,
+and think the query is wrong.
 
 ```sql
 SELECT service, sum(logs) AS logs, sum(traces) AS traces, sum(metrics) AS metric_points
@@ -52,7 +52,6 @@ Over the last 24 hours it returns this — which is the map for everything below
 | ServiceName | logs | traces | metrics |
 |---|---:|---:|---:|
 | `grafana` | 10801 | — | — |
-| `sunbird-registry-keycloak` | 468 | — | — |
 | `sunbird-registry-service` | 233 | — | — |
 | `sunbird-registry-postgres` | 72 | — | — |
 | `discovery-postgres` | 60 | — | — |
@@ -92,8 +91,7 @@ LIMIT 200
 ```
 
 Service names to substitute: `discovery-service`, `discovery-postgres`,
-`sunbird-registry-service`, `sunbird-registry-keycloak`,
-`sunbird-registry-postgres`, `mock-imd`, `mock-agmarknet`,
+`sunbird-registry-service`, `sunbird-registry-postgres`, `mock-imd`, `mock-agmarknet`,
 `mock-agmarknet-token`, `grafana`.
 
 ### Errors and warnings only
@@ -109,15 +107,15 @@ LIMIT 200
 ```
 
 **This filter hides most of the stack**, deliberately or not: only Go services
-have a parsed `SeverityText`/`SeverityNumber`. Keycloak, both Postgres instances
-and the registry arrive as plain text with severity `0`, so they never match.
+have a parsed `SeverityText`/`SeverityNumber`. Both Postgres instances and the
+registry arrive as plain text with severity `0`, so they never match.
 For those, search the body instead:
 
 ```sql
 SELECT Timestamp AS timestamp, Body AS body, ServiceName
 FROM otel.otel_logs
 WHERE $__timeFilter(Timestamp)
-  AND ServiceName = 'sunbird-registry-keycloak'
+  AND ServiceName = 'sunbird-registry-service'
   AND (positionCaseInsensitive(Body, 'error') > 0
        OR positionCaseInsensitive(Body, 'exception') > 0
        OR positionCaseInsensitive(Body, 'fatal') > 0)
@@ -501,9 +499,9 @@ you just ran.
 
 ### Anything that looks like a problem, stack-wide
 
-Severity alone is not enough: only Go services set one. Keycloak, both Postgres
-instances and the registry arrive as plain text at severity `0`, so this matches
-on the text as well.
+Severity alone is not enough: only Go services set one. Both Postgres instances
+and the registry arrive as plain text at severity `0`, so this matches on the
+text as well.
 
 ```sql
 SELECT

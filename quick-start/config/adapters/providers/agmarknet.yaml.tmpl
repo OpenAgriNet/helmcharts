@@ -1,0 +1,16 @@
+          - id: MandiPrice
+            config:
+              bindingKeys: "__BINDING_KEY__"
+              # Agmarknet issues short-lived tokens. The field names are this
+              # provider's spelling, not a standard. tokenTtl is an estimate --
+              # the response carries no expiry -- and a 401 drops the held token.
+              __PARTICIPANT_ID__:
+                authScheme: tokenQuery
+                tokenUrl: "__AGMARKNET_TOKEN_URL__"
+                tokenUserField: access_name
+                tokenUserEnv: AGMARKNET_ACCESS_NAME
+                tokenSecretField: password
+                tokenSecretEnv: AGMARKNET_PASSWORD
+                tokenResponseField: token
+                queryName: token
+                tokenTtl: 10m

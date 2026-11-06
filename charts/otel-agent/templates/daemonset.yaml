@@ -53,9 +53,19 @@ spec:
             - name: config
               mountPath: /conf
               readOnly: true
+            {{- if .Values.logs.enabled }}
+            - name: varlogpods
+              mountPath: /var/log/pods
+              readOnly: true
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
+            {{- if .Values.logs.enabled }}
+            # Pod log files are root:root 0640 on the node.
+            runAsUser: 0
+            runAsGroup: 0
+            {{- end }}
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
@@ -64,3 +74,9 @@ spec:
         - name: config
           configMap:
             name: {{ .Release.Name }}
+        {{- if .Values.logs.enabled }}
+        - name: varlogpods
+          hostPath:
+            path: /var/log/pods
+            type: Directory
+        {{- end }}

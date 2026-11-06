@@ -1,3 +1,26 @@
+{{- /*
+The federation settings, substituted into whichever config file is in play.
+
+NOT done by the init container like the keys: those are secrets and come from
+a mounted Secret, these are plain settings an operator flips. Replacing a
+placeholder a file does not carry costs nothing, so this runs over both modes
+and over a `config` override alike.
+
+__ADAPTER_PORT__ follows service.targetPort, which the single-mode check below
+already pins to the config's http.port.
+*/ -}}
+{{- define "adapter-service.federationSubst" -}}
+{{- $cfg := .cfg -}}
+{{- $v := .root.Values -}}
+{{- $f := $v.federation | default dict -}}
+{{- $cfg = $cfg | replace "__ADAPTER_PORT__" (toString $v.service.targetPort) -}}
+{{- $cfg = $cfg | replace "__FEDERATION_ENABLED__" (toString ($f.enabled | default false)) -}}
+{{- $cfg = $cfg | replace "__FEDERATION_REFRESH_SECONDS__" (toString ($f.refreshSeconds | default 900)) -}}
+{{- $cfg = $cfg | replace "__FEDERATION_PAGE_SIZE__" (toString ($f.pageSize | default 100)) -}}
+{{- $cfg = $cfg | replace "__FEDERATION_INTENT__" ($f.intent | default "") -}}
+{{- $cfg -}}
+{{- end }}
+
 {{/*
 The adapter's two config files.
 
@@ -33,6 +56,7 @@ in `helm get values` -- so the render refuses it.
 {{- /* Single mode: config/single-adapter/network-adapter-config.yaml unless `config` replaces it;
        private keys must be tier placeholders either way. */}}
 {{- $nlCfg = .Values.config | default (.Files.Get "config/single-adapter/network-adapter-config.yaml") }}
+{{- $nlCfg = include "adapter-service.federationSubst" (dict "root" . "cfg" $nlCfg) }}
 {{- if not $nlCfg }}
 {{- fail (printf "%s: role network-adapter in single mode reads config/single-adapter/network-adapter-config.yaml, which is missing from the chart." .Chart.Name) }}
 {{- end }}
@@ -46,7 +70,7 @@ in `helm get values` -- so the render refuses it.
 {{- end }}
 {{- else }}
 {{- $cfgFile := printf "config/multi-adapter/%s-config.yaml" (include "adapter-service.role" .) }}
-{{- $cfg := .Values.config | default (.Files.Get $cfgFile) }}
+{{- $cfg := include "adapter-service.federationSubst" (dict "root" . "cfg" (.Values.config | default (.Files.Get $cfgFile))) }}
 {{- if $cfg }}
 {{- range $ph, $field := dict "__ADAPTER_SIGNING_PRIVATE__" "signingPrivateKey" "__ADAPTER_ENCR_PRIVATE__" "encrPrivateKey" }}
 {{- if and (contains (printf "%s:" $field) $cfg) (not (contains $ph $cfg)) }}
@@ -96,7 +120,7 @@ data:
            `config` in values wins when set, for an environment that needs to
            differ without a new file. */}}
     {{- $file := printf "config/multi-adapter/%s-config.yaml" (include "adapter-service.role" .) }}
-    {{- $raw := .Values.config | default ($.Files.Get $file) }}
+    {{- $raw := include "adapter-service.federationSubst" (dict "root" . "cfg" (.Values.config | default ($.Files.Get $file))) }}
     {{- if not $raw }}
     {{- fail (printf "%s: no config. Expected %s in the chart, or `config` set in values. The role decides the filename, so a new role needs a new file." .Chart.Name $file) }}
     {{- end }}

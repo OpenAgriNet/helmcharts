@@ -1,0 +1,9 @@
+apiVersion: v2
+name: federation
+description: >-
+  Publish this network's signed Network Descriptor, JWKS and schema packs, and
+  admit another network. The documents another network reads before it will
+  talk to us.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

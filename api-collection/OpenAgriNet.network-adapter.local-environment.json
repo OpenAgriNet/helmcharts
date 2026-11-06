@@ -3,22 +3,8 @@
   "name": "OpenAgriNet local (single mode)",
   "values": [
     {
-      "key": "consumer-adapter-host",
-      "value": "http://127.0.0.1:9201",
-      "enabled": true,
-      "type": "default",
-      "description": "Where discover and select enter. Single mode: the one adapter, so all three adapter hosts are the same URL. NETWORK_ADAPTER_PORT in .env."
-    },
-    {
-      "key": "provider-adapter-host",
-      "value": "http://127.0.0.1:9201",
-      "enabled": true,
-      "type": "default",
-      "description": "Where publish enters. Single mode: the same adapter as consumer-adapter-host. NETWORK_ADAPTER_PORT in .env."
-    },
-    {
       "key": "network-adapter-host",
-      "value": "http://127.0.0.1:9201",
+      "value": "http://127.0.0.1:9201/consumer",
       "enabled": true,
       "type": "default",
       "description": "Used only by the health check. Single mode: the same adapter; its network tier sits under /_internal/ and is not called from Postman. NETWORK_ADAPTER_PORT in .env."
@@ -130,7 +116,7 @@
     },
     {
       "key": "mausamgram-mapping-url",
-      "value": "https://raw.githubusercontent.com/OpenAgriNet/helmcharts/0.0.1/quick-start/config/mappings/mausamgram/weather-observation.select.yaml",
+      "value": "https://raw.githubusercontent.com/OpenAgriNet/helmcharts/0.2.0/quick-start/config/mappings/mausamgram/weather-observation.select.yaml",
       "enabled": true,
       "type": "default",
       "description": "What the binding row publishes and the provider adapter fetches. A TAG ref, so what a running stack reads is fixed at 0.0.1 and a later push does not move it. MAUSAMGRAM_MAPPING_URL in .env."
@@ -143,18 +129,65 @@
       "description": "WHICH CAPABILITY THE 4. Capability Schemas FOLDER OPERATES ON -- the one variable to change to work on another, because the schemaUrl and the display name are derived from it rather than written down. The four this deployment serves are openagrinet:WeatherObservation, openagrinet:MandiPrice, openagrinet:KnowledgeAdvisory and openagrinet:AgricultureFacility; network-specs carries four more packs no capability uses yet."
     },
     {
-      "key": "schema-pack-ref",
-      "value": "main",
-      "enabled": true,
-      "type": "default",
-      "description": "The ref in OpenAgriNet/network-specs that a derived schemaUrl points at. SCHEMA_PACK_REF in .env, which is what bin/setup.py seeds the rows from -- keep the two the same or a create here disagrees with a seeded row. MAIN IS A 404 FOR THESE PATHS TODAY; only schema-packs-v0.1 serves them. The registry checks the URL's shape and never fetches it, so a row stores either way, and main is the ref that becomes correct once the packs merge."
-    },
-    {
       "key": "schema-pack-version",
       "value": "v0.1",
       "enabled": true,
       "type": "default",
       "description": "The pack version, and the row's version field. All eight packs are v0.1 today. Per capability in setup.py rather than one setting for all four, because a capability can move to v0.2 while the others stay -- so if you point capability-code at one that has, change this too."
+    },
+    {
+      "key": "networkId",
+      "value": "net-a.oan.dev",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "otherNetworkId",
+      "value": "net-b.oan.dev",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "senderId",
+      "value": "net-a.oan.dev",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "receiverId",
+      "value": "net-a.oan.dev",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "registry-token",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "schema-name",
+      "value": "Weather Observation",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "schema-url",
+      "value": "https://openagrinet.github.io/network-specs/schema/WeatherObservation/v0.1/attributes.yaml",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "network-adapter-publish",
+      "value": "http://127.0.0.1:9201/publish",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "ticket-no",
+      "value": "",
+      "type": "default",
+      "enabled": true
     }
   ],
   "_postman_variable_scope": "environment",

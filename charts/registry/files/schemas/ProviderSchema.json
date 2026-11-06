@@ -21,6 +21,13 @@
         "capabilityCode": { "$ref": "#/definitions/CapabilityCode" },
         "status":         { "$ref": "#/definitions/Status" },
 
+        "baseUrl": {
+          "description": "Optional. This capability's host, in place of the participant's baseUrl, for a participant whose capabilities are served by different services. Absent: the participant's baseUrl.",
+          "type": "string",
+          "maxLength": 2000,
+          "pattern": "^https?://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*$"
+        },
+
         "actions": {
           "description": "At least one. uniqueItems compares whole objects, so it cannot pin one entry per action — verify/records.py does.",
           "type": "array",

@@ -1,4 +1,4 @@
-# Single mode: consumer at /, /publish, /_internal/network/, /_internal/provider/ in one
+# Single mode: consumer at /, /publish, /network/, /provider/ in one
 # process. Each module mirrors its tier file; keys are filled in at pod start (ADR-0001).
 appName: "network-adapter"
 
@@ -33,11 +33,55 @@ plugins:
       enableTracing: "true"
       enableLogs: "true"
 
+  # The crawler's own registry: it verifies a crawled catalog's signature
+  # against the publisher's key there. The image refuses to start a crawler
+  # without one. Separate from the modules' registries below.
+  registry:
+    id: sunbirdRegistry
+    config:
+      url: http://registry.registry.svc.cluster.local:8081/api/v1
+      entity: Participant
+      providerEntity: ProviderSchema
+      timeout: 2
+      retry_max: 1
+      retry_wait_min: 100ms
+      retry_wait_max: 500ms
+      maxResponseBytes: 1048576
+      cacheTTL: 0
+
+  # Off builds no schedule and never dials, so a cluster that federates with
+  # nobody stays quiet. Answering someone else's crawl is unaffected.
+  #
+  # No database: dbDsn is only for staticIndexUrls, networks or publishPipelines.
+  crawler:
+    id: catalogcrawler
+    config:
+      # Where a crawled catalog is published: discovery itself, the same address
+      # the network mount forwards a publish to. The crawler does not sign what
+      # it pushes, so a mount that checks a signature refuses it.
+      discoveryPushUrl: "http://discovery.discovery.svc.cluster.local:8080/publish"
+      participantId: "__NETWORK_SUBSCRIBER_ID__"
+
+      federationEnabled: "__FEDERATION_ENABLED__"
+      # We sign what we send, with the same key that signs everything else.
+      signingPrivateKey: "__NETWORK_SIGNING_PRIVATE__"
+      keyId: "__NETWORK_KEY_ID__"
+      # How often every admitted source network is asked.
+      federationRefreshSeconds: "__FEDERATION_REFRESH_SECONDS__"
+      # How many catalogs one call asks for. Discovery defaults to 20, so a
+      # network sharing more is partly collected and nothing says so.
+      federationPageSize: "__FEDERATION_PAGE_SIZE__"
+      # What breadth to ask for. Required in practice: discovery refuses an
+      # intent that narrows nothing, and the refusal mirrors zero catalogs with
+      # no error anywhere.
+      federationIntent: '__FEDERATION_INTENT__'
+
 modules:
-  # consumer: unsigned app calls at / (the catch-all mount, on purpose: see ADR-0001);
-  # discover to /_internal/network, transactions to /_internal/provider.
+  # consumer: unsigned calls from this deployment's own app. NEVER on an
+  # Ingress -- it checks no signature and no agreement. discover goes to
+  # /network, transactions to /provider.
   - name: consumer-adapter
-    path: /
+    path: /consumer/
     handler:
       type: std
       role: bap
@@ -75,7 +119,7 @@ modules:
           id: schemav2validator
           config:
             type: url
-            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/tags/core-v2.1.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "true"
             extendedSchema_cacheTTL: "86400"
@@ -100,10 +144,10 @@ modules:
         - addRoute
         - sign
 
-  # network: verifies the caller, forwards discover and publish to discovery.
-  # Internal: never expose it on an Ingress.
+  # network: the door another network calls. Checks the signature and the
+  # agreement, then forwards discover and publish to discovery.
   - name: network-adapter
-    path: /_internal/network/
+    path: /network/
     handler:
       type: std
       role: bpp
@@ -141,7 +185,7 @@ modules:
           id: schemav2validator
           config:
             type: url
-            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/tags/core-v2.1.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "false"
             extendedSchema_cacheTTL: "86400"
@@ -165,12 +209,13 @@ modules:
               role: bpp
       steps:
         - validateSign
+        - checkCrossNetworkRequester
         - addRoute
 
-  # provider: verifies the caller and answers from the upstream APIs (no router);
-  # upstream credentials come from envFromSecrets: provider-upstream.
+  # provider: another network's select lands here. Checks the signature and the
+  # agreement, then answers from the upstreams (credentials via envFromSecrets).
   - name: oanProvider
-    path: /_internal/provider/
+    path: /provider/
     handler:
       type: std
       role: bpp
@@ -206,7 +251,7 @@ modules:
           id: schemav2validator
           config:
             type: url
-            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/tags/core-v2.1.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "true"
             extendedSchema_cacheTTL: "86400"
@@ -243,7 +288,18 @@ modules:
             config:
               bindingKeys: "agmarknet|openagrinet:MandiPrice"
               agmarknet:
-                authScheme: none
+                authScheme: tokenQuery
+                # Substituted from the provider Secret (agmarknetTokenUrl) via
+                # adapterKeys.extraSubstitutions; the login is read from
+                # AGMARKNET_ACCESS_NAME and AGMARKNET_PASSWORD.
+                tokenUrl: "__AGMARKNET_TOKEN_URL__"
+                tokenUserField: access_name
+                tokenUserEnv: AGMARKNET_ACCESS_NAME
+                tokenSecretField: password
+                tokenSecretEnv: AGMARKNET_PASSWORD
+                tokenResponseField: token
+                queryName: token
+                tokenTtl: 10m
 
           - id: KnowledgeAdvisory
             config:
@@ -263,13 +319,83 @@ modules:
               pocra:
                 authScheme: none
               searchConcurrency: 1
+
+          # PMFBY: no OTP. The call is made with a token exchanged at the
+          # provider's login, so the login URL is substituted from the keys
+          # Secret like the other token URLs, and the login itself is read from
+          # the environment.
+          #
+          # PM-KISAN: one participant with two capabilities, each on its own
+          # host (the binding's baseUrl in the registry) and its own envelope,
+          # so their settings are blocks named by binding key. Grievance asks
+          # for and checks its OTP on the SchemeApplication binding's host.
+          # Keys and tokens come from the environment (provider-upstream):
+          # PMKISAN_GRIEVANCE_KEY, PMKISAN_GRIEVANCE_IV, PMKISAN_SERVICE_TOKEN
+          # and PMKISAN_OTP_TOKEN.
+          - id: Grievance
+            config:
+              bindingKeys: "pmfby|openagrinet:Grievance,pmkisan|openagrinet:Grievance,pmkisan|openagrinet:SchemeApplication"
+              # Paired by position, tried in order: status names the binding on
+              # its contract, support on its channel.
+              providerIdAt: "message.contract.commitments[].offer.provider.id, message.support.channels[].provider.id"
+              capabilityCodeAt: "message.contract.commitments[].commitmentAttributes.@type, message.support.channels[].@type"
+              # The token is sent bare in Authorization and held until the
+              # login reply's own validTo.
+              pmfby:
+                authScheme: tokenHeader
+                tokenUrl: "__PMFBY_TOKEN_URL__"
+                tokenUserField: appAccessUID
+                tokenUserEnv: PMFBY_ACCESS_UID
+                tokenSecretField: appAccessPWD
+                tokenSecretEnv: PMFBY_ACCESS_PWD
+                tokenResponseField: responseDynamic.token.Token
+                tokenExpiryField: responseDynamic.token.validTo
+                headerName: Authorization
+              pmkisan:
+                authScheme: none
+              "pmkisan|openagrinet:Grievance":
+                envelope: aesGcm
+                envelopeKeyEnv: PMKISAN_GRIEVANCE_KEY
+                envelopeNonceEnv: PMKISAN_GRIEVANCE_IV
+                envelopeTokenEnv: PMKISAN_SERVICE_TOKEN
+                envelopeTokenField: TokenNo
+                envelopeRequestField: EncryptedRequest
+                envelopeResponsePaths: "d.output,output"
+                otpEnvelope: aesCbcKeyInBand
+                otpBindingKey: "pmkisan|openagrinet:SchemeApplication"
+                otpTokenEnv: PMKISAN_OTP_TOKEN
+                otpTokenField: Token
+                otpRequestField: EncryptedRequest
+                otpResponsePaths: "d.output,output"
+                otpActions: init
+                otpVerifyPath: /ChatbotOTPVerified
+                otpVerifyActions: "support,status"
+                otpVerifyTimeoutMs: "10000"
+              # The binding's host is the OTP service itself: OTP, the record,
+              # then a follow-up read of its blockers.
+              "pmkisan|openagrinet:SchemeApplication":
+                envelope: aesCbcKeyInBand
+                envelopeTokenEnv: PMKISAN_OTP_TOKEN
+                envelopeTokenField: Token
+                envelopeRequestField: EncryptedRequest
+                envelopeResponsePaths: "d.output,output"
+                otpVerifyPath: /ChatbotOTPVerified
+                otpVerifyActions: status
+                otpVerifyTimeoutMs: "10000"
+                followUpPath: /ChatbotBeneficiaryStatus
+                followUpField: _beneficiaryStatus
+                followUpActions: status
+                followUpTimeoutMs: "10000"
       steps:
         - validateSign
+        - checkCrossNetworkRequester
         - validateSchema
         - WeatherObservation
         - MandiPrice
         - KnowledgeAdvisory
         - AgricultureFacility
+        - Grievance
+        - sign
 
   # provider-publish: the catalogue system publishes at /publish, signed as the
   # provider. No validateSign: never expose it on an Ingress.
@@ -310,7 +436,7 @@ modules:
           id: schemav2validator
           config:
             type: url
-            location: "https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/tags/core-v2.0.0-lts/api/v2.0.0/beckn.yaml"
+            location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/tags/core-v2.1.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
             extendedSchema_enabled: "true"
             extendedSchema_cacheTTL: "86400"
