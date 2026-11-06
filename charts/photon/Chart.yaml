@@ -1,0 +1,30 @@
+apiVersion: v2
+name: photon
+description: >-
+  Photon, a place search built on OpenStreetMap, for the DSS to look up
+  place names its bundled area file lacks. Downloads the Photon jar and a
+  regional place index into a volume on first start, then serves on 2322.
+type: application
+version: 0.1.0
+# The JRE image tag the Photon jar runs on, so the image.tag fallback is a
+# real, pullable tag (CONVENTIONS.md). The Photon release itself is
+# photon.version in values.yaml.
+appVersion: "21-jre"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - photon
+  - geocoder
+  - dss
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
+  - https://github.com/komoot/photon
+  - https://github.com/OpenAgriNet/decision-support-system
+dependencies:
+  - name: common
+    version: "0.2.x"
+    repository: "file://../common"

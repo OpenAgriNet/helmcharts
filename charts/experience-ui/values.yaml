@@ -1,0 +1,122 @@
+# ============================================================================
+# experience-ui - default values
+#
+# A static bundle served by nginx on 8080. Two things decide where it works:
+#
+#   the base path   baked into the image at build time (VITE_BASE_PATH). The
+#                   published image is built for /experience/, so it serves
+#                   only from there: the proxy must strip /experience before
+#                   it reaches this pod.
+#   api.baseUrl     in config.json, read at boot. Defaults to /experience/api,
+#                   on the same origin, so the proxy routes that to the API.
+# ============================================================================
+
+replicaCount: 1
+
+# Public package. tag falls through to appVersion (a commit of main).
+image:
+  registry: ghcr.io
+  repository: openagrinet/experience-ui
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  annotations: {}
+
+# The deployment's config.json: branding, colours, feature switches, and
+# api.baseUrl. Empty: the image's own copy is used. Set, it REPLACES that copy
+# whole -- it is not merged -- so start from src/config/app-config.json in the
+# app repo. Rendered into a ConfigMap and mounted as a directory at
+# /etc/experience-ui, as the app expects: a subPath mount never sees updates.
+config: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: experience-ui.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /healthz
+    port: http
+  periodSeconds: 20
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /healthz
+    port: http
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+startupProbe:
+  enabled: false
+  httpGet:
+    path: /healthz
+    port: http
+
+# Off: the image is nginx:alpine, whose master process runs as root.
+podSecurityContext:
+  enabled: false
+  fsGroup: 101
+  runAsUser: 101
+  runAsGroup: 101
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  enabled: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 101
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+
+envConfig: {}
+envFromSecrets: []
+secretEnv: {}
+extraEnv: []
+
+commonLabels: {}
+commonAnnotations: {}

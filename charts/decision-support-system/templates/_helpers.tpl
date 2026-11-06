@@ -81,6 +81,32 @@ see the note on usesAzure.
 {{- end }}
 
 {{/*
+Fails the render when envConfig or extraEnv turns on either documented
+footgun: DSS_STUB_LLM (canned answers) or DSS_TRACE_INCLUDE_MESSAGE_CONTENT
+(the farmer's words in traces, forbidden in a deployment by
+DSS_ARCHITECTURE.md S6.1). Both are only ever meant for a laptop.
+*/}}
+{{- define "decision-support-system.forbidFootguns" -}}
+{{- $forbidden := list "DSS_STUB_LLM" "DSS_TRACE_INCLUDE_MESSAGE_CONTENT" -}}
+{{- range $name := $forbidden }}
+{{- $v := get ($.Values.envConfig | default dict) $name | toString | lower -}}
+{{- range ($.Values.extraEnv | default list) }}
+{{- if eq (toString .name) $name }}{{- $v = toString .value | lower -}}{{- end }}
+{{- end }}
+{{- if eq $v "true" }}
+{{- fail (printf "%s: %s is \"true\" - never set it in a deployment (see values.yaml, ENVIRONMENT CONFIGURATION)" $.Chart.Name $name) }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Name of the ConfigMap holding `files`.
+*/}}
+{{- define "decision-support-system.filesConfigMapName" -}}
+{{- printf "%s-files" (include "decision-support-system.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- end }}
+
+{{/*
 Everything the service needs that this chart derives from its structured
 values, as container env entries. These take precedence over the envConfig
 ConfigMap injected with envFrom.
@@ -118,6 +144,13 @@ ConfigMap injected with envFrom.
 {{- if and $net.invocationBaseUrl (not $net.discoveryBaseUrl) }}
 {{- fail (printf "%s: network.invocationBaseUrl is set but network.discoveryBaseUrl is not. Settings.network_enabled requires both or neither - see the discoveryBaseUrl check above for why this is caught here rather than left to degrade silently." .Chart.Name) }}
 {{- end }}
+{{- if hasKey $net "receiverId" }}
+{{- fail (printf "%s: network.receiverId was renamed to network.hostId (DSS_NETWORK_HOST_ID). The app no longer reads DSS_NETWORK_RECEIVER_ID, so the old key would be dropped without a word - rename it." .Chart.Name) }}
+{{- end }}
+{{- if and .Values.redaction.enabled (not .Values.redaction.configPath) }}
+{{- fail (printf "%s: redaction.enabled is true but redaction.configPath is empty - the app refuses to boot without a rules file" .Chart.Name) }}
+{{- end }}
+{{- include "decision-support-system.forbidFootguns" . }}
 - name: DSS_INTENT_MODEL
   value: {{ $m.intent | quote }}
 - name: DSS_MODERATION_MODEL
@@ -165,10 +198,55 @@ ConfigMap injected with envFrom.
   value: {{ $net.invocationBaseUrl | quote }}
 - name: DSS_NETWORK_SENDER_ID
   value: {{ $net.senderId | quote }}
-- name: DSS_NETWORK_RECEIVER_ID
-  value: {{ $net.receiverId | quote }}
+- name: DSS_NETWORK_HOST_ID
+  value: {{ $net.hostId | quote }}
+- name: DSS_NETWORK_SENDER_FROM_TURN_ENABLED
+  value: {{ $net.senderFromTurnEnabled | toString | quote }}
 - name: DSS_DISCOVERY_RADIUS_M
   value: {{ $net.radiusMeters | quote }}
+{{- end }}
+{{- with .Values.providerPreferences.baseUrl }}
+- name: DSS_PROVIDER_PREFERENCES_BASE_URL
+  value: {{ . | quote }}
+- name: DSS_PROVIDER_PREFERENCES_TIMEOUT_SECONDS
+  value: {{ $.Values.providerPreferences.timeoutSeconds | quote }}
+{{- end }}
+{{- with .Values.photon.baseUrl }}
+{{- $photon := $.Values.photon }}
+- name: DSS_PHOTON_BASE_URL
+  value: {{ . | quote }}
+- name: DSS_PHOTON_TIMEOUT_SECONDS
+  value: {{ $photon.timeoutSeconds | quote }}
+{{- with $photon.countryCodes }}
+- name: DSS_PHOTON_COUNTRY_CODES
+  value: {{ join "," . | quote }}
+{{- end }}
+- name: DSS_PHOTON_CACHE_ENABLED
+  value: {{ $photon.cache.enabled | toString | quote }}
+- name: DSS_PHOTON_CACHE_TTL_SECONDS
+  value: {{ $photon.cache.ttlSeconds | quote }}
+- name: DSS_PHOTON_CACHE_MAX_ENTRIES
+  value: {{ $photon.cache.maxEntries | quote }}
+{{- end }}
+{{- with .Values.schemes.configPath }}
+- name: DSS_SCHEMES_CONFIG_PATH
+  value: {{ . | quote }}
+{{- end }}
+- name: DSS_REDACTION_ENABLED
+  value: {{ .Values.redaction.enabled | toString | quote }}
+{{- if .Values.redaction.enabled }}
+- name: DSS_REDACTION_CONFIG_PATH
+  value: {{ .Values.redaction.configPath | quote }}
+{{- end }}
+{{- with .Values.edgeTranslation.configPath }}
+- name: DSS_EDGE_TRANSLATION_CONFIG_PATH
+  value: {{ . | quote }}
+{{- end }}
+- name: DSS_MODEL_PROFILE
+  value: {{ .Values.modelProfile | quote }}
+{{- if not (hasKey .Values.envConfig "DSS_RELEASE") }}
+- name: DSS_RELEASE
+  value: {{ .Values.image.tag | default .Chart.AppVersion | quote }}
 {{- end }}
 - name: DSS_SCHEMA_PACK_DIR
   value: {{ $packs.mountPath | quote }}
@@ -189,6 +267,22 @@ ConfigMap injected with envFrom.
 {{- end }}
 - name: OTEL_METRICS_EXPORTER
   value: {{ $tracing.metricsExporter | quote }}
+{{- with $tracing.metricsTemporality }}
+- name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+  value: {{ . | quote }}
+{{- end }}
+{{- with $tracing.serviceName }}
+- name: OTEL_SERVICE_NAME
+  value: {{ . | quote }}
+{{- end }}
+{{- with $tracing.resourceAttributes }}
+{{- $attrs := list }}
+{{- range $k, $v := . }}
+{{- $attrs = append $attrs (printf "%s=%v" $k $v) }}
+{{- end }}
+- name: OTEL_RESOURCE_ATTRIBUTES
+  value: {{ join "," $attrs | quote }}
+{{- end }}
 {{- with $tracing.headersSecret.name }}
 - name: OTEL_EXPORTER_OTLP_HEADERS
   valueFrom:

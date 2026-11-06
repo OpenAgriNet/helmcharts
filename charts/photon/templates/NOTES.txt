@@ -1,0 +1,20 @@
+Thank you for installing {{ .Chart.Name }} (release: {{ .Release.Name }}).
+
+Photon {{ .Values.photon.version }}, place index:
+  {{ .Values.photon.indexUrl }}
+
+The first start downloads the index into the volume before Photon starts, so
+the pod sits in Init for several minutes. Follow it with:
+  kubectl -n {{ .Release.Namespace }} logs deploy/{{ include "photon.fullname" . }} -c index -f
+{{- if not .Values.persistence.enabled }}
+
+WARNING: persistence.enabled is false, so every restart downloads the index again.
+{{- end }}
+
+Try it:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "photon.fullname" . }} {{ .Values.service.port }}
+  curl 'http://localhost:{{ .Values.service.port }}/api?q=Pune&limit=1'
+
+Point the DSS at it (decision-support-system chart):
+  photon:
+    baseUrl: http://{{ include "photon.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
