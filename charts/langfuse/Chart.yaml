@@ -1,6 +1,6 @@
 apiVersion: v2
 name: langfuse
-version: 2.2.0
+version: 3.0.0
 description: Open source LLM engineering platform - LLM observability, metrics, evaluations, prompt management.
 type: application
 keywords:
@@ -13,20 +13,32 @@ home: https://langfuse.com/
 sources:
   - https://github.com/langfuse/langfuse
   - https://github.com/langfuse/langfuse-k8s
+# Everything Langfuse needs is vendored under charts/: nothing is fetched at
+# render time (Argo CD renders from git with no dependency build).
+#   common, postgresql-cnpg, minio  copies of this repo's own charts
+#   valkey, seaweedfs, clickhouse-operator-helm  upstream, committed whole
 dependencies:
-  - name: postgres
-    version: 1.6.3
-    repository: https://groundhog2k.github.io/helm-charts/
-    condition: postgresql.deploy
-    alias: postgresql
+  - name: common
+    version: 0.2.0
+    repository: ""
+  - name: postgresql-cnpg
+    version: 0.2.1
+    repository: ""
+    condition: postgresCluster.enabled
+    alias: postgresCluster
+  - name: minio
+    version: 0.2.0
+    repository: ""
+    condition: objectStorage.enabled
+    alias: objectStorage
   - name: valkey
     version: 0.9.4
-    repository: https://valkey-io.github.io/valkey-helm
+    repository: ""
     condition: redis.deploy
     alias: redis
   - name: seaweedfs
     version: 4.23.0
-    repository: https://seaweedfs.github.io/seaweedfs/helm
+    repository: ""
     condition: s3.deploy
     alias: s3
   - name: clickhouse-operator-helm
@@ -40,3 +52,6 @@ maintainers:
     url: https://langfuse.com/
 icon: https://langfuse.com/langfuse_logo.png
 appVersion: "4.35.0"
+annotations:
+  # This chart forked from upstream langfuse-k8s at 3.0.0; see CHANGELOG.md.
+  oan.in/upstream-version: "2.2.0"

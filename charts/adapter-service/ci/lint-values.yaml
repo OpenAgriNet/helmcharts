@@ -9,7 +9,7 @@ fullnameOverride: network-adapter
 image:
   registry: ghcr.io
   repository: openagrinet/network-adapter
-  tag: "v1.9.0"
+  tag: "0.2.0"
 
 keys:
   existingSecret:

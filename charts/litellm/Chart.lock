@@ -1,0 +1,9 @@
+dependencies:
+- name: common
+  repository: ""
+  version: 0.2.0
+- name: postgresql-cnpg
+  repository: ""
+  version: 0.2.1
+digest: sha256:12c40cc7389fc1c1c6d66256a47c4d5c131dabaf6d111397bd436f84bc933207
+generated: "2026-11-05T12:28:21.819855+05:30"

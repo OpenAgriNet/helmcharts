@@ -18,6 +18,18 @@ name: openbao
 # openbao chart creates, in the openbao namespace.
 server: http://openbao.openbao.svc.cluster.local:8200
 
+# The CA that signed the server's certificate, when `server` is https and that
+# CA is not a public one -- an in-cluster CA from cert-manager, say. ESO reads
+# `key` from the named Secret (or ConfigMap) and trusts only that. Null for
+# http, or for a server whose certificate a public CA signed.
+#
+#   caProvider:
+#     type: Secret            # or ConfigMap
+#     name: openbao-server-tls
+#     key: ca.crt
+#     namespace: openbao      # required for a ClusterSecretStore
+caProvider: null
+
 # The KV mount the secrets live under, and its engine version. ESO reads
 # <path>/data/<key> for v2, so a v1/v2 mismatch fails as "secret not found"
 # rather than as a version error.

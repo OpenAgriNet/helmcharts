@@ -166,11 +166,110 @@ openai:
 network:
   discoveryBaseUrl: ""
   invocationBaseUrl: ""
+  # The DSS's own id as sender on every network call (DSS_NETWORK_SENDER_ID).
   senderId: consumer.oan.dev
-  receiverId: oan
+  # The network host: receiver and network of every discover
+  # (DSS_NETWORK_HOST_ID). The render fails on the old name, `receiverId`,
+  # because the app would ignore it.
+  hostId: oan
+  # On: network calls name the turn's caller (context.senderId) as sender,
+  # falling back to senderId when the caller sent none. Off: always senderId.
+  senderFromTurnEnabled: false
   # How far around the turn's location to look for a provider. Only consulted
   # once the network is wired and the turn carries a geometry.
   radiusMeters: 25000
+
+# ---------------------------------------------------------------------------
+# Provider preferences (ADR-0019, ADR-0020)
+#
+# Which providers each sender prefers, per capability. The rankings live in
+# the network registry, never in the DSS: set baseUrl and the DSS asks the
+# registry on every turn for the request's senderId and for `default`.
+# Unset (default), no ranking applies and every ask keeps whichever providers
+# discovery found.
+# ---------------------------------------------------------------------------
+providerPreferences:
+  baseUrl: ""
+  # A slow registry must not hold up the turn: a call that misses this window
+  # counts as "no rows".
+  timeoutSeconds: 3
+
+# ---------------------------------------------------------------------------
+# Photon - place search for names the bundled area file lacks
+#
+# Not deployed by this chart (see the `photon` chart). Unset (default), Photon
+# is off and the bundled area file is the only source of places.
+# ---------------------------------------------------------------------------
+photon:
+  baseUrl: ""
+  # A lookup is a hint, not the answer; one ask can make several, so raising
+  # this adds up quickly.
+  timeoutSeconds: 2
+  # ISO country codes Photon may answer from, e.g. [IN]. Empty means the
+  # countries the area file covers.
+  countryCodes: []
+  # Off by default: some geocoders' terms forbid storing their answers.
+  cache:
+    enabled: false
+    ttlSeconds: 86400
+    maxEntries: 10000
+
+# ---------------------------------------------------------------------------
+# Scheme catalog (ADR-0021)
+#
+# The CSV the intent model is shown. The default is the catalog the image
+# ships, matching docker-compose.yml. Empty turns the catalog off (no ask
+# names a scheme). To use your own, put it under `files` and point this at
+# <files.mountPath>/<name>. Set-but-missing stops the boot.
+# ---------------------------------------------------------------------------
+schemes:
+  configPath: /app/configs/schemes.csv
+
+# ---------------------------------------------------------------------------
+# Redaction of identity details (ADR-0015)
+#
+# Off by default. On, configPath must name a rules file that loads or the app
+# refuses to boot. The default is the India rules file the image ships.
+# ---------------------------------------------------------------------------
+redaction:
+  enabled: false
+  configPath: /app/src/dss/config/examples/redaction-rules.yaml
+
+# ---------------------------------------------------------------------------
+# Edge translation (#174)
+#
+# Off unless configPath is set. The image's configs/edge-translation.yaml
+# names an `azure:` model, which only works without the gateway - with the
+# gateway, each language's `model` must be a gateway name (e.g. dss-intent).
+# Put your own copy under `files` and point configPath at it. Set but missing
+# or malformed, the boot stops.
+# ---------------------------------------------------------------------------
+edgeTranslation:
+  configPath: ""
+
+# ---------------------------------------------------------------------------
+# Config files
+#
+# Rendered into one ConfigMap and mounted read-only at mountPath, for the
+# settings above that take a file path (edge translation, schemes, redaction
+# rules) and anything else under DSS_*_CONFIG_PATH. Keys are file names.
+#
+#   files:
+#     edge-translation.yaml: |
+#       languages:
+#         gu: {to: en, adapter: llm, model: dss-intent, temperature: 0.0, timeout_seconds: 20}
+#   edgeTranslation:
+#     configPath: /etc/dss/edge-translation.yaml
+#
+# Empty (default): no ConfigMap, no mount.
+# ---------------------------------------------------------------------------
+files: {}
+filesMountPath: /etc/dss
+
+# One name for the whole model configuration, labelling every turn-level
+# metric (DSS_MODEL_PROFILE). Nothing derives it: two deployments running the
+# same four models are only comparable if they say which is which.
+modelProfile: default
 
 # ---------------------------------------------------------------------------
 # Schema packs
@@ -230,6 +329,16 @@ tracing:
   headersSecret:
     name: ""
     key: ""
+  # OTEL_SERVICE_NAME. Tells DSS rows apart in a shared backend; unset, the
+  # SDK reports `unknown_service`.
+  serviceName: dss
+  # OTEL_RESOURCE_ATTRIBUTES, rendered as k=v,k=v. Use it to keep staging and
+  # production turns apart, e.g. {deployment.environment.name: dev}.
+  resourceAttributes: {}
+  # OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE, only when metrics are
+  # exported to a Collector that wants them ("delta" for ClickHouse). Empty:
+  # not set.
+  metricsTemporality: ""
 
 logLevel: INFO
 
@@ -388,10 +497,13 @@ tests:
 #     does not actually change probe behaviour today, only /v1/turns responses)
 #
 # NEVER set these two here - both are documented footguns, not deployment
-# knobs:
+# knobs, and the render fails if either is "true" in envConfig or extraEnv:
 #   DSS_STUB_LLM         - canned answers, never true outside a laptop
 #   DSS_TRACE_INCLUDE_MESSAGE_CONTENT - puts the farmer's query and answer in
 #     traces verbatim; DSS_ARCHITECTURE.md S6.1 forbids this in a deployment
+#
+# DSS_RELEASE (echoed as context.version on every answer) is set from the
+# image tag the chart deploys; override it here only if that is wrong.
 #
 # NEVER put secrets here. This is a ConfigMap.
 # ---------------------------------------------------------------------------

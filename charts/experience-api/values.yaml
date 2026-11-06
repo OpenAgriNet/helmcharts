@@ -1,0 +1,135 @@
+# ============================================================================
+# experience-api - default values
+#
+# Stateless. Every turn goes to the DSS; there is no stand-in, so a turn fails
+# with 500 while the DSS is down or unreachable.
+#
+# Minimum to set: senderId and dssBaseUrl. The render fails without either.
+# ============================================================================
+
+replicaCount: 1
+
+# Public package. tag falls through to appVersion (a commit of main).
+# The image is built for linux/amd64 only.
+image:
+  registry: ghcr.io
+  repository: openagrinet/experience-api
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+# Annotations land on the Service, which is where Kong reads timeouts, e.g.
+#   konghq.com/read-timeout: "120000"
+# A streamed turn can run up to the DSS's 120s.
+service:
+  type: ClusterIP
+  port: 8078
+  targetPort: 8078
+  annotations: {}
+
+# EXPERIENCE_API_SENDER_ID: the network participant this deployment serves,
+# sent to the DSS as senderId. Required: the app refuses to start without it.
+senderId: ""
+
+# EXPERIENCE_API_DSS_BASE_URL. Required: the app's default is localhost,
+# which is never right in a pod.
+dssBaseUrl: ""
+
+# EXPERIENCE_API_CHANNEL: the channel for a turn whose client sends none.
+channel: web
+
+# EXPERIENCE_API_MAX_CHARACTERS: the longest answer to ask the DSS for.
+maxCharacters: 1200
+
+# Off by default. For a sub-path, strip the prefix at the proxy: the app
+# serves /v1/chat and /healthz at its root.
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: experience-api.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /healthz
+    port: http
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 24
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /healthz
+    port: http
+  periodSeconds: 20
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /healthz
+    port: http
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# The image runs as `app` (uid 999), so these describe what it already does.
+podSecurityContext:
+  enabled: true
+  fsGroup: 999
+  runAsUser: 999
+  runAsGroup: 999
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  enabled: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 999
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+
+# For anything without a structured value above. Never secrets: a ConfigMap.
+envConfig: {}
+envFromSecrets: []
+secretEnv: {}
+extraEnv: []
+
+commonLabels: {}
+commonAnnotations: {}

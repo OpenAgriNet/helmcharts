@@ -13,6 +13,7 @@ produced it.
 | Reference chart | `template` — copied to start a new chart, never deployed as-is | `template` |
 | A deployed component | Named after the **role it plays in OAN** | `registry`, `keycloak` |
 | Two charts for the same role | Add the distinguishing implementation as a suffix, only when there is something to distinguish | `postgresql-cnpg` |
+| A third-party product we run (an app, not an OAN role) | Named after the **product**, at the top level, with everything it needs under its own directory | `langfuse`, `litellm`, `photon` |
 | Release name | Matches the chart name, so resources read `registry-...` and not `registry-registry-...` | `helm install registry charts/registry` |
 | Namespace | The stack it holds, kebab-case, no prefix | `registry`, `discovery` |
 | Template helpers | Chart-local helpers are namespaced by chart name: `<chart>.<helper>` | `registry.fullname` |
@@ -29,6 +30,27 @@ Add an implementation suffix only when it actually distinguishes something —
 `postgresql-cnpg` carries `-cnpg` because a plain `postgresql` chart could
 reasonably mean several different operators, and which one is in use changes how
 the chart is configured and operated.
+
+### Product charts
+
+A third-party product (Langfuse, LiteLLM, Photon) gets one chart at the top
+level, named after the product, and everything that product needs lives under
+that chart's directory: its database, its object store, and any upstream
+sub-charts, all committed under `charts/<product>/charts/` with an empty
+`repository`. One chart, one Argo CD Application.
+
+Where a product needs one of this repo's own charts (`postgresql-cnpg`,
+`minio`), the chart is **copied** under the product, with a copy of `common`
+beside it, rather than referenced. A copy drops its own `dependencies:` block:
+Helm template names are global across a chart and its sub-charts, so the one
+`common` in the product serves every copy. The cost is that a fix to a shared
+chart reaches a product only when someone copies it there again; each
+product's README says how.
+
+Template names being global also means an upstream sub-chart that defines a
+`common.*` helper clashes with ours. Rename the upstream one in the vendored
+copy (langfuse's valkey: `common.image` → `valkey.commonImage`) and say so in
+the product's CHANGELOG.
 
 No chart carries an `oan-` prefix. The organisation is expressed in labels, not
 in names: every chart depends on `common` and carries the standard OAN labels,

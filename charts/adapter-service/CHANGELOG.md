@@ -5,19 +5,108 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-11-06
+
+### Added
+- Scheduled catalog publishing on the network-adapter role, in both modes: the
+  crawler block now runs each registry binding's `publish` pipeline (Mandi
+  price daily, 21-day window) and pushes the catalogs to `discoveryPushUrl`.
+  The run log DSN placeholder `__ADAPTER_CRAWLER_DB_DSN__` is filled through
+  `extraSubstitutions` and `/tmp/catalogs` is mounted through `extraVolumes`
+  (see README). Needs the registry and registry-seed from #96 (a
+  `publishPipelineUrl` on the binding), a run log database of its own (not
+  discovery's), and a crawler-capable image.
+
+## [0.9.1] - 2026-11-02
+
+### Fixed
+- The crawler pushes a crawled catalogue to the discovery service directly,
+  where it used to go to this adapter's own `/network/publish`. That mount runs
+  `validateSign` and the crawler's push carries no signature, so every crawled
+  catalogue was refused with `AUT_SIGNATURE_MISSING` and nothing was ever
+  stored. The address is the one the network mount forwards a publish to.
+
+## [0.9.0] - 2026-11-02
+
+### Changed
+- An ingress path may now carry a tier: `/<tier>/<action>` is accepted where
+  only `/<action>` was. One hostname can then serve our own app and another
+  network at the same time, telling them apart by the path they arrive on.
+  `/select` can route to the provider mount while `/consumer/select` routes to
+  the consumer mount. Paths of three segments or more are still refused, and
+  a path landing on `/consumer/` or `/publish` still needs
+  `ingress.allowUnsignedMounts`.
+
+## [0.8.0] - 2026-10-28
+
+### Added
+- `ingress.allowPublicPublish` (default `false`): in single-adapter mode, lets
+  `/publish` be an ingress path. The publish module signs as the provider
+  without authenticating its caller, so this is for throwaway environments
+  only. `/` and `/_internal*` stay refused.
+
+### Changed
+- **BREAKING.** Mandi prices call the real Agmarknet again: `agmarknet` is back
+  on `authScheme: tokenQuery` in both modes, in place of the no-auth setting
+  the benchmark mock needed. A release must now supply
+  `__AGMARKNET_TOKEN_URL__` (`adapterKeys.extraSubstitutions` in single mode,
+  `keys.existingSecret.extraSubstitutions` in multi), and the provider tier's
+  environment must carry `AGMARKNET_ACCESS_NAME` and `AGMARKNET_PASSWORD`.
+  Without the substitution the init container stops on the unfilled
+  placeholder. Point the registry's `agmarknet` upstream at the real API too.
+
+### Changed
+
+- The network and provider roles list `checkCrossNetworkRequester` after
+  `validateSign`. The agreement check used to run inside the registry's key
+  lookup, so it only happened when a signature was verified; it is now a step
+  of its own and holds either way. Needs an adapter image carrying the step.
+
+### Added
+
+- `crawler` values, and the catalog crawler's config block on the network
+  role. Off by default, so a deployment that has admitted no network is
+  unchanged. The other roles carry no crawler block, and the values are ignored
+  there.
+- A render-time refusal when `crawler.enabled` is true and `crawler.intent` is
+  empty. Discovery will not take an intent that narrows nothing and answers an
+  empty one with no catalogs, so the pass would report success and mirror
+  nothing.
+
+### Notes
+
+- No database. A DSN is only needed by crawler work that keeps a record
+  between passes, and crawling other networks keeps none.
+- `crawler.discoveryPushUrl` defaults to this same pod. The crawler runs on the
+  network adapter, which serves `/publish` itself in both deployment modes, so
+  a crawled catalog takes the same path as a local one without leaving the pod.
+
+
+### Fixed
+- The crawler's own application-level `registry` plugin, in both the
+  single-adapter and multi-adapter network configs. The adapter image refuses to
+  start a crawler without one ("crawler plugin configured without a registry
+  plugin"), because it verifies a crawled catalog against the publisher's
+  registry key; the modules' registries do not count.
+
 ## [0.7.0] - 2026-10-26
 
 ### Added
-- The catalog crawler (the scheduled catalog publisher) is on for the
-  network-adapter role in both deployment modes: its `registry` and `crawler`
-  plugin blocks are in `config/single-adapter/network-adapter-config.yaml` and
-  `config/multi-adapter/network-config.yaml`. Catalogs go to this pod's
-  `/publish` (single) or the provider adapter's (multi), sent as the provider
-  to `discovery.oan.dev`. No template change: the deployment fills the run log
-  DSN placeholder `__ADAPTER_CRAWLER_DB_DSN__` through `extraSubstitutions` and
-  mounts `/tmp/catalogs` through `extraVolumes` (see README). Needs the registry
-  and registry-seed from #96 (a `publishPipelineUrl` on the binding), a run log
-  database of its own (not discovery's), and a crawler-capable image.
+- The single-adapter layer's provider tier serves the PMFBY grievance
+  capability: a `Grievance` step for `pmfby|openagrinet:Grievance`, logging in at
+  the provider's login URL and holding the token until the login reply's own
+  expiry. The login URL is the `__PMFBY_TOKEN_URL__` substitution, and the login
+  is read from `PMFBY_ACCESS_UID` and `PMFBY_ACCESS_PWD`.
+- The same step serves PM-KISAN as one participant, `pmkisan`, with two
+  capabilities: `pmkisan|openagrinet:Grievance` (OTP at `init`, lodge at
+  `support`, read back at `status`) and `pmkisan|openagrinet:SchemeApplication`
+  (OTP at `init`, the application record and its blockers at `status`). Each has
+  its own envelope, in a block named by its binding key; Grievance asks for and
+  checks its OTP on the SchemeApplication binding's host. Both read
+  `PMKISAN_GRIEVANCE_KEY`, `PMKISAN_GRIEVANCE_IV`, `PMKISAN_SERVICE_TOKEN` and
+  `PMKISAN_OTP_TOKEN` from `provider-upstream`, which must carry them before
+  PM-KISAN is called.
+- The consumer tier's routing sends `support` to the provider tier.
 
 ## [0.6.0] - 2026-10-09
 

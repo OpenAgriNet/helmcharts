@@ -1,0 +1,47 @@
+{{- if .Values.ingress.enabled }}
+{{- /* Only the three documents. They are fetched by any network considering
+       us, so they are public by necessity -- and they are the only thing here
+       that is. A path other than /.well-known/ reaches nothing: the server
+       answers 404. */}}
+{{- range .Values.ingress.hosts }}
+{{- range .paths }}
+{{- if not (hasPrefix "/.well-known/" (.path | default "")) }}
+{{- fail (printf "%s: ingress path %q is not a federation document. This chart serves /.well-known/openagrinet, /.well-known/jwks.json and /.well-known/schema-packs.json, and nothing else." $.Chart.Name .path) }}
+{{- end }}
+{{- end }}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "federation.fullname" . }}
+  labels:
+    {{- include "federation.labels" . | nindent 4 }}
+  {{- $ann := merge (dict) (.Values.ingress.annotations | default dict) (.Values.commonAnnotations | default dict) }}
+  {{- with $ann }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType | default "Exact" }}
+            backend:
+              service:
+                name: {{ include "federation.fullname" $ }}
+                port:
+                  number: {{ $.Values.service.port }}
+          {{- end }}
+    {{- end }}
+{{- end }}

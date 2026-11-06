@@ -90,7 +90,7 @@ The network adapter's config files carry the catalogcrawler's `registry` and
 `crawler` plugin blocks (`config/single-adapter/network-adapter-config.yaml`,
 `config/multi-adapter/network-config.yaml`). On every tick it runs the pipeline
 of each registry binding with a `publish` action and POSTs the catalogs to
-`/publish` (this pod in single mode, the provider adapter in multi mode).
+the crawler's `discoveryPushUrl` (discovery itself).
 
 The deployment wires it with existing values, no template change:
 
@@ -132,7 +132,7 @@ It needs, outside this chart:
   two from the provider's upstream Secret; in multi mode map them with `extraEnv`
   `secretKeyRef`s into that Secret rather than copying them into a new one.
 
-To run without it, remove both blocks from the config file (or from `config`).
+To run without it, remove `dbDsn` and the `publish*` keys from the crawler block.
 
 ## Values and examples
 

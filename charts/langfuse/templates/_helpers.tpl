@@ -154,6 +154,9 @@ Return S3/MinIO endpoint -- if not set uses auto-discovery
 {{- /* seaweedfs names the Service <fullname trunc 52>-all-in-one and serves S3 on allInOne.s3.port */ -}}
 {{- $swFullname := include "langfuse.subchart.fullname" (list . "s3") | trunc 52 | trimSuffix "-" -}}
 {{- printf "http://%s-all-in-one:%v" $swFullname ((((.Values.s3.allInOne).s3).port) | default 8333) -}}
+{{- else if (.Values.objectStorage).enabled }}
+{{- /* OAN: the MinIO `objectStorage` sub-chart, named by its fullnameOverride */ -}}
+{{- printf "http://%s:%v" .Values.objectStorage.fullnameOverride ((((.Values.objectStorage).service).port) | default 9000) -}}
 {{- else }}
 {{- end }}
 {{- end }}
@@ -622,7 +625,7 @@ Return ClickHouse protocol (http or https)
 - name: LANGFUSE_S3_EVENT_UPLOAD_REGION
   value: {{ .Values.s3.eventUpload.region | default .Values.s3.region | quote }}
 {{- end }}
-{{- if or .Values.s3.eventUpload.endpoint .Values.s3.endpoint .Values.s3.deploy }}
+{{- if or .Values.s3.eventUpload.endpoint .Values.s3.endpoint .Values.s3.deploy (.Values.objectStorage).enabled }}
 - name: LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT
   value: {{ .Values.s3.eventUpload.endpoint | default .Values.s3.endpoint | default (include "langfuse.s3.endpoint" .) | quote }}
 {{- end }}
@@ -685,7 +688,7 @@ Return ClickHouse protocol (http or https)
 - name: LANGFUSE_S3_BATCH_EXPORT_REGION
   value: {{ .Values.s3.batchExport.region | default .Values.s3.region | quote }}
 {{- end }}
-{{- if or .Values.s3.batchExport.endpoint .Values.s3.endpoint .Values.s3.deploy }}
+{{- if or .Values.s3.batchExport.endpoint .Values.s3.endpoint .Values.s3.deploy (.Values.objectStorage).enabled }}
 - name: LANGFUSE_S3_BATCH_EXPORT_ENDPOINT
   value: {{ .Values.s3.batchExport.endpoint | default .Values.s3.endpoint | default (include "langfuse.s3.endpoint" .) | quote }}
 {{- end }}
@@ -746,7 +749,7 @@ Return ClickHouse protocol (http or https)
 - name: LANGFUSE_S3_MEDIA_UPLOAD_REGION
   value: {{ .Values.s3.mediaUpload.region | default .Values.s3.region | quote }}
 {{- end }}
-{{- if or .Values.s3.mediaUpload.endpoint .Values.s3.endpoint .Values.s3.deploy }}
+{{- if or .Values.s3.mediaUpload.endpoint .Values.s3.endpoint .Values.s3.deploy (.Values.objectStorage).enabled }}
 - name: LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT
   value: {{ .Values.s3.mediaUpload.endpoint | default .Values.s3.endpoint | default (include "langfuse.s3.endpoint" .) | quote }}
 {{- end }}

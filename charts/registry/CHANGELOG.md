@@ -5,6 +5,71 @@ All notable changes to the `registry` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-10-30
+
+### Added
+- `files/schemas/SchemaRegistry.json` accepts a `schemaUrl` served from
+  `openagrinet.github.io/network-specs` as well as the raw GitHub host, and
+  permits additional properties so the registry's own system fields survive an
+  update.
+
+### Changed
+- Keycloak settings are only demanded while `authenticationEnabled` is true.
+  With it off the registry checks no token, and the chart no longer renders the
+  SSO environment or fails for a missing realm URL and admin client secret.
+
+## [0.6.0] - 2026-10-28
+
+### Added
+- `files/schemas/Participant.json` carries the federation fields: `revision`
+  and `federationRole`, with a `source` and/or `requester` admission per
+  direction (`schemaPacks`, `descriptorRevision`, `admittedAt`, `updatedAt`,
+  `status`, `suspendedAt`; `projectionTtl` on `source` only). See ADR-0002.
+
+### Changed
+- **BREAKING.** `role` is an array. In 0.4.1 it was a single string, so
+  every existing row holds one: it still reads, but its next update
+  (admitting a peer, rotating a key) is refused until it is rewritten as an
+  array. 0.4.1 refuses an array, so **right after upgrading**, and before any
+  other write, rewrite those rows (needs `jq` and an admin token):
+
+  ```sh
+  REG=https://<registry-host>; TOKEN=<admin bearer token>
+  curl -s -X POST "$REG/api/v1/Participant/search" -H 'Content-Type: application/json' \
+       -d '{"filters":{},"limit":10000}' \
+    | jq -c '(.data // .)[] | select(.role | type == "string")' > string-roles.jsonl
+  while read -r row; do
+    jq -c 'with_entries(select(.key | startswith("os") | not)) | .role = [.role]' <<<"$row" \
+      | curl -s -X PUT "$REG/api/v1/Participant/$(jq -r .osid <<<"$row")" \
+             -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d @-
+  done < string-roles.jsonl
+  ```
+
+  An empty `string-roles.jsonl` means there is nothing to rewrite. Re-run the
+  search afterwards and confirm it is empty again. Run this even though
+  nothing forces it: the registry validates a PUT against the request body, so
+  an update that does not mention `role` succeeds and leaves the string there.
+  Only an update that sends `role` fails, with `#/Participant/role: expected
+  type: JSONArray, found: String`. Rehearsed against sunbird-rc-core v2.0.0:
+  the rows keep their keys and can then be admitted as peers. Tracked per
+  deployment by #98.
+- `baseUrl` is required on every entry. An admitted network is reached there
+  too: its discover endpoint is its `baseUrl`, so there is no separate field
+  for it.
+- `PublicKey.validFrom` is optional, and nested objects declare the registry's
+  system fields (as strings) so an update passes.
+
+## [0.5.0] - 2026-10-27
+
+### Added
+- `ProviderSchema` takes an optional `baseUrl`: the host one capability is
+  called on, in place of its participant's. PM-KISAN is one participant whose
+  grievance portal and chatbot service are different hosts.
+
+### Fixed
+- `SchemaRegistry.schemaUrl` accepts a network-specs ref with a dot in it, such
+  as a `v0.1` tag. It was refused before.
+
 ## [0.4.1] - 2026-09-27
 
 ### Changed
