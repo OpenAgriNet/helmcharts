@@ -1,0 +1,163 @@
+{{- if gt (.Values.replicaCount | int) 1 }}
+{{- fail (printf "%s: replicaCount is %d, but every replica would mount the same ReadWriteOnce volume. Run one." .Chart.Name (.Values.replicaCount | int)) }}
+{{- end }}
+apiVersion: {{ include "common.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include "photon.fullname" . }}
+  labels:
+    {{- include "photon.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  # One ReadWriteOnce volume: a rolling update would start the new pod while
+  # the old one still holds it.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "photon.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "photon.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/env-config: {{ include "common.checksumAnnotation" . }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.serviceAccount.enabled }}
+      serviceAccountName: {{ include "photon.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- end }}
+      {{- with (include "common.imagePullSecrets" . | trim) }}
+      {{- . | nindent 6 }}
+      {{- end }}
+      {{- with (include "common.podSecurityContext" .) }}
+      securityContext:
+        {{- . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        # Fetches the jar and the index into the volume, once. The marker
+        # holds the URL of the index that finished downloading: a restart
+        # with the same URL skips the download, and a download cut short
+        # leaves no marker, so it is fetched again.
+        - name: index
+          image: {{ include "photon.indexImage" . }}
+          imagePullPolicy: {{ .Values.index.image.pullPolicy }}
+          workingDir: {{ .Values.persistence.mountPath }}
+          env:
+            - name: PHOTON_JAR
+              value: {{ include "photon.jarName" . | quote }}
+            - name: PHOTON_JAR_URL
+              value: {{ include "photon.jarUrl" . | quote }}
+            - name: PHOTON_DB_URL
+              value: {{ .Values.photon.indexUrl | quote }}
+          command:
+            - sh
+            - -c
+            - |
+              set -eo pipefail
+              if [ -f "$PHOTON_JAR" ]; then
+                echo "photon: $PHOTON_JAR is already here"
+              else
+                echo "photon: downloading $PHOTON_JAR"
+                wget -q -O "$PHOTON_JAR.part" "$PHOTON_JAR_URL"
+                mv "$PHOTON_JAR.part" "$PHOTON_JAR"
+              fi
+              if [ "$(cat .index-ready 2>/dev/null || true)" = "$PHOTON_DB_URL" ]; then
+                echo "photon: the place index is already here"
+              else
+                echo "photon: downloading the place index, this takes a while the first time"
+                rm -rf photon_data .index-ready
+                wget -q -O - "$PHOTON_DB_URL" | bunzip2 -c | tar xf -
+                printf %s "$PHOTON_DB_URL" > .index-ready
+                echo "photon: the place index is ready"
+              fi
+          resources:
+            {{- toYaml .Values.index.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.persistence.mountPath }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ include "photon.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with (include "common.securityContext" .) }}
+          securityContext:
+            {{- . | nindent 12 }}
+          {{- end }}
+          workingDir: {{ .Values.persistence.mountPath }}
+          command:
+            - java
+            - -jar
+            - {{ include "photon.jarName" . | quote }}
+            - serve
+            - -listen-ip
+            - 0.0.0.0
+            - -listen-port
+            - {{ .Values.service.targetPort | quote }}
+            {{- range .Values.photon.extraArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          env:
+            {{- with .Values.javaOpts }}
+            - name: JAVA_TOOL_OPTIONS
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with (include "common.env" . | trim) }}
+            {{- . | nindent 12 }}
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "photon.envConfigMapName" . }}
+            {{- range .Values.envFromSecrets }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
+          {{- with (include "common.probes" . | trim) }}
+          {{- . | nindent 10 }}
+          {{- end }}
+          resources:
+            {{- include "common.resources" . | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.persistence.mountPath }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "photon.claimName" . }}
+          {{- else }}
+          # No persistence: every start downloads the index again.
+          emptyDir: {}
+          {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

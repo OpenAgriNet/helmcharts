@@ -33,7 +33,7 @@ network:
   discoveryBaseUrl: "http://discovery.oan-discovery.svc.cluster.local:8080"
   invocationBaseUrl: "http://discovery.oan-discovery.svc.cluster.local:8080"
   senderId: "consumer.oan.prod"
-  receiverId: "oan"
+  hostId: "oan"
 
 schemaPacks:
   ref: schema-packs-v0.1

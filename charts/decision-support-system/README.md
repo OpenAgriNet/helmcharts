@@ -14,6 +14,7 @@ providers it calls and in the OAN network it discovers against, not here.
 | Deployment | Probes on `/openapi.json` — see [Health checks](#health-checks), the one real gap here |
 | Service | `ClusterIP` on 8077 |
 | ConfigMap (env) | Model bindings, network wiring, schema-pack/evidence paths derived from structured values; free-form overrides via `envConfig` |
+| ConfigMap (files) | Only when `files` is set: files mounted read-only at `filesMountPath` for settings that take a path |
 | ServiceAccount | `automountServiceAccountToken: false` — the service calls no Kubernetes API |
 | HorizontalPodAutoscaler | Optional, off by default. Safe to enable — see [Scaling](#scaling) |
 | PodDisruptionBudget | Optional, off by default |
@@ -121,7 +122,54 @@ correct default — an unreachable endpoint otherwise produces a
 
 Never set `DSS_TRACE_INCLUDE_MESSAGE_CONTENT` through `envConfig` in a real
 deployment. It puts the farmer's query and the composed answer into every
-span verbatim; `DSS_ARCHITECTURE.md` §6.1 forbids exactly this.
+span verbatim; `DSS_ARCHITECTURE.md` §6.1 forbids exactly this. The chart
+fails the render if it, or `DSS_STUB_LLM`, is `"true"` in `envConfig` or
+`extraEnv`.
+
+`tracing.serviceName` (`OTEL_SERVICE_NAME`, default `dss`) and
+`tracing.resourceAttributes` (`OTEL_RESOURCE_ATTRIBUTES`, e.g.
+`{deployment.environment.name: dev}`) keep DSS rows apart from other services
+and environments in a shared backend. For Langfuse, `tracing.otlpEndpoint` is
+`http://langfuse-web.<ns>.svc.cluster.local:3000/api/public/otel` and the
+`headersSecret` value is
+`Authorization=Basic <base64 public:secret>,x-langfuse-ingestion-version=4`,
+with the base64 `=` padding left raw.
+
+### Places, preferences, schemes, redaction, translation
+
+Each is off or at the app's own default until set, and each maps to one
+`DSS_*` setting in `src/dss/config/settings.py`:
+
+| Values | Env | Default |
+|---|---|---|
+| `photon.baseUrl`, `.timeoutSeconds`, `.countryCodes`, `.cache.*` | `DSS_PHOTON_*` | off: the bundled area file is the only source of places. The `photon` chart deploys a geocoder to point at. |
+| `providerPreferences.baseUrl`, `.timeoutSeconds` | `DSS_PROVIDER_PREFERENCES_*` | off: no ranking, every ask keeps whichever providers discovery found |
+| `schemes.configPath` | `DSS_SCHEMES_CONFIG_PATH` | `/app/configs/schemes.csv`, the catalog in the image (as `docker-compose.yml`) |
+| `redaction.enabled`, `.configPath` | `DSS_REDACTION_*` | off; the path defaults to the India rules in the image |
+| `edgeTranslation.configPath` | `DSS_EDGE_TRANSLATION_CONFIG_PATH` | off |
+| `network.hostId`, `network.senderFromTurnEnabled` | `DSS_NETWORK_HOST_ID`, `DSS_NETWORK_SENDER_FROM_TURN_ENABLED` | `oan`, `false` |
+| `modelProfile` | `DSS_MODEL_PROFILE` | `default` |
+
+`DSS_RELEASE`, which the app echoes as `context.version`, is set from the
+image tag the chart deploys.
+
+A setting that takes a file can read one you supply: put it under `files`
+(rendered into a ConfigMap, mounted read-only at `filesMountPath`, default
+`/etc/dss`) and point the path at it. The translation file the image ships
+names an `azure:` model, which only works without the gateway; with the
+gateway, supply a copy whose `model` is a gateway name:
+
+```yaml
+files:
+  edge-translation.yaml: |
+    languages:
+      gu: {to: en, adapter: llm, model: dss-intent, temperature: 0.0, timeout_seconds: 20}
+edgeTranslation:
+  configPath: /etc/dss/edge-translation.yaml
+```
+
+These settings need an image built from `decision-support-system` after
+`v0.1.0`; an older image ignores them.
 
 ## Health checks
 
