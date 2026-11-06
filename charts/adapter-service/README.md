@@ -51,6 +51,7 @@ The render fails without these:
 | `role` | Decides the handler role, the steps and where requests go. |
 | `image.repository` | An empty one renders an image name that fails only at pull time. |
 | `keys.existingSecret.name` | The adapter's identity (multi roles). Single mode uses `adapterKeys`, which defaults to the Secret names openbao-secrets creates. |
+| `cache.addr` | The Redis the adapter caches registry lookups in; it will not start without one. |
 
 ## The identity Secret
 

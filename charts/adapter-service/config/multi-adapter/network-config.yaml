@@ -40,6 +40,10 @@ plugins:
       enableTracing: "true"
       enableLogs: "true"
 
+  cache:
+    id: cache
+    config:
+      addr: __REDIS_ADDR__
   # The crawler's own registry: it verifies a crawled catalog's signature
   # against the publisher's key there. The image refuses to start a crawler
   # without one. Separate from the modules' registries below.
@@ -54,7 +58,7 @@ plugins:
       retry_wait_min: 100ms
       retry_wait_max: 500ms
       maxResponseBytes: 1048576
-      cacheTTL: 0
+      cacheTTL: __REGISTRY_CACHE_TTL__
 
   # Off builds no schedule and never dials, so a cluster that federates with
   # nobody stays quiet. Answering someone else's crawl is unaffected.
@@ -95,6 +99,10 @@ modules:
       subscriberId: "__ADAPTER_SUBSCRIBER_ID__"
 
       plugins:
+        cache:
+          id: cache
+          config:
+            addr: __REDIS_ADDR__
         registry:
           id: sunbirdRegistry
           config:
@@ -104,9 +112,7 @@ modules:
             url: http://registry.registry.svc.cluster.local:8081/api/v1
             entity: Participant
             providerEntity: ProviderSchema
-            # 0 because no cache plugin is configured. A non-zero TTL here only
-            # warns at startup and caches nothing.
-            cacheTTL: 0
+            cacheTTL: __REGISTRY_CACHE_TTL__
             # Plain seconds, per attempt.
             timeout: 2
             retry_max: 1
