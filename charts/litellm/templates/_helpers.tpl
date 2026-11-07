@@ -73,8 +73,11 @@ checked below before it reaches the cluster.
 {{- if not .credential }}
 {{- fail (printf "%s: model %q has no credential - name a vendor account from `credentials`, so no key is ever written into this chart" $.Chart.Name .name) }}
 {{- end }}
-{{- if or (not .inputCostPerToken) (not .outputCostPerToken) }}
-{{- fail (printf "%s: model %q has no price. A model the gateway cannot price is recorded as costing nothing, and a spend limit over nothing never stops anything." $.Chart.Name .name) }}
+{{- /* Set, not truthy: 0 is a real price for a self-hosted model nobody bills
+       per token, and has to be written down to count. Left out, the gateway
+       records the model as free without anyone having said so. */}}
+{{- if or (not (hasKey . "inputCostPerToken")) (not (hasKey . "outputCostPerToken")) }}
+{{- fail (printf "%s: model %q has no price. A model the gateway cannot price is recorded as costing nothing, and a spend limit over nothing never stops anything. Write 0 for a model that is really free." $.Chart.Name .name) }}
 {{- end }}
 {{- end }}
 {{- toJson $models -}}

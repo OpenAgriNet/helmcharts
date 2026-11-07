@@ -71,7 +71,7 @@ quietly later:
 | If | Why it fails |
 |---|---|
 | `saltKeySecret.name` is unset | it encrypts every vendor key; without it they are unreadable later |
-| a model has no price | an unpriced model is recorded as free, and a spend limit over free never stops anything |
+| a model has no price | an unpriced model is recorded as free, and a spend limit over free never stops anything. Write `0` for a model that really is free |
 | `replicaCount > 1` and no `redis.host` | spend and rate limits are counted per process, so two replicas allow twice the limit |
 | `models` is empty | the assistant would ask for a name the gateway does not have, and every turn would fail |
 
