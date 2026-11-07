@@ -14,6 +14,14 @@ instead — record that switch in this file when it happens.
 modification; it is based on upstream 2.2.0 (`oan.in/upstream-version` in
 `Chart.yaml`) and follows `CONVENTIONS.md` from here.
 
+## [3.0.1] - 2026-11-07
+
+### Fixed
+
+- The MinIO container is named `minio`. It took the subchart's alias,
+  `objectStorage`, which is not a valid container name, so Kubernetes refused
+  the Deployment and Langfuse had no object storage. Its labels say `minio` too.
+
 ## [3.0.0] - 2026-11-05
 
 ### Changed

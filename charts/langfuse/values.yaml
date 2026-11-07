@@ -1069,6 +1069,8 @@ postgresCluster:
 # s3.accessKeyId / s3.secretAccessKey at the same Secret.
 objectStorage:
   enabled: true
+  # The alias would otherwise be the name in every label (app.kubernetes.io/name: objectStorage).
+  nameOverride: minio
   fullnameOverride: langfuse-minio
   bucket: langfuse
   credentialsSecret:

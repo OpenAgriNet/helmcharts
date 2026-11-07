@@ -42,7 +42,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
-        - name: {{ .Chart.Name }}
+        {{- /* Fixed, not .Chart.Name: under an alias that name is the alias, and
+               a container name must be a lowercase RFC 1123 label. */}}
+        - name: minio
           image: {{ include "minio.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- with .Values.command }}
