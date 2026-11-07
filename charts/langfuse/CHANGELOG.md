@@ -14,6 +14,17 @@ instead — record that switch in this file when it happens.
 modification; it is based on upstream 2.2.0 (`oan.in/upstream-version` in
 `Chart.yaml`) and follows `CONVENTIONS.md` from here.
 
+## [3.0.2] - 2026-11-07
+
+### Fixed
+
+- MinIO runs Chainguard's public build (`cgr.dev/chainguard/minio`, pinned by
+  digest). `quay.io/minio/minio` and `docker.io/minio/minio` now refuse
+  anonymous pulls, so the pod sat in ImagePullBackOff. It runs as 65532 with a
+  matching fsGroup, and makes the `langfuse` bucket as a directory before the
+  server starts, in place of the bucket-init Job, whose `minio/mc` image is gone
+  too.
+
 ## [3.0.1] - 2026-11-07
 
 ### Fixed

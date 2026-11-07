@@ -1073,6 +1073,34 @@ objectStorage:
   nameOverride: minio
   fullnameOverride: langfuse-minio
   bucket: langfuse
+  # MinIO no longer publishes images anyone can pull: quay.io/minio/minio and
+  # docker.io/minio/minio both answer 401. Chainguard's build is public, and
+  # this is the digest the Langfuse on the dev VM runs. Pinned by digest because
+  # Chainguard's free tier publishes only `latest`.
+  image:
+    registry: cgr.dev
+    repository: chainguard/minio
+    tag: ""
+    digest: sha256:ad4a4c0a39ad7b71408124fe3df07b1b2e9d2959a369fac8754d2ef3311b5c20
+  # The bucket is a directory under /data, made before the server starts, as
+  # the dev VM does it. The bucket-init Job is off: it needs minio/mc, which is
+  # gone the same way, and Langfuse only needs the one bucket to exist.
+  # Keep the directory name equal to `bucket`.
+  command:
+    - sh
+    - -c
+    - mkdir -p /data/langfuse && exec minio server /data --console-address ":9001"
+  bucketInit:
+    enabled: false
+  # Chainguard runs as 65532; fsGroup makes the volume writable by it.
+  podSecurityContext:
+    enabled: true
+    fsGroup: 65532
+    runAsUser: 65532
+    runAsGroup: 65532
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   credentialsSecret:
     name: ""
     accessKeyKey: access-key
