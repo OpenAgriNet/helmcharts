@@ -4,6 +4,14 @@ All notable changes to the `litellm` chart are documented here. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this chart
 follows [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] - 2026-11-07
+
+### Changed
+
+- A model's price may now be `0`, for a self-hosted model nobody bills per
+  token. It still has to be written down: a model with no price fails the
+  render as before.
+
 ## [0.2.0] - 2026-11-05
 
 ### Changed
