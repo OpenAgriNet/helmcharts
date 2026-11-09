@@ -351,7 +351,9 @@ federation:
 # ---------------------------------------------------------------------------
 # Registry cache
 #
-# Redis for registry lookups. ttl is also how long a suspension takes to apply.
+# Redis for registry lookups. ttl is also how long a suspension takes to apply,
+# except in the network and provider adapters: they read active records
+# through the registrycache plugin, kept for the 24h set in their configs.
 # ---------------------------------------------------------------------------
 cache:
   addr: ""            # required, e.g. redis-master.redis.svc.cluster.local:6379
