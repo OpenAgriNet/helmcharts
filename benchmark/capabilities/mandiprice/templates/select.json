@@ -8,7 +8,8 @@
     "placeholders -- so changing the shape here needs no code change.",
     "",
     "  {{RESOURCE_ID}}                        the resource being selected",
-    "  {{MARKET_NAME}} {{DISTRICT}} {{STATE}} copied from what was published",
+    "  {{MARKET_CODE}} {{MARKET_NAME}}        copied from what was published",
+    "  {{DISTRICT}} {{STATE}}                 copied from what was published",
     "  {{COMMODITY_CODE}} {{COMMODITY_NAME}}  one commodity that market trades",
     "  {{RESOURCE_CONTEXT}} {{RESOURCE_TYPE}} copied from what was published",
     "  {{VALID_FROM}} {{VALID_TO}}            copied from what was published",
@@ -48,6 +49,7 @@
               ],
               "supportedPriceFields": ["Minimum", "Maximum", "Modal"],
               "market": {
+                "marketCode": "{{MARKET_CODE}}",
                 "marketName": "{{MARKET_NAME}}",
                 "district": "{{DISTRICT}}",
                 "state": "{{STATE}}"
