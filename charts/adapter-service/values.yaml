@@ -358,6 +358,9 @@ federation:
 cache:
   addr: ""            # required, e.g. redis-master.redis.svc.cluster.local:6379
   ttl: 30s
+  # false turns the registrycache plugin off: the network and provider
+  # adapters then cache their registry lookups for ttl, like the others.
+  registryRecords: true
   # Secret with the Redis password (REDIS_PASSWORD).
   passwordSecret:
     name: ""
