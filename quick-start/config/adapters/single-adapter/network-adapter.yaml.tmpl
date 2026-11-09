@@ -157,6 +157,12 @@ modules:
           id: cache
           config:
             addr: redis:6379
+        registryCache:
+          id: registrycache
+          config:
+            url: http://sunbird-registry-service:8081/api/v1
+            ttl: 24h
+            preload: Participant,ProviderSchema
         registry:
           id: sunbirdRegistry
           config:
@@ -222,6 +228,12 @@ modules:
           id: cache
           config:
             addr: redis:6379
+        registryCache:
+          id: registrycache
+          config:
+            url: http://sunbird-registry-service:8081/api/v1
+            ttl: 24h
+            preload: Participant,ProviderSchema
         registry:
           id: sunbirdRegistry
           config:

@@ -47,6 +47,12 @@ modules:
           id: cache
           config:
             addr: redis:6379
+        registryCache:
+          id: registrycache
+          config:
+            url: http://sunbird-registry-service:8081/api/v1
+            ttl: 24h
+            preload: Participant,ProviderSchema
         # Serves the sender's signing key and the capability call plans.
         registry:
           id: sunbirdRegistry

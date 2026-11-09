@@ -170,6 +170,12 @@ modules:
           id: cache
           config:
             addr: __REDIS_ADDR__
+        registryCache:
+          id: registrycache
+          config:
+            url: http://registry.registry.svc.cluster.local:8081/api/v1
+            ttl: 24h
+            preload: Participant,ProviderSchema
         registry:
           id: sunbirdRegistry
           config:
@@ -242,6 +248,12 @@ modules:
           id: cache
           config:
             addr: __REDIS_ADDR__
+        registryCache:
+          id: registrycache
+          config:
+            url: http://registry.registry.svc.cluster.local:8081/api/v1
+            ttl: 24h
+            preload: Participant,ProviderSchema
         registry:
           id: sunbirdRegistry
           config:
