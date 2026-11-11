@@ -103,6 +103,51 @@ the two traps worth knowing up front: `NETWORK_BASE_URL` must carry no port,
 and a published catalogue needs `visibleTo` naming the other network or the
 crawl collects nothing.
 
+## Calling the DSS through the adapters
+
+An experience app of your own calls the DSS through two more adapters, so the
+DSS is only reachable by a caller the registry knows. Neither experience-api nor
+the DSS runs in this stack.
+
+```
+experience-api -> experience-adapter (signs) -> dss-adapter (checks) -> DSS
+DSS -> dss-adapter (signs as the DSS) -> network-adapter /network and /provider
+```
+
+Set these in `.env`:
+
+| Variable | What it is |
+|---|---|
+| `EXPERIENCE_ADAPTER_IMAGE` | an adapter image built from the network-adapter branch that adds `nonbecknrouter` and `streamResponses`; the released image has neither |
+| `EXPERIENCE_SUBSCRIBER_ID` | the id experience-api sends as `EXPERIENCE_API_SENDER_ID` |
+| `DSS_SUBSCRIBER_ID` | the id the DSS sends as `network_sender_id` |
+| `DSS_URL` | where the DSS listens, as the adapter container sees it, e.g. `http://host.docker.internal:8077` |
+| `DSS_ADAPTER_URL` | where the experience adapter finds the DSS adapter, with no trailing slash. Leave it unset when both run in this stack: it defaults to `http://dss-adapter:9204` |
+
+Each adapter is registered, configured and started on its own. The experience
+adapter needs no `DSS_URL`, and the DSS adapter needs no `EXPERIENCE_SUBSCRIBER_ID`.
+
+```sh
+make register-experience      # the experience adapter's entry, with its own keys
+make configure-experience     # render its config and start it
+make register-dss             # the DSS adapter's entry, with its own keys
+make configure-dss            # render its config and start it
+```
+
+Then point the services at the adapters:
+
+| Service | Setting | Value |
+|---|---|---|
+| experience-api | `EXPERIENCE_API_DSS_BASE_URL` | `http://localhost:9203/dss` |
+| experience-api | `EXPERIENCE_API_SENDER_ID` | the same as `EXPERIENCE_SUBSCRIBER_ID` |
+| DSS | `DSS_DISCOVERY_BASE_URL`, `DSS_INVOCATION_BASE_URL` | `http://localhost:9204/consumer` |
+| DSS | `DSS_NETWORK_SENDER_ID` | the same as `DSS_SUBSCRIBER_ID` |
+| DSS | `DSS_NETWORK_HOST_ID` | `BECKN_NETWORK_ID` |
+
+Leave `DSS_NETWORK_SENDER_FROM_TURN_ENABLED` off. Turned on, the DSS would copy
+the experience id into its calls to the network, and the signature would name
+the DSS.
+
 ## When it breaks
 
 | What you see | What to do |

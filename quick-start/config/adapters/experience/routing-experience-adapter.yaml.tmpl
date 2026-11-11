@@ -1,0 +1,8 @@
+# Experience adapter routing: the turn goes on to the DSS adapter. The /dss/ prefix
+# is cut before routing, so the target carries it for the next hop's module.
+routingRules:
+  - targetType: "url"
+    target:
+      url: "__DSS_ADAPTER_URL__/dss"
+    endpoints:
+      - v1/turns

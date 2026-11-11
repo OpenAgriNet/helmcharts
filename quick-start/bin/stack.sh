@@ -22,7 +22,7 @@ cd "$ROOT"
 
 # Every optional profile, named explicitly: compose acts only on services whose
 # profile is active, which is what makes `down` mean down (ADR-0006).
-PROFILES=(--profile reverse-proxy --profile observability --profile multi-adapter)
+PROFILES=(--profile reverse-proxy --profile observability --profile multi-adapter --profile experience)
 
 # Deployment mode for `up`: NETWORK_ADAPTER_DEPLOYMENT_MODE from the shell, else .env, else
 # single-adapter (ADR-0001).
@@ -567,6 +567,36 @@ configure_adapter() {
     printf '\n\033[1;32m==> adapters are up\033[0m\n'
 }
 
+# One adapter's registry entry, with keys of its own: experience or dss.
+register_experience() { register_adapter experience; }
+register_dss()        { register_adapter dss; }
+
+register_adapter() {
+    preflight
+    step 1 1 "the $1 adapter's entry in the registry"
+    python3 bin/setup.py "register-$1"
+}
+
+# Render one adapter's config, then start it. The DSS adapter also needs the
+# network adapter up: it sends what the DSS asks of the network through it.
+configure_experience() { configure_one experience experience-adapter routing-experience-adapter; }
+configure_dss()        { configure_one dss dss-adapter routing-dss-inbound routing-dss-outbound; }
+
+configure_one() {
+    local name=$1 service=$1-adapter f
+    shift
+    preflight
+    step 1 2 "$name adapter config"
+    python3 bin/setup.py "configure-$name"
+    step 2 2 "$service"
+    for f in "$@"; do
+        [ -f "config/adapters/experience/$f.yaml" ] \
+            || die "config/adapters/experience/$f.yaml was not rendered (a directory there? rm -r it, then re-run)"
+    done
+    docker compose --profile experience up -d --force-recreate "$service"
+    printf '\n\033[1;32m==> %s is up\033[0m\n' "$service"
+}
+
 # Sign the federation documents into .well-known/ and admit another network.
 # Each run of host-descriptor publishes the next revision.
 #
@@ -714,6 +744,15 @@ bin/stack.sh <command>
                      to answer without being asked; with no terminal it does
                      not ask at all.
 
+  register-experience  the experience adapter's entry, with its own keys
+                     (EXPERIENCE_SUBSCRIBER_ID)
+  register-dss       the DSS adapter's entry, with its own keys (DSS_SUBSCRIBER_ID)
+  configure-experience render the experience adapter's config, start it
+                     (DSS_ADAPTER_URL says where the DSS adapter is; EXPERIENCE_ADAPTER_IMAGE
+                     must be built from the branch that adds nonbecknrouter)
+  configure-dss      render the DSS adapter's config, start it (needs DSS_URL, and
+                     the network adapter up; same image)
+
   host-descriptor  sign the descriptor, JWKS and schema packs into .well-known/
                    and serve them through nginx-proxy-manager (public, 80/443)
   admit            admit a peer in one direction   PEER= DIRECTION= PACKS=
@@ -746,6 +785,10 @@ case "${1:-}" in
     register-network) register_network ;;
     register-provider) register_provider ;;
     configure-adapter) configure_adapter ;;
+    register-experience) register_experience ;;
+    register-dss)   register_dss ;;
+    configure-experience) configure_experience ;;
+    configure-dss)  configure_dss ;;
     host-descriptor) host_descriptor ;;
     admit)          admit ;;
     refresh)        refresh_peer ;;

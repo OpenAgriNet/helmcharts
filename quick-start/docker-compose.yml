@@ -676,6 +676,53 @@ services:
       - "127.0.0.1:${CONSUMER_ADAPTER_PORT}:9202"
 
   # ==========================================================================
+  # experience layer -- optional adapters in front of experience-api and the DSS,
+  # set up with make register-<name> and make configure-<name> (experience, dss).
+  # ==========================================================================
+  experience-adapter:
+    <<: *adapter
+    # The released adapter image lacks nonbecknrouter and streamResponses, so this
+    # must be one built from the branch that adds them.
+    image: ${EXPERIENCE_ADAPTER_IMAGE:-${ADAPTER_IMAGE}}
+    profiles: ["experience"]
+    container_name: ${STACK_PREFIX:-}experience-adapter
+    depends_on:
+      sunbird-registry-service:
+        condition: service_healthy
+    environment:
+      <<: *adapter-env
+      OTEL_SERVICE_NAME: experience-adapter
+    volumes:
+      - ./config/adapters/experience/experience-adapter.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/experience/routing-experience-adapter.yaml:/app/config/routing-experience-adapter.yaml:ro
+    ports:
+      - "127.0.0.1:${EXPERIENCE_ADAPTER_PORT:-9203}:9203"
+
+  dss-adapter:
+    <<: *adapter
+    image: ${EXPERIENCE_ADAPTER_IMAGE:-${ADAPTER_IMAGE}}
+    profiles: ["experience"]
+    container_name: ${STACK_PREFIX:-}dss-adapter
+    # The DSS runs outside this stack, on the host, and DSS_URL names it from
+    # there; this is what lets a container reach the host by name.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      sunbird-registry-service:
+        condition: service_healthy
+      network-adapter:
+        condition: service_started
+    environment:
+      <<: *adapter-env
+      OTEL_SERVICE_NAME: dss-adapter
+    volumes:
+      - ./config/adapters/experience/dss-adapter.yaml:/app/config/adapter.yaml:ro
+      - ./config/adapters/experience/routing-dss-inbound.yaml:/app/config/routing-dss-inbound.yaml:ro
+      - ./config/adapters/experience/routing-dss-outbound.yaml:/app/config/routing-dss-outbound.yaml:ro
+    ports:
+      - "127.0.0.1:${DSS_ADAPTER_PORT:-9204}:9204"
+
+  # ==========================================================================
   # observability -- ClickHouse (storage), an OpenTelemetry Collector (OTLP
   # ingest and container-log collection), and Grafana (the UI over both).
   #

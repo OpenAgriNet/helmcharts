@@ -49,7 +49,7 @@ Needs python3 and the cryptography package:
 
     pip install cryptography
 """
-import base64, json, os, pathlib, sys, time, urllib.error, urllib.parse, urllib.request
+import base64, json, os, pathlib, re, sys, time, urllib.error, urllib.parse, urllib.request
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
@@ -211,13 +211,14 @@ def x25519_pair():
             b64(k.public_key().public_bytes(ser.Encoding.Raw, ser.PublicFormat.Raw)))
 
 
-def load_or_generate_keys():
-    """The network's one identity. Keys persist across runs."""
-    participant = env("BECKN_NETWORK_ID")
+def load_or_generate_keys(participant=None, path=KEYS):
+    """One identity, the network's unless a caller names another. Keys persist
+    across runs."""
+    participant = participant or env("BECKN_NETWORK_ID")
 
-    if KEYS.exists():
-        print("keys: reusing keys/keys.json")
-        identity = json.loads(KEYS.read_text())
+    if path.exists():
+        print(f"keys: reusing keys/{path.name}")
+        identity = json.loads(path.read_text())
         # The keypair persists; the id is read from .env each run. register-network
         # creates only, so changing the id seeds a NEW participant rather than
         # editing one -- and the same keypair moving to the new id is what makes
@@ -225,18 +226,18 @@ def load_or_generate_keys():
         if identity["participantId"] != participant:
             print(f"  id is now {participant}, keeping the keypair")
             identity["participantId"] = participant
-        KEYS.write_text(json.dumps(identity, indent=2))
+        path.write_text(json.dumps(identity, indent=2))
         return identity
 
-    print("keys: generating")
+    print(f"keys: generating keys/{path.name}")
     sign_private, sign_public = ed25519_pair()
     encr_private, encr_public = x25519_pair()
     identity = {"participantId": participant,
                 "signingPrivate": sign_private, "signingPublic": sign_public,
                 "encrPrivate": encr_private, "encrPublic": encr_public}
-    KEYS.parent.mkdir(exist_ok=True)
-    KEYS.write_text(json.dumps(identity, indent=2))
-    KEYS.chmod(0o600)
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(json.dumps(identity, indent=2))
+    path.chmod(0o600)
     return identity
 
 
@@ -637,6 +638,140 @@ def configure_adapter(identity):
         print(f"  config/adapters/{folder}/{fname}.yaml")
 
 
+# --------------------------------------------- experience layer and the DSS
+#
+# Two more participants, each with its own keys: the experience adapter signs for
+# experience-api, and the DSS adapter signs for the DSS.
+
+# name -> the .env variable holding its id
+EXPERIENCE_IDENTITIES = {
+    "experience": "EXPERIENCE_SUBSCRIBER_ID",
+    "dss": "DSS_SUBSCRIBER_ID",
+}
+
+# The templates under config/adapters/experience/ that each adapter renders,
+# beside themselves.
+ADAPTER_TEMPLATES = {
+    "experience": ("experience-adapter", "routing-experience-adapter"),
+    "dss": ("dss-adapter", "routing-dss-inbound", "routing-dss-outbound"),
+}
+
+# The .env settings an adapter's config cannot be rendered without.
+ADAPTER_REQUIRES = {"experience": [], "dss": ["DSS_URL"]}
+
+# Where the experience adapter finds the DSS adapter when both run in one stack.
+DSS_ADAPTER_DEFAULT_URL = "http://dss-adapter:9204"
+
+
+def published_url(participant_id):
+    """The registry wants https on a node. Nothing calls these two at it, so a
+    name from the id stands in for an address they do not have."""
+    return f"https://{participant_id}"
+
+
+def identity_file(name):
+    return KEYS.parent / f"{name}.json"
+
+
+def identity_placeholders(prefix, identity):
+    """The six values a keyManager block names, under one prefix."""
+    return {f"__{prefix}_SUBSCRIBER_ID__": identity["participantId"],
+            f"__{prefix}_KEY_ID__": identity["keyId"],
+            f"__{prefix}_SIGNING_PRIVATE__": identity["signingPrivate"],
+            f"__{prefix}_SIGNING_PUBLIC__": identity["signingPublic"],
+            f"__{prefix}_ENCR_PRIVATE__": identity["encrPrivate"],
+            f"__{prefix}_ENCR_PUBLIC__": identity["encrPublic"]}
+
+
+def network_upstreams(mode):
+    """Where the DSS adapter sends what the DSS asks of the network. Single mode
+    has every layer in one container; multi mode has the provider in its own."""
+    network = "http://network-adapter:9201/network"
+    if mode == "single-adapter":
+        return {"__NETWORK_URL__": network,
+                "__PROVIDER_URL__": "http://network-adapter:9201/provider"}
+    if mode == "multi-adapter":
+        return {"__NETWORK_URL__": network,
+                "__PROVIDER_URL__": "http://provider-adapter:9200/provider"}
+    sys.exit(f"setup: NETWORK_ADAPTER_DEPLOYMENT_MODE must be single-adapter or "
+             f"multi-adapter, not {mode!r}")
+
+
+def render_template(text, values, name):
+    """Fill every placeholder, and refuse a file that still has one: an adapter
+    started on it would fail on a literal __NAME__."""
+    for placeholder, value in values.items():
+        text = text.replace(placeholder, value)
+    left = sorted(set(re.findall(r"__[A-Z][A-Z_]*__", text)))
+    if left:
+        sys.exit(f"setup: {name} still has unrendered placeholders: {', '.join(left)}")
+    return text
+
+
+def register_adapter_identity(name):
+    """One adapter's entry, with its own keys. Create only, like the network's:
+    a row already there is left alone."""
+    wait_for_registry()
+    identity = load_or_generate_keys(env(EXPERIENCE_IDENTITIES[name]), identity_file(name))
+    ensure_participant(identity["participantId"],
+                       node(identity["participantId"], name, ["consumer"],
+                            published_url(identity["participantId"]),
+                            identity["signingPublic"]))
+    identity = key_osid(identity)
+    identity_file(name).write_text(json.dumps(identity, indent=2))
+    print(f"registry: {name} {identity['participantId']}, signing key id {identity['keyId']}")
+
+
+def need_adapter_identity(name):
+    """One adapter's keys, with the key id its register command read back."""
+    path = identity_file(name)
+    if not path.exists() or not json.loads(path.read_text()).get("keyId"):
+        sys.exit(f"setup: keys/{path.name} is missing or has no key id.\n"
+                 f"  Run `make register-{name}` first -- it reads the id back "
+                 f"from the registry.")
+    return json.loads(path.read_text())
+
+
+def otel_values():
+    return {"__OTEL_ENABLED__": env("ADAPTER_OTEL_ENABLED", "true"),
+            "__OTLP_ENDPOINT__": env("OTLP_ENDPOINT", "otel-collector:4317"),
+            "__OTEL_ENVIRONMENT__": env("OTEL_ENVIRONMENT", "dev")}
+
+
+def experience_values(identity):
+    """Everything the experience adapter's templates name, and nothing of the DSS's."""
+    return {**identity_placeholders("EXPERIENCE", identity),
+            "__DSS_ADAPTER_URL__": env("DSS_ADAPTER_URL", DSS_ADAPTER_DEFAULT_URL),
+            **otel_values()}
+
+
+def dss_values(identity):
+    """Everything the DSS adapter's templates name, and nothing of experience's."""
+    mode = env("NETWORK_ADAPTER_DEPLOYMENT_MODE", "single-adapter")
+    return {**identity_placeholders("DSS", identity),
+            **network_upstreams(mode),
+            "__DSS_URL__": env("DSS_URL"),
+            **otel_values()}
+
+
+ADAPTER_VALUES = {"experience": experience_values, "dss": dss_values}
+
+
+def render_adapter_configs(name):
+    """Render the configs of one adapter, and only that one's."""
+    values = ADAPTER_VALUES[name](need_adapter_identity(name))
+    for template_name in ADAPTER_TEMPLATES[name]:
+        template = ADAPTERS / "experience" / f"{template_name}.yaml.tmpl"
+        out = ADAPTERS / "experience" / f"{template_name}.yaml"
+        # Docker makes a directory at a bind-mount source that is not there yet.
+        if out.is_dir():
+            sys.exit(f"setup: {out} is a directory, not a file.\n"
+                     f"  Docker created it by starting the adapters first. Remove it and retry.")
+        out.write_text(render_template(template.read_text(), values, f"{template_name}.yaml"))
+        out.chmod(0o600)  # holds a private key
+        print(f"  config/adapters/experience/{template_name}.yaml")
+
+
 # ---------------------------------------------------------------- commands
 
 def need_identity():
@@ -668,6 +803,14 @@ def main(argv):
         register_provider(argv[1])
     elif command == "configure-adapter":
         configure_adapter(need_identity())
+    elif command in ("register-experience", "register-dss"):
+        name = command.removeprefix("register-")
+        require([EXPERIENCE_IDENTITIES[name]])
+        register_adapter_identity(name)
+    elif command in ("configure-experience", "configure-dss"):
+        name = command.removeprefix("configure-")
+        require(ADAPTER_REQUIRES[name])
+        render_adapter_configs(name)
     else:
         sys.exit(__doc__)
 

@@ -1,0 +1,8 @@
+# DSS adapter, inbound: a verified turn is handed to the DSS itself.
+# __DSS_URL__ is where the DSS listens, from .env.
+routingRules:
+  - targetType: "url"
+    target:
+      url: "__DSS_URL__"
+    endpoints:
+      - v1/turns

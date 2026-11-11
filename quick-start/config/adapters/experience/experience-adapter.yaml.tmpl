@@ -1,0 +1,94 @@
+# The experience layer's own adapter: signs what experience-api sends to the DSS
+# and passes the answer back as it arrives. setup.py renders it.
+appName: "experience-adapter"
+
+log:
+  level: debug
+  destinations:
+    - type: stdout
+  contextKeys: [subscriber_id, module_id]
+
+http:
+  port: 9203
+  timeout:
+    read: 30
+    # A DSS turn is streamed and may stay quiet for up to two minutes, so the
+    # reply has to be allowed to outlast the usual 30.
+    write: 180
+    idle: 30
+
+pluginManager:
+  root: ./plugins
+
+plugins:
+  otelsetup:
+    id: otelsetup
+    config:
+      serviceName: "experience-adapter"
+      environment: "__OTEL_ENVIRONMENT__"
+      otlpEndpoint: "__OTLP_ENDPOINT__"
+      enableMetrics: "__OTEL_ENABLED__"
+      enableTracing: "__OTEL_ENABLED__"
+      enableLogs: "__OTEL_ENABLED__"
+
+modules:
+  - name: experience-adapter
+    # experience-api points EXPERIENCE_API_DSS_BASE_URL here, so it believes it
+    # is calling the DSS directly.
+    path: /dss/
+    handler:
+      type: std
+      # bap because this adapter SENDS. role sets direction, not participant type.
+      role: bap
+      # Signs as this id whatever the body says. No reqpreprocessor: it would
+      # take the id from the body, which this adapter does not read.
+      subscriberId: __EXPERIENCE_SUBSCRIBER_ID__
+      # The DSS answers as an event stream; hold none of it back.
+      streamResponses: true
+      httpClientConfig:
+        maxIdleConns: 100
+        maxIdleConnsPerHost: 20
+        idleConnTimeout: 300s
+        # How long the DSS may take to start answering.
+        responseHeaderTimeout: 130s
+
+      plugins:
+        registry:
+          id: sunbirdRegistry
+          config:
+            url: http://sunbird-registry-service:8081/api/v1
+            entity: Participant
+            providerEntity: ProviderSchema
+            cacheTTL: 0
+            timeout: 2
+            retry_max: 1
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+            maxResponseBytes: 1048576
+
+        keyManager:
+          id: simplekeymanager
+          config:
+            subscriberId: __EXPERIENCE_SUBSCRIBER_ID__
+            # The key's osid, not a friendly name: the registry indexes on it.
+            keyId: __EXPERIENCE_KEY_ID__
+            signingPrivateKey: "__EXPERIENCE_SIGNING_PRIVATE__"
+            signingPublicKey: "__EXPERIENCE_SIGNING_PUBLIC__"
+            encrPrivateKey: "__EXPERIENCE_ENCR_PRIVATE__"
+            encrPublicKey: "__EXPERIENCE_ENCR_PUBLIC__"
+
+        signer:
+          id: signer
+        signValidator:
+          id: signvalidator
+
+        router:
+          id: nonbecknrouter
+          config:
+            routingConfig: /app/config/routing-experience-adapter.yaml
+
+      # We sign what we forward and check nothing inbound: experience-api is
+      # our own service, behind the same boundary as this adapter.
+      steps:
+        - addRoute
+        - sign
