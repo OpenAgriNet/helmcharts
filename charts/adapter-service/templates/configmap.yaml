@@ -21,9 +21,8 @@ already pins to the config's http.port.
 {{- $c := $v.cache | default dict -}}
 {{- $cfg = $cfg | replace "__REDIS_ADDR__" (required "cache.addr is required: the adapter caches registry lookups in Redis and will not start without it" $c.addr) -}}
 {{- $cfg = $cfg | replace "__REGISTRY_CACHE_TTL__" ($c.ttl | default "30s") -}}
-{{- /* cache.registryRecords false drops the registrycache plugin, and the
-registry caches its lookups for cache.ttl instead. hasKey, because default
-reads false as unset. */ -}}
+{{- $cfg = $cfg | replace "__REGISTRY_PRELOAD__" ($c.preload | default "Participant,ProviderSchema") -}}
+{{- /* cache.registryRecords false drops registrycache (hasKey: default reads false as unset). */ -}}
 {{- if and (hasKey $c "registryRecords") (not $c.registryRecords) -}}
 {{- $cfg = regexReplaceAll `(?m)^[ ]*registryCache:\n[ ]*id: registrycache\n[ ]*config:\n(?:[ ]*(?:url|ttl|preload): .*\n){3}` $cfg "" -}}
 {{- end -}}

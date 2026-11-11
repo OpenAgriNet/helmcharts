@@ -14,7 +14,8 @@ and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 ### Added
 - `cache.passwordSecret` for `REDIS_PASSWORD`.
 - `registrycache` plugin on in the network and provider adapters; needs an
-  adapter image that includes it. `cache.registryRecords: false` turns it off.
+  adapter image that includes it. `cache.registryRecords: false` turns it off;
+  `cache.preload` lists the entities it keeps.
 
 ## [0.9.1] - 2026-11-02
 

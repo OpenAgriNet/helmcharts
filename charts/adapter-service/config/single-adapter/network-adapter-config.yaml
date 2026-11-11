@@ -175,7 +175,7 @@ modules:
           config:
             url: http://registry.registry.svc.cluster.local:8081/api/v1
             ttl: 24h
-            preload: Participant,ProviderSchema
+            preload: __REGISTRY_PRELOAD__
         registry:
           id: sunbirdRegistry
           config:
@@ -253,7 +253,7 @@ modules:
           config:
             url: http://registry.registry.svc.cluster.local:8081/api/v1
             ttl: 24h
-            preload: Participant,ProviderSchema
+            preload: __REGISTRY_PRELOAD__
         registry:
           id: sunbirdRegistry
           config:

@@ -351,16 +351,16 @@ federation:
 # ---------------------------------------------------------------------------
 # Registry cache
 #
-# Redis for registry lookups. ttl is also how long a suspension takes to apply,
-# except in the network and provider adapters: they read active records
-# through the registrycache plugin, kept for the 24h set in their configs.
+# Redis for registry lookups. ttl is how long a suspension takes to apply
+# (24h in the network and provider adapters, which use registrycache).
 # ---------------------------------------------------------------------------
 cache:
   addr: ""            # required, e.g. redis-master.redis.svc.cluster.local:6379
   ttl: 30s
-  # false turns the registrycache plugin off: the network and provider
-  # adapters then cache their registry lookups for ttl, like the others.
+  # false turns the registrycache plugin off.
   registryRecords: true
+  # Registry entities the registrycache plugin keeps, comma separated.
+  preload: Participant,ProviderSchema
   # Secret with the Redis password (REDIS_PASSWORD).
   passwordSecret:
     name: ""
