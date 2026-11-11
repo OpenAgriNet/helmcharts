@@ -24,6 +24,8 @@ config/adapters/multi-adapter/consumer-adapter.yaml
 config/adapters/multi-adapter/network-adapter.yaml
 config/adapters/multi-adapter/provider-adapter.yaml
 config/adapters/experience/*.yaml
+# The extra experience adapters' services, written by configure-experience.
+docker-compose.experience.yml
 
 # A local override for the discovery service, if you make one.
 config/discovery/instance.yaml

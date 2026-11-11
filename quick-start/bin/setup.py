@@ -58,6 +58,8 @@ from cryptography.hazmat.primitives import serialization as ser
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 KEYS = ROOT / "keys" / "keys.json"
 ADAPTERS = ROOT / "config" / "adapters"
+# The services of the extra experience adapters, written by configure-experience.
+EXTRA_COMPOSE = ROOT / "docker-compose.experience.yml"
 
 
 def load_dotenv():
@@ -659,6 +661,13 @@ ADAPTER_TEMPLATES = {
 # The .env settings an adapter's config cannot be rendered without.
 ADAPTER_REQUIRES = {"experience": [], "dss": ["DSS_URL"]}
 
+# The shape of a participant id the registry takes: lowercase, dotted, no edge hyphens.
+PARTICIPANT_ID = re.compile(r"[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+")
+
+# Host ports of the extra experience adapters: this plus their number, clear of
+# the first experience adapter's 9203 and the DSS adapter's 9204.
+EXTRA_EXPERIENCE_PORT_BASE = 9300
+
 # Where the experience adapter finds the DSS adapter when both run in one stack.
 DSS_ADAPTER_DEFAULT_URL = "http://dss-adapter:9204"
 
@@ -671,6 +680,26 @@ def published_url(participant_id):
 
 def identity_file(name):
     return KEYS.parent / f"{name}.json"
+
+
+def registered_extras():
+    """Number to participant id, for each extra experience adapter registered here.
+    A key file with no key id belongs to a registration that failed, so it is not one."""
+    found = {}
+    for path in KEYS.parent.glob("experience-*.json"):
+        match = re.fullmatch(r"experience-(\d+)\.json", path.name)
+        identity = json.loads(path.read_text()) if match else {}
+        if identity.get("keyId"):
+            found[int(match.group(1))] = identity["participantId"]
+    return found
+
+
+def extra_experience_numbers():
+    return sorted(registered_extras())
+
+
+def next_experience_number():
+    return max(extra_experience_numbers(), default=0) + 1
 
 
 def identity_placeholders(prefix, identity):
@@ -708,11 +737,11 @@ def render_template(text, values, name):
     return text
 
 
-def register_adapter_identity(name):
-    """One adapter's entry, with its own keys. Create only, like the network's:
-    a row already there is left alone."""
+def register_identity(name, participant_id):
+    """One entry, with keys of its own. Create only, like the network's: a row
+    already there is left alone."""
     wait_for_registry()
-    identity = load_or_generate_keys(env(EXPERIENCE_IDENTITIES[name]), identity_file(name))
+    identity = load_or_generate_keys(participant_id, identity_file(name))
     ensure_participant(identity["participantId"],
                        node(identity["participantId"], name, ["consumer"],
                             published_url(identity["participantId"]),
@@ -720,6 +749,39 @@ def register_adapter_identity(name):
     identity = key_osid(identity)
     identity_file(name).write_text(json.dumps(identity, indent=2))
     print(f"registry: {name} {identity['participantId']}, signing key id {identity['keyId']}")
+
+
+def register_adapter_identity(name):
+    register_identity(name, env(EXPERIENCE_IDENTITIES[name]))
+
+
+def need_registry_id(participant_id):
+    """Stop an id the registry would refuse before a key is made for it."""
+    if not PARTICIPANT_ID.fullmatch(participant_id):
+        sys.exit(f"setup: {participant_id!r} is not an id the registry takes.\n"
+                 f"  Lowercase letters, digits and hyphens, in parts joined by dots: acme.org")
+
+
+def number_for(participant_id):
+    """The file number of the extra adapter already holding this id, else the next one."""
+    held = {pid: number for number, pid in registered_extras().items()}
+    return held.get(participant_id, next_experience_number())
+
+
+def refuse_first_adapters_id(participant_id):
+    """Two adapters signing as one id would share a registry row and a key."""
+    first = identity_file("experience")
+    if first.exists() and json.loads(first.read_text()).get("participantId") == participant_id:
+        sys.exit(f"setup: {participant_id} is the first experience adapter's own id.\n"
+                 f"  Another adapter needs an id of its own.")
+
+
+def add_experience_adapter(participant_id):
+    """Another experience adapter, under the id given. Only ever run on purpose: the
+    registry keeps every entry. An id given twice reuses its adapter."""
+    need_registry_id(participant_id)
+    refuse_first_adapters_id(participant_id)
+    register_identity(f"experience-{number_for(participant_id)}", participant_id)
 
 
 def need_adapter_identity(name):
@@ -757,19 +819,51 @@ def dss_values(identity):
 ADAPTER_VALUES = {"experience": experience_values, "dss": dss_values}
 
 
+def write_rendered(template_name, out_name, values):
+    template = ADAPTERS / "experience" / f"{template_name}.yaml.tmpl"
+    out = ADAPTERS / "experience" / f"{out_name}.yaml"
+    # Docker makes a directory at a bind-mount source that is not there yet.
+    if out.is_dir():
+        sys.exit(f"setup: {out} is a directory, not a file.\n"
+                 f"  Docker created it by starting the adapters first. Remove it and retry.")
+    out.write_text(render_template(template.read_text(), values, f"{out_name}.yaml"))
+    out.chmod(0o600)  # holds a private key
+    print(f"  config/adapters/experience/{out_name}.yaml")
+
+
+def write_extra_compose(numbers):
+    """The compose services of the extra adapters, beside the main file. None
+    written when there are none, so the stack reads one file as before."""
+    if not numbers:
+        return
+    template = (ADAPTERS / "experience" / "experience-adapter-extra.compose.yml.tmpl").read_text()
+    services = [render_template(template, {"__NUMBER__": str(number),
+                                           "__HOST_PORT__": str(EXTRA_EXPERIENCE_PORT_BASE + number)},
+                                "experience-adapter-extra.compose.yml")
+                for number in numbers]
+    EXTRA_COMPOSE.write_text("services:\n" + "\n".join(services))
+    print(f"  {EXTRA_COMPOSE.name}")
+
+
+def render_extra_experience_adapters():
+    """Each extra experience adapter gets its own copy of the adapter config, signed
+    as itself, and its own service. The routing file does not name it, so they all
+    share the one."""
+    numbers = extra_experience_numbers()
+    for number in numbers:
+        identity = need_adapter_identity(f"experience-{number}")
+        write_rendered("experience-adapter", f"experience-adapter-{number}",
+                       experience_values(identity))
+    write_extra_compose(numbers)
+
+
 def render_adapter_configs(name):
     """Render the configs of one adapter, and only that one's."""
     values = ADAPTER_VALUES[name](need_adapter_identity(name))
     for template_name in ADAPTER_TEMPLATES[name]:
-        template = ADAPTERS / "experience" / f"{template_name}.yaml.tmpl"
-        out = ADAPTERS / "experience" / f"{template_name}.yaml"
-        # Docker makes a directory at a bind-mount source that is not there yet.
-        if out.is_dir():
-            sys.exit(f"setup: {out} is a directory, not a file.\n"
-                     f"  Docker created it by starting the adapters first. Remove it and retry.")
-        out.write_text(render_template(template.read_text(), values, f"{template_name}.yaml"))
-        out.chmod(0o600)  # holds a private key
-        print(f"  config/adapters/experience/{template_name}.yaml")
+        write_rendered(template_name, template_name, values)
+    if name == "experience":
+        render_extra_experience_adapters()
 
 
 # ---------------------------------------------------------------- commands
@@ -807,6 +901,10 @@ def main(argv):
         name = command.removeprefix("register-")
         require([EXPERIENCE_IDENTITIES[name]])
         register_adapter_identity(name)
+    elif command == "add-experience":
+        if len(argv) != 2:
+            sys.exit("setup: add-experience takes the participant id they bring, e.g. acme.org")
+        add_experience_adapter(argv[1])
     elif command in ("configure-experience", "configure-dss"):
         name = command.removeprefix("configure-")
         require(ADAPTER_REQUIRES[name])

@@ -24,6 +24,15 @@ cd "$ROOT"
 # profile is active, which is what makes `down` mean down (ADR-0006).
 PROFILES=(--profile reverse-proxy --profile observability --profile multi-adapter --profile experience)
 
+# The extra experience adapters' services are in a file configure-experience
+# writes; every docker compose call below reads it once it exists.
+use_extra_compose() {
+    [ -f docker-compose.experience.yml ] || return 0
+    case ":${COMPOSE_FILE:-}:" in *:docker-compose.experience.yml:*) return 0 ;; esac
+    export COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}:docker-compose.experience.yml"
+}
+use_extra_compose
+
 # Deployment mode for `up`: NETWORK_ADAPTER_DEPLOYMENT_MODE from the shell, else .env, else
 # single-adapter (ADR-0001).
 # Other commands keep the running mode so depends_on never swaps network-adapter's config.
@@ -579,22 +588,44 @@ register_adapter() {
 
 # Render one adapter's config, then start it. The DSS adapter also needs the
 # network adapter up: it sends what the DSS asks of the network through it.
-configure_experience() { configure_one experience experience-adapter routing-experience-adapter; }
+configure_experience() { configure_one experience "experience-adapter$(extra_experience_services)" routing-experience-adapter; }
 configure_dss()        { configure_one dss dss-adapter routing-dss-inbound routing-dss-outbound; }
 
+# One " experience-adapter-N" per extra adapter registered with add-experience.
+extra_experience_services() {
+    local f
+    for f in keys/experience-[0-9]*.json; do
+        [ -e "$f" ] || continue
+        f=${f#keys/experience-}
+        printf ' experience-adapter-%s' "${f%.json}"
+    done
+}
+
+# Another experience adapter, under the id given. Deliberate, because the registry
+# keeps every entry; configure-experience then starts it.
+add_experience() {
+    preflight
+    [ -n "${participantId:-}" ] \
+        || die "whose adapter? e.g. make add-experience participantId=acme.org"
+    step 1 1 "an experience adapter as $participantId"
+    python3 bin/setup.py add-experience "$participantId"
+    info "make configure-experience starts it"
+}
+
 configure_one() {
-    local name=$1 service=$1-adapter f
-    shift
+    local name=$1 services=$2 f
+    shift 2
     preflight
     step 1 2 "$name adapter config"
     python3 bin/setup.py "configure-$name"
-    step 2 2 "$service"
+    use_extra_compose
+    step 2 2 "$services"
     for f in "$@"; do
         [ -f "config/adapters/experience/$f.yaml" ] \
             || die "config/adapters/experience/$f.yaml was not rendered (a directory there? rm -r it, then re-run)"
     done
-    docker compose --profile experience up -d --force-recreate "$service"
-    printf '\n\033[1;32m==> %s is up\033[0m\n' "$service"
+    docker compose --profile experience up -d --force-recreate $services
+    printf '\n\033[1;32m==> %s is up\033[0m\n' "$services"
 }
 
 # Sign the federation documents into .well-known/ and admit another network.
@@ -746,8 +777,10 @@ bin/stack.sh <command>
 
   register-experience  the experience adapter's entry, with its own keys
                      (EXPERIENCE_SUBSCRIBER_ID)
+  add-experience     another experience adapter, registered as participantId= exactly.
+                     Run only on purpose; the same id again reuses its adapter
   register-dss       the DSS adapter's entry, with its own keys (DSS_SUBSCRIBER_ID)
-  configure-experience render the experience adapter's config, start it
+  configure-experience render the experience adapters' configs, start them all
                      (DSS_ADAPTER_URL says where the DSS adapter is; EXPERIENCE_ADAPTER_IMAGE
                      must be built from the branch that adds nonbecknrouter)
   configure-dss      render the DSS adapter's config, start it (needs DSS_URL, and
@@ -786,6 +819,7 @@ case "${1:-}" in
     register-provider) register_provider ;;
     configure-adapter) configure_adapter ;;
     register-experience) register_experience ;;
+    add-experience) add_experience ;;
     register-dss)   register_dss ;;
     configure-experience) configure_experience ;;
     configure-dss)  configure_dss ;;

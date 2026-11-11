@@ -16,7 +16,7 @@
 
 STACK := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))bin/stack.sh
 
-.PHONY: help up up-core down destroy keys certs register-network register-provider configure-adapter register-experience register-dss configure-experience configure-dss host-descriptor admit refresh suspend verify reverse-proxy observability pull restart restart-edge ps logs
+.PHONY: help up up-core down destroy keys certs register-network register-provider configure-adapter register-experience add-experience register-dss configure-experience configure-dss host-descriptor admit refresh suspend verify reverse-proxy observability pull restart restart-edge ps logs
 
 # Default target: running a bare `make` in a directory that can delete a
 # Postgres volume should print the menu, not pick something from it.
@@ -61,8 +61,9 @@ register-provider: ; @$(STACK) register-provider
 configure-adapter: ; @$(STACK) configure-adapter
 
 # The experience layer's two adapters, each set up on its own: register-<name>
-# once, then configure-<name>. See the README for what to set in .env first.
+# once, then configure-<name>. add-experience participantId=acme.org adds one.
 register-experience:  ; @$(STACK) register-experience
+add-experience:       ; @$(STACK) add-experience
 register-dss:         ; @$(STACK) register-dss
 configure-experience: ; @$(STACK) configure-experience
 configure-dss:        ; @$(STACK) configure-dss

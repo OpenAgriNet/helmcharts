@@ -129,7 +129,7 @@ class NeedAdapterIdentity(TempKeys):
             s.need_adapter_identity("dss")
 
 
-class RenderAdapterConfigs(TempKeys):
+class RenderedConfigs(TempKeys):
     def setUp(self):
         super().setUp()
         shutil.copytree(s.ADAPTERS / "experience", self.folder / "experience",
@@ -137,11 +137,17 @@ class RenderAdapterConfigs(TempKeys):
         patch = mock.patch.object(s, "ADAPTERS", self.folder)
         patch.start()
         self.addCleanup(patch.stop)
+        self.compose = self.folder / "docker-compose.experience.yml"
+        patch = mock.patch.object(s, "EXTRA_COMPOSE", self.compose)
+        patch.start()
+        self.addCleanup(patch.stop)
         (self.folder / "experience.json").write_text(json.dumps(IDENTITY))
 
     def rendered(self):
         return sorted(path.name for path in (self.folder / "experience").glob("*.yaml"))
 
+
+class RenderAdapterConfigs(RenderedConfigs):
     def test_it_renders_the_files_of_that_adapter_and_no_others(self):
         with mock.patch.dict(os.environ, {}, clear=True):
             s.render_adapter_configs("experience")
@@ -155,6 +161,35 @@ class RenderAdapterConfigs(TempKeys):
         self.assertEqual(self.rendered(), [])
 
 
+class ExtraExperienceCompose(RenderedConfigs):
+    def keep(self, *numbers):
+        for number in numbers:
+            extra = {**IDENTITY, "participantId": f"acme-{number}.example.org"}
+            (self.folder / f"experience-{number}.json").write_text(json.dumps(extra))
+
+    def render(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            s.render_adapter_configs("experience")
+
+    def test_each_extra_adapter_gets_a_service_that_mounts_its_own_config(self):
+        self.keep(1)
+        self.render()
+        text = self.compose.read_text()
+        self.assertIn("experience-adapter-1:", text)
+        self.assertIn("config/adapters/experience/experience-adapter-1.yaml:/app/config/adapter.yaml", text)
+
+    def test_the_host_port_follows_the_number_and_keeps_clear_of_the_first_two(self):
+        self.keep(1, 3)
+        self.render()
+        text = self.compose.read_text()
+        self.assertIn("127.0.0.1:9301:9203", text)
+        self.assertIn("127.0.0.1:9303:9203", text)
+
+    def test_no_extra_adapters_means_no_compose_file(self):
+        self.render()
+        self.assertFalse(self.compose.exists())
+
+
 class PublishedUrl(unittest.TestCase):
     def test_a_node_entry_gets_an_https_url_named_after_its_id(self):
         self.assertEqual(s.published_url("experience-api.local"), "https://experience-api.local")
@@ -164,6 +199,118 @@ class IdentityFile(unittest.TestCase):
     def test_each_identity_keeps_its_own_keys_file(self):
         self.assertEqual(s.identity_file("dss").name, "dss.json")
         self.assertNotEqual(s.identity_file("dss"), s.KEYS)
+
+
+class ExtraExperienceNumbers(TempKeys):
+    def keep(self, *names):
+        for name in names:
+            (self.folder / name).write_text(json.dumps(IDENTITY))
+
+    def test_none_registered_means_the_next_one_is_1(self):
+        self.keep("experience.json", "dss.json")
+        self.assertEqual(s.extra_experience_numbers(), [])
+        self.assertEqual(s.next_experience_number(), 1)
+
+    def test_the_next_number_follows_the_highest_one_kept(self):
+        self.keep("experience.json", "experience-1.json", "experience-3.json")
+        self.assertEqual(s.extra_experience_numbers(), [1, 3])
+        self.assertEqual(s.next_experience_number(), 4)
+
+    def test_keys_whose_registration_never_finished_are_not_counted(self):
+        self.keep("experience-1.json")
+        (self.folder / "experience-2.json").write_text(json.dumps({"participantId": "x.local.b"}))
+        self.assertEqual(s.extra_experience_numbers(), [1])
+        self.assertEqual(s.next_experience_number(), 2)
+
+    def test_files_that_are_not_numbered_experience_keys_are_ignored(self):
+        self.keep("experience-a.json", "experience-1.txt", "dss-1.json")
+        self.assertEqual(s.extra_experience_numbers(), [])
+
+
+class AddExperienceAdapter(TempKeys):
+    def setUp(self):
+        super().setUp()
+        self.ensure_participant = self.patched("ensure_participant")
+        self.patched("wait_for_registry")
+        self.patched("key_osid", side_effect=lambda identity: {**identity, "keyId": "1-abc"})
+
+    def patched(self, name, **options):
+        patch = mock.patch.object(s, name, **options)
+        self.addCleanup(patch.stop)
+        return patch.start()
+
+    def add(self, participant_id):
+        s.add_experience_adapter(participant_id)
+
+    def registered_ids(self):
+        return [call.args[0] for call in self.ensure_participant.call_args_list]
+
+    def keys_of(self, number):
+        return json.loads((self.folder / f"experience-{number}.json").read_text())
+
+    def test_the_id_is_registered_exactly_as_given(self):
+        self.add("acme.org")
+        self.add("acme.org.a")
+        self.assertEqual(self.registered_ids(), ["acme.org", "acme.org.a"])
+
+    def test_each_different_id_gets_the_next_file_number_and_keys_of_its_own(self):
+        self.add("acme.org")
+        self.add("other.org")
+        self.assertEqual(self.keys_of(1)["participantId"], "acme.org")
+        self.assertEqual(self.keys_of(2)["participantId"], "other.org")
+        self.assertNotEqual(self.keys_of(1)["signingPublic"], self.keys_of(2)["signingPublic"])
+
+    def test_the_same_id_again_reuses_its_adapter_and_its_keys(self):
+        self.add("acme.org")
+        before = self.keys_of(1)
+        self.add("acme.org")
+        self.assertEqual(self.keys_of(1), before)
+        self.assertEqual(list(self.folder.glob("experience-*.json")), [self.folder / "experience-1.json"])
+
+    def test_the_first_adapters_own_id_is_refused_and_nothing_is_made(self):
+        (self.folder / "experience.json").write_text(json.dumps(IDENTITY))
+        with self.assertRaises(SystemExit):
+            self.add(IDENTITY["participantId"])
+        self.assertEqual(list(self.folder.glob("experience-*.json")), [])
+        self.ensure_participant.assert_not_called()
+
+    def test_an_id_the_registry_would_refuse_is_stopped_before_any_key_is_made(self):
+        for bad in ("Acme.org", "acme", "acme..org", "-acme.org", ""):
+            with self.assertRaises(SystemExit, msg=bad):
+                self.add(bad)
+        self.assertEqual(list(self.folder.glob("experience-*.json")), [])
+        self.ensure_participant.assert_not_called()
+
+    def test_adding_leaves_the_first_adapters_keys_alone(self):
+        self.add("acme.org")
+        self.assertFalse((self.folder / "experience.json").exists())
+
+
+class RenderExtraExperienceAdapters(RenderedConfigs):
+    def setUp(self):
+        super().setUp()
+        extra = {**IDENTITY, "participantId": "experience-api.local.a"}
+        (self.folder / "experience-1.json").write_text(json.dumps(extra))
+
+    def test_each_extra_adapter_gets_a_config_signed_as_itself(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            s.render_adapter_configs("experience")
+        text = (self.folder / "experience" / "experience-adapter-1.yaml").read_text()
+        self.assertIn("subscriberId: experience-api.local.a", text)
+        self.assertNotIn("experience-api.local\n", text)
+
+    def test_the_routing_file_is_shared_so_only_the_adapter_file_is_added(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            s.render_adapter_configs("experience")
+        self.assertEqual(self.rendered(),
+                         ["experience-adapter-1.yaml", "experience-adapter.yaml",
+                          "routing-experience-adapter.yaml"])
+
+    def test_the_dss_adapter_is_not_given_extras(self):
+        (self.folder / "dss.json").write_text(json.dumps(IDENTITY))
+        with mock.patch.dict(os.environ, {"DSS_URL": "http://dss.example:8077"}, clear=True):
+            s.render_adapter_configs("dss")
+        self.assertNotIn("experience-adapter-1.yaml", self.rendered())
 
 
 if __name__ == "__main__":

@@ -1,0 +1,13 @@
+  # Another experience adapter: the first one's service, with its own name,
+  # config and host port. ports must be replaced, or two would claim one.
+  experience-adapter-__NUMBER__:
+    extends:
+      file: docker-compose.yml
+      service: experience-adapter
+    container_name: ${STACK_PREFIX:-}experience-adapter-__NUMBER__
+    environment:
+      OTEL_SERVICE_NAME: experience-adapter-__NUMBER__
+    volumes:
+      - ./config/adapters/experience/experience-adapter-__NUMBER__.yaml:/app/config/adapter.yaml:ro
+    ports: !override
+      - "127.0.0.1:__HOST_PORT__:9203"
