@@ -94,7 +94,7 @@ stack: your experience app's own environment and the DSS's own environment.
 | the DSS | `DSS_INVOCATION_BASE_URL` | `http://localhost:9204/consumer` |
 | the DSS | `DSS_NETWORK_SENDER_ID` | your `DSS_SUBSCRIBER_ID` |
 | the DSS | `DSS_NETWORK_HOST_ID` | your `BECKN_NETWORK_ID` |
-| the DSS | `DSS_NETWORK_SENDER_FROM_TURN_ENABLED` | leave it off, which is the default |
+| the DSS | `DSS_NETWORK_SENDER_FROM_TURN_ENABLED` | leave it off, which is the default. The DSS then always sends its own id (`DSS_NETWORK_SENDER_ID`) as the sender on its network calls, even when your experience app sends a `senderId` |
 
 Every `.env` setting except `DSS_ADAPTER_URL` must be set for the make commands
 (Option A in step 2). Doing step 2 by hand, put the same values in the config
