@@ -41,3 +41,36 @@ wrong code is visible in the answer.
 
 Neither reproduces the real services' error bodies or credentials. What the
 real ones do on no-data, rate limits or auth failure is still unobserved.
+
+## Experience app and DSS stand-ins
+
+Two small Python programs, so the experience adapter and the DSS adapter can be
+tried end to end without the real experience app or DSS. They run on your
+machine, not in the stack, need no packages, and no make command starts them.
+They are for a demo, not a test of the real services.
+
+Before you start, the stack and both adapters must be running (see
+[SetUp-EXPERIENCE-AND-DSS-ADAPTERS.md](../SetUp-EXPERIENCE-AND-DSS-ADAPTERS.md)).
+The weather provider must be registered, with your token in `MAUSAMGRAM_AUTH`,
+and its catalogue published. Publish it with the request "WeatherObservation
+Capability - MausamGram / Publish - On-demand" in
+[api-collection](../../api-collection/OpenAgriNet.api-collection.json). A
+catalogue past its validity end date is not found by discover.
+
+In one terminal, the DSS stand-in:
+
+    DSS_NETWORK_SENDER_ID=<your DSS_SUBSCRIBER_ID> \
+    DSS_NETWORK_HOST_ID=<your BECKN_NETWORK_ID> \
+    python3 mock-server/dss-stub/dss_stub.py
+
+In another, the experience stand-in:
+
+    EXPERIENCE_SENDER_ID=<your EXPERIENCE_SUBSCRIBER_ID> \
+    python3 mock-server/experience-stub/experience_stub.py "Will it rain this week?"
+
+Add `--stream` to get an event stream instead of one JSON answer.
+
+The DSS stand-in answers every turn the same way: a discover and a select for
+weather at one point, both sent through the DSS adapter as the DSS. If the
+network has nothing, or the provider fails, the outcome says `no_match` or
+`unavailable`. It sends the stream in one piece, not as it is written.
