@@ -57,20 +57,32 @@ Capability - MausamGram / Publish - On-demand" in
 [api-collection](../../api-collection/OpenAgriNet.api-collection.json). A
 catalogue past its validity end date is not found by discover.
 
-In one terminal, the DSS stand-in:
+In one terminal, the DSS stand-in. It listens on port 8077, where the DSS
+adapter expects the DSS (`DSS_URL`):
 
     DSS_NETWORK_SENDER_ID=<your DSS_SUBSCRIBER_ID> \
     DSS_NETWORK_HOST_ID=<your BECKN_NETWORK_ID> \
     python3 mock-server/dss-stub/dss_stub.py
 
-In another, the experience stand-in:
+In another, the experience app stand-in. It listens on port 8070.
+`EXPERIENCE_ADAPTER_URL` is your experience adapter, where your real experience
+app would send turns:
 
     EXPERIENCE_SENDER_ID=<your EXPERIENCE_SUBSCRIBER_ID> \
-    python3 mock-server/experience-stub/experience_stub.py "Will it rain this week?"
+    EXPERIENCE_ADAPTER_URL=http://localhost:9203/dss \
+    python3 mock-server/experience-stub/experience_stub.py
 
-Add `--stream` to get an event stream instead of one JSON answer.
+Then ask the experience app a question. The answer is an event stream, so use
+`curl -N`:
+
+    curl -N localhost:8070/ask -d '{"question": "Will it rain this week?"}'
+
+Add `-H 'Accept: application/json'` to get one JSON body instead. The question
+goes to the experience adapter, then the DSS adapter, then the DSS stand-in, and
+the answer comes back the same way. Each stand-in logs its hop.
 
 The DSS stand-in answers every turn the same way: a discover and a select for
 weather at one point, both sent through the DSS adapter as the DSS. If the
 network has nothing, or the provider fails, the outcome says `no_match` or
-`unavailable`. It sends the stream in one piece, not as it is written.
+`unavailable`. It sends the stream in one piece, not as it is written. The
+experience app stand-in passes the stream on as it arrives.
