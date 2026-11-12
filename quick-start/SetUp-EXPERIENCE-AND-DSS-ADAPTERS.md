@@ -18,19 +18,19 @@ not a production runbook.
 
 ## Before you start
 
-Your experience app and the DSS run outside this stack. This guide sets up only
-the two adapters between them, so both must already work on their own.
+This quick-start does not have an experience app or a DSS. This guide sets up
+only the two adapters between them, so bring your own, both working on their
+own.
 
-> **Note:** this quick-start does not include an experience app or the DSS. It
-> has no service for either, so you bring your own.
+To try the flow without them, `mock-server/` has a stand-in for each: a mock
+experience app and a mock DSS. Step 3 of "Check it works" uses them, and the
+[mock-server README](mock-server/README.md) describes them.
 
 You also need an adapter image that includes the `nonbecknrouter` plugin and the
 `streamResponses` option.
 
 Start from the [README](README.md#run-it). Follow it until the network adapter
 is running and your network is registered, then come back here.
-
----
 
 ## The request flow
 
@@ -69,9 +69,6 @@ to the network. The network adapter checks the DSS adapter's signature the same
 way the DSS adapter checked the experience adapter's. Answers come back the way
 the call went, through both adapters.
 
-Your experience app sends the DSS an ordinary request. It does not sign and it
-does not send Beckn. The experience adapter does the signing.
-
 ## Set up the adapters
 
 ### 1. Settings
@@ -83,7 +80,7 @@ stack: your experience app's own environment and the DSS's own environment.
 
 | Where to set it | Setting | Value |
 |---|---|---|
-| quick-start `.env` | `EXPERIENCE_ADAPTER_IMAGE` | that image |
+| quick-start `.env` | `EXPERIENCE_ADAPTER_IMAGE` | the adapter image from "Before you start" |
 | quick-start `.env` | `EXPERIENCE_SUBSCRIBER_ID` | the id your experience app's requests are signed as, and the `senderId` it sends |
 | quick-start `.env` | `DSS_SUBSCRIBER_ID` | the id the DSS calls the network as |
 | quick-start `.env` | `DSS_URL` | where the DSS listens, as the adapter container sees it, e.g. `http://host.docker.internal:8077` |
@@ -211,8 +208,8 @@ its config, which is what the make commands do.
    Do not run `make configure-experience` or `make configure-dss` afterwards.
    They write these files again from the keys the make commands made.
 
-Option B covers the first experience adapter and the DSS adapter. Further
-experience adapters need Option A.
+Option B covers the first experience adapter and the DSS adapter. For another
+experience adapter, see "Add another experience adapter".
 
 ### 3. Check it works
 
@@ -232,33 +229,53 @@ experience adapters need Option A.
    You should see `401` and `AUT_SIGNATURE_MISSING`. That shows the DSS adapter
    is up and is checking signatures, even if the DSS is not running yet.
 
-3. Send a turn through the experience adapter, which signs it. The DSS must be
-   running for this one. In the body, replace `<your EXPERIENCE_SUBSCRIBER_ID>`
-   with the id your experience adapter signs as. The DSS adapter refuses a
-   `senderId` that is not the id that signed:
+3. Bring up the two stand-ins, each in its own terminal. They play your
+   experience app and the DSS, and each prints where it listens and where it
+   sends. They need the weather provider registered and its catalogue
+   published (see the [mock-server README](mock-server/README.md)).
+
+   The DSS:
 
    ```sh
-   curl -i -X POST http://localhost:9203/dss/v1/turns \
-     -H 'Content-Type: application/json' -H 'Accept: application/json' \
-     -d '{
-       "context": {
-         "id": "api.dss.turn",
-         "version": "2.0.0",
-         "transactionId": "9f2c1a8e-4b70-4d31-9c55-6f2e0b1d7a44",
-         "messageId": "7d41b9e0-52a6-4c18-8b73-1e9f0a4c6d22",
-         "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'",
-         "sessionId": "quick-start-check",
-         "senderId": "<your EXPERIENCE_SUBSCRIBER_ID>"
-       },
-       "message": {
-         "input": [{"role": "user", "content": [{"type": "text", "text": "What is the price of wheat?"}]}],
-         "attributes": {"sourceLanguage": "en", "targetLanguage": "en", "channel": "web"}
-       }
-     }'
+   DSS_NETWORK_SENDER_ID=<your DSS_SUBSCRIBER_ID> \
+   DSS_NETWORK_HOST_ID=<your BECKN_NETWORK_ID> \
+   python3 mock-server/dss-stub/dss_stub.py
    ```
 
-   You should get the DSS's own answer, with `200`. The request body is the
-   DSS's turn request, from its API contract.
+   The experience app. `EXPERIENCE_ADAPTER_URL` is its own experience adapter,
+   where it sends every turn. The value below is the default:
+
+   ```sh
+   EXPERIENCE_SENDER_ID=<your EXPERIENCE_SUBSCRIBER_ID> \
+   EXPERIENCE_ADAPTER_URL=http://localhost:9203/dss \
+   python3 mock-server/experience-stub/experience_stub.py
+   ```
+
+4. Hit the experience app's endpoint, as a user would:
+
+   ```sh
+   curl -N localhost:8070/ask -d '{"question": "Will it rain this week?"}'
+   ```
+
+   You should get an event stream, `claim.completed` and then `turn.completed`,
+   with a five-day forecast. Add `-H 'Accept: application/json'` for one JSON
+   body instead.
+
+   The call goes from the experience app to its experience adapter, which signs
+   it, then to the DSS adapter, which checks the signature and hands it to the
+   DSS. The DSS asks the network through the DSS adapter, which signs as the DSS,
+   and the answer comes back the same way. Each stand-in logs its hop: the
+   experience app logs `sending to http://localhost:9203/dss`, and the DSS logs
+   `discover found 1 catalogue(s)` and `select returned 5 day(s)`.
+
+5. Check who signed. The DSS adapter should have checked your experience app's
+   id, and the network adapter the DSS's id. Your container names may carry a
+   prefix:
+
+   ```sh
+   docker logs dss-adapter --since 5m 2>&1 | grep "Validating Signature for subscriberID"
+   docker logs network-adapter --since 5m 2>&1 | grep "Validating Signature for subscriberID"
+   ```
 
 ## Add another experience adapter
 
@@ -328,14 +345,13 @@ holds where each path is sent, by exact path, with the query string passed on.
 The `.yaml.tmpl` files beside them are the templates. The filled-in `.yaml`
 files hold the private key, so do not share them.
 
-The same shape fits any service with its own API, not Beckn, that only known
-callers should reach. This is an outline and has not been run for a new service.
-
-- The caller's adapter has a module with `nonbecknrouter` and the steps
+- The experience adapter has one module: `nonbecknrouter` with the steps
   `addRoute` and `sign`.
-- The service's adapter has a module with `nonbecknrouter` and the steps
-  `validateSign` and `addRoute`.
-- Add `streamResponses` to a module whose service answers as a stream.
+- The DSS adapter has two. `/dss/` has `nonbecknrouter` and the steps
+  `validateSign` and `addRoute`. `/consumer/` has the standard router and the
+  steps `addRoute` and `sign`.
+- The experience adapter's module and the DSS adapter's `/dss/` module use
+  `streamResponses`, because the DSS answers as a stream.
 
 ### Signing at each hop
 
@@ -349,9 +365,7 @@ callers should reach. This is an outline and has not been run for a new service.
 
 The signature covers the body and the time window, not the path or the query
 string. The DSS door lets in any participant the registry knows. If the request
-has a `context.senderId`, it must be the id that signed. When the receiver is
-another network, the network adapter's `/provider` forwards the call
-signed as our network, and the sender becomes our network's id.
+has a `context.senderId`, it must be the id that signed.
 
 ### What a rejected call looks like
 
@@ -366,8 +380,7 @@ front, captured on a local stack. Every answer has the body
 | a header that is not a signature at all | 500 | `NET_INTERNAL_ERROR` | Internal server error |
 
 A header that cannot be read comes back as a 500, which looks like an adapter
-fault. A known sender with the wrong signature gives `AUT_SIGNATURE_INVALID`.
-That one was not run.
+fault.
 
 A `senderId` in the body that is not the id that signed gets `401` and
 `AUT_UNAUTHORIZED_ACTION`, with the message `subscriber identity mismatch:
