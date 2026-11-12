@@ -233,7 +233,9 @@ experience adapters need Option A.
    is up and is checking signatures, even if the DSS is not running yet.
 
 3. Send a turn through the experience adapter, which signs it. The DSS must be
-   running for this one:
+   running for this one. In the body, replace `<your EXPERIENCE_SUBSCRIBER_ID>`
+   with the id your experience adapter signs as. The DSS adapter refuses a
+   `senderId` that is not the id that signed:
 
    ```sh
    curl -i -X POST http://localhost:9203/dss/v1/turns \
@@ -346,8 +348,9 @@ callers should reach. This is an outline and has not been run for a new service.
 | DSS adapter to the network adapter | the DSS adapter, with its own private key | the network adapter |
 
 The signature covers the body and the time window, not the path or the query
-string. Any participant the registry knows gets through the DSS door. When the
-receiver is another network, the network adapter's `/provider` forwards the call
+string. The DSS door lets in any participant the registry knows. If the request
+has a `context.senderId`, it must be the id that signed. When the receiver is
+another network, the network adapter's `/provider` forwards the call
 signed as our network, and the sender becomes our network's id.
 
 ### What a rejected call looks like
@@ -366,6 +369,12 @@ A header that cannot be read comes back as a 500, which looks like an adapter
 fault. A known sender with the wrong signature gives `AUT_SIGNATURE_INVALID`.
 That one was not run.
 
+A `senderId` in the body that is not the id that signed gets `401` and
+`AUT_UNAUTHORIZED_ACTION`, with the message `subscriber identity mismatch:
+signing subscriber "<signer>" does not match declared context identity
+"<senderId>"`. This one was captured through the experience adapter, and its
+body is `{"message":{"status":"NACK","messageId":"...","error":{...}}}`.
+
 ## When it breaks
 
 | What you see | What to do |
@@ -373,5 +382,6 @@ That one was not run.
 | `setup: ... is not set -- is it missing from .env?` | fill in the variable it names |
 | `keys/... is missing or has no key id` | run that adapter's `make register-...` command first |
 | `AUT_SUBSCRIBER_NOT_FOUND` | the sender is not in the registry: run `make register-experience` (or `make add-experience`) |
+| `AUT_UNAUTHORIZED_ACTION`, `subscriber identity mismatch` | the `senderId` in the body is not the id the adapter signs as: set it to your `EXPERIENCE_SUBSCRIBER_ID` |
 | `502` with an empty body from the experience adapter | the DSS adapter could not reach the DSS: check `DSS_URL` and that the DSS is running |
 | `adapter.yaml: is a directory` | the same fix as in the [README](README.md#when-it-breaks) |
