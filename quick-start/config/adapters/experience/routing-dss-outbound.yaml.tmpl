@@ -1,5 +1,5 @@
-# DSS adapter, outbound: discover to the network layer, the rest to the provider
-# layer. The DSS sends only these four; setup.py fills in the two URLs.
+# DSS adapter, outbound: discover goes to the network, every other action a caller
+# sends goes to the provider. setup.py fills in the two URLs.
 routingRules:
   - version: "2.0.0"
     targetType: "url"
@@ -14,5 +14,11 @@ routingRules:
       url: "__PROVIDER_URL__"
     endpoints:
       - select
-      - support
+      - init
+      - confirm
       - status
+      - track
+      - update
+      - cancel
+      - rate
+      - support
