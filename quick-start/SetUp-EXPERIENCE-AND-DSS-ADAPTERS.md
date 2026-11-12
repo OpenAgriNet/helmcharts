@@ -96,16 +96,26 @@ stack: your experience app's own environment and the DSS's own environment.
 | the DSS | `DSS_NETWORK_HOST_ID` | your `BECKN_NETWORK_ID` |
 | the DSS | `DSS_NETWORK_SENDER_FROM_TURN_ENABLED` | leave it off, which is the default |
 
-Every `.env` setting except `DSS_ADAPTER_URL` must be set. Give the two ids
-different values, and different from `BECKN_NETWORK_ID`. Each adapter is set up
-on its own: the experience adapter needs no `DSS_URL`, and the DSS adapter needs
-no `EXPERIENCE_SUBSCRIBER_ID`.
+Every `.env` setting except `DSS_ADAPTER_URL` must be set for the make commands
+(Option A in step 2). Doing step 2 by hand, put the same values in the config
+files instead.
+
+Give the two ids different values, and different from `BECKN_NETWORK_ID`. Each
+adapter is set up on its own: the experience adapter needs no `DSS_URL`, and the
+DSS adapter needs no `EXPERIENCE_SUBSCRIBER_ID`.
 
 The addresses above use the default ports, 9203 for the experience adapter and
 9204 for the DSS adapter. If you set `EXPERIENCE_ADAPTER_PORT` or
 `DSS_ADAPTER_PORT` in `.env`, use those instead.
 
 ### 2. Register and start the adapters
+
+There are two ways to do this. Use the make commands, or do the same steps by
+hand. Pick one way and use it for both adapters. Do not mix them on one adapter:
+the make commands read the keys they made themselves, so they would not find
+keys you made by hand.
+
+#### Option A: with the make commands (recommended)
 
 ```sh
 make register-experience      # the experience adapter's entry, with its own keys
@@ -114,17 +124,95 @@ make register-dss             # the DSS adapter's entry, with its own keys
 make configure-dss            # render its config and start it
 ```
 
-To see what an adapter is running, open its config in `config/adapters/experience/`:
+#### Option B: by hand
 
-| Adapter | Adapter config | Routing config |
-|---|---|---|
-| experience | `experience-adapter.yaml` | `routing-experience-adapter.yaml` |
-| DSS | `dss-adapter.yaml` | `routing-dss-inbound.yaml` and `routing-dss-outbound.yaml` |
+The flow is the same for the experience adapter and the DSS adapter, each with
+its own id and keys. It adds the adapter's entry to the registry and fills in
+its config, which is what the make commands do.
 
-The adapter config holds the modules, plugins and steps. The routing config
-holds where each path is sent. The `.yaml.tmpl` files beside them are the
-templates the commands fill in. The rendered `.yaml` files hold the adapter's
-private key, so do not share them.
+1. **Make the keys.** Each adapter needs an Ed25519 pair for signing and an
+   X25519 pair for encryption. Each key is the raw 32 bytes, base64-encoded.
+
+2. **Add the registry entry.** This is the DSS adapter's entry. The experience
+   adapter's entry follows the same flow, with its own values:
+
+   | | `<your id>` | `<name>` | `<signing public key>` |
+   |---|---|---|---|
+   | DSS adapter | your `DSS_SUBSCRIBER_ID` | `dss` | its own key |
+   | experience adapter | your `EXPERIENCE_SUBSCRIBER_ID` | `experience` | its own key |
+
+   The registry listens only on this machine, so run this where it runs. Use the
+   `REGISTRY_PORT` from `.env` in place of `8081` if you changed it.
+
+   ```sh
+   curl -s -X POST http://localhost:8081/api/v1/Participant \
+     -H 'Content-Type: application/json' -d '{
+       "participantId": "<your id>",
+       "name": "<name>",
+       "type": "node",
+       "status": "active",
+       "baseUrl": "https://<your id>",
+       "role": ["consumer"],
+       "keys": [{
+         "alg": "ed25519",
+         "key": "<signing public key>",
+         "status": "active",
+         "validFrom": "2026-01-01T00:00:00Z",
+         "validUntil": "2030-01-01T00:00:00Z"
+       }]
+     }'
+   ```
+
+   `"status":"SUCCESSFUL"` in the answer means it worked. Send the entry itself,
+   with no wrapper around it. The key is plain base64, with no label in front.
+   The id takes lowercase letters, digits and hyphens, with at least one dot.
+   The registry keeps every entry, so a typo cannot be removed.
+
+3. **Read the key id.**
+
+   ```sh
+   curl -s -X POST http://localhost:8081/api/v1/Participant/search \
+     -H 'Content-Type: application/json' \
+     -d '{"filters":{"participantId":{"eq":"<your id>"}}}'
+   ```
+
+   The key id is `keys[0].osid` in the answer. It is not the entry's own
+   `osid`. A signature that names the wrong one fails as an unregistered sender.
+   Do the same for the experience adapter.
+
+4. **Fill in the config.** In `config/adapters/experience/`, copy each
+   `.yaml.tmpl` to the same name without `.tmpl`, and replace every `__NAME__`
+   in it. A name that appears more than once is replaced everywhere.
+
+   | File | Placeholder | Put |
+   |---|---|---|
+   | `experience-adapter.yaml` | `__EXPERIENCE_SUBSCRIBER_ID__` | the id |
+   | | `__EXPERIENCE_KEY_ID__` | the key id from step 3 |
+   | | `__EXPERIENCE_SIGNING_PRIVATE__`, `__EXPERIENCE_SIGNING_PUBLIC__` | the signing keys |
+   | | `__EXPERIENCE_ENCR_PRIVATE__`, `__EXPERIENCE_ENCR_PUBLIC__` | the encryption keys |
+   | `routing-experience-adapter.yaml` | `__DSS_ADAPTER_URL__` | where the DSS adapter is, with no path, e.g. `http://dss-adapter:9204` |
+   | `dss-adapter.yaml` | the same six, named `__DSS_...__` | the DSS adapter's own id and keys |
+   | `routing-dss-inbound.yaml` | `__DSS_URL__` | where the DSS listens |
+   | `routing-dss-outbound.yaml` | `__NETWORK_URL__` | `http://network-adapter:9201/network` |
+   | | `__PROVIDER_URL__` | `http://network-adapter:9201/provider` with one network adapter, or `http://provider-adapter:9200/provider` with a separate provider adapter |
+   | both adapter files | `__OTEL_ENABLED__`, `__OTLP_ENDPOINT__`, `__OTEL_ENVIRONMENT__` | `true`, `otel-collector:4317`, `dev`, or your own |
+
+   Then check that none is left: `grep -n "__[A-Z]" <file>`. The make commands
+   refuse a file with a placeholder left in it, and by hand you have to check
+   yourself.
+
+5. **Start the adapters.** From the quick-start folder:
+
+   ```sh
+   docker compose --profile experience up -d --force-recreate experience-adapter
+   docker compose --profile experience up -d --force-recreate dss-adapter
+   ```
+
+   Do not run `make configure-experience` or `make configure-dss` afterwards.
+   They write these files again from the keys the make commands made.
+
+Option B covers the first experience adapter and the DSS adapter. Further
+experience adapters need Option A.
 
 ### 3. Check it works
 
@@ -172,9 +260,12 @@ private key, so do not share them.
 
 ## Add another experience adapter
 
-A second team's experience app uses the same DSS adapter. It needs its own
-experience adapter, with its own id, keys and registry entry. The DSS adapter
-and the DSS do not change.
+A second team's experience app uses the same DSS adapter, through its own
+experience adapter with its own id and keys. The DSS adapter and the DSS do not
+change. Two things have to be true:
+
+1. Its id is in the registry.
+2. Its experience adapter sends turns to the DSS adapter.
 
 ```mermaid
 flowchart LR
@@ -185,6 +276,8 @@ flowchart LR
     D --> S["DSS"]
     S -->|"via the DSS adapter"| N["Network"]
 ```
+
+### Run it here, with the make commands
 
 ```sh
 make add-experience participantId=partner.example.org   # entry and keys
@@ -202,22 +295,45 @@ make configure-experience                               # starts every experienc
 - Extra adapters need Docker Compose 2.24 or later. The rest of the quick-start
   needs only 2.20.
 
+### Or by hand: manual steps
+
+1. **Add its registry entry.** The team gives you its id and the public half of
+   its signing key. Whoever can reach the registry adds the entry as in Option B
+   step 2, with those values. Then read the key id as in step 3 and send it back.
+   The team puts it in its adapter's config as the key id.
+
+2. **Point its experience adapter at the DSS adapter.** In the routing config,
+   `v1/turns` goes to `http://<DSS adapter address>:9204/dss`. The adapter signs
+   as the team's id, and the DSS adapter checks that against the registry. The
+   team's app sends turns to its own adapter.
+
+In this quick-start the DSS adapter listens only on this machine. Reaching it
+from another machine is not covered here and has not been tried.
+
 ## Info
 
-### Adapter config for the experience adapter and the DSS adapter
+### The adapter configs
 
-The experience and DSS adapters are examples of the same shape: a service with
-its own API, not Beckn, that you want only known callers to reach. This is an
-outline of that shape, not a walkthrough. It has not been run for a new service.
+Open them in `config/adapters/experience/`:
 
-- The caller's adapter has a module with `nonbecknrouter`, and `addRoute` and
-  `sign` as steps. The routing file maps a path to the service's adapter.
-- The service's adapter has a module with `nonbecknrouter` and `validateSign`
-  and `addRoute`. Its routing file maps the path to the service.
+| Adapter | Adapter config | Routing config |
+|---|---|---|
+| experience | `experience-adapter.yaml` | `routing-experience-adapter.yaml` |
+| DSS | `dss-adapter.yaml` | `routing-dss-inbound.yaml` and `routing-dss-outbound.yaml` |
+
+The adapter config holds the modules, plugins and steps. The routing config
+holds where each path is sent, by exact path, with the query string passed on.
+The `.yaml.tmpl` files beside them are the templates. The filled-in `.yaml`
+files hold the private key, so do not share them.
+
+The same shape fits any service with its own API, not Beckn, that only known
+callers should reach. This is an outline and has not been run for a new service.
+
+- The caller's adapter has a module with `nonbecknrouter` and the steps
+  `addRoute` and `sign`.
+- The service's adapter has a module with `nonbecknrouter` and the steps
+  `validateSign` and `addRoute`.
 - Add `streamResponses` to a module whose service answers as a stream.
-- Routing is by exact path, and the query string is passed on.
-
-The templates to copy are `config/adapters/experience/*.yaml.tmpl`.
 
 ### Signing at each hop
 
@@ -229,18 +345,15 @@ The templates to copy are `config/adapters/experience/*.yaml.tmpl`.
 | DSS to the DSS adapter's `/consumer/` | nothing | nothing |
 | DSS adapter to the network adapter | the DSS adapter, with its own private key | the network adapter |
 
-The signature covers the body and the time window. It does not cover the path or
-the query string. Any participant the registry knows gets through the DSS door;
-it is not tied to one id.
-
-When the receiver is another network, the network adapter's `/provider`
-forwards the call signed as our network, and the sender becomes our network's
-id.
+The signature covers the body and the time window, not the path or the query
+string. Any participant the registry knows gets through the DSS door. When the
+receiver is another network, the network adapter's `/provider` forwards the call
+signed as our network, and the sender becomes our network's id.
 
 ### What a rejected call looks like
 
-Calls straight to the DSS adapter's `/dss/` door, with no experience adapter in
-front. Captured on a local stack. Every answer has the body
+Calls straight to the DSS adapter's `/dss/`, with no experience adapter in
+front, captured on a local stack. Every answer has the body
 `{"message":{"ack":{"status":"NACK"},"error":{...}}}`.
 
 | What was sent | Status | Error code | Message |
@@ -249,9 +362,9 @@ front. Captured on a local stack. Every answer has the body
 | a well-formed header, a sender the registry does not know | 401 | `AUT_SUBSCRIBER_NOT_FOUND` | no subscriber found with given credentials |
 | a header that is not a signature at all | 500 | `NET_INTERNAL_ERROR` | Internal server error |
 
-A header that cannot be read comes back as a 500, so the caller cannot tell it
-from an adapter fault. A known sender with the wrong signature gives
-`AUT_SIGNATURE_INVALID` in the code. That one was not run.
+A header that cannot be read comes back as a 500, which looks like an adapter
+fault. A known sender with the wrong signature gives `AUT_SIGNATURE_INVALID`.
+That one was not run.
 
 ## When it breaks
 
