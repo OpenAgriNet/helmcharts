@@ -5,7 +5,7 @@ description: >-
   Bharat Vistaar Docs Pipeline. Orchestration only - no content is stored
   here, state lives in its own Postgres database.
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "latest"
 maintainers:
   - name: OpenAgriNet Engineering Team

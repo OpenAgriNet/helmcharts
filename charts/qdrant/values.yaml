@@ -13,7 +13,8 @@ replicaCount: 1
 image:
   registry: docker.io
   repository: qdrant/qdrant
-  tag: "latest"
+  # Pinned: `latest` moves under a running index.
+  tag: "v1.20.0"
   digest: ""
   pullPolicy: IfNotPresent
   pullSecrets: []

@@ -35,13 +35,15 @@ serviceAccount:
   annotations: {}
   automountServiceAccountToken: true
 
+# The default embedder (sentence_transformers, multilingual-e5-large) loads
+# about 2.5Gi into this process; below 3Gi the pod is OOMKilled on first use.
 resources:
   limits:
     cpu: "1"
-    memory: 1Gi
+    memory: 4Gi
   requests:
     cpu: 250m
-    memory: 512Mi
+    memory: 1Gi
 
 # No HTTP server in this process - compose defines no healthcheck for worker
 # either. Revisit if the app adds a worker health-check mechanism.
@@ -127,7 +129,8 @@ vectorStore:
   timeoutSeconds: 30
 
 prodVectorStore:
-  url: "https://dev-vistaar.da.gov.in/qdrant"
+  # Required only to promote documents to prod; set per environment.
+  url: ""
   collectionName: test_doc_pipeline_prod
   timeoutSeconds: 30
 
@@ -162,12 +165,11 @@ persistence:
 # ============================================================================
 envConfig:
   LOG_LEVEL: "info"
+  # Names the process in traces and logs; api and worker are one image.
+  OTEL_SERVICE_NAME: "knowledge-provider-worker"
   PYTHONUNBUFFERED: "1"
   DEFAULT_INSTANCE: "default"
   DISABLE_PROD_SETTING: "false"
-
-  VECTOR_BACKEND: "qdrant"
-  PROD_VECTOR_BACKEND: "qdrant"
 
   EMBEDDING_PROVIDER: "sentence_transformers"
   EMBEDDING_MODEL: "intfloat/multilingual-e5-large"
@@ -184,6 +186,11 @@ envConfig:
   MISTRAL_OCR_API_URL: "https://api.mistral.ai/v1/ocr"
   OCR_SEGMENT_PAGES: "20"
   OCR_REQUEST_TIMEOUT_SECONDS: "300"
+  # OCR_PROVIDER=chandra: an OpenAI-compatible endpoint ("vllm") or the HF
+  # page API ("hf"). The vllm client takes its key from VLLM_API_KEY.
+  CHANDRA_INFERENCE_MODE: "hf"
+  CHANDRA_VLLM_BASE_URL: ""
+  VLLM_MODEL_NAME: "chandra"
 
   AGRINET_GEMMA_BASE_URL: ""
   AGRINET_GEMMA_MODEL_NAME: "google/gemma-4-31b-it"
@@ -197,12 +204,6 @@ envConfig:
   TRANSLATION_SCRIPT_GATE_ENABLED: "true"
   TRANSLATION_SCRIPT_MIN_CHARS: "15"
   TRANSLATION_SCRIPT_MIN_RATIO: "0.05"
-
-  DOMAIN_TAGGING_ENABLED: "true"
-  DOMAIN_TAGGING_PROVIDER: "gemma_vllm"
-  DOMAIN_TAGGING_MODEL: "google/gemma-4-31b-it"
-  DOMAIN_TAGGING_VLLM_BASE_URL: ""
-  DOMAIN_TAGGING_STRICT_TAXONOMY: "true"
 
   CHUNKING_PROVIDER: "recursive_splitter"
   CHUNKING_MODEL: "recursive_splitter"
@@ -223,11 +224,13 @@ envConfig:
   AI_LAYER_REDIS_DB: "0"
   MASTER_CATALOG_REDIS_TTL_SECONDS: "172800"
 
-  # Publish to Network (Discovery Service) - worker-only; required, no
-  # feature flag to disable the publishing_to_network stage.
+  # Publish to Network (Discovery Service) - worker-only.
   DISCOVERY_SERVICE_ENDPOINT: ""
+  # Off unless set: publishing needs DISCOVERY_SERVICE_ENDPOINT and a sender.
+  ENABLE_PUBLISH_TO_NETWORK: "false"
+  # The network's own subscriberId. Also sent as context.networkId, so it is
+  # what Discovery scopes the published catalogs to.
   NETWORK_SENDER_ID: ""
-  NETWORK_SENDER_URI: ""
 
 envFromSecrets: []
 
@@ -264,9 +267,14 @@ secretEnv:
     name: knowledge-provider-provider-keys
     key: gemma-api-key
     optional: true
-  DOMAIN_TAGGING_API_KEY:
+  TRANSLATION_API_KEY:
     name: knowledge-provider-provider-keys
-    key: domain-tagging-api-key
+    key: translation-api-key
+    optional: true
+  # Read by the chandra-ocr library itself (CHANDRA_INFERENCE_MODE=vllm).
+  VLLM_API_KEY:
+    name: knowledge-provider-provider-keys
+    key: vllm-api-key
     optional: true
   MASTER_CATALOG_PG_PASSWORD:
     name: knowledge-provider-master-catalog-db

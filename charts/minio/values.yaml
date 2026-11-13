@@ -10,23 +10,22 @@
 replicaCount: 1
 
 image:
-  # MinIO stopped publishing minio/minio and minio/mc on Docker Hub for
-  # anonymous pulls (docker.io now returns "pull access denied" even for
-  # pinned tags, discovered while testing this chart against a real
-  # cluster) - quay.io/minio/minio is the current publicly pullable source.
-  registry: quay.io
-  repository: minio/minio
-  tag: "latest"
-  digest: ""
+  # MinIO no longer publishes images anyone can pull: quay.io/minio/minio and
+  # docker.io/minio/minio both answer 401. Chainguard's build is public. Pinned
+  # by digest because Chainguard's free tier publishes only `latest`; this is
+  # the digest langfuse-minio runs.
+  registry: cgr.dev
+  repository: chainguard/minio
+  tag: ""
+  digest: sha256:ad4a4c0a39ad7b71408124fe3df07b1b2e9d2959a369fac8754d2ef3311b5c20
   pullPolicy: IfNotPresent
   pullSecrets: []
 
-command:
-  - minio
-  - server
-  - /data
-  - --console-address
-  - ":9001"
+# Empty: the chart runs `mkdir -p /data/<bucket> && exec minio server /data
+# --console-address :9001`. A bucket is a directory under /data, so making it
+# before the server starts replaces the bucket-init Job (whose minio/mc image
+# is gone the same way). Set to override.
+command: []
 
 nameOverride: ""
 fullnameOverride: ""
@@ -84,11 +83,12 @@ startupProbe:
   timeoutSeconds: 5
   failureThreshold: 30
 
+# Chainguard runs as 65532; fsGroup makes the volume writable by it.
 podSecurityContext:
-  enabled: false
-  fsGroup: 1000
-  runAsUser: 1000
-  runAsGroup: 1000
+  enabled: true
+  fsGroup: 65532
+  runAsUser: 65532
+  runAsGroup: 65532
   runAsNonRoot: true
   seccompProfile:
     type: RuntimeDefault
@@ -98,7 +98,7 @@ securityContext:
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: false
   runAsNonRoot: true
-  runAsUser: 1000
+  runAsUser: 65532
   capabilities:
     drop:
       - ALL
@@ -124,19 +124,18 @@ persistence:
   storageClassName: ""
   accessMode: ReadWriteOnce
 
-# The bucket knowledge-provider-api/worker read/write (MINIO_BUCKET). Created
-# by the post-install/post-upgrade Job below, idempotently.
+# The bucket knowledge-provider-api/worker read/write (MINIO_BUCKET). Made as
+# a directory before the server starts (see command above).
 bucket: documents
 
 # ---------------------------------------------------------------------------
 # Bucket-init Job (helm.sh/hook: post-install,post-upgrade). Runs `mc mb` for
-# `bucket` above and exits - matches docker-compose.yml's `minio-init`
-# service. Deleted automatically on success (hook-succeeded).
+# `bucket` above and exits. Off: the default command already makes the bucket,
+# and quay.io/minio/mc answers 401. Enable only with an mc image you can pull.
 # ---------------------------------------------------------------------------
 bucketInit:
-  enabled: true
+  enabled: false
   image:
-    # Same Docker Hub restriction as the main image above - quay.io works.
     registry: quay.io
     repository: minio/mc
     tag: "latest"

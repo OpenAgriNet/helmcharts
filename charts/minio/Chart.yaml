@@ -5,7 +5,7 @@ description: >-
   infrastructure. Currently consumed by knowledge-provider for original
   uploads, normalized files, and stage artifacts.
 type: application
-version: 0.2.0
+version: 0.3.0
 appVersion: "latest"
 maintainers:
   - name: OpenAgriNet Engineering Team

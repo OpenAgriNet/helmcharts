@@ -4,7 +4,7 @@ description: >-
   Bharat Vistaar Docs Pipeline API - FastAPI service for review-driven
   document ingestion (OCR, translation, chunking, vector indexing).
 type: application
-version: 0.2.0
+version: 0.3.0
 appVersion: "latest"
 maintainers:
   - name: OpenAgriNet Engineering Team

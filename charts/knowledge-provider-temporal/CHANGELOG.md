@@ -5,6 +5,12 @@ All notable changes to the `knowledge-provider-temporal` chart are documented he
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-11-13
+
+### Changed
+- Image pinned to `temporalio/auto-setup:1.29.7` instead of `latest`. Temporal
+  stopped publishing auto-setup at 1.29.7, so this is the same image.
+
 ## [0.1.0] - 2026-09-21
 
 ### Added

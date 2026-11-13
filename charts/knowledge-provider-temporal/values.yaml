@@ -14,7 +14,9 @@ replicaCount: 1
 image:
   registry: docker.io
   repository: temporalio/auto-setup
-  tag: "latest"
+  # Pinned: auto-setup stopped at 1.29.7 (Temporal no longer publishes it), so
+  # `latest` is this same image without saying so.
+  tag: "1.29.7"
   digest: ""
   pullPolicy: IfNotPresent
   pullSecrets: []

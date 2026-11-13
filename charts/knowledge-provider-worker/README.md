@@ -63,7 +63,7 @@ has no `keycloak.*` block: auth (JWT validation, admin API calls) is handled
 entirely by `knowledge-provider-api`'s HTTP layer, which this process never
 touches.
 
-`DISCOVERY_SERVICE_ENDPOINT`, `NETWORK_SENDER_ID`, `NETWORK_SENDER_URI` are
+`ENABLE_PUBLISH_TO_NETWORK`, `DISCOVERY_SERVICE_ENDPOINT` and `NETWORK_SENDER_ID` are
 **worker-only** per `ENV.md` — the `publishing_to_network` workflow stage runs
 here, not in the API.
 

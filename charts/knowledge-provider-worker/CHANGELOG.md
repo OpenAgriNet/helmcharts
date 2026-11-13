@@ -5,6 +5,23 @@ All notable changes to the `knowledge-provider-worker` chart are documented here
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-11-13
+
+### Changed
+- Memory defaults raised to 1Gi request / 4Gi limit, as in
+  `knowledge-provider-api`.
+- `prodVectorStore.url` defaults to empty.
+- `envConfig` sets `OTEL_SERVICE_NAME`, adds `ENABLE_PUBLISH_TO_NETWORK`
+  (`"false"`) and the chandra OCR settings.
+- `secretEnv` adds `TRANSLATION_API_KEY` and `VLLM_API_KEY`.
+
+### Removed
+- `envConfig`: `DOMAIN_TAGGING_*`, `VECTOR_BACKEND`, `PROD_VECTOR_BACKEND` and
+  `NETWORK_SENDER_URI`, and `secretEnv.DOMAIN_TAGGING_API_KEY`. The app no
+  longer reads them.
+- The comment saying publishing has no feature flag; it has
+  `ENABLE_PUBLISH_TO_NETWORK`.
+
 ## [0.2.0] - 2026-09-29
 
 ### Changed
