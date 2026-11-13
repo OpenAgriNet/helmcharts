@@ -5,7 +5,7 @@ description: >-
   consumed by knowledge-provider as its DEV vector store; PROD Qdrant is
   always a separately managed deployment, never this chart.
 type: application
-version: 0.2.0
+version: 0.2.1
 appVersion: "latest"
 maintainers:
   - name: OpenAgriNet Engineering Team

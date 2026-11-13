@@ -106,7 +106,7 @@ None are rendered. Defaults in `secretEnv` name the Secrets this chart expects
 | Secret (default name) | Keys |
 |---|---|
 | `knowledge-provider-minio-credentials` | `access-key`, `secret-key` — must match the `minio` release (`charts/minio`) |
-| `knowledge-provider-provider-keys` | `vector-db-api-key`, `prod-vector-db-api-key`, `embedding-api-key`, `hf-token`, `mistral-api-key`, `gemma-api-key`, `domain-tagging-api-key` (all optional — omit a key and that env var is simply unset) |
+| `knowledge-provider-provider-keys` | `vector-db-api-key`, `prod-vector-db-api-key`, `embedding-api-key`, `hf-token`, `mistral-api-key`, `gemma-api-key`, `translation-api-key`, `vllm-api-key` (all optional — omit a key and that env var is simply unset) |
 | `knowledge-provider-keycloak-client` | `client-secret` |
 | `knowledge-provider-keycloak-admin` | `password` |
 | `knowledge-provider-master-catalog-db` | `password` (BYO Postgres — see `ENV.md`) |

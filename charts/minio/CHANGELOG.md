@@ -5,6 +5,20 @@ All notable changes to the `minio` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-11-13
+
+### Changed
+- **Breaking:** the default image is `cgr.dev/chainguard/minio`, pinned by
+  digest. `quay.io/minio/minio` and `quay.io/minio/mc` now answer 401, so the
+  old defaults could not start.
+- `command` defaults to empty, and the chart then runs
+  `mkdir -p /data/<bucket> && exec minio server /data --console-address :9001`.
+  The bucket is made as a directory before the server starts.
+- `bucketInit.enabled` defaults to `false`: the command above replaces it, and
+  its `minio/mc` image is gone.
+- `podSecurityContext` is on by default with uid/gid/fsGroup 65532, the user
+  Chainguard runs as, so the volume is writable.
+
 ## [0.2.0] - 2026-09-29
 
 ### Changed

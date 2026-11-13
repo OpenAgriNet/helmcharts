@@ -45,10 +45,14 @@ spec:
         - name: {{ .Chart.Name }}
           image: {{ include "minio.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- with .Values.command }}
           command:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+            {{- if .Values.command }}
+            {{- toYaml .Values.command | nindent 12 }}
+            {{- else }}
+            - sh
+            - -c
+            - {{ printf "mkdir -p /data/%s && exec minio server /data --console-address :%v" .Values.bucket .Values.service.consolePort | quote }}
+            {{- end }}
           {{- with (include "common.securityContext" .) }}
           securityContext:
             {{- . | nindent 12 }}
