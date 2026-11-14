@@ -5,6 +5,18 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-11-06
+
+### Added
+- Scheduled catalog publishing on the network-adapter role, in both modes: the
+  crawler block now runs each registry binding's `publish` pipeline (Mandi
+  price daily, 21-day window) and pushes the catalogs to `discoveryPushUrl`.
+  The run log DSN placeholder `__ADAPTER_CRAWLER_DB_DSN__` is filled through
+  `extraSubstitutions` and `/tmp/catalogs` is mounted through `extraVolumes`
+  (see README). Needs the registry and registry-seed from #96 (a
+  `publishPipelineUrl` on the binding), a run log database of its own (not
+  discovery's), and a crawler-capable image.
+
 ## [0.9.1] - 2026-11-02
 
 ### Fixed
