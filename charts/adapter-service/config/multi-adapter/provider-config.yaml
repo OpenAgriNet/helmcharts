@@ -58,6 +58,16 @@ modules:
       subscriberId: "__ADAPTER_SUBSCRIBER_ID__"
 
       plugins:
+        cache:
+          id: cache
+          config:
+            addr: __REDIS_ADDR__
+        registryCache:
+          id: registrycache
+          config:
+            url: http://registry.registry.svc.cluster.local:8081/api/v1
+            ttl: 24h
+            preload: __REGISTRY_PRELOAD__
         # Serves the sender's signing key and the capability call plans.
         registry:
           id: sunbirdRegistry
@@ -65,9 +75,7 @@ modules:
             url: http://registry.registry.svc.cluster.local:8081/api/v1
             entity: Participant
             providerEntity: ProviderSchema
-            # 0 because no cache plugin is configured. A non-zero TTL here only
-            # warns at startup and caches nothing.
-            cacheTTL: 0
+            cacheTTL: __REGISTRY_CACHE_TTL__
             # Plain seconds, per attempt. Two registry calls happen per request.
             timeout: 2
             retry_max: 1
@@ -250,14 +258,17 @@ modules:
       subscriberId: "__ADAPTER_SUBSCRIBER_ID__"
 
       plugins:
+        cache:
+          id: cache
+          config:
+            addr: __REDIS_ADDR__
         registry:
           id: sunbirdRegistry
           config:
             url: http://registry.registry.svc.cluster.local:8081/api/v1
             entity: Participant
             providerEntity: ProviderSchema
-            # 0 because no cache plugin is configured; see the module above.
-            cacheTTL: 0
+            cacheTTL: __REGISTRY_CACHE_TTL__
             timeout: 2
             retry_max: 1
             retry_wait_min: 100ms

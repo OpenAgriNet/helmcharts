@@ -5,6 +5,18 @@ All notable changes to this chart are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this chart adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-11-04
+
+### Changed
+- **Breaking:** registry lookups are cached in Redis; `cache.addr` is required.
+  `cache.ttl` sets `cacheTTL` (default 30s).
+
+### Added
+- `cache.passwordSecret` for `REDIS_PASSWORD`.
+- `registrycache` plugin on in the network and provider adapters; needs an
+  adapter image that includes it. `cache.registryRecords: false` turns it off;
+  `cache.preload` lists the entities it keeps.
+
 ## [0.9.1] - 2026-11-02
 
 ### Fixed

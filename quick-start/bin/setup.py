@@ -609,6 +609,8 @@ def configure_adapter(identity):
                 ("__FEDERATION_REFRESH_SECONDS__", env("FEDERATION_REFRESH_SECONDS", "900")),
                 ("__FEDERATION_PAGE_SIZE__", env("FEDERATION_PAGE_SIZE", "100")),
                 ("__FEDERATION_INTENT__", env("FEDERATION_INTENT", "")),
+                # Go duration, e.g. "30s".
+                ("__REGISTRY_CACHE_TTL__", env("REGISTRY_CACHE_TTL", "30s")),
                 # Telemetry. One switch drives all three signals: with every
                 # one false the plugin builds no exporter and never dials, so
                 # a stack running without the observability profile stays
