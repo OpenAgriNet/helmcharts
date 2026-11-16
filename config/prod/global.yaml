@@ -1,0 +1,34 @@
+# prod: values many services share. Use as ${name} in services.yaml.
+
+environment: prod
+# Every public hostname is built from this.
+domain: oan.example.com
+# The helmcharts revision the seeded mapping URLs read from.
+helmchartsRevision: v0.0.1
+
+# In-cluster addresses, one per service other services call.
+registryUrl: http://registry.registry.svc.cluster.local:8081
+keycloakUrl: http://keycloak.keycloak.svc.cluster.local:8080/auth
+postgresHost: postgres-rw.postgres.svc.cluster.local
+openbaoUrl: https://openbao.openbao.svc.cluster.local:8200
+otelEndpoint: clickstack-otel-collector.observability.svc.cluster.local:4317
+
+ingressClassName: kong
+clusterIssuer: letsencrypt-prod
+# Let's Encrypt sends expiry notices here.
+acmeEmail: krutikap@sanketika.in
+# Placeholder. Pass the real key with --set; never commit it.
+hyperdxApiKey: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+# null: pass with --set once prod's keys exist.
+adapterSigningPublicKey: null
+
+# --- Cloud specific. On a k3s VM see config/README.md.
+# Only clickstack names it; the rest use the cluster default.
+storageClass: gp3
+loadBalancerAnnotations:
+  service.beta.kubernetes.io/aws-load-balancer-internal: 'false'
+  service.beta.kubernetes.io/aws-load-balancer-type: nlb
+# OpenBao snapshots go to S3; they run in prod only.
+snapshotS3Host: s3.ap-south-1.amazonaws.com
+# null: has an account id. Pass with --set.
+snapshotRoleArn: null
