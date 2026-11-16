@@ -1,0 +1,28 @@
+Thank you for installing {{ .Chart.Name }} (release: {{ .Release.Name }}).
+
+Redis for decision-support-system form-session state (DSS ADR-0022).
+One pod, password required, in memory only: nothing is saved to disk and a
+restart comes back EMPTY.
+
+Resources in namespace "{{ .Release.Namespace }}":
+  - Deployment/{{ include "redis.fullname" . }} (1 replica, Recreate)
+  - Service/{{ include "redis.fullname" . }} (ClusterIP on port {{ .Values.service.port }})
+{{- if .Values.serviceAccount.enabled }}
+  - ServiceAccount/{{ include "redis.serviceAccountName" . }}
+{{- end }}
+
+Password from: Secret/{{ .Values.auth.existingSecret }}, key "{{ .Values.auth.passwordKey }}"
+Memory ceiling: {{ .Values.maxmemory }} ({{ .Values.maxmemoryPolicy }})
+
+Image in use:
+  {{ include "redis.image" . }}
+
+Check the rollout:
+  kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "redis.fullname" . }}
+
+Ping it (expects PONG):
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "redis.fullname" . }} -- \
+    sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping'
+
+Reach it in-cluster (DSS_REDIS_URL):
+  redis://:<password>@{{ include "redis.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/0

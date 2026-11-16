@@ -1,0 +1,84 @@
+apiVersion: {{ include "common.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include "redis.fullname" . }}
+  labels:
+    {{- include "redis.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  # Fixed at one, not a value: a second replica would be a second, separate
+  # Redis behind the same Service, and the DSS's per-session lock only holds
+  # if every turn reaches the same server.
+  replicas: 1
+  # Recreate, so an upgrade never runs the old and new pod side by side - the
+  # same split-lock problem for the length of a rollout. The new pod starts
+  # empty either way.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "redis.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "redis.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- if .Values.serviceAccount.enabled }}
+      serviceAccountName: {{ include "redis.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- end }}
+      {{- with (include "common.imagePullSecrets" . | trim) }}
+      {{- . | nindent 6 }}
+      {{- end }}
+      {{- with (include "common.podSecurityContext" .) }}
+      securityContext:
+        {{- . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ include "redis.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # `command` replaces the image's entrypoint, so docker-entrypoint.sh
+          # (which chowns /data and drops from root) never runs - the pod
+          # starts as the non-root user from the security context instead.
+          command:
+            - sh
+            - -c
+            - {{ include "redis.serverCommand" . | quote }}
+          {{- with (include "common.securityContext" .) }}
+          securityContext:
+            {{- . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: redis
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          env:
+            {{- include "redis.env" . | trim | nindent 12 }}
+          {{- with (include "common.probes" . | trim) }}
+          {{- . | nindent 10 }}
+          {{- end }}
+          resources:
+            {{- include "common.resources" . | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

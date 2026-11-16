@@ -1,0 +1,21 @@
+# Example: redis, dev environment - session state for decision-support-system.
+#
+#   kubectl -n decision-support-system create secret generic redis \
+#     --from-literal=password=<letters-digits-dash-underscore>
+#   helm install redis charts/redis \
+#     -n decision-support-system -f charts/redis/examples/redis.dev.yaml
+#
+# The DSS then connects with
+#   DSS_REDIS_URL=redis://:<pw>@redis.decision-support-system.svc.cluster.local:6379/0
+# supplied through the DSS chart's secretEnv - see this chart's README.
+
+auth:
+  existingSecret: redis
+  passwordKey: password
+
+# Session entries live 180 s and are a few hundred bytes each; 100mb is far
+# beyond a dev cluster's need, and the default limits fit it.
+maxmemory: 100mb
+
+commonLabels:
+  oan.in/environment: dev
