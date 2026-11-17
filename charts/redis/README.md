@@ -7,6 +7,9 @@ that keeps two turns from running over each other (DSS ADR-0022,
 `docs/ADR/0022-session-state-for-form-flows.md`). It runs the same command as
 the `redis` service in DSS's `docker-compose.yml`, plus a memory ceiling.
 
+Image: `redis:8.10-alpine` (`appVersion`). Redis 8 can be used under AGPLv3, an
+open-source licence; 7.4 is RSALv2/SSPLv1 only.
+
 ## What it is not
 
 - **Not persistent.** `--save ""` and `--appendonly no` turn off RDB and AOF,
