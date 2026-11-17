@@ -43,6 +43,7 @@ root="config/$environment/argocd.yaml"
 [[ -f "$root" ]] || die "no $root"
 for cmd in kubectl yq; do command -v "$cmd" >/dev/null || die "$cmd is not on PATH"; done
 secrets() { ./scripts/secrets.sh "$environment" "$@"; }
+app_on() { [[ "$(A="$1" yq '.spec.source.helm.valuesObject.applications[strenv(A)] // true' "$root")" != false ]]; }
 
 if [[ "$dry_run" == true ]]; then
   command -v helm >/dev/null || die "helm is not on PATH"
@@ -71,11 +72,16 @@ kubectl get crd certificates.cert-manager.io >/dev/null 2>&1 \
   kubectl apply --server-side -f https://github.com/cert-manager/cert-manager/releases/download/v1.21.2/cert-manager.crds.yaml"
 kubectl get crd clusters.postgresql.cnpg.io >/dev/null 2>&1 \
   || die "CloudNativePG CRDs are missing. Apply once, server side, from the cloudnative-pg chart version in config/$environment/service-values.yaml"
+if app_on langfuse && ! kubectl get crd clickhouseclusters.clickhouse.com >/dev/null 2>&1; then
+  die "ClickHouse operator CRDs are missing (langfuse needs them). Apply once:
+  helm template ch charts/langfuse/charts/clickhouse-operator-helm \\
+    --show-only templates/crd/clickhouseclusters.clickhouse.com.yaml \\
+    --show-only templates/crd/keeperclusters.clickhouse.com.yaml | kubectl apply --server-side -f -"
+fi
 
 # ----------------------------------------------------------------- 2. apply
 info "applying $root"
 kubectl apply -f "$root"
-app_on() { [[ "$(A="$1" yq '.spec.source.helm.valuesObject.applications[strenv(A)] // true' "$root")" != false ]]; }
 
 # ---------------------------------------------------------------- 3. openbao
 if [[ "$skip_secrets" == false ]]; then

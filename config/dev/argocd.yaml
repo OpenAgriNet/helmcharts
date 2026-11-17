@@ -52,6 +52,16 @@ spec:
           otel-collector: false  # replaces clickstack and otel-agent; turn those off with it
           grafana: true
           grafana-provisioning: true
+          knowledge-provider-keycloak-db: false
+          knowledge-provider-temporal-db: false
+          knowledge-provider-keycloak: false
+          knowledge-provider-temporal: false
+          knowledge-provider-minio: false
+          knowledge-provider-qdrant: false
+          knowledge-provider-api: false
+          knowledge-provider-worker: false
+          knowledge-provider-ui: false
+          langfuse: false  # needs the ClickHouse operator CRDs applied first (config/README.md)
         argocd:
           targetRevision: development
   syncPolicy:

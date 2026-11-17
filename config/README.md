@@ -127,6 +127,38 @@ Secrets (the `openbao-secrets` service).
 Safe to re-run. `--skip-seed` stops after step 4; `--dry-run` lists the
 Applications without touching the cluster.
 
+## knowledge-provider and langfuse
+
+On in dev only (`applications:` in `config/dev/argocd.yaml`).
+
+- **knowledge-provider** (namespace `knowledge-provider`): its own Keycloak and
+  Temporal, each with a CNPG database; MinIO and Qdrant (release names `minio`
+  and `qdrant`, which the api and worker expect); then the api, worker and UI,
+  pinned to `v0.2.0`. Auth is off and there is no ingress until the domain is
+  set. The worker is pinned to the api's node: they share the `sqlite`,
+  `documents` and `hf-cache` volumes, which are ReadWriteOnce.
+- **langfuse** (namespace `langfuse`): every credential comes from OpenBao. Left
+  to the chart they are generated with `lookup`, which Argo CD cannot see, so
+  they would change on every sync. The ClickHouse operator's CRDs are too large
+  for a client-side apply; apply them once, server side, before langfuse syncs:
+
+  ```bash
+  helm template ch charts/langfuse/charts/clickhouse-operator-helm \
+    --show-only templates/crd/clickhouseclusters.clickhouse.com.yaml \
+    --show-only templates/crd/keeperclusters.clickhouse.com.yaml | kubectl apply --server-side -f -
+  ```
+
+Their secrets (`knowledge-provider-*`, `langfuse-*`) are generated with the rest.
+An environment whose secrets file already exists adds them with:
+
+```bash
+./scripts/secrets.sh dev generate --missing && ./scripts/secrets.sh dev push
+```
+
+The knowledge-provider API keys (Mistral, embeddings, translation, HF and so
+on) are optional and not generated: add a `knowledge-provider-provider-keys`
+entry to the secrets file and to `openbao-secrets` when you have them.
+
 ## VM (k3s)
 
 Set these in `global-values.yaml`:

@@ -305,6 +305,24 @@ openbao-secrets:
     - name: grafana-admin
       namespaces:
       - observability
+    - name: knowledge-provider-minio-credentials
+      namespaces:
+      - knowledge-provider
+    - name: knowledge-provider-keycloak-admin
+      namespaces:
+      - knowledge-provider
+    - name: langfuse-app-keys
+      namespaces:
+      - langfuse
+    - name: langfuse-clickhouse
+      namespaces:
+      - langfuse
+    - name: langfuse-redis
+      namespaces:
+      - langfuse
+    - name: langfuse-minio-credentials
+      namespaces:
+      - langfuse
 
 # Postgres operator. Its CRDs are applied first (config/README.md).
 cloudnative-pg:
@@ -1323,3 +1341,219 @@ grafana-provisioning:
       files:
         notifications:
           enabled: false
+
+# --- knowledge-provider: document ingestion (OCR, translation, chunking, vector
+#     indexing), orchestrated by Temporal. Auth off and no ingress until the
+#     domain is set.
+
+# Keycloak's database. CNPG writes the password into knowledge-provider-keycloak-db-app.
+knowledge-provider-keycloak-db:
+  chart: charts/postgresql-cnpg
+  namespace: knowledge-provider
+  values:
+    fullnameOverride: knowledge-provider-keycloak-db
+    image:
+      registry: ''
+      repository: ''
+      tag: ''
+    instances: 1
+    affinity:
+      enablePodAntiAffinity: false
+    storage:
+      size: 1Gi
+      storageClass: ''
+    walStorage:
+      enabled: false
+    bootstrap:
+      database: keycloak
+      owner: keycloak
+    commonLabels:
+      oan.in/environment: *environment
+
+# Temporal's database. temporal_visibility is created by Temporal on first
+# boot, hence CREATEDB.
+knowledge-provider-temporal-db:
+  chart: charts/postgresql-cnpg
+  namespace: knowledge-provider
+  values:
+    fullnameOverride: knowledge-provider-temporal-db
+    image:
+      registry: ''
+      repository: ''
+      tag: ''
+    instances: 1
+    affinity:
+      enablePodAntiAffinity: false
+    storage:
+      size: 1Gi
+      storageClass: ''
+    walStorage:
+      enabled: false
+    bootstrap:
+      database: temporal
+      owner: temporal
+      postInitApplicationSQL:
+      - ALTER ROLE temporal CREATEDB;
+    commonLabels:
+      oan.in/environment: *environment
+
+# knowledge-provider's own Keycloak (email-OTP 2FA image), separate from the registry's.
+knowledge-provider-keycloak:
+  chart: charts/knowledge-provider-keycloak
+  namespace: knowledge-provider
+  values:
+    image:
+      registry: ghcr.io
+      repository: openagrinet/knowledge-provider-keycloak
+      tag: v0.2.0
+    hostname: localhost
+    database:
+      host: knowledge-provider-keycloak-db-rw
+    commonLabels:
+      oan.in/environment: *environment
+
+knowledge-provider-temporal:
+  chart: charts/knowledge-provider-temporal
+  namespace: knowledge-provider
+  values:
+    database:
+      host: knowledge-provider-temporal-db-rw
+    commonLabels:
+      oan.in/environment: *environment
+
+# Release name minio: the api and worker reach it as `minio`. The bucket is a
+# directory made before the server starts (the bucket-init Job needs minio/mc,
+# which is no longer pullable).
+knowledge-provider-minio:
+  chart: charts/minio
+  namespace: knowledge-provider
+  releaseName: minio
+  values:
+    command:
+    - sh
+    - -c
+    - mkdir -p /data/documents && exec minio server /data --console-address ":9001"
+    persistence:
+      size: 10Gi
+    commonLabels:
+      oan.in/environment: *environment
+
+# Release name qdrant: the api and worker reach it as `qdrant`. The DEV vector index.
+knowledge-provider-qdrant:
+  chart: charts/qdrant
+  namespace: knowledge-provider
+  releaseName: qdrant
+  values:
+    persistence:
+      size: 5Gi
+    commonLabels:
+      oan.in/environment: *environment
+
+# Owns the sqlite, documents and hf-cache volumes the worker mounts too.
+knowledge-provider-api:
+  chart: charts/knowledge-provider-api
+  namespace: knowledge-provider
+  values:
+    image:
+      registry: ghcr.io
+      repository: openagrinet/knowledge-provider
+      tag: v0.2.0
+    keycloak:
+      authDisabled: true
+    envConfig:
+      LOG_LEVEL: debug
+      CORS_ORIGINS: http://localhost:3000,http://localhost:3001
+      OCR_PROVIDER: mock
+    ingress:
+      enabled: false
+    commonLabels:
+      oan.in/environment: *environment
+
+# Same image as the api, as a Temporal worker. Pinned to the api's node: the
+# shared volumes are ReadWriteOnce (gp3), which two pods share only on one node.
+knowledge-provider-worker:
+  chart: charts/knowledge-provider-worker
+  namespace: knowledge-provider
+  values:
+    image:
+      registry: ghcr.io
+      repository: openagrinet/knowledge-provider
+      tag: v0.2.0
+    envConfig:
+      LOG_LEVEL: debug
+      OCR_PROVIDER: mock
+    affinity:
+      podAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: knowledge-provider-api
+              app.kubernetes.io/instance: knowledge-provider-api
+          topologyKey: kubernetes.io/hostname
+    commonLabels:
+      oan.in/environment: *environment
+
+knowledge-provider-ui:
+  chart: charts/knowledge-provider-ui
+  namespace: knowledge-provider
+  values:
+    image:
+      registry: ghcr.io
+      repository: openagrinet/knowledge-provider-ui
+      tag: v0.2.0
+    ingress:
+      enabled: false
+    commonLabels:
+      oan.in/environment: *environment
+
+# --- langfuse: LLM observability. Every credential is pinned from OpenBao: left
+#     to the chart they are generated with `lookup`, which Argo CD cannot see,
+#     so they would rotate on every sync. The ClickHouse operator's CRDs are
+#     too large for a client-side apply and are applied once, server side
+#     (config/README.md).
+langfuse:
+  chart: charts/langfuse
+  namespace: langfuse
+  values:
+    langfuse:
+      salt:
+        secretKeyRef:
+          name: langfuse-app-keys
+          key: salt
+      encryptionKey:
+        secretKeyRef:
+          name: langfuse-app-keys
+          key: encryption-key
+      nextauth:
+        secret:
+          secretKeyRef:
+            name: langfuse-app-keys
+            key: nextauth-secret
+    clickhouse:
+      crdCheck: false
+      auth:
+        existingSecret: langfuse-clickhouse
+        existingSecretKey: password
+      cluster:
+        storage:
+          size: 20Gi
+    clickhouse-operator:
+      crd:
+        enabled: false
+    redis:
+      auth:
+        existingSecret: langfuse-redis
+        existingSecretPasswordKey: default
+        usersExistingSecret: langfuse-redis
+    objectStorage:
+      credentialsSecret:
+        name: langfuse-minio-credentials
+    s3:
+      accessKeyId:
+        secretKeyRef:
+          name: langfuse-minio-credentials
+          key: access-key
+      secretAccessKey:
+        secretKeyRef:
+          name: langfuse-minio-credentials
+          key: secret-key

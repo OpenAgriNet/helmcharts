@@ -199,6 +199,34 @@ grafana-admin:
 # namespaces: observability (issued by Slack; push holds it back until filled in)
 grafana-slack:
   url: $(pending "Slack incoming webhook URL for alerts")
+
+# namespaces: knowledge-provider (MinIO root user; the api and worker log in with it)
+knowledge-provider-minio-credentials:
+  access-key: 'knowledge-provider'
+  secret-key: $(q "$(openssl rand -hex 16)")
+
+# namespaces: knowledge-provider (Keycloak console login)
+knowledge-provider-keycloak-admin:
+  password: $(q "$(password)")
+
+# namespaces: langfuse (pinned: chart-generated values would rotate on every Argo CD sync)
+langfuse-app-keys:
+  salt: $(q "$(openssl rand -base64 32)")
+  encryption-key: $(q "$(openssl rand -hex 32)")
+  nextauth-secret: $(q "$(openssl rand -base64 32)")
+
+# namespaces: langfuse
+langfuse-clickhouse:
+  password: $(q "$(openssl rand -hex 16)")
+
+# namespaces: langfuse (key is the Valkey ACL user name)
+langfuse-redis:
+  default: $(q "$(openssl rand -hex 16)")
+
+# namespaces: langfuse
+langfuse-minio-credentials:
+  access-key: 'langfuse'
+  secret-key: $(q "$(openssl rand -hex 16)")
 EOF
 }
 
