@@ -1,0 +1,60 @@
+# dev: the root Argo CD Application. It renders the config/ chart for dev,
+# which creates one Application per service in config/dev/service-values.yaml.
+#
+#   kubectl apply -f config/dev/argocd.yaml
+#
+# dev tracks a branch, so a merge deploys.
+# Both targetRevision lines must match: one is where this chart is read from,
+# the other where the service charts are.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: oan-dev
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  source:
+    repoURL: https://github.com/OpenAgriNet/helmcharts.git
+    targetRevision: development
+    path: config
+    helm:
+      valuesObject:
+        environment: dev
+        # On/off per service, in install order. Turning one off deletes it
+        # (prune). Not listed means on.
+        applications:
+          cert-manager: true
+          openbao-tls: true
+          openbao: true
+          external-secrets: true
+          reflector: true
+          metrics-server: false  # kubectl top; the benchmark needs it
+          openbao-cluster-secret-store: true
+          openbao-secrets: true
+          cloudnative-pg: true
+          kong: true
+          clickstack: true
+          otel-agent: true
+          cert-manager-issuers: true
+          postgres: true
+          discovery-db: true
+          keycloak: true
+          registry: true
+          discovery: true
+          registry-seed: true
+          consumer-adapter: false  # multi-adapter only: needs network-adapter's multi-adapter values
+          network-adapter: true
+          provider-adapter: false  # multi-adapter only: needs network-adapter's multi-adapter values
+          federation: true
+          otel-collector: false  # replaces clickstack and otel-agent; turn those off with it
+          grafana: true
+          grafana-provisioning: true
+        argocd:
+          targetRevision: development
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

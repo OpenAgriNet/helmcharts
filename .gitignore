@@ -77,6 +77,9 @@ rendered/
 secrets.json
 *-secrets.json
 
+# Output of scripts/secrets.sh: every generated credential, plaintext.
+secrets/
+
 # Python bytecode
 __pycache__/
 *.pyc

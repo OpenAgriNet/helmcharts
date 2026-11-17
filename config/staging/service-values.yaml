@@ -1,5 +1,5 @@
-# dev: every service in install order. ${name} reads global.yaml.
-# Deploy: ./scripts/deploy.sh dev
+# staging: every service in install order. *name and ${name} read global-values.yaml; resources are in resource-values.yaml.
+# Deployed by Argo CD: config/staging/argocd.yaml. Preview: helm template oan config --set environment=staging
 
 # TLS certificates. Its CRDs are applied first (config/README.md).
 cert-manager:
@@ -8,44 +8,16 @@ cert-manager:
   values:
     cainjector:
       replicaCount: 1
-      resources:
-        limits:
-          cpu: 200m
-          memory: 256Mi
-        requests:
-          cpu: 10m
-          memory: 64Mi
     crds:
       enabled: false
       keep: true
     prometheus:
       enabled: false
     replicaCount: 1
-    resources:
-      limits:
-        cpu: 200m
-        memory: 256Mi
-      requests:
-        cpu: 10m
-        memory: 64Mi
     startupapicheck:
       enabled: true
-      resources:
-        limits:
-          cpu: 100m
-          memory: 128Mi
-        requests:
-          cpu: 10m
-          memory: 32Mi
     webhook:
       replicaCount: 1
-      resources:
-        limits:
-          cpu: 100m
-          memory: 128Mi
-        requests:
-          cpu: 10m
-          memory: 32Mi
 
 # OpenBao's CA and server certificate.
 openbao-tls:
@@ -53,7 +25,7 @@ openbao-tls:
   namespace: openbao
   values:
     commonLabels:
-      oan.in/environment: ${environment}
+      oan.in/environment: *environment
 
 # Secret store. Not ready until unsealed: first deploy with --no-wait.
 openbao:
@@ -131,12 +103,6 @@ openbao:
           ports:
           - port: 8201
             protocol: TCP
-      resources:
-        limits:
-          memory: 512Mi
-        requests:
-          cpu: 100m
-          memory: 256Mi
       shareProcessNamespace: true
       standalone:
         config: |
@@ -195,7 +161,7 @@ openbao:
         baoRole: snapshot
         s3Bucket: oan-openbao-snapshots-${environment}
         s3ExpireDays: '14'
-        s3Host: ${snapshotS3Host}
+        s3Host: *snapshotS3Host
         s3Uri: s3://oan-openbao-snapshots-${environment}
       enabled: false
       extraEnvironmentVars:
@@ -228,7 +194,7 @@ external-secrets:
   namespace: external-secrets
   values:
     commonLabels:
-      oan.in/environment: ${environment}
+      oan.in/environment: *environment
     installCRDs: true
     serviceAccount:
       create: true
@@ -240,7 +206,20 @@ reflector:
   namespace: external-secrets
   values:
     commonLabels:
-      oan.in/environment: ${environment}
+      oan.in/environment: *environment
+
+# Pod CPU and memory, for kubectl top.
+metrics-server:
+  chart: metrics-server
+  repository: https://kubernetes-sigs.github.io/metrics-server/
+  version: 3.14.0
+  namespace: kube-system
+  values:
+    metrics:
+      enabled: false
+    replicas: 1
+    serviceMonitor:
+      enabled: false
 
 # How external-secrets logs in to OpenBao.
 openbao-cluster-secret-store:
@@ -261,10 +240,10 @@ openbao-cluster-secret-store:
       namespace: openbao
       type: Secret
     commonLabels:
-      oan.in/environment: ${environment}
+      oan.in/environment: *environment
     name: openbao
     path: secret
-    server: ${openbaoUrl}
+    server: *openbaoUrl
     version: v2
 
 # Which secrets to pull, and the namespaces that get them.
@@ -343,7 +322,7 @@ kong:
   namespace: kong
   values:
     commonLabels:
-      oan.in/environment: ${environment}
+      oan.in/environment: *environment
     env:
       database: 'off'
     fullnameOverride: kong
@@ -352,20 +331,10 @@ kong:
       env:
         feature_gates: RewriteURIs=true
     proxy:
-      annotations: ${loadBalancerAnnotations}
+      annotations: *loadBalancerAnnotations
       enabled: true
       externalTrafficPolicy: Local
       type: LoadBalancer
-    replicaCount: 2
-    topologySpreadConstraints:
-    - labelSelector:
-        matchLabels:
-          app.kubernetes.io/component: app
-          app.kubernetes.io/instance: kong
-          app.kubernetes.io/name: kong
-      maxSkew: 1
-      topologyKey: topology.kubernetes.io/zone
-      whenUnsatisfiable: DoNotSchedule
 
 # Telemetry store (ClickHouse) and the HyperDX UI.
 clickstack:
@@ -380,26 +349,19 @@ clickstack:
         dataSize: 20Gi
         enabled: true
         logSize: 5Gi
-      resources:
-        limits:
-          cpu: '2'
-          memory: 8Gi
-        requests:
-          cpu: 500m
-          memory: 2Gi
     global:
       keepPVC: false
-      storageClassName: ${storageClass}
+      storageClassName: *storageClass
     hyperdx:
-      apiKey: ${hyperdxApiKey}
+      apiKey: *hyperdxApiKey
       appUrl: https://hyperdx.${domain}
       frontendUrl: https://hyperdx.${domain}
       ingress:
         annotations:
-          cert-manager.io/cluster-issuer: ${clusterIssuer}
+          cert-manager.io/cluster-issuer: *clusterIssuer
         enabled: true
         host: hyperdx.${domain}
-        ingressClassName: ${ingressClassName}
+        ingressClassName: *ingressClassName
         path: /
         pathType: Prefix
         tls:
@@ -411,38 +373,24 @@ clickstack:
         enabled: true
     otel:
       replicas: 1
-      resources:
-        limits:
-          cpu: '1'
-          memory: 1Gi
-        requests:
-          cpu: 200m
-          memory: 256Mi
 
 # Per-node collector for pod metrics.
 otel-agent:
   chart: charts/otel-agent
   namespace: observability
   values:
-    apiKey: ${hyperdxApiKey}
+    apiKey: *hyperdxApiKey
     collectionInterval: 15s
     exporter:
-      endpoint: ${otelEndpoint}
-    resources:
-      limits:
-        cpu: 200m
-        memory: 256Mi
-      requests:
-        cpu: 50m
-        memory: 96Mi
+      endpoint: *otelEndpoint
 
 # Let's Encrypt issuers.
 cert-manager-issuers:
   chart: charts/cert-manager-issuers
   namespace: cert-manager
   values:
-    email: ${acmeEmail}
-    ingressClassName: ${ingressClassName}
+    email: *acmeEmail
+    ingressClassName: *ingressClassName
     issuers:
       letsencrypt-prod:
         enabled: true
@@ -463,7 +411,7 @@ postgres:
       owner: registry
       ownerSecret: registry-db
     commonLabels:
-      oan.in/environment: ${environment}
+      oan.in/environment: *environment
     databases:
     - name: keycloak
       owner: keycloak
@@ -495,7 +443,7 @@ discovery-db:
       - CREATE EXTENSION IF NOT EXISTS vector;
       - CREATE EXTENSION IF NOT EXISTS pg_trgm;
     commonLabels:
-      oan.in/environment: ${environment}
+      oan.in/environment: *environment
     enableSuperuserAccess: false
     fullnameOverride: discovery-db
     image:
@@ -503,13 +451,6 @@ discovery-db:
       repository: cloudnative-pg/postgresql
       tag: 16-standard-trixie
     instances: 1
-    resources:
-      limits:
-        cpu: '3'
-        memory: 6Gi
-      requests:
-        cpu: '3'
-        memory: 6Gi
 
 # Login for the registry.
 keycloak:
@@ -522,9 +463,9 @@ keycloak:
         name: keycloak-admin
       username: admin
     commonLabels:
-      oan.in/environment: ${environment}
+      oan.in/environment: *environment
     database:
-      host: ${postgresHost}
+      host: *postgresHost
       name: keycloak
       passwordSecret:
         key: password
@@ -548,9 +489,9 @@ registry:
   values:
     authenticationEnabled: false
     commonLabels:
-      oan.in/environment: ${environment}
+      oan.in/environment: *environment
     database:
-      host: ${postgresHost}
+      host: *postgresHost
       name: registry
       passwordSecret:
         key: password
@@ -566,8 +507,8 @@ registry:
       tag: v2.0.0
     ingress:
       annotations:
-        cert-manager.io/cluster-issuer: ${clusterIssuer}
-      className: ${ingressClassName}
+        cert-manager.io/cluster-issuer: *clusterIssuer
+      className: *ingressClassName
       enabled: true
       hosts:
       - host: registry.${domain}
@@ -585,7 +526,7 @@ registry:
         name: keycloak-admin-api
       clientId: registry-frontend
       realm: sunbird-rc
-      url: ${keycloakUrl}
+      url: *keycloakUrl
     keycloakUserSetPassword: false
     waitFor:
       keycloak: false
@@ -600,7 +541,7 @@ discovery:
     becknSpec:
       url: https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/heads/release-0.2.0/api/v2.0.0/beckn.yaml
     commonLabels:
-      oan.in/environment: ${environment}
+      oan.in/environment: *environment
     database:
       autoMigrate: true
       urlSecret:
@@ -624,8 +565,8 @@ discovery:
       tag: 0.2.0
     ingress:
       annotations:
-        cert-manager.io/cluster-issuer: ${clusterIssuer}
-      className: ${ingressClassName}
+        cert-manager.io/cluster-issuer: *clusterIssuer
+      className: *ingressClassName
       enabled: false
       hosts:
       - host: discovery.${domain}
@@ -637,16 +578,9 @@ discovery:
         - discovery.${domain}
         secretName: discovery-tls
     otel:
-      endpoint: ${otelEndpoint}
+      endpoint: *otelEndpoint
       exporter: otlp
     replicaCount: 1
-    resources:
-      limits:
-        cpu: '1'
-        memory: 1Gi
-      requests:
-        cpu: '1'
-        memory: 1Gi
 
 # Seeds the registry: identity, upstreams, bindings, schemas.
 registry-seed:
@@ -660,9 +594,9 @@ registry-seed:
       - consumer
       - network
       - provider
-      participantId: ${domain}
+      participantId: *domain
       role: network
-      signingPublicKey: ${adapterSigningPublicKey}
+      signingPublicKey: *adapterSigningPublicKey
     authenticationEnabled: false
     bindings:
     - capability: openagrinet:MandiPrice
@@ -746,13 +680,13 @@ registry-seed:
       retryMax: 2
       timeoutMs: 15000
     commonLabels:
-      oan.in/environment: ${environment}
+      oan.in/environment: *environment
     keycloak:
       clientId: registry-frontend
       realm: sunbird-rc
-      url: ${keycloakUrl}
+      url: *keycloakUrl
     registry:
-      url: ${registryUrl}
+      url: *registryUrl
     schemaPackRef: main
     schemas:
     - capability: openagrinet:WeatherObservation
@@ -792,6 +726,40 @@ registry-seed:
       name: POCRA agriculture facilities
       participantId: pocra
 
+# Beckn consumer adapter (multi-adapter mode only).
+consumer-adapter:
+  chart: charts/adapter-service
+  namespace: consumer-adapter
+  values:
+    commonLabels:
+      oan.in/environment: *environment
+    extraEnv:
+    - name: OTEL_EXPORTER_OTLP_HEADERS
+      value: authorization=${hyperdxApiKey}
+    - name: OTEL_EXPORTER_OTLP_INSECURE
+      value: 'true'
+    fullnameOverride: consumer-adapter
+    image:
+      registry: ghcr.io
+      repository: openagrinet/network-adapter
+      tag: 0.2.0
+    ingress:
+      enabled: false
+    keys:
+      existingSecret:
+        name: network-adapter-keys
+    otel:
+      enabled: false
+      endpoint: ''
+    registry:
+      url: ${registryUrl}/api/v1
+    role: consumer-adapter
+    service:
+      port: 9202
+      targetPort: 9202
+    waitFor:
+      enabled: false
+
 # Beckn adapter. single-adapter mode runs all three tiers here.
 network-adapter:
   chart: charts/adapter-service
@@ -803,7 +771,7 @@ network-adapter:
         __PMFBY_TOKEN_URL__: provider/pmfbyTokenUrl
         __VISTAAR_TOKEN_URL__: provider/vistaarTokenUrl
     commonLabels:
-      oan.in/environment: ${environment}
+      oan.in/environment: *environment
     deploymentMode: single-adapter
     envFromSecrets:
     - provider-pmfby
@@ -814,9 +782,7 @@ network-adapter:
     - name: OTEL_EXPORTER_OTLP_INSECURE
       value: 'true'
     federation:
-      enabled: true
-      intent: '{"filters": {"type": "jsonpath", "expression": "$.catalogs[*] ? (@.isActive == true)"}}'
-      refreshSeconds: 60
+      enabled: false
     fullnameOverride: network-adapter
     image:
       registry: ghcr.io
@@ -824,26 +790,26 @@ network-adapter:
       tag: 0.2.0
     ingress:
       allowUnsignedMounts: true
-      className: ${ingressClassName}
+      className: *ingressClassName
       enabled: true
       routes:
       - annotations:
-          cert-manager.io/cluster-issuer: ${clusterIssuer}
+          cert-manager.io/cluster-issuer: *clusterIssuer
           konghq.com/rewrite: /network/discover
         hosts:
-        - host: ${domain}
+        - host: *domain
           paths:
           - path: /discover
             pathType: Exact
         name: network
         tls:
         - hosts:
-          - ${domain}
+          - *domain
           secretName: network-adapter-tls
       - annotations:
           konghq.com/rewrite: /publish
         hosts:
-        - host: ${domain}
+        - host: *domain
           paths:
           - path: /publish
             pathType: Exact
@@ -851,7 +817,7 @@ network-adapter:
       - annotations:
           konghq.com/rewrite: /consumer/discover
         hosts:
-        - host: ${domain}
+        - host: *domain
           paths:
           - path: /consumer/discover
             pathType: Exact
@@ -859,7 +825,7 @@ network-adapter:
       - annotations:
           konghq.com/rewrite: /consumer/select
         hosts:
-        - host: ${domain}
+        - host: *domain
           paths:
           - path: /consumer/select
             pathType: Exact
@@ -867,7 +833,7 @@ network-adapter:
       - annotations:
           konghq.com/rewrite: /consumer/init
         hosts:
-        - host: ${domain}
+        - host: *domain
           paths:
           - path: /consumer/init
             pathType: Exact
@@ -875,7 +841,7 @@ network-adapter:
       - annotations:
           konghq.com/rewrite: /consumer/confirm
         hosts:
-        - host: ${domain}
+        - host: *domain
           paths:
           - path: /consumer/confirm
             pathType: Exact
@@ -883,7 +849,7 @@ network-adapter:
       - annotations:
           konghq.com/rewrite: /consumer/status
         hosts:
-        - host: ${domain}
+        - host: *domain
           paths:
           - path: /consumer/status
             pathType: Exact
@@ -891,7 +857,7 @@ network-adapter:
       - annotations:
           konghq.com/rewrite: /consumer/support
         hosts:
-        - host: ${domain}
+        - host: *domain
           paths:
           - path: /consumer/support
             pathType: Exact
@@ -899,7 +865,7 @@ network-adapter:
       - annotations:
           konghq.com/rewrite: /provider/select
         hosts:
-        - host: ${domain}
+        - host: *domain
           paths:
           - path: /select
             pathType: Exact
@@ -907,7 +873,7 @@ network-adapter:
       - annotations:
           konghq.com/rewrite: /provider/init
         hosts:
-        - host: ${domain}
+        - host: *domain
           paths:
           - path: /init
             pathType: Exact
@@ -915,7 +881,7 @@ network-adapter:
       - annotations:
           konghq.com/rewrite: /provider/status
         hosts:
-        - host: ${domain}
+        - host: *domain
           paths:
           - path: /status
             pathType: Exact
@@ -923,7 +889,7 @@ network-adapter:
       - annotations:
           konghq.com/rewrite: /provider/support
         hosts:
-        - host: ${domain}
+        - host: *domain
           paths:
           - path: /support
             pathType: Exact
@@ -931,7 +897,7 @@ network-adapter:
       - annotations:
           konghq.com/rewrite: /provider/confirm
         hosts:
-        - host: ${domain}
+        - host: *domain
           paths:
           - path: /confirm
             pathType: Exact
@@ -939,7 +905,7 @@ network-adapter:
       - annotations:
           konghq.com/rewrite: /provider/track
         hosts:
-        - host: ${domain}
+        - host: *domain
           paths:
           - path: /track
             pathType: Exact
@@ -947,7 +913,7 @@ network-adapter:
       - annotations:
           konghq.com/rewrite: /provider/cancel
         hosts:
-        - host: ${domain}
+        - host: *domain
           paths:
           - path: /cancel
             pathType: Exact
@@ -955,7 +921,7 @@ network-adapter:
       - annotations:
           konghq.com/rewrite: /provider/update
         hosts:
-        - host: ${domain}
+        - host: *domain
           paths:
           - path: /update
             pathType: Exact
@@ -963,7 +929,7 @@ network-adapter:
       - annotations:
           konghq.com/rewrite: /provider/rate
         hosts:
-        - host: ${domain}
+        - host: *domain
           paths:
           - path: /rate
             pathType: Exact
@@ -976,17 +942,125 @@ network-adapter:
       endpoint: ''
     registry:
       url: ${registryUrl}/api/v1
-    resources:
-      limits:
-        cpu: '2'
-        memory: 1536Mi
-      requests:
-        cpu: '2'
-        memory: 1536Mi
     role: network-adapter
     service:
       port: 9201
       targetPort: 9201
+    waitFor:
+      enabled: false
+
+# Beckn provider adapter (multi-adapter mode only).
+provider-adapter:
+  chart: charts/adapter-service
+  namespace: provider-adapter
+  values:
+    commonLabels:
+      oan.in/environment: *environment
+    envFromSecrets:
+    - provider-upstream
+    - provider-pmfby
+    - provider-pmkisan
+    extraEnv:
+    - name: OTEL_EXPORTER_OTLP_HEADERS
+      value: authorization=${hyperdxApiKey}
+    - name: OTEL_EXPORTER_OTLP_INSECURE
+      value: 'true'
+    fullnameOverride: provider-adapter
+    image:
+      registry: ghcr.io
+      repository: openagrinet/network-adapter
+      tag: 0.2.0
+    ingress:
+      className: *ingressClassName
+      enabled: true
+      routes:
+      - annotations:
+          konghq.com/rewrite: /provider/select
+        hosts:
+        - host: *domain
+          paths:
+          - path: /select
+            pathType: Exact
+        name: provider-select
+      - annotations:
+          konghq.com/rewrite: /provider/init
+        hosts:
+        - host: *domain
+          paths:
+          - path: /init
+            pathType: Exact
+        name: provider-init
+      - annotations:
+          konghq.com/rewrite: /provider/confirm
+        hosts:
+        - host: *domain
+          paths:
+          - path: /confirm
+            pathType: Exact
+        name: provider-confirm
+      - annotations:
+          konghq.com/rewrite: /provider/status
+        hosts:
+        - host: *domain
+          paths:
+          - path: /status
+            pathType: Exact
+        name: provider-status
+      - annotations:
+          konghq.com/rewrite: /provider/track
+        hosts:
+        - host: *domain
+          paths:
+          - path: /track
+            pathType: Exact
+        name: provider-track
+      - annotations:
+          konghq.com/rewrite: /provider/cancel
+        hosts:
+        - host: *domain
+          paths:
+          - path: /cancel
+            pathType: Exact
+        name: provider-cancel
+      - annotations:
+          konghq.com/rewrite: /provider/update
+        hosts:
+        - host: *domain
+          paths:
+          - path: /update
+            pathType: Exact
+        name: provider-update
+      - annotations:
+          konghq.com/rewrite: /provider/rate
+        hosts:
+        - host: *domain
+          paths:
+          - path: /rate
+            pathType: Exact
+        name: provider-rate
+      - annotations:
+          konghq.com/rewrite: /provider/support
+        hosts:
+        - host: *domain
+          paths:
+          - path: /support
+            pathType: Exact
+        name: provider-support
+    keys:
+      existingSecret:
+        extraSubstitutions:
+          __AGMARKNET_TOKEN_URL__: agmarknetTokenUrl
+          __VISTAAR_TOKEN_URL__: vistaarTokenUrl
+        name: network-adapter-keys
+    otel:
+      enabled: false
+      endpoint: ''
+    registry:
+      url: ${registryUrl}/api/v1
+    role: provider-adapter
+    service:
+      port: 9200
+      targetPort: 9200
     waitFor:
       enabled: false
 
@@ -997,12 +1071,12 @@ federation:
   values:
     admissions: []
     commonLabels:
-      oan.in/environment: ${environment}
+      oan.in/environment: *environment
     ingress:
-      className: ${ingressClassName}
+      className: *ingressClassName
       enabled: true
       hosts:
-      - host: ${domain}
+      - host: *domain
         paths:
         - path: /.well-known/openagrinet
           pathType: Exact
@@ -1013,10 +1087,116 @@ federation:
     keys:
       existingSecret:
         name: network-adapter-keys
-    networkId: ${domain}
+    networkId: *domain
     operator: OpenAgriNet
     projectionTtl: '86400'
-    registryUrl: ${registryUrl}
+    registryUrl: *registryUrl
+
+# OTel Collector, the only writer to ClickHouse. Replaces clickstack and
+# otel-agent: turn those off when this is on.
+otel-collector:
+  chart: charts/opentelemetry-collector
+  namespace: observability
+  values:
+    config:
+      exporters:
+        clickhouse:
+          create_schema: true
+          database: otel
+          endpoint: tcp://clickhouse.observability.svc.cluster.local:9000
+          logs_table_name: otel_logs
+          metrics_table_name: otel_metrics
+          password: ${env:CLICKHOUSE_PASSWORD}
+          retry_on_failure:
+            enabled: true
+            initial_interval: 5s
+            max_elapsed_time: 300s
+            max_interval: 30s
+          timeout: 10s
+          traces_table_name: otel_traces
+          ttl: 720h
+          username: otel
+      processors:
+        transform/logs:
+          error_mode: ignore
+          log_statements:
+          - context: log
+            statements:
+            - set(cache["parsed"], ParseJSON(body)) where IsMatch(body, "^\\s*\\{")
+            - merge_maps(attributes, cache["parsed"], "insert") where cache["parsed"] != nil
+            - set(severity_text, attributes["level"]) where attributes["level"] != nil
+            - set(severity_number, SEVERITY_NUMBER_DEBUG) where severity_text == "debug"
+            - set(severity_number, SEVERITY_NUMBER_INFO) where severity_text == "info"
+            - set(severity_number, SEVERITY_NUMBER_WARN) where severity_text == "warn" or severity_text == "warning"
+            - set(severity_number, SEVERITY_NUMBER_ERROR) where severity_text == "error"
+            - set(severity_number, SEVERITY_NUMBER_FATAL) where severity_text == "fatal" or severity_text == "panic"
+      receivers:
+        kubeletstats:
+          collection_interval: 30s
+          insecure_skip_verify: true
+          metric_groups:
+          - node
+          - pod
+          - container
+      service:
+        pipelines:
+          logs:
+            exporters:
+            - clickhouse
+            processors:
+            - memory_limiter
+            - transform/logs
+            - batch
+            receivers:
+            - otlp
+          metrics:
+            exporters:
+            - clickhouse
+            processors:
+            - memory_limiter
+            - batch
+            receivers:
+            - otlp
+          traces:
+            exporters:
+            - clickhouse
+            processors:
+            - memory_limiter
+            - batch
+            receivers:
+            - otlp
+    extraEnvs:
+    - name: CLICKHOUSE_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          key: password
+          name: clickhouse-otel
+    fullnameOverride: otel-collector
+    image:
+      repository: otel/opentelemetry-collector-contrib
+    mode: daemonset
+    ports:
+      jaeger-compact:
+        enabled: false
+      jaeger-grpc:
+        enabled: false
+      jaeger-thrift:
+        enabled: false
+      otlp:
+        hostPort: 0
+      otlp-http:
+        hostPort: 0
+      zipkin:
+        enabled: false
+    presets:
+      kubeletMetrics:
+        enabled: true
+      kubernetesAttributes:
+        enabled: true
+      logsCollection:
+        enabled: true
+    service:
+      enabled: true
 
 # Dashboards over ClickHouse.
 grafana:
@@ -1036,7 +1216,7 @@ grafana:
           isDefault: true
           jsonData:
             defaultDatabase: default
-            host: ${clickhouseHost}
+            host: *clickhouseHost
             logs:
               contextColumns:
               - ServiceName
@@ -1095,11 +1275,11 @@ grafana:
         root_url: https://grafana.${domain}/
     ingress:
       annotations:
-        cert-manager.io/cluster-issuer: ${clusterIssuer}
+        cert-manager.io/cluster-issuer: *clusterIssuer
       enabled: true
       hosts:
       - grafana.${domain}
-      ingressClassName: ${ingressClassName}
+      ingressClassName: *ingressClassName
       tls:
       - hosts:
         - grafana.${domain}
@@ -1110,12 +1290,6 @@ grafana:
       type: pvc
     plugins:
     - grafana-clickhouse-datasource@4.21.3
-    resources:
-      limits:
-        memory: 512Mi
-      requests:
-        cpu: 100m
-        memory: 256Mi
     sidecar:
       alerts:
         enabled: true

@@ -1,153 +1,132 @@
 #!/usr/bin/env bash
 #
-# Deploy config/<env>/ with plain Helm, in services.yaml order.
+# Bring an environment up through Argo CD, and do the steps Argo CD cannot.
 #
-#   ./scripts/deploy.sh dev                # every service
-#   ./scripts/deploy.sh dev kong           # only the services named
-#   ./scripts/deploy.sh dev --dry-run      # helm template, install nothing
-#   ./scripts/deploy.sh prod --set snapshotRoleArn=<arn>
+#   ./scripts/deploy.sh dev                 # everything below, in order
+#   ./scripts/deploy.sh dev --skip-seed     # stop after pushing secrets
+#   ./scripts/deploy.sh dev --dry-run       # show the Applications, touch nothing
 #
-# --set name=value  override a value in global.yaml
-# --no-wait         do not wait for each release to be ready
-# -y                skip the confirmation
+#   1. checks    the kubectl context (confirmed), Argo CD, cert-manager and CNPG CRDs
+#   2. apply     kubectl apply -f config/<env>/argocd.yaml; Argo CD deploys the rest
+#   3. openbao   secrets.sh setup: unseal key, init, configure (skipped once done)
+#   4. secrets   no file: generate it (empty store) or pull it (store has values);
+#                then push whatever changed
+#   5. seed      wait for registry-seed, then secrets.sh key-ids (keyId, push, restart)
+#
+# Safe to re-run: every step checks before it acts. After the first run a deploy
+# is a merge, not another run of this.
+#
+# Options: -y (no confirmation)  --skip-secrets  --skip-seed  --timeout SECONDS
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-die() { echo "ERROR: $1" >&2; exit 1; }
-usage() { sed -n '3,12p' "$0" | cut -c3-; exit "${1:-0}"; }
+die() { echo "ERROR: $*" >&2; exit 1; }
+info() { echo; echo "==> $*"; }
+usage() { sed -n '3,19p' "$0" | cut -c3-; exit "${1:-0}"; }
 
-environment=""
-selected=()
-overrides=()
-dry_run=false
-wait_flags=(--wait --timeout 10m)
-assume_yes=false
-
+environment="" assume_yes=false dry_run=false skip_secrets=false skip_seed=false timeout=1800
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --set) [[ -n "${2:-}" ]] || die "--set needs name=value"
-           overrides+=("$2"); shift 2 ;;
-    --dry-run) dry_run=true; shift ;;
-    --no-wait) wait_flags=(); shift ;;
     -y|--yes) assume_yes=true; shift ;;
+    --dry-run) dry_run=true; shift ;;
+    --skip-secrets) skip_secrets=true; shift ;;
+    --skip-seed) skip_seed=true; shift ;;
+    --timeout) timeout="${2:?--timeout needs seconds}"; shift 2 ;;
     -h|--help) usage ;;
     -*) die "unknown option: $1" ;;
-    *) if [[ -z "$environment" ]]; then environment="$1"
-       else selected+=("$1"); fi
-       shift ;;
+    *) [[ -z "$environment" ]] || die "one environment only"; environment="$1"; shift ;;
   esac
 done
-
 [[ -n "$environment" ]] || usage 1
-[[ -d "config/$environment" ]] || die "no such environment: $environment"
-command -v helm >/dev/null || die "helm is not on PATH"
+root="config/$environment/argocd.yaml"
+[[ -f "$root" ]] || die "no $root"
+for cmd in kubectl yq; do command -v "$cmd" >/dev/null || die "$cmd is not on PATH"; done
+secrets() { ./scripts/secrets.sh "$environment" "$@"; }
 
-rendered="rendered/$environment"
-
-# Helm cannot read one values file from another, so ${name} is filled in
-# from global.yaml here. Writes rendered/<env>/<service>.yaml and prints
-# one line per service: name chart namespace repository version release.
-services="$(python3 - "config/$environment" "$rendered" "${overrides[@]}" <<'EOF'
-import json
-import pathlib
-import re
-import sys
-
-import yaml
-
-config, rendered = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
-reference = re.compile(r"\$\{(\w+)\}")
-
-
-def fail(message):
-    sys.exit(f"ERROR: {message}")
-
-
-def lookup(name, where):
-    if name not in shared:
-        fail(f"{where}: ${{{name}}} is not in global.yaml")
-    if shared[name] is None:
-        fail(f"{where}: ${{{name}}} is not set, pass --set {name}=...")
-    return shared[name]
-
-
-def as_text(name, where):
-    value = lookup(name, where)
-    if isinstance(value, (dict, list)):
-        fail(f"{where}: ${{{name}}} is a map, use it as the whole value")
-    if isinstance(value, bool):
-        return str(value).lower()
-    return str(value)
-
-
-def render(value, where):
-    if isinstance(value, dict):
-        return {k: render(v, f"{where}.{k}") for k, v in value.items()}
-    if isinstance(value, list):
-        return [render(v, where) for v in value]
-    if not isinstance(value, str):
-        return value
-    whole = reference.fullmatch(value)
-    if whole:  # keeps the type, so a map or a number works
-        return lookup(whole.group(1), where)
-    return reference.sub(lambda m: as_text(m.group(1), where), value)
-
-
-shared = yaml.safe_load((config / "global.yaml").read_text()) or {}
-for assignment in sys.argv[3:]:
-    name, equals, value = assignment.partition("=")
-    if not equals:
-        fail(f"--set {assignment}: expected name=value")
-    shared[name] = value
-
-rendered.mkdir(parents=True, exist_ok=True)
-services = yaml.safe_load((config / "services.yaml").read_text()) or {}
-for name, service in services.items():
-    if "chart" not in service or "namespace" not in service:
-        fail(f"{name}: needs chart and namespace")
-    values = render(service.get("values") or {}, name)
-    # JSON quotes every string, so Helm cannot read "y" or "on" as a boolean.
-    (rendered / f"{name}.yaml").write_text(json.dumps(values, indent=2))
-    # "-" for no repository: read collapses empty fields.
-    print(name, service["chart"], service["namespace"],
-          service.get("repository", "-"), service.get("version", "-"),
-          service.get("releaseName", name))
-EOF
-)"
-
-for name in "${selected[@]}"; do
-  grep -q "^$name " <<<"$services" || die "$name is not in services.yaml"
-done
-
-if [[ "$dry_run" == false && "$assume_yes" == false ]]; then
-  context="$(kubectl config current-context 2>/dev/null || echo unknown)"
-  echo -n "Deploy $environment to '$context'? [y/N] " >&2
-  read -r answer || true
-  [[ "${answer:-}" == [yY] ]] || die "aborted"
+if [[ "$dry_run" == true ]]; then
+  command -v helm >/dev/null || die "helm is not on PATH"
+  helm template oan config -f <(yq '.spec.source.helm.valuesObject' "$root") \
+    | yq 'select(.kind == "Application") | .metadata.annotations["argocd.argoproj.io/sync-wave"] + "  " + .metadata.name' \
+    | grep -v '^---'
+  echo "(dry run: the Applications Argo CD would create for $environment; nothing applied)"
+  exit 0
 fi
 
-while read -r name chart namespace repository version release; do
-  [[ -n "$name" ]] || continue
-  if [[ ${#selected[@]} -gt 0 && " ${selected[*]} " != *" $name "* ]]; then
-    continue
-  fi
+# ---------------------------------------------------------------- 1. checks
+context="$(kubectl config current-context 2>/dev/null)" || die "no current kubectl context"
+echo "environment  $environment"
+echo "context      $context"
+echo "revision     $(yq '.spec.source.targetRevision' "$root")"
+if [[ "$assume_yes" == false ]]; then
+  read -rp "Deploy $environment to this context? [y/N] " reply
+  [[ "$reply" =~ ^[Yy]$ ]] || die "aborted"
+fi
 
-  source=()
-  if [[ "$repository" != - ]]; then
-    source=(--repo "$repository" --version "$version")
-  elif grep -q 'file://' "$chart/Chart.yaml"; then
-    helm dependency build "$chart" >/dev/null
-  fi
-  values="$rendered/$name.yaml"
+kubectl get crd applications.argoproj.io >/dev/null 2>&1 \
+  || die "Argo CD is not installed on this cluster (no applications.argoproj.io CRD)"
+# Too large for client-side apply, so applied once, server side, outside Argo CD.
+kubectl get crd certificates.cert-manager.io >/dev/null 2>&1 \
+  || die "cert-manager CRDs are missing. Apply once:
+  kubectl apply --server-side -f https://github.com/cert-manager/cert-manager/releases/download/v1.21.2/cert-manager.crds.yaml"
+kubectl get crd clusters.postgresql.cnpg.io >/dev/null 2>&1 \
+  || die "CloudNativePG CRDs are missing. Apply once, server side, from the cloudnative-pg chart version in config/$environment/service-values.yaml"
 
-  if [[ "$dry_run" == true ]]; then
-    helm template "$release" "$chart" "${source[@]}" -n "$namespace" \
-      -f "$values" >/dev/null
-    echo "ok   $name"
+# ----------------------------------------------------------------- 2. apply
+info "applying $root"
+kubectl apply -f "$root"
+app_on() { [[ "$(A="$1" yq '.spec.source.helm.valuesObject.applications[strenv(A)] // true' "$root")" != false ]]; }
+
+# ---------------------------------------------------------------- 3. openbao
+if [[ "$skip_secrets" == false ]]; then
+  app_on openbao || die "openbao is off in $root; secrets cannot be stored (--skip-secrets to skip)"
+  info "waiting for Argo CD to create the openbao Application"
+  for _ in $(seq 1 60); do
+    kubectl -n argocd get application openbao >/dev/null 2>&1 && break
+    sleep 5
+  done
+  kubectl -n argocd get application openbao >/dev/null 2>&1 \
+    || die "no openbao Application after 5 minutes: kubectl -n argocd describe application oan-$environment"
+
+  info "OpenBao"
+  secrets setup
+
+  # ------------------------------------------------------------- 4. secrets
+  info "secrets"
+  if [[ ! -f "secrets/secrets-$environment.yaml" ]]; then
+    if secrets list 2>&1 | grep -q '^-> nothing under'; then
+      echo "empty store: generating a new secrets file"
+      secrets generate
+    else
+      echo "the store already has values: pulling them (never regenerated over a live store)"
+      secrets pull
+    fi
+  fi
+  secrets push
+  kubectl -n external-secrets annotate externalsecret --all "force-sync=$(date +%s)" --overwrite >/dev/null 2>&1 || true
+fi
+
+# ------------------------------------------------------------------- 5. seed
+if [[ "$skip_seed" == false && "$skip_secrets" == false ]]; then
+  if app_on registry-seed; then
+    info "waiting for registry-seed (up to ${timeout}s); the registry and its database come first"
+    for _ in $(seq 1 $((timeout / 10))); do
+      kubectl -n registry get jobs -l app.kubernetes.io/name=registry-seed -o name 2>/dev/null | grep -q . && break
+      sleep 10
+    done
+    secrets key-ids --timeout "$timeout"
   else
-    echo "-> $name"
-    helm upgrade --install "$release" "$chart" "${source[@]}" \
-      -n "$namespace" --create-namespace -f "$values" "${wait_flags[@]}"
+    echo "registry-seed is off in $root; no keyId to resolve"
   fi
-done <<<"$services"
+fi
+
+cat <<EOF
+
+Done. Argo CD keeps $environment in step with $(yq '.spec.source.targetRevision' "$root") from here:
+
+  kubectl -n argocd get applications
+
+If this run created them, move these into the password manager and delete them here:
+  ~/openbao-$environment-unseal.key   the unseal key
+  ~/openbao-$environment-init.json    the root token and recovery keys
+EOF

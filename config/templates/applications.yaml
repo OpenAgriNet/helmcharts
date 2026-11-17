@@ -1,0 +1,147 @@
+{{- /*
+One Argo CD Application per service in config/<environment>/service-values.yaml,
+in file order.
+
+global-values.yaml holds anchors and service-values.yaml aliases them, so the
+two are parsed as ONE document: an alias cannot reach an anchor in another
+file. The global block is rebuilt from the parsed globals (plus .Values.global
+overrides) so an override reaches every alias. ${name} inside a longer string
+is filled in as text first; resource-values.yaml is merged into each service.
+*/ -}}
+{{- $env := required "environment is required (set by config/<env>/argocd.yaml)" .Values.environment -}}
+{{- $globalText := .Files.Get (printf "%s/global-values.yaml" $env) -}}
+{{- $serviceText := .Files.Get (printf "%s/service-values.yaml" $env) -}}
+{{- $resourceText := .Files.Get (printf "%s/resource-values.yaml" $env) -}}
+{{- if or (not $globalText) (not $serviceText) -}}
+{{- fail (printf "config/%s/global-values.yaml and service-values.yaml are required" $env) -}}
+{{- end -}}
+
+{{- $parsedGlobal := fromYaml $globalText -}}
+{{- if hasKey $parsedGlobal "Error" -}}
+{{- fail (printf "config/%s/global-values.yaml: %s" $env $parsedGlobal.Error) -}}
+{{- end -}}
+{{- /* Comments may mention ${name} or *name without using them. */ -}}
+{{- $scan := regexReplaceAll `(?m)^\s*#.*$` $serviceText "" -}}
+{{- $global := mergeOverwrite (deepCopy ($parsedGlobal.global | default dict)) (.Values.global | default dict) -}}
+
+{{- /* A global left null (a prod key not issued yet) must be set in the root
+       Application's values before anything that reads it can render. */ -}}
+{{- range $name, $value := $global -}}
+{{- if and (eq $value nil) (or (regexMatch (printf `\*%s\b` $name) $scan) (contains (printf "${%s}" $name) $scan)) -}}
+{{- fail (printf "global %s is null in config/%s; set global.%s in config/%s/argocd.yaml" $name $env $name $env) -}}
+{{- end -}}
+{{- end -}}
+
+{{- /* ${name} inside a longer string, where an alias cannot reach. OTel's own
+       ${env:VAR} has a colon and is left alone. */ -}}
+{{- $text := $serviceText -}}
+{{- range $name, $value := $global -}}
+{{- $ref := printf "${%s}" $name -}}
+{{- if contains $ref $text -}}
+{{- if or (kindIs "map" $value) (kindIs "slice" $value) -}}
+{{- fail (printf "%s is a map; use it as the whole value: *%s" $ref $name) -}}
+{{- end -}}
+{{- $text = replace $ref (toString $value) $text -}}
+{{- end -}}
+{{- end -}}
+{{- $unknown := regexFindAll `\$\{[A-Za-z0-9_]+\}` (regexReplaceAll `(?m)^\s*#.*$` $text "") -1 | uniq -}}
+{{- if $unknown -}}
+{{- fail (printf "config/%s/service-values.yaml: not in global-values.yaml: %s" $env (join " " $unknown)) -}}
+{{- end -}}
+
+{{- $anchors := list "global:" -}}
+{{- range $name, $value := $global -}}
+{{- $anchors = append $anchors (printf "  %s: &%s %s" $name $name (toJson $value)) -}}
+{{- end -}}
+{{- $doc := fromYaml (printf "%s\n%s" (join "\n" $anchors) $text) -}}
+{{- if hasKey $doc "Error" -}}
+{{- fail (printf "config/%s/service-values.yaml: %s" $env $doc.Error) -}}
+{{- end -}}
+
+{{- $resources := dict -}}
+{{- if $resourceText -}}
+{{- $resources = fromYaml $resourceText -}}
+{{- if hasKey $resources "Error" -}}
+{{- fail (printf "config/%s/resource-values.yaml: %s" $env $resources.Error) -}}
+{{- end -}}
+{{- range $name, $_ := $resources -}}
+{{- if not (hasKey $doc $name) -}}
+{{- fail (printf "config/%s/resource-values.yaml: %s is not in service-values.yaml" $env $name) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{- /* File order is install order; a map loses it, so read it off the text. */ -}}
+{{- $argo := .Values.argocd -}}
+{{- /* applications: on/off per service, from config/<env>/argocd.yaml. A
+       service not listed is on; a name that is not a service is a typo. */ -}}
+{{- $toggles := .Values.applications | default dict -}}
+{{- range $name, $_ := $toggles -}}
+{{- if not (hasKey $doc $name) -}}
+{{- fail (printf "applications.%s in config/%s/argocd.yaml is not in service-values.yaml" $name $env) -}}
+{{- end -}}
+{{- end -}}
+{{- range $wave, $key := regexFindAll `(?m)^[A-Za-z0-9][A-Za-z0-9-]*:` $serviceText -1 }}
+{{- $name := trimSuffix ":" $key -}}
+{{- $svc := get $doc $name -}}
+{{- if or (not $svc.chart) (not $svc.namespace) -}}
+{{- fail (printf "config/%s: %s needs chart and namespace" $env $name) -}}
+{{- end -}}
+{{- $on := true -}}
+{{- if hasKey $toggles $name }}{{ $on = index $toggles $name }}{{ end -}}
+{{- if $on }}
+{{- $values := mergeOverwrite (deepCopy ($svc.values | default dict)) (deepCopy (get $resources $name | default dict)) }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ $name }}
+  namespace: {{ $argo.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ $svc.syncWave | default $wave | quote }}
+  finalizers:
+    # Deleting the Application deletes what it created.
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ $argo.project }}
+  destination:
+    server: {{ $argo.destinationServer }}
+    namespace: {{ $svc.namespace }}
+  source:
+    {{- if $svc.repository }}
+    repoURL: {{ $svc.repository }}
+    chart: {{ $svc.chart }}
+    targetRevision: {{ $svc.version | quote }}
+    {{- else }}
+    repoURL: {{ $argo.repoURL }}
+    path: {{ $svc.chart }}
+    targetRevision: {{ $svc.targetRevision | default $argo.targetRevision | quote }}
+    {{- end }}
+    helm:
+      releaseName: {{ $svc.releaseName | default $name }}
+      {{- if $values }}
+      valuesObject:
+        {{- toYaml $values | nindent 8 }}
+      {{- end }}
+  {{- with $svc.ignoreDifferences }}
+  ignoreDifferences:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  syncPolicy:
+    {{- if $argo.automated }}
+    automated:
+      prune: {{ $argo.prune }}
+      selfHeal: {{ $argo.selfHeal }}
+    {{- end }}
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      {{- if $svc.serverSideApply }}
+      - ServerSideApply=true
+      {{- end }}
+      {{- with $svc.ignoreDifferences }}
+      - RespectIgnoreDifferences=true
+      {{- end }}
+{{- end }}
+{{- end }}

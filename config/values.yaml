@@ -1,0 +1,21 @@
+# Set by config/<env>/argocd.yaml: which config/<env>/ to render.
+environment: ""
+
+argocd:
+  namespace: argocd
+  project: default
+  destinationServer: https://kubernetes.default.svc
+  # Where the charts in service-values.yaml (chart: charts/...) are read from.
+  repoURL: https://github.com/OpenAgriNet/helmcharts.git
+  targetRevision: main
+  automated: true
+  prune: true
+  selfHeal: true
+
+# Overrides for global-values.yaml, for a value that is not committed (a prod
+# key not issued yet, the HyperDX key). Set in the root Application's values.
+global: {}
+
+# On/off per service in service-values.yaml. Not listed means on. Set in the
+# root Application, config/<env>/argocd.yaml.
+applications: {}

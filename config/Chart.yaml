@@ -1,0 +1,8 @@
+apiVersion: v2
+name: config
+description: >-
+  The OAN services for one environment, as Argo CD Applications. Renders
+  config/<environment>/{global,service,resource}-values.yaml into one
+  Application per service. Installed by config/<environment>/argocd.yaml.
+type: application
+version: 0.1.0

@@ -1,0 +1,35 @@
+# dev: values many services share. Each is an anchor: service-values.yaml reads it as *name, or ${name} inside a longer string.
+global:
+  environment: &environment dev
+  # Every public hostname is built from this.
+  domain: &domain
+  # The helmcharts revision the seeded mapping URLs read from.
+  helmchartsRevision: &helmchartsRevision main
+
+  # In-cluster addresses, one per service other services call.
+  registryUrl: &registryUrl http://registry.registry.svc.cluster.local:8081
+  keycloakUrl: &keycloakUrl http://keycloak.keycloak.svc.cluster.local:8080/auth
+  postgresHost: &postgresHost postgres-rw.postgres.svc.cluster.local
+  openbaoUrl: &openbaoUrl https://openbao.openbao.svc.cluster.local:8200
+  otelEndpoint: &otelEndpoint clickstack-otel-collector.observability.svc.cluster.local:4317
+  clickhouseHost: &clickhouseHost clickstack-clickhouse.observability.svc.cluster.local
+
+  ingressClassName: &ingressClassName kong
+  clusterIssuer: &clusterIssuer letsencrypt-prod
+  # Let's Encrypt sends expiry notices here.
+  acmeEmail: &acmeEmail
+  # Placeholder. Set the real key under global: in config/dev/argocd.yaml; never commit it here.
+  hyperdxApiKey: &hyperdxApiKey xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  # Public half of network-adapter-keys, seeded into the registry.
+  adapterSigningPublicKey: &adapterSigningPublicKey
+
+  # --- Cloud specific. On a k3s VM see config/README.md.
+  # Only clickstack names it; the rest use the cluster default.
+  storageClass: &storageClass gp3
+  # Elastic IPs pin the NLB address, one per AZ, ordered by AZ.
+  loadBalancerAnnotations: &loadBalancerAnnotations
+    service.beta.kubernetes.io/aws-load-balancer-eip-allocations:
+    service.beta.kubernetes.io/aws-load-balancer-internal: 'false'
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+  # OpenBao snapshots go to S3; they run in prod only.
+  snapshotS3Host: &snapshotS3Host
