@@ -5,8 +5,8 @@ description: >-
   decision-support-system's form flows (DSS ADR-0022). Password required,
   nothing saved to disk, restarts empty. Not a cache cluster, not HA.
 type: application
-version: 0.1.0
-appVersion: "7.4-alpine"
+version: 0.1.1
+appVersion: "8.10-alpine"
 maintainers:
   - name: OpenAgriNet Engineering Team
     url: https://github.com/OpenAgriNet

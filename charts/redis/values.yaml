@@ -17,8 +17,8 @@
 image:
   registry: docker.io
   repository: redis
-  # Empty falls back to Chart.appVersion ("7.4-alpine"), the same 7-alpine
-  # family the DSS docker-compose.yml runs.
+  # Empty falls back to Chart.appVersion ("8.10-alpine"). Redis 8 because it can
+  # be used under AGPLv3, an open-source licence; 7.4 is RSALv2/SSPLv1 only.
   tag: ""
   digest: ""
   pullPolicy: IfNotPresent

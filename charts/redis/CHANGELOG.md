@@ -5,6 +5,13 @@ All notable changes to the `redis` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-11-17
+
+### Changed
+- Image `redis:7.4-alpine` → `redis:8.10-alpine` (`appVersion`). Redis 8 can be
+  used under AGPLv3; 7.4 is RSALv2/SSPLv1 only. Same `redis` user (uid 999,
+  gid 1000), same config, nothing else changes.
+
 ## [0.1.0] - 2026-11-16
 
 ### Added
