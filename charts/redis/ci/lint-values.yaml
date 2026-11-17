@@ -1,0 +1,6 @@
+# Minimum values that let `helm template` run in CI.
+#
+# auth.existingSecret has no default - the chart refuses to render a
+# passwordless Redis - so CI names a Secret. It need not exist to render.
+auth:
+  existingSecret: redis

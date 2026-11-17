@@ -5,6 +5,19 @@ All notable changes to the `decision-support-system` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-11-16
+
+### Added
+- `redis.urlSecret.{name,key,optional}` → `DSS_REDIS_URL`, the session store
+  for form flows (DSS ADR-0022). Off by default. The `redis` chart deploys a
+  store to point it at. Needs an image with DSS #207; an older image ignores
+  it. `optional: true` lets the pod start while the Secret is still missing,
+  as if unset.
+
+### Changed
+- README and description no longer call the DSS stateless without
+  qualification: form sessions and their cross-replica lock live in Redis.
+
 ## [0.2.0] - 2026-11-04
 
 Brings the chart up to `OpenAgriNet/decision-support-system` `main`

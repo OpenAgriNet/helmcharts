@@ -1,6 +1,7 @@
 # Every optional setting on at once, as a dev cluster runs it: the gateway,
 # the provider network, provider preferences, Photon, redaction, and edge
-# translation read from a file mounted through `files`.
+# translation read from a file mounted through `files`, and the Redis session
+# store.
 models:
   intent: "dss-intent"
   moderation: "dss-moderation"
@@ -52,3 +53,16 @@ tracing:
     key: otlp-headers
   resourceAttributes:
     deployment.environment.name: dev
+
+redis:
+  urlSecret:
+    name: dss-redis
+    key: url
+    optional: true
+
+
+secretEnv:
+    connectionInfo_password:
+      name: registry-db
+      key: password
+      optional: false      # optional
