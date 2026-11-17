@@ -102,7 +102,7 @@ that can drift, and a drifted one fails as "password authentication failed",
 which reads as a database problem rather than a Secret problem. One source, one
 value, mirrored.
 
-`infra-automation`'s `scripts/manage-secrets.py` emits each value exactly once, in
+`scripts/secrets.sh` emits each value exactly once, in
 YAML, as the input to
 OpenBao -- one top-level key per secret, one KV entry each, at
 `secret/oan/<env>/<name>`. From there External Secrets Operator pulls it into the

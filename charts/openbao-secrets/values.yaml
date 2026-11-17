@@ -5,7 +5,7 @@
 # Kubernetes Secret in this release's namespace, and Reflector mirrors it into
 # the namespaces that read it.
 #
-# THE NAMES HERE MUST MATCH manage-secrets.py. It writes one entry per secret to
+# THE NAMES HERE MUST MATCH WHAT IS PUSHED: one entry per secret at
 # secret/oan/<env>/<name> in OpenBao; this reads oan/<env>/<name> back (the
 # `secret` mount comes from the store). A name that exists in one
 # and not the other fails as a Secret that never appears, which surfaces as a
@@ -54,8 +54,8 @@ secrets:
   - name: registry-default-user
     namespaces: [registry]
 
-  # -- adapter identities. keyId inside these is filled in by
-  #    resolve-key-ids.sh AFTER the registry has been seeded, so these entries
+  # -- adapter identities. keyId inside these is filled in with
+  #    the osid the registry reports AFTER it has been seeded, so these entries
   #    change once per environment after the first bring-up.
   #
   #  network-adapter (single mode) reads all three identities and provider-upstream;

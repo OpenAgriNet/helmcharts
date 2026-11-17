@@ -158,8 +158,8 @@ keys:
 # carrying a literal private key.
 #
 # keyId is a placeholder for a different reason: the registry assigns it when
-# registry-seed writes the public key, and scripts/resolve-key-ids.sh puts it
-# into the Secret afterwards. Hardcoding it here bypasses that and goes stale
+# registry-seed writes the public key, and it is written into the Secret
+# afterwards. Hardcoding it here bypasses that and goes stale
 # the first time an identity is re-seeded.
 config: ""
 

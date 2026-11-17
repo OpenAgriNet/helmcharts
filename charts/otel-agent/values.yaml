@@ -34,8 +34,6 @@ exporter:
 # The HyperDX ingestion key. NOT written into a values file: supplied at install
 # time, the same one the clickstack release and the adapters get.
 #
-#     ./scripts/install-services.sh -e dev -- --set global.hyperdxApiKey=<key>
-#
 # The default is the chart's placeholder, which is refused by the collector —
 # visibly, rather than dropping telemetry in silence.
 apiKey: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"

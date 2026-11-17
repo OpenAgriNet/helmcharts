@@ -16,7 +16,7 @@ Helm charts for deploying and managing OpenAgriNet (OAN) platform services.
 | [`registry`](charts/registry) | application | The OAN participant registry, on Sunbird RC core. Needs `postgresql-cnpg` and `keycloak`. |
 | [`discovery`](charts/discovery) | application | The OAN Beckn discover-and-publish service. Needs `postgresql-cnpg` **with pgvector**. |
 | [`adapter-service`](charts/adapter-service) | application | The OAN Beckn adapters. One chart, installed once per `role` — `provider`, `network` or `experience`. Needs `registry`. |
-| [`kong`](charts/kong) | application | Kong — the cluster's API gateway and ingress controller, in one release. The official `kong` chart 3.2.0 committed whole and unmodified. Per-environment configuration lives in the infra-automation repository. |
+| [`kong`](charts/kong) | application | Kong — the cluster's API gateway and ingress controller, in one release. The official `kong` chart 3.2.0 committed whole and unmodified. Per-environment configuration lives in `config/<env>/`. |
 | [`registry-seed`](charts/registry-seed) | application | Seeds the registry — adapter identities, upstreams, capability bindings and schemas — as a re-runnable Job. Reports the key osid each adapter needs. |
 | [`cert-manager`](charts/cert-manager) | application | X.509 certificate management. The official `cert-manager` chart v1.21.2 committed whole and unmodified. Its CRDs are applied out of band — three exceed the annotation size limit. |
 | [`cert-manager-issuers`](charts/cert-manager-issuers) | application | Let's Encrypt `ClusterIssuer`s. Separate from `cert-manager` because one release cannot register a CRD and create an instance of it. |
@@ -75,7 +75,7 @@ Three charts, deployed in this order — the ordering is not optional:
 helm install postgres charts/postgresql-cnpg -n postgres -f charts/postgresql-cnpg/examples/postgres.dev.yaml
 # 2. Secrets, before anything that reads them. One Secret per value, pulled from
 #    OpenBao and mirrored where a second namespace needs it (see Secrets below):
-#      infra-automation: ./scripts/manage-secrets.py generate --env dev
+#      ./scripts/secrets.sh dev generate && ./scripts/secrets.sh dev push
 # 3. Keycloak — imports the sunbird-rc realm it ships with, on first start
 helm install keycloak    charts/keycloak        -n keycloak -f charts/keycloak/examples/keycloak.dev.yaml
 # 4. Registry
@@ -213,10 +213,9 @@ helm install openbao charts/openbao -n openbao -f charts/openbao/examples/openba
 # 3. One-time setup: init (writes the root token and recovery keys to the
 #    file given -- move it to the password manager), KV v2 at secret/,
 #    Kubernetes auth, a read-only policy for oan/<env>/*, the role ESO uses,
-#    and the role the backup CronJob uses. The script lives in the
-#    infra-automation repository, which owns cluster bring-up; its
-#    install-services.sh runs it as part of a deploy.
-../infra-automation/scripts/openbao-configure.sh --env dev --init-out ~/openbao-dev-init.json
+#    and the role the backup CronJob uses. scripts/deploy.sh runs it as part
+#    of a deploy.
+./scripts/secrets.sh dev setup --init-out ~/openbao-dev-init.json
 
 # 4. The operator, the mirror, and the store they read
 helm install external-secrets charts/external-secrets -n external-secrets --create-namespace
@@ -278,8 +277,8 @@ in place, and diff before against after.
 
 ```bash
 ./scripts/secrets-snapshot.sh > before.txt              # hashes only, no values
-BAO_TOKEN="$(../infra-automation/scripts/openbao-login.sh --env dev)" ./scripts/asm-to-openbao.sh --env dev --dry-run
-BAO_TOKEN="$(../infra-automation/scripts/openbao-login.sh --env dev)" ./scripts/asm-to-openbao.sh --env dev
+BAO_TOKEN="$(./scripts/secrets.sh dev token)" ./scripts/asm-to-openbao.sh --env dev --dry-run
+BAO_TOKEN="$(./scripts/secrets.sh dev token)" ./scripts/asm-to-openbao.sh --env dev
 helm install openbao-store charts/openbao-cluster-secret-store \
   --set server=https://openbao.openbao.svc.cluster.local:8200 \
   --set caProvider.type=Secret --set caProvider.name=openbao-server-tls \
