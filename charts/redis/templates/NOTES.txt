@@ -20,9 +20,13 @@ Image in use:
 Check the rollout:
   kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "redis.fullname" . }}
 
-Ping it (expects PONG):
-  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "redis.fullname" . }} -- \
-    sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping'
+Ping it (expects PONG; redis-cli authenticates from REDISCLI_AUTH):
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "redis.fullname" . }} -- redis-cli ping
 
-Reach it in-cluster (DSS_REDIS_URL):
+Reach it in-cluster (DSS_REDIS_URL, read by the DSS chart's redis.urlSecret):
   redis://:<password>@{{ include "redis.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/0
+{{- if .Values.networkPolicy.enabled }}
+
+Only pods matching networkPolicy.from may connect; a debug pod without the
+DSS's label is dropped. Test from inside this pod instead.
+{{- end }}

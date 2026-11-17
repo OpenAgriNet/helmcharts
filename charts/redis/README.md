@@ -20,10 +20,13 @@ the `redis` service in DSS's `docker-compose.yml`, plus a memory ceiling.
   Failover is Kubernetes restarting the pod: the Deployment brings it back
   when it dies, and the probes restart it when it stops answering. Replication
   and automatic failover come later, if a need for them shows up.
-- **Not exposed.** `ClusterIP` only; there is no Ingress.
+- **Not exposed.** `ClusterIP` only; there is no Ingress. A NetworkPolicy
+  (on by default) lets only the DSS's pods connect - see
+  [Who may connect](#who-may-connect).
 - **Not TLS.** ADR-0022 asks for TLS; this first pass goes without it, and the
   password and form values cross the cluster network in clear text, as every
-  other in-cluster service here does today except OpenBao.
+  other in-cluster service here does today except OpenBao. The NetworkPolicy
+  is what limits who can try.
 - **Not Langfuse's Redis.** That one is tuned for Langfuse and saves to disk.
 
 ## What it renders
@@ -33,6 +36,7 @@ the `redis` service in DSS's `docker-compose.yml`, plus a memory ceiling.
 | Deployment | 1 replica, `Recreate`; `redis-cli ping` probes; resources mandatory |
 | Service | `ClusterIP`, port `redis` 6379 |
 | ServiceAccount | `automountServiceAccountToken: false` |
+| NetworkPolicy | ingress on 6379 from the DSS's pods only; `networkPolicy.enabled` |
 
 No Secret and no ConfigMap: Redis is configured by flags, and the password
 comes from a Secret you create.
@@ -41,15 +45,21 @@ comes from a Secret you create.
 
 The chart renders no Secret ([CONVENTIONS.md](../../CONVENTIONS.md#secrets))
 and has no passwordless mode: with `auth.existingSecret` empty the render
-fails. Create the Secret first, in the release's namespace:
+fails. Create the Secret first, in the release's namespace. The examples use
+`dss`, the DSS's namespace, which is where OAN runs this chart.
+
+One Secret holds both what Redis reads (`password`) and what the DSS reads
+(`url`), so the two are created, and changed, together:
 
 ```bash
-kubectl -n decision-support-system create secret generic redis \
-  --from-literal=password=<password>
+kubectl -n dss create secret generic redis \
+  --from-literal=password=<password> \
+  --from-literal=url='redis://:<password>@redis.dss.svc.cluster.local:6379/0'
 ```
 
-Keep the password to letters, digits, `-` and `_`. The DSS puts it into
-`DSS_REDIS_URL` as it is, and anything else would need URL-encoding.
+Keep the password to letters, digits, `-` and `_`. It goes into the URL as it
+is, and anything else would need URL-encoding. In OAN, `manage-secrets.py`
+(infra-automation) generates this Secret as `dss-redis` and OpenBao holds it.
 
 | Value | Default | Meaning |
 |---|---|---|
@@ -59,40 +69,66 @@ Keep the password to letters, digits, `-` and `_`. The DSS puts it into
 ## Install
 
 ```bash
-helm install redis charts/redis -n decision-support-system \
+helm install redis charts/redis -n dss \
   -f charts/redis/examples/redis.dev.yaml
 ```
 
-Then check it answers (`NOTES.txt` prints the same):
+Then check it answers (`NOTES.txt` prints the same). `redis-cli` in the pod
+authenticates from `REDISCLI_AUTH`:
 
 ```bash
-kubectl -n decision-support-system exec deploy/redis -- \
-  sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping'
+kubectl -n dss exec deploy/redis -- redis-cli ping
 ```
 
 ## How the DSS connects
 
 The DSS reads one setting, `DSS_REDIS_URL`. Unset, it runs without a store and
-a form that needs an OTP cannot finish. Put the full URL in a Secret of its own
-and hand it to the DSS chart through its existing `secretEnv`:
-
-```bash
-kubectl -n decision-support-system create secret generic dss-redis-url \
-  --from-literal=url='redis://:<password>@redis.decision-support-system.svc.cluster.local:6379/0'
-```
+a form that needs an OTP cannot finish. Point the DSS chart's
+`redis.urlSecret` at the `url` key (DSS chart 0.3.0 or later):
 
 ```yaml
 # decision-support-system values
-secretEnv:
-  DSS_REDIS_URL:
-    name: dss-redis-url
+redis:
+  urlSecret:
+    name: redis
     key: url
 ```
 
-Use the FQDN, `redis.<namespace>.svc.cluster.local`, so the URL still resolves
-if the DSS and this Redis end up in different namespaces. The password appears
-in two Secrets; that is the cost of the DSS taking a URL rather than a
-password, and both must change together.
+Write the host as the FQDN, `redis.<namespace>.svc.cluster.local`, as
+[CONVENTIONS.md](../../CONVENTIONS.md) asks. It resolves from any namespace;
+the NetworkPolicy, not DNS, decides who gets in.
+
+Use the URL with redis-py (what the DSS uses). `redis-cli -u` reads the empty
+username in `redis://:<pw>@` as the username `""` and fails with `WRONGPASS`.
+For redis-cli, use `-a`, `REDISCLI_AUTH` or `redis://default:<pw>@...`.
+
+## Rotating the password
+
+Both pods read the Secret once, when they start. Updating the Secret alone
+changes nothing until a pod restarts, and if only one of them restarts, the
+DSS and Redis disagree and every form that needs an OTP is refused. So:
+
+1. Change `password` and `url` together.
+2. Wait until the Secret in the release's namespace has the new values. In
+   OAN, force-sync the ExternalSecret rather than waiting for its refresh.
+3. Restart both, together:
+   `kubectl -n dss rollout restart deploy/redis deploy/decision-support-system`.
+
+Open form flows are lost, as on any Redis restart.
+
+## Who may connect
+
+`networkPolicy.from` lists the NetworkPolicy peers allowed on port 6379. The
+default is pods labelled `app.kubernetes.io/name: decision-support-system` in
+the release's namespace, which is what the DSS chart sets. Everything else,
+including a debug pod you start next to it, is dropped. Test from inside the
+Redis pod instead (`kubectl exec deploy/redis -- redis-cli ping`), or start the
+debug pod with that label.
+
+The render fails if the policy is on and `from` is empty: an ingress rule with
+no peers lets every pod in. It needs a CNI that enforces NetworkPolicy; on EKS
+that means turning on network policy in the VPC CNI. Without one, the object
+is accepted and does nothing.
 
 ## Memory
 
@@ -111,6 +147,12 @@ with `runAsNonRoot`, a read-only root filesystem, all capabilities dropped,
 The container's `command` replaces the image's entrypoint script, so nothing
 starts as root to drop privileges later.
 
+The password is never on a command line. The server gets it as config on
+stdin (`redis-server -` and a here-document), and `redis-cli` reads it from
+`REDISCLI_AUTH`, which the chart sets from the same Secret. So it is not in
+the pod spec, `/proc/<pid>/cmdline` or `ps` on the node; only in the
+container's environment.
+
 ## Validation
 
 ```bash
@@ -121,6 +163,7 @@ helm template redis charts/redis -f charts/redis/ci/lint-values.yaml
 Render-time guardrails:
 
 - `auth.existingSecret` or `auth.passwordKey` empty (this chart)
+- `networkPolicy.enabled` with an empty `networkPolicy.from` (this chart)
 - `resources` empty (`common`)
 - a probe with no handler or with two (`common`)
 

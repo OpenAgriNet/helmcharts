@@ -4,8 +4,9 @@ The DSS [reasoning
 runtime](https://github.com/OpenAgriNet/decision-support-system) — interprets
 one farmer turn (intent, moderation, provider discovery, planning,
 composition) and streams back a curated answer, citing whichever OAN provider
-answered. Stateless: no datastore of its own. State lives in the LLM
-providers it calls and in the OAN network it discovers against, not here.
+answered. No datastore of its own: state lives in the LLM providers it
+calls, the OAN network it discovers against, and, for form flows, an external
+Redis (`redis.urlSecret`, ADR-0022). Not in the pod.
 
 ## What it renders
 
@@ -22,8 +23,9 @@ providers it calls and in the OAN network it discovers against, not here.
 | Test Pod | `helm test` check that `/openapi.json` answers |
 
 No Secret is rendered. `DSS_GATEWAY_API_KEY` / `AZURE_OPENAI_API_KEY` /
-`OPENAI_API_KEY` / `OTEL_EXPORTER_OTLP_HEADERS` / `GITHUB_TOKEN` are all
-referenced by name from Secrets created outside this chart.
+`OPENAI_API_KEY` / `OTEL_EXPORTER_OTLP_HEADERS` / `GITHUB_TOKEN` /
+`DSS_REDIS_URL` are all referenced by name from Secrets created outside this
+chart.
 
 ## Install
 
@@ -144,6 +146,7 @@ Each is off or at the app's own default until set, and each maps to one
 |---|---|---|
 | `photon.baseUrl`, `.timeoutSeconds`, `.countryCodes`, `.cache.*` | `DSS_PHOTON_*` | off: the bundled area file is the only source of places. The `photon` chart deploys a geocoder to point at. |
 | `providerPreferences.baseUrl`, `.timeoutSeconds` | `DSS_PROVIDER_PREFERENCES_*` | off: no ranking, every ask keeps whichever providers discovery found |
+| `redis.urlSecret.name`, `.key`, `.optional` | `DSS_REDIS_URL` (from the Secret) | off: no session store, so a form that waits for an OTP cannot finish (ADR-0022). The `redis` chart deploys one to point at. `optional: true` lets the pod start without the Secret, as if unset. |
 | `schemes.configPath` | `DSS_SCHEMES_CONFIG_PATH` | `/app/configs/schemes.csv`, the catalog in the image (as `docker-compose.yml`) |
 | `redaction.enabled`, `.configPath` | `DSS_REDACTION_*` | off; the path defaults to the India rules in the image |
 | `edgeTranslation.configPath` | `DSS_EDGE_TRANSLATION_CONFIG_PATH` | off |
@@ -190,10 +193,15 @@ would silently always pass.
 
 ## Scaling
 
-The app's own design (`docs/dss-design-v2.md`: "any replica can serve the
-rest [of a resumed stream]") is stateless and horizontally scalable — no
-cross-replica coordination, no shared cache to invalidate. `autoscaling.enabled`
-is safe to turn on; `replicaCount` is ignored once it is.
+The pods hold no state, so any replica can serve any turn
+(`docs/dss-design-v2.md`: "any replica can serve the rest [of a resumed
+stream]"). `autoscaling.enabled` is safe to turn on; `replicaCount` is ignored
+once it is.
+
+The one coordination between replicas is the form flows' per-session lock
+(ADR-0022). It lives in Redis with the session state, so every replica must
+point at the same Redis (`redis.urlSecret`). Without a Redis, form turns take
+no lock, and a form that waits for an OTP cannot finish on any replica.
 
 ## Not exposed by default
 

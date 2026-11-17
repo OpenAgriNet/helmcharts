@@ -1,13 +1,13 @@
 # Example: redis, dev environment - session state for decision-support-system.
 #
-#   kubectl -n decision-support-system create secret generic redis \
-#     --from-literal=password=<letters-digits-dash-underscore>
-#   helm install redis charts/redis \
-#     -n decision-support-system -f charts/redis/examples/redis.dev.yaml
+#   kubectl -n dss create secret generic redis \
+#     --from-literal=password=<letters-digits-dash-underscore> \
+#     --from-literal=url='redis://:<same-password>@redis.dss.svc.cluster.local:6379/0'
+#   helm install redis charts/redis -n dss -f charts/redis/examples/redis.dev.yaml
 #
-# The DSS then connects with
-#   DSS_REDIS_URL=redis://:<pw>@redis.decision-support-system.svc.cluster.local:6379/0
-# supplied through the DSS chart's secretEnv - see this chart's README.
+# The DSS then reads the `url` key through the DSS chart's
+#   redis: {urlSecret: {name: redis, key: url}}
+# - see this chart's README.
 
 auth:
   existingSecret: redis

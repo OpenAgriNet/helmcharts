@@ -80,6 +80,8 @@ resources:
     memory: 128Mi
 
 # Probes run redis-cli inside the container, as DSS's compose healthcheck does.
+# It authenticates from REDISCLI_AUTH, which the chart sets from the same
+# Secret, so the password is never on a command line.
 # `grep -q PONG` matters: redis-cli can exit 0 on an error reply such as
 # NOAUTH, so the exit code alone would pass a Redis rejecting the password.
 # common.probeSpec allows exactly one handler - to swap `exec` for another,
@@ -90,11 +92,14 @@ livenessProbe:
     command:
       - sh
       - -c
-      - redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping | grep -q PONG
+      - redis-cli ping | grep -q PONG
   initialDelaySeconds: 10
   periodSeconds: 10
   timeoutSeconds: 5
-  failureThreshold: 3
+  # Six misses (a minute) before a restart, not three: a restart empties the
+  # store, and a CPU-throttled fork of sh + redis-cli can miss a probe while
+  # Redis itself is fine. Readiness stays quick.
+  failureThreshold: 6
 
 readinessProbe:
   enabled: true
@@ -102,7 +107,7 @@ readinessProbe:
     command:
       - sh
       - -c
-      - redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping | grep -q PONG
+      - redis-cli ping | grep -q PONG
   initialDelaySeconds: 5
   periodSeconds: 10
   timeoutSeconds: 5
@@ -115,7 +120,7 @@ startupProbe:
     command:
       - sh
       - -c
-      - redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping | grep -q PONG
+      - redis-cli ping | grep -q PONG
   periodSeconds: 5
   timeoutSeconds: 5
   failureThreshold: 30
@@ -143,6 +148,23 @@ securityContext:
   capabilities:
     drop:
       - ALL
+
+# ---------------------------------------------------------------------------
+# Who may connect. On by default: there is no TLS, so this and the password
+# are what keep other pods away from form values. `from` is a list of
+# NetworkPolicy peers; the default is the DSS's pods in this release's
+# namespace. Only ingress is restricted, and only on the Redis port.
+#
+# Needs a CNI that enforces NetworkPolicy (on EKS, the VPC CNI with network
+# policy turned on); without one it is accepted and does nothing. The probes
+# run inside the pod, so they are not affected.
+# ---------------------------------------------------------------------------
+networkPolicy:
+  enabled: true
+  from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: decision-support-system
 
 # Scheduling
 nodeSelector: {}
