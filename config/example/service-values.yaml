@@ -1,5 +1,5 @@
-# dev: every service in install order. *name and ${name} read global-values.yaml; resources are in resource-values.yaml.
-# Deployed by Argo CD: config/dev/argocd.yaml. Preview: helm template oan config --set environment=dev
+# example: every service in install order. *name and ${name} read global-values.yaml; resources are in resource-values.yaml.
+# Deploy: ./scripts/deploy.sh <env>, after copying this folder to config/<env>.
 
 # TLS certificates. Its CRDs are applied first (config/README.md).
 cert-manager:

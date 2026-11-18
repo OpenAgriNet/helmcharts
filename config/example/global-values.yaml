@@ -1,8 +1,14 @@
-# staging: values many services share. Each is an anchor: service-values.yaml reads it as *name, or ${name} inside a longer string.
+# example: values many services share. Each is an anchor: service-values.yaml
+# reads it as *name, or ${name} inside a longer string.
+#
+# A template, not an environment. Copy it and fill in the placeholders:
+#
+#   cp -r config/example config/dev     # config/*/ is gitignored, except example/
 global:
-  environment: &environment staging
-  # Every public hostname is built from this.
-  domain: &domain
+  # Names the environment: labels, and the OpenBao path secret/oan/<environment>/.
+  environment: &environment example
+  # Every public hostname is built from this, e.g. <nlb-ip>.sslip.io.
+  domain: &domain oan.example.org
   # The helmcharts revision the seeded mapping URLs read from.
   helmchartsRevision: &helmchartsRevision main
 
@@ -17,19 +23,21 @@ global:
   ingressClassName: &ingressClassName kong
   clusterIssuer: &clusterIssuer letsencrypt-prod
   # Let's Encrypt sends expiry notices here.
-  acmeEmail: &acmeEmail
-  # Placeholder. Set the real key under global: in config/staging/argocd.yaml; never commit it here.
+  acmeEmail: &acmeEmail ops@example.org
+  # Placeholder. Set the real key under global: in argocd.yaml.
   hyperdxApiKey: &hyperdxApiKey xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-  # Public half of network-adapter-keys, seeded into the registry.
-  adapterSigningPublicKey: &adapterSigningPublicKey
+  # Public half of network-adapter-keys (signingPublicKey in the secrets file),
+  # seeded into the registry.
+  adapterSigningPublicKey: &adapterSigningPublicKey REPLACE-with-signingPublicKey
 
   # --- Cloud specific. On a k3s VM see config/README.md.
   # Only clickstack names it; the rest use the cluster default.
   storageClass: &storageClass gp3
-  # Elastic IPs pin the NLB address, one per AZ, ordered by AZ.
   loadBalancerAnnotations: &loadBalancerAnnotations
-    service.beta.kubernetes.io/aws-load-balancer-eip-allocations:
+    # Elastic IPs pin the NLB address, one per AZ, ordered by AZ. Without them
+    # AWS assigns the IPs for the life of the load balancer.
+    # service.beta.kubernetes.io/aws-load-balancer-eip-allocations: eipalloc-aaaa,eipalloc-bbbb
     service.beta.kubernetes.io/aws-load-balancer-internal: 'false'
     service.beta.kubernetes.io/aws-load-balancer-type: nlb
-  # OpenBao snapshots go to S3; they run in prod only.
+  # OpenBao snapshots go to S3.
   snapshotS3Host: &snapshotS3Host s3.ap-south-1.amazonaws.com

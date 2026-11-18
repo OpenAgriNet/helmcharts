@@ -5,11 +5,22 @@ Helm chart: it renders one Argo CD Application per service.
 
 ```
 config/
-  Chart.yaml, values.yaml, templates/   the chart (app of apps)
-  <env>/argocd.yaml                     the root Application for <env>
+  Chart.yaml, values.yaml, templates/   the chart
+  example/                              the template for an environment (committed)
+  <env>/argocd.yaml                     Argo CD settings and which services run
   <env>/global-values.yaml              values many services share, each a YAML anchor
   <env>/service-values.yaml             every service in install order, with its values
   <env>/resource-values.yaml            each service's resources (requests/limits)
+```
+
+Real environments are **local**: `config/*/` is gitignored except `example/`.
+Start one from the template:
+
+```bash
+cp -r config/example config/dev
+# then edit config/dev: environment and domain (global-values.yaml), the
+# argocd.targetRevision and applications: list (argocd.yaml), sizes
+# (resource-values.yaml)
 ```
 
 ## Values
@@ -34,8 +45,8 @@ Change the domain once in `global-values.yaml` and every service follows.
 - An alias keeps its type (a map stays a map).
 - An unknown `${name}` fails the render. OTel's own `${env:VAR}` has a colon and
   is left as it is.
-- A global set to `null` (a prod key not issued yet) fails the render until it is
-  set under `global:` in that environment's `argocd.yaml`.
+- A global left empty (a key not issued yet) fails the render until it is set,
+  in `global-values.yaml` or under `global:` in `argocd.yaml`.
 - `resource-values.yaml` holds every `resources:` block at the same key path as in
   the service's values. One inside a list (a sidecar container) stays in
   `service-values.yaml`: a list item cannot be merged back by key.
@@ -50,14 +61,15 @@ Every environment lists every service; which ones run is the `applications:`
 list in `config/<env>/argocd.yaml`:
 
 ```yaml
-        applications:
-          metrics-server: false
-          grafana: true
+applications:
+  metrics-server: false
+  grafana: true
 ```
 
 - A service not listed is on. A name that is not in `service-values.yaml` fails
   the render.
-- Turning a service off deletes its Application and what it created (prune).
+- Turning a service off and re-running `deploy.sh` deletes its Application and
+  what it created (prune).
 - A service that is off still has to parse: its aliases need their globals.
 - `consumer-adapter` and `provider-adapter` run only in multi-adapter mode, with
   network-adapter's multi-adapter values. `otel-collector` replaces `clickstack`
@@ -66,17 +78,23 @@ list in `config/<env>/argocd.yaml`:
 ## Deploy
 
 ```bash
-./scripts/deploy.sh dev     # once per cluster: Argo CD, OpenBao, secrets, keyId (see New cluster)
+./scripts/deploy.sh dev --dry-run   # the Applications it would apply
+./scripts/deploy.sh dev             # apply them, then OpenBao, secrets, keyId
 ```
 
-After that a deploy is a merge: Argo CD watches the root Application's
-`targetRevision`, re-renders this chart, and syncs each service. Both
-`targetRevision` lines in `argocd.yaml` must match.
+`deploy.sh` renders this chart from the local `config/dev/` files and applies
+one Application per service, each pointing at its chart in helmcharts at
+`argocd.targetRevision` with its values inlined. From there:
 
-Preview what Argo CD will create:
+- **A chart change** deploys by merge: Argo CD watches `targetRevision`.
+- **A config change** (anything in `config/dev/`) deploys by re-running
+  `./scripts/deploy.sh dev`: the files are not in git, so Argo CD cannot see
+  them. Applications for services that are now off are pruned.
+
+Preview the full Applications:
 
 ```bash
-helm template oan config --set environment=dev
+helm template oan config -f config/dev/argocd.yaml
 ```
 
 Each Application gets a sync wave from its position in `service-values.yaml`, so
@@ -116,7 +134,8 @@ Secrets (the `openbao-secrets` service).
 
 1. Checks the kubectl context (and asks), that Argo CD is installed, and that
    the cert-manager and CloudNativePG CRDs are applied (server side, once).
-2. `kubectl apply -f config/<env>/argocd.yaml`: Argo CD deploys every service.
+2. Renders `config/<env>/` and applies the Applications: Argo CD deploys every
+   service.
 3. `secrets.sh <env> setup`: unseal key, init and configure OpenBao. Skipped
    once it is configured.
 4. Generates the secrets file for an empty store, or pulls it from a store that
@@ -129,7 +148,7 @@ Applications without touching the cluster.
 
 ## knowledge-provider and langfuse
 
-On in dev only (`applications:` in `config/dev/argocd.yaml`).
+In `config/example/`, off in its `applications:` list.
 
 - **knowledge-provider** (namespace `knowledge-provider`): its own Keycloak and
   Temporal, each with a CNPG database; MinIO and Qdrant (release names `minio`

@@ -13,9 +13,9 @@ argocd:
   selfHeal: true
 
 # Overrides for global-values.yaml, for a value that is not committed (a prod
-# key not issued yet, the HyperDX key). Set in the root Application's values.
+# key not issued yet, the HyperDX key). Set in config/<env>/argocd.yaml.
 global: {}
 
-# On/off per service in service-values.yaml. Not listed means on. Set in the
-# root Application, config/<env>/argocd.yaml.
+# On/off per service in service-values.yaml. Not listed means on. Set in
+# config/<env>/argocd.yaml.
 applications: {}

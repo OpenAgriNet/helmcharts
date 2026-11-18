@@ -1,4 +1,4 @@
-# staging: each service's resources (requests/limits), at the same key path as in
+# example: each service's resources (requests/limits), at the same key path as in
 # its values. Merged into each service by the config chart.
 
 cert-manager:
@@ -133,3 +133,111 @@ grafana:
     requests:
       cpu: 100m
       memory: 256Mi
+
+knowledge-provider-keycloak-db:
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+knowledge-provider-temporal-db:
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+knowledge-provider-keycloak:
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+knowledge-provider-temporal:
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+knowledge-provider-minio:
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+knowledge-provider-qdrant:
+  resources:
+    limits:
+      cpu: '1'
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+knowledge-provider-api:
+  resources:
+    limits:
+      cpu: 500m
+      memory: 4Gi
+    requests:
+      cpu: 100m
+      memory: 1Gi
+
+knowledge-provider-worker:
+  resources:
+    limits:
+      cpu: 500m
+      memory: 4Gi
+    requests:
+      cpu: 100m
+      memory: 1Gi
+
+knowledge-provider-ui:
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 25m
+      memory: 32Mi
+
+langfuse:
+  langfuse:
+    web:
+      resources:
+        limits:
+          cpu: '1'
+          memory: 1Gi
+        requests:
+          cpu: 250m
+          memory: 512Mi
+    worker:
+      resources:
+        limits:
+          cpu: '1'
+          memory: 2Gi
+        requests:
+          cpu: 250m
+          memory: 512Mi
+  redis:
+    resources:
+      limits:
+        cpu: 250m
+        memory: 256Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi

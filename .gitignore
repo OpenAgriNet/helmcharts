@@ -80,6 +80,11 @@ secrets.json
 # Output of scripts/secrets.sh: every generated credential, plaintext.
 secrets/
 
+# Real environments stay local; config/example/ is the template for them.
+config/*/
+!config/example/
+!config/templates/
+
 # Python bytecode
 __pycache__/
 *.pyc

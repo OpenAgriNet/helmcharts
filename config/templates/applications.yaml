@@ -24,8 +24,8 @@ is filled in as text first; resource-values.yaml is merged into each service.
 {{- $scan := regexReplaceAll `(?m)^\s*#.*$` $serviceText "" -}}
 {{- $global := mergeOverwrite (deepCopy ($parsedGlobal.global | default dict)) (.Values.global | default dict) -}}
 
-{{- /* A global left null (a prod key not issued yet) must be set in the root
-       Application's values before anything that reads it can render. */ -}}
+{{- /* A global left empty (a key not issued yet) must be set before anything
+       that reads it can render. */ -}}
 {{- range $name, $value := $global -}}
 {{- if and (eq $value nil) (or (regexMatch (printf `\*%s\b` $name) $scan) (contains (printf "${%s}" $name) $scan)) -}}
 {{- fail (printf "global %s is null in config/%s; set global.%s in config/%s/argocd.yaml" $name $env $name $env) -}}
@@ -97,6 +97,10 @@ kind: Application
 metadata:
   name: {{ $name }}
   namespace: {{ $argo.namespace }}
+  # deploy.sh prunes this environment's Applications by these labels.
+  labels:
+    app.kubernetes.io/managed-by: oan-config
+    oan.in/environment: {{ $env }}
   annotations:
     argocd.argoproj.io/sync-wave: {{ $svc.syncWave | default $wave | quote }}
   finalizers:

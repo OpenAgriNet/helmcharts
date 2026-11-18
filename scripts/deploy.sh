@@ -7,14 +7,16 @@
 #   ./scripts/deploy.sh dev --dry-run       # show the Applications, touch nothing
 #
 #   1. checks    the kubectl context (confirmed), Argo CD, cert-manager and CNPG CRDs
-#   2. apply     kubectl apply -f config/<env>/argocd.yaml; Argo CD deploys the rest
+#   2. apply     render config/ with config/<env>/argocd.yaml and apply one Argo CD
+#                Application per service; drop the ones no longer rendered
 #   3. openbao   secrets.sh setup: unseal key, init, configure (skipped once done)
 #   4. secrets   no file: generate it (empty store) or pull it (store has values);
 #                then push whatever changed
 #   5. seed      wait for registry-seed, then secrets.sh key-ids (keyId, push, restart)
 #
-# Safe to re-run: every step checks before it acts. After the first run a deploy
-# is a merge, not another run of this.
+# config/<env>/ is local (gitignored), so it reaches the cluster only through
+# this script: re-run it after changing it. Safe to re-run: every step checks
+# before it acts. Chart changes still deploy by merge, at argocd.targetRevision.
 #
 # Options: -y (no confirmation)  --skip-secrets  --skip-seed  --timeout SECONDS
 set -euo pipefail
@@ -39,16 +41,20 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 [[ -n "$environment" ]] || usage 1
-root="config/$environment/argocd.yaml"
-[[ -f "$root" ]] || die "no $root"
-for cmd in kubectl yq; do command -v "$cmd" >/dev/null || die "$cmd is not on PATH"; done
+settings="config/$environment/argocd.yaml"
+[[ -f "$settings" ]] || die "no $settings (copy config/example to config/$environment)"
+for cmd in kubectl yq helm; do command -v "$cmd" >/dev/null || die "$cmd is not on PATH"; done
 secrets() { ./scripts/secrets.sh "$environment" "$@"; }
-app_on() { [[ "$(A="$1" yq '.spec.source.helm.valuesObject.applications[strenv(A)] // true' "$root")" != false ]]; }
+app_on() { [[ "$(A="$1" yq '.applications[strenv(A)] // true' "$settings")" != false ]]; }
+revision="$(yq '.argocd.targetRevision // "main"' "$settings")"
+
+# The Applications, rendered from the local config/<env>/ files.
+rendered="$(mktemp)"
+trap 'rm -f "$rendered"' EXIT
+helm template oan config -f "$settings" > "$rendered" || die "config/$environment does not render (see above)"
 
 if [[ "$dry_run" == true ]]; then
-  command -v helm >/dev/null || die "helm is not on PATH"
-  helm template oan config -f <(yq '.spec.source.helm.valuesObject' "$root") \
-    | yq 'select(.kind == "Application") | .metadata.annotations["argocd.argoproj.io/sync-wave"] + "  " + .metadata.name' \
+  yq 'select(.kind == "Application") | .metadata.annotations["argocd.argoproj.io/sync-wave"] + "  " + .metadata.name' "$rendered" \
     | grep -v '^---'
   echo "(dry run: the Applications Argo CD would create for $environment; nothing applied)"
   exit 0
@@ -58,7 +64,7 @@ fi
 context="$(kubectl config current-context 2>/dev/null)" || die "no current kubectl context"
 echo "environment  $environment"
 echo "context      $context"
-echo "revision     $(yq '.spec.source.targetRevision' "$root")"
+echo "revision     $revision"
 if [[ "$assume_yes" == false ]]; then
   read -rp "Deploy $environment to this context? [y/N] " reply
   [[ "$reply" =~ ^[Yy]$ ]] || die "aborted"
@@ -80,19 +86,23 @@ if app_on langfuse && ! kubectl get crd clickhouseclusters.clickhouse.com >/dev/
 fi
 
 # ----------------------------------------------------------------- 2. apply
-info "applying $root"
-kubectl apply -f "$root"
+# --prune deletes this environment's Applications that are no longer rendered
+# (switched off or removed); their finalizer then deletes what they created.
+info "applying $(grep -c '^kind: Application' "$rendered") Applications"
+kubectl apply -n argocd -f "$rendered" --prune \
+  -l "app.kubernetes.io/managed-by=oan-config,oan.in/environment=$environment" \
+  --prune-allowlist=argoproj.io/v1alpha1/Application
 
 # ---------------------------------------------------------------- 3. openbao
 if [[ "$skip_secrets" == false ]]; then
-  app_on openbao || die "openbao is off in $root; secrets cannot be stored (--skip-secrets to skip)"
+  app_on openbao || die "openbao is off in $settings; secrets cannot be stored (--skip-secrets to skip)"
   info "waiting for Argo CD to create the openbao Application"
   for _ in $(seq 1 60); do
     kubectl -n argocd get application openbao >/dev/null 2>&1 && break
     sleep 5
   done
   kubectl -n argocd get application openbao >/dev/null 2>&1 \
-    || die "no openbao Application after 5 minutes: kubectl -n argocd describe application oan-$environment"
+    || die "no openbao Application after 5 minutes: kubectl -n argocd get applications"
 
   info "OpenBao"
   secrets setup
@@ -122,13 +132,14 @@ if [[ "$skip_seed" == false && "$skip_secrets" == false ]]; then
     done
     secrets key-ids --timeout "$timeout"
   else
-    echo "registry-seed is off in $root; no keyId to resolve"
+    echo "registry-seed is off in $settings; no keyId to resolve"
   fi
 fi
 
 cat <<EOF
 
-Done. Argo CD keeps $environment in step with $(yq '.spec.source.targetRevision' "$root") from here:
+Done. Argo CD keeps each service in step with its chart at $revision. After
+changing config/$environment/, run this again to apply it.
 
   kubectl -n argocd get applications
 
