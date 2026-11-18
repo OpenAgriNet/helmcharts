@@ -103,6 +103,24 @@ the two traps worth knowing up front: `NETWORK_BASE_URL` must carry no port,
 and a published catalogue needs `visibleTo` naming the other network or the
 crawl collects nothing.
 
+## Scheduled catalog publishing
+
+The network adapter's `catalogcrawler` runs every 6 hours (`catalogIntervalSeconds`)
+in both modes. Each registry binding with a `publish` action has its pipeline run
+when due, and the catalogs go to `/publish`, which signs them and sends them to
+discovery.
+
+- Config: the `crawler` block in `config/adapters/{single,multi}-adapter/network-adapter.yaml.tmpl`.
+- Run log: `crawler-postgres`, its own container and volume.
+- Publish action: `make register-provider PROVIDER=agmarknet` adds it from
+  `AGMARKNET_PUBLISH_PIPELINE_URL` in `.env`. Unset, nothing publishes.
+- Pipeline inputs: the `AGMARKNET_*` values and `BECKN_NETWORK_ID`.
+
+On a stack that already exists, `docker compose restart sunbird-registry-service`
+loads the schema that admits `publish`, then re-run `make register-provider
+PROVIDER=agmarknet` and `make configure-adapter`. Logs: `make logs SVC=network-adapter`;
+run log: `docker exec -it crawler-postgres psql -U crawler catalogcrawler`.
+
 ## When it breaks
 
 | What you see | What to do |
