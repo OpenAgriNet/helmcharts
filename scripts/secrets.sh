@@ -248,6 +248,17 @@ bao_in() { { printf '%s\n' "${BAO_TOKEN:-}"; cat; } | _bao_exec "$@"; }
 
 bao_status() { bao status -format=json 2>/dev/null | yq -p=json ".$1" 2>/dev/null || true; }
 
+# A data volume older than the StatefulSet survived an earlier install, so it may
+# hold a store; one the current StatefulSet created is empty until the key exists.
+data_volume_predates_install() {
+  local volume_created statefulset_created
+  volume_created="$(kubectl -n "$bao_ns" get pvc "data-$bao_pod" \
+    -o jsonpath='{.metadata.creationTimestamp}' 2>/dev/null)" || return 1
+  statefulset_created="$(kubectl -n "$bao_ns" get statefulset "${bao_pod%-*}" \
+    -o jsonpath='{.metadata.creationTimestamp}' 2>/dev/null)" || return 0
+  [[ "$volume_created" < "$statefulset_created" ]]
+}
+
 # A 15-minute token as role oan-<env>-operator, from a 10-minute ServiceAccount
 # token. Minting that needs the cluster's admin access level.
 login() {
@@ -305,7 +316,7 @@ do_setup() {
   else
     if [[ -f "$unseal_key_file" ]]; then
       info "reusing the unseal key in $unseal_key_file"
-    elif kubectl -n "$bao_ns" get pvc "data-$bao_pod" >/dev/null 2>&1; then
+    elif data_volume_predates_install; then
       die "OpenBao already has data but no unseal key Secret, and $unseal_key_file does not
   exist. A new key would not open that store; restore the original and re-run."
     else
