@@ -45,7 +45,8 @@ settings="config/$environment/argocd.yaml"
 [[ -f "$settings" ]] || die "no $settings (copy config/example to config/$environment)"
 for cmd in kubectl yq helm; do command -v "$cmd" >/dev/null || die "$cmd is not on PATH"; done
 secrets() { ./scripts/secrets.sh "$environment" "$@"; }
-app_on() { [[ "$(A="$1" yq '.applications[strenv(A)] // true' "$settings")" != false ]]; }
+# Not `// true`: yq's // treats false as missing, so every service read as on.
+app_on() { [[ "$(A="$1" yq '.applications[strenv(A)] == false' "$settings")" != true ]]; }
 revision="$(yq '.argocd.targetRevision // "main"' "$settings")"
 
 # The Applications, rendered from the local config/<env>/ files.
