@@ -6,7 +6,7 @@ Helm chart: it renders one Argo CD Application per service.
 ```
 config/
   Chart.yaml, values.yaml, templates/   the chart
-  example/                              the template for an environment (committed)
+  example/                              a minimal sample of the four files (committed)
   <env>/argocd.yaml                     Argo CD settings and which services run
   <env>/global-values.yaml              values many services share, each a YAML anchor
   <env>/service-values.yaml             every service in install order, with its values
@@ -14,13 +14,15 @@ config/
 ```
 
 Real environments are **local**: `config/*/` is gitignored except `example/`.
-Start one from the template:
+`example/` shows the shape of each file with a few services; a real
+environment lists every service it runs. Start one from an existing
+environment folder, or from the sample:
 
 ```bash
 cp -r config/example config/dev
-# then edit config/dev: environment and domain (global-values.yaml), the
-# argocd.targetRevision and applications: list (argocd.yaml), sizes
-# (resource-values.yaml)
+# then set environment and domain (global-values.yaml), add the services
+# (service-values.yaml, resource-values.yaml) and the applications: list and
+# argocd.targetRevision (argocd.yaml)
 ```
 
 ## Values
@@ -148,7 +150,7 @@ Applications without touching the cluster.
 
 ## knowledge-provider and langfuse
 
-In `config/example/`, off in its `applications:` list.
+Optional: set them `false` in `applications:` until needed.
 
 - **knowledge-provider** (namespace `knowledge-provider`): its own Keycloak and
   Temporal, each with a CNPG database; MinIO and Qdrant (release names `minio`

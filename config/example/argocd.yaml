@@ -1,50 +1,13 @@
-# example: Argo CD settings and which services run. A template: copy this
-# folder to config/<env> (gitignored) and adjust.
-#
-#   ./scripts/deploy.sh <env>
-#
-# renders the config/ chart with this file and applies one Argo CD Application
-# per service. Each reads its chart from helmcharts at argocd.targetRevision,
-# with its values inlined, so Argo CD syncs and self-heals it from there.
+# Argo CD settings and which services run. Copy this folder to config/<env>
+# (gitignored), fill it in, then: ./scripts/deploy.sh <env>
 environment: example
-# On/off per service, in install order. Turning one off deletes it
-# (prune). Not listed means on.
+
+# On/off per service. Not listed means on; turning one off deletes it (prune).
 applications:
-  cert-manager: true
-  openbao-tls: true
-  openbao: true
-  external-secrets: true
-  reflector: true
-  metrics-server: false # kubectl top; the benchmark needs it
-  openbao-cluster-secret-store: true
-  openbao-secrets: true
-  cloudnative-pg: true
   kong: true
-  clickstack: true
-  otel-agent: true
-  cert-manager-issuers: true
-  postgres: true
-  discovery-db: true
-  keycloak: true
-  registry: true
-  discovery: true
-  registry-seed: true
-  consumer-adapter: false # multi-adapter only: needs network-adapter's multi-adapter values
-  network-adapter: true
-  provider-adapter: false # multi-adapter only: needs network-adapter's multi-adapter values
-  federation: true
-  otel-collector: false # replaces clickstack and otel-agent; turn those off with it
-  grafana: true
-  grafana-provisioning: true
-  knowledge-provider-keycloak-db: false
-  knowledge-provider-temporal-db: false
-  knowledge-provider-keycloak: false
-  knowledge-provider-temporal: false
-  knowledge-provider-minio: false
-  knowledge-provider-qdrant: false
-  knowledge-provider-api: false
-  knowledge-provider-worker: false
-  knowledge-provider-ui: false
-  langfuse: false # needs the ClickHouse operator CRDs applied first (config/README.md)
+  cloudnative-pg: true
+  discovery: false
+
 argocd:
-  targetRevision: development
+  # The helmcharts branch or tag the charts are read from.
+  targetRevision: main
