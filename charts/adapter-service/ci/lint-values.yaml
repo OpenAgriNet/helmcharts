@@ -21,3 +21,6 @@ registry:
 # Routing is no longer a value: it comes from config/multi-adapter/routing-<tier>.yaml in
 # the chart, like the adapter config. Set `routing.config` to a whole routing
 # file only if this deployment must differ.
+
+cache:
+  addr: redis:6379
