@@ -517,14 +517,18 @@ do_list() {
 do_key_ids() {
   [[ -f "$file" ]] || die "no $file"
   [[ "$push" == false || "$dry_run" == true ]] || login
-  local job log roles="" role osid current
+  local job pod log roles="" role osid current
   job="$(kubectl -n registry get jobs -l app.kubernetes.io/name=registry-seed \
           -o jsonpath='{.items[-1:].metadata.name}' 2>/dev/null || true)"
   [[ -n "$job" ]] || die "no registry-seed Job in namespace registry; has Argo CD synced registry-seed?"
   info "waiting for job/$job (up to ${timeout}s)"
   kubectl -n registry wait --for=condition=complete "job/$job" --timeout="${timeout}s" >/dev/null \
     || die "seeding did not finish: kubectl -n registry logs job/$job"
-  log="$(kubectl -n registry logs "job/$job")"
+  # A retried Job keeps its failed pods, and "logs job/" may pick one of those.
+  pod="$(kubectl -n registry get pods -l "job-name=$job" --field-selector=status.phase=Succeeded \
+          -o name | head -1)"
+  [[ -n "$pod" ]] || die "job/$job completed but has no Succeeded pod: kubectl -n registry get pods -l job-name=$job"
+  log="$(kubectl -n registry logs "$pod")"
 
   # One line per adapter:  network   keyId: 1-6bffc477-...
   while read -r role osid; do
