@@ -2,3 +2,4 @@
 # without a live Keycloak/Temporal/MinIO/Qdrant or any real secrets.
 keycloak:
   authDisabled: true
+runtimeProfile: local

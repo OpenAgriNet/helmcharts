@@ -4,14 +4,16 @@
 #     -n knowledge-provider -f charts/knowledge-provider-api/examples/knowledge-provider-api.dev.yaml
 #
 # Install order (see the chart's README.md):
-#   1. knowledge-provider-keycloak-db, knowledge-provider-temporal-db (postgresql-cnpg)
+#   1. knowledge-provider-db, knowledge-provider-keycloak-db,
+#      knowledge-provider-temporal-db (postgresql-cnpg)
 #   2. knowledge-provider-keycloak, knowledge-provider-temporal
 #   3. minio, qdrant (charts/minio, charts/qdrant - shared infra)
 #   4. this chart
 #
 # Before installing, create the Secrets this chart references (see README.md,
 # "Secrets") - at minimum knowledge-provider-minio-credentials, matching
-# whatever access/secret key you gave the minio release.
+# whatever access/secret key you gave the minio release. CNPG creates
+# knowledge-provider-db-app.
 
 image:
   registry: ghcr.io
@@ -20,9 +22,11 @@ image:
   pullSecrets:
     - ghcr-pull-secret
 
-# Dev runs without auth - no Keycloak client/JWKS wiring needed.
+# Dev runs without auth - no Keycloak client/JWKS wiring needed. The app
+# allows that only under the local runtime profile.
 keycloak:
   authDisabled: true
+runtimeProfile: local
 
 envConfig:
   LOG_LEVEL: "debug"

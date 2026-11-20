@@ -12,15 +12,6 @@ Resources in namespace "{{ .Release.Namespace }}":
 {{- if .Values.ingress.enabled }}
   - Ingress/{{ include "knowledge-provider-api.fullname" . }}
 {{- end }}
-{{- if .Values.persistence.sqlite.enabled }}
-  - PersistentVolumeClaim/{{ .Values.persistence.sqlite.existingClaim | default (printf "%s-sqlite" (include "knowledge-provider-api.fullname" .)) }}
-{{- end }}
-{{- if .Values.persistence.documents.enabled }}
-  - PersistentVolumeClaim/{{ .Values.persistence.documents.existingClaim | default (printf "%s-documents" (include "knowledge-provider-api.fullname" .)) }}
-{{- end }}
-{{- if .Values.persistence.books.enabled }}
-  - PersistentVolumeClaim/{{ .Values.persistence.books.existingClaim | default (printf "%s-books" (include "knowledge-provider-api.fullname" .)) }}
-{{- end }}
 {{- if .Values.persistence.hfCache.enabled }}
   - PersistentVolumeClaim/{{ .Values.persistence.hfCache.existingClaim | default (printf "%s-hf-cache" (include "knowledge-provider-api.fullname" .)) }}
 {{- end }}
@@ -33,13 +24,6 @@ WARNING: image.repository is empty. Set image.registry/repository/tag before a
 real deployment, e.g. --set image.repository=openagrinet/knowledge-provider
 {{- end }}
 
-{{- if gt (.Values.replicaCount | int) 1 }}
-
-WARNING: replicaCount is {{ .Values.replicaCount }}. This service's canonical
-metadata store is SQLite, a single-writer database - running more than one
-replica risks database corruption. See README.md before scaling this chart.
-{{- end }}
-
 Check the rollout:
   kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "knowledge-provider-api.fullname" . }}
 
@@ -47,4 +31,4 @@ Reach the service in-cluster:
   {{ include "knowledge-provider-api.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
 
 Health check:
-  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "knowledge-provider-api.fullname" . }} -- wget -qO- http://localhost:{{ .Values.service.targetPort }}/health
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "knowledge-provider-api.fullname" . }} -- python -c "from urllib.request import urlopen; print(urlopen('http://localhost:{{ .Values.service.targetPort }}/health').read().decode())"

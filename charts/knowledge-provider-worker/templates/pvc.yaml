@@ -1,0 +1,19 @@
+{{- with .Values.persistence.hfCache }}
+{{- if and .enabled (not .existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ printf "%s-hf-cache" (include "knowledge-provider-worker.fullname" $) }}
+  labels:
+    {{- include "knowledge-provider-worker.labels" $ | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .accessMode | default "ReadWriteOnce" }}
+  {{- with .storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .size }}
+{{- end }}
+{{- end }}

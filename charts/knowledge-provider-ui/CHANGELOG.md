@@ -5,6 +5,16 @@ All notable changes to the `knowledge-provider-ui` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-11-20
+
+### Changed
+- **Breaking:** `service.targetPort` 80 -> 8080. The hardened nginx image
+  (`ui/nginx.prod.conf`) listens on 8080; images before it served on 80.
+- Default ingress path `/knowledge-provider`, the image's `VITE_BASE`.
+- Docs: the image bakes `VITE_API_BASE=/knowledge-provider-api`; the gateway
+  must route that path to the API with the prefix stripped. `VITE_KEYCLOAK_*`
+  are gone: sign-in goes through the API.
+
 ## [0.1.1] - 2026-09-29
 
 ### Fixed

@@ -209,6 +209,10 @@ knowledge-provider-minio-credentials:
 knowledge-provider-keycloak-admin:
   password: $(q "$(password)")
 
+# namespaces: knowledge-provider (Qdrant API key; qdrant, api and worker read it)
+knowledge-provider-qdrant:
+  api-key: $(q "$(openssl rand -hex 24)")
+
 # namespaces: langfuse (pinned: chart-generated values would rotate on every Argo CD sync)
 langfuse-app-keys:
   salt: $(q "$(openssl rand -base64 32)")

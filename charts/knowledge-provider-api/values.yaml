@@ -4,9 +4,8 @@
 # FastAPI service for the Bharat Vistaar Docs Pipeline (review-driven document
 # ingestion: OCR -> translation -> chunking -> vector indexing).
 #
-# IMPORTANT: SQLite is this service's canonical metadata store and is a
-# single-writer database. Do NOT set replicaCount above 1 and do NOT enable
-# autoscaling until the app moves off SQLite - see README.md.
+# PostgreSQL holds documents and review state, MinIO/S3 the blobs. The API
+# applies SQL migrations on startup under an advisory lock.
 # ============================================================================
 
 replicaCount: 1
@@ -86,11 +85,13 @@ startupProbe:
   timeoutSeconds: 5
   failureThreshold: 30
 
+# The image runs as 65532 (Docker Hardened Image); fsGroup makes the
+# hf-cache volume writable for it.
 podSecurityContext:
-  enabled: false
-  fsGroup: 1000
-  runAsUser: 1000
-  runAsGroup: 1000
+  enabled: true
+  fsGroup: 65532
+  runAsUser: 65532
+  runAsGroup: 65532
   runAsNonRoot: true
   seccompProfile:
     type: RuntimeDefault
@@ -100,7 +101,7 @@ securityContext:
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: false
   runAsNonRoot: true
-  runAsUser: 1000
+  runAsUser: 65532
   capabilities:
     drop:
       - ALL
@@ -116,7 +117,7 @@ podAnnotations: {}
 #
 # Kubernetes has no equivalent of compose's `depends_on: condition:
 # service_healthy`. Without these init containers the pod starts before
-# Temporal/MinIO/Qdrant are up, fails, and crashloops with backoff.
+# PostgreSQL/Temporal/MinIO/Qdrant are up, fails, and crashloops with backoff.
 # ---------------------------------------------------------------------------
 waitFor:
   enabled: true
@@ -134,8 +135,10 @@ waitFor:
     limits:
       cpu: 50m
       memory: 32Mi
+  database: true
   temporal: true
-  minio: true
+  # TCP check on objectStore.endpoint; skipped for GCS.
+  objectStore: true
   qdrant: true
   extraTcp: []
   extraHttp: []
@@ -145,27 +148,43 @@ extraVolumes: []
 extraVolumeMounts: []
 
 # ---------------------------------------------------------------------------
-# In-cluster backing services this chart derives TEMPORAL_HOST / MINIO_ENDPOINT
-# / VECTOR_DB_URL from. Defaults assume the sibling knowledge-provider-temporal
-# chart (charts/knowledge-provider-temporal) and the shared
-# minio / qdrant charts (top-level charts/minio, charts/qdrant) are installed
-# with their default release names in the same namespace - override the
-# host/port pairs if you named those releases differently.
+# Backing services. Defaults assume the sibling charts installed with the
+# release names in config/: knowledge-provider-db (postgresql-cnpg),
+# knowledge-provider-temporal, minio and qdrant, all in this namespace.
 # ---------------------------------------------------------------------------
+# DATABASE_URL is built from these; the password goes in PGPASSWORD. CNPG
+# writes it into <cluster>-app.
+database:
+  host: knowledge-provider-db-rw
+  port: 5432
+  name: knowledge_provider
+  user: knowledge_provider
+  sslmode: disable
+  passwordSecret:
+    name: knowledge-provider-db-app
+    key: password
+
 temporal:
   host: knowledge-provider-temporal
   port: 7233
 
-minio:
-  host: minio
-  port: 9000
+# OBJECT_STORE_*. type s3 covers MinIO and AWS; gcs drops the endpoint.
+# Credentials: AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY in secretEnv (static),
+# or credentialsType aws_web_identity / google_adc with a service account.
+objectStore:
+  type: s3
+  endpoint: http://minio:9000
   bucket: documents
+  credentialsType: static
+  region: ""
+  # Off: provision the bucket first (config/ creates it in the MinIO volume).
+  createBucket: false
 
 # DEV Qdrant only - PROD Qdrant is always external, see prodVectorStore below.
 vectorStore:
   host: qdrant
   port: 6333
-  collectionName: test_doc_pipeline
+  collectionName: documents-index
   timeoutSeconds: 30
 
 # PROD Qdrant (Approval-for-Prod promotion target) - never bundled, always a
@@ -177,42 +196,13 @@ prodVectorStore:
   timeoutSeconds: 30
 
 # ---------------------------------------------------------------------------
-# Persistence
-#
-# api and worker mount the SAME sqlite/documents/books/hfCache volumes (see
-# docker-compose.yml). Since they are separate Deployments/Pods here (see this
-# chart's README on the api/worker split), sharing a PVC across them requires
-# a ReadWriteMany-capable StorageClass (NFS, EFS, Longhorn, CephFS, ...).
-#
-# This chart is the "owner": with persistence.<vol>.existingClaim left empty it
-# creates the PVC. Point knowledge-provider-worker's matching
-# persistence.<vol>.existingClaim at the exact PVC name created here (default
-# "<release-name>-sqlite", "-documents", "-books", "-hf-cache").
+# Persistence. Documents live in PostgreSQL and the object store; the only
+# volume left is the Hugging Face model cache, needed when
+# EMBEDDING_PROVIDER is sentence_transformers (downloaded on first use).
+# knowledge-provider-worker keeps its own cache, so the two pods no longer
+# have to share a node.
 # ---------------------------------------------------------------------------
 persistence:
-  sqlite:
-    enabled: true
-    existingClaim: ""
-    size: 5Gi
-    storageClassName: ""
-    accessMode: ReadWriteOnce
-  documents:
-    enabled: true
-    existingClaim: ""
-    size: 20Gi
-    storageClassName: ""
-    accessMode: ReadWriteOnce
-  # Seed/reference documents mounted read-only at /app/books. Off by default -
-  # enable and pre-populate the PVC (e.g. kubectl cp) only if your deployment
-  # relies on locally-seeded books rather than uploads.
-  books:
-    enabled: false
-    existingClaim: ""
-    size: 10Gi
-    storageClassName: ""
-    accessMode: ReadWriteOnce
-  # Hugging Face model cache. Only needed when embeddings.provider (below) is
-  # "sentence_transformers" (local model, downloaded on first use).
   hfCache:
     enabled: true
     existingClaim: ""
@@ -221,25 +211,38 @@ persistence:
     accessMode: ReadWriteOnce
 
 # ---------------------------------------------------------------------------
-# Keycloak (auth). Derives KEYCLOAK_ISSUER / KEYCLOAK_JWKS_URL from url+realm
-# so the two cannot drift apart. Set authDisabled: true to skip auth entirely
-# (a synthetic local admin is used) - matches AUTH_DISABLED in ENV.md.
-# ---------------------------------------------------------------------------
+# Keycloak (auth). url is the private base URL (JWKS, backchannel, admin API);
+# issuerUrl is the public one Keycloak puts in tokens' `iss`, if different.
 # Realm and client default to the ones knowledge-provider-keycloak imports
 # (keycloak/import/docs-pipeline-realm.json in the app repo). clientId is the
-# confidential client the API exchanges SSO codes with; its secret is
-# KEYCLOAK_CLIENT_SECRET below.
+# confidential console client; its secret is KEYCLOAK_CLIENT_SECRET below.
+# ---------------------------------------------------------------------------
 keycloak:
+  # true needs runtimeProfile: local - the app refuses to start otherwise.
   authDisabled: false
   url: ""
+  issuerUrl: ""
   realm: docs-pipeline
+  # Required with auth: the API audience the client mapper adds to tokens.
   audience: ""
   jwtLeewaySeconds: 30
   clientId: docs-pipeline-ui
+  # Exact redirect registered on the console client.
+  consoleRedirectUri: ""
+  # Set to the console login URL to offer Google sign-in.
+  googleConsoleUrl: ""
+  providerGroupRoot: providers
+  verifyLiveGroups: false
+  # Provider/user management, through a realm service account.
   adminBaseUrl: ""
-  adminRealm: docs-pipeline
-  adminUsername: ""
-  adminTokenRealm: master
+  adminRealm: ""
+  # Empty: the managed realm issues the service account's token.
+  adminTokenRealm: ""
+  adminClientId: ""
+
+# KP_RUNTIME_PROFILE. local is a disposable, loopback-only stack and the only
+# profile that may disable auth.
+runtimeProfile: production
 
 # ============================================================================
 # ENVIRONMENT CONFIGURATION - non-secret, non-derived config.
@@ -256,12 +259,14 @@ envConfig:
   CORS_ORIGINS: ""
   RATE_LIMIT_DEFAULT: "100/minute"
   RATE_LIMIT_UPLOAD: "10/minute"
-  RATE_LIMIT_OTP: "10/minute"
+  RATE_LIMIT_SIGN_IN: "10/minute"
 
   EMBEDDING_PROVIDER: "sentence_transformers"
   EMBEDDING_MODEL: "intfloat/multilingual-e5-large"
   EMBEDDING_DIM: "1024"
   EMBEDDING_VECTOR_SIZE: "1024"
+  # e5, embeddinggemma or plain. Changing it or the model needs a new collection.
+  EMBEDDING_PROMPT_STYLE: "e5"
   EMBEDDING_BASE_URL: ""
 
   HF_HOME: "/opt/hf-cache"
@@ -301,18 +306,9 @@ envConfig:
   DOCS_PIPELINE_API_URL: ""
   DOCS_PIPELINE_UI_URL: ""
 
-  # Master Catalog Postgres - BYO, not provisioned by any chart here.
-  MASTER_CATALOG_PG_HOST: ""
-  MASTER_CATALOG_PG_PORT: "5432"
-  MASTER_CATALOG_PG_DB: "master_catalog"
-  MASTER_CATALOG_PG_USER: "master_catalog"
-  MASTER_CATALOG_PG_SSLMODE: "disable"
-
-  # AI-layer Redis (bharat-oan-api) - leave host empty to disable the push.
-  AI_LAYER_REDIS_HOST: ""
-  AI_LAYER_REDIS_PORT: "6379"
-  AI_LAYER_REDIS_DB: "0"
-  MASTER_CATALOG_REDIS_TTL_SECONDS: "172800"
+  # true: index all intake into vectorStore.collectionName, with no approval
+  # or network publishing.
+  KP_INDEX_ONLY: "false"
 
   # Publish to Network (Discovery Service) - worker-only in practice, but
   # shipped from the same envConfig as api for a single source of truth.
@@ -330,15 +326,17 @@ envFromSecrets: []
 # Secrets this chart expects - create them out-of-band before installing (see
 # README.md), or point these at your own existing Secrets/keys.
 secretEnv:
-  MINIO_ACCESS_KEY:
+  # Static S3 credentials (objectStore.credentialsType: static).
+  AWS_ACCESS_KEY_ID:
     name: knowledge-provider-minio-credentials
     key: access-key
-  MINIO_SECRET_KEY:
+  AWS_SECRET_ACCESS_KEY:
     name: knowledge-provider-minio-credentials
     key: secret-key
+  # Required by any Qdrant that is not local; the qdrant chart reads the same key.
   VECTOR_DB_API_KEY:
-    name: knowledge-provider-provider-keys
-    key: vector-db-api-key
+    name: knowledge-provider-qdrant
+    key: api-key
     optional: true
   PROD_VECTOR_DB_API_KEY:
     name: knowledge-provider-provider-keys
@@ -373,17 +371,10 @@ secretEnv:
     name: knowledge-provider-keycloak-client
     key: client-secret
     optional: true
-  KEYCLOAK_ADMIN_PASSWORD:
-    name: knowledge-provider-keycloak-admin
-    key: password
-    optional: true
-  MASTER_CATALOG_PG_PASSWORD:
-    name: knowledge-provider-master-catalog-db
-    key: password
-    optional: true
-  AI_LAYER_REDIS_PASSWORD:
-    name: knowledge-provider-ai-layer-redis
-    key: password
+  # Secret of keycloak.adminClientId (realm service account).
+  KEYCLOAK_ADMIN_CLIENT_SECRET:
+    name: knowledge-provider-keycloak-admin-client
+    key: client-secret
     optional: true
 
 extraEnv: []

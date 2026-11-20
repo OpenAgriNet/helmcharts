@@ -6,7 +6,7 @@
 #   helm install minio charts/minio \
 #     -n knowledge-provider -f charts/minio/examples/minio.dev.yaml
 #
-# knowledge-provider-api/-worker's MINIO_ACCESS_KEY/MINIO_SECRET_KEY default
+# knowledge-provider-api/-worker's AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY default
 # to this same Secret name/keys - no extra wiring needed on those charts.
 
 persistence:

@@ -6,8 +6,8 @@
 # uvicorn - no HTTP port, no Service, no Ingress, no probes (compose defines
 # none for this service either).
 #
-# IMPORTANT: shares the SQLite/documents/books/hfCache volumes with
-# knowledge-provider-api - see README.md before changing persistence.*.
+# Shares PostgreSQL, the object store and Qdrant with knowledge-provider-api;
+# keep database/objectStore/vectorStore identical in both charts.
 # ============================================================================
 
 replicaCount: 1
@@ -54,11 +54,13 @@ readinessProbe:
 startupProbe:
   enabled: false
 
+# The image runs as 65532 (Docker Hardened Image); fsGroup makes the
+# hf-cache volume writable for it.
 podSecurityContext:
-  enabled: false
-  fsGroup: 1000
-  runAsUser: 1000
-  runAsGroup: 1000
+  enabled: true
+  fsGroup: 65532
+  runAsUser: 65532
+  runAsGroup: 65532
   runAsNonRoot: true
   seccompProfile:
     type: RuntimeDefault
@@ -68,7 +70,7 @@ securityContext:
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: false
   runAsNonRoot: true
-  runAsUser: 1000
+  runAsUser: 65532
   capabilities:
     drop:
       - ALL
@@ -98,8 +100,10 @@ waitFor:
     limits:
       cpu: 50m
       memory: 32Mi
+  database: true
   temporal: true
-  minio: true
+  # TCP check on objectStore.endpoint; skipped for GCS.
+  objectStore: true
   qdrant: true
   extraTcp: []
   extraHttp: []
@@ -109,23 +113,35 @@ extraVolumes: []
 extraVolumeMounts: []
 
 # ---------------------------------------------------------------------------
-# In-cluster backing services. Must match the knowledge-provider-api release
-# these values point at (same defaults assume default release names - see
-# knowledge-provider-api/values.yaml for where each chart lives).
+# Backing services. Must match the knowledge-provider-api release - see that
+# chart's values.yaml for what each one sets.
 # ---------------------------------------------------------------------------
+database:
+  host: knowledge-provider-db-rw
+  port: 5432
+  name: knowledge_provider
+  user: knowledge_provider
+  sslmode: disable
+  passwordSecret:
+    name: knowledge-provider-db-app
+    key: password
+
 temporal:
   host: knowledge-provider-temporal
   port: 7233
 
-minio:
-  host: minio
-  port: 9000
+objectStore:
+  type: s3
+  endpoint: http://minio:9000
   bucket: documents
+  credentialsType: static
+  region: ""
+  createBucket: false
 
 vectorStore:
   host: qdrant
   port: 6333
-  collectionName: test_doc_pipeline
+  collectionName: documents-index
   timeoutSeconds: 30
 
 prodVectorStore:
@@ -135,32 +151,22 @@ prodVectorStore:
   timeoutSeconds: 30
 
 # ---------------------------------------------------------------------------
-# Persistence - NOT owned here. This chart only mounts existing PVCs; it never
-# creates one. Set existingClaim to the exact PVC name the
-# knowledge-provider-api release created (default "<api-release>-sqlite" etc.)
-# See that chart's README, "Shared volumes with knowledge-provider-worker" -
-# this requires a ReadWriteMany-capable StorageClass, since api and worker are
-# separate Pods that may land on different nodes.
+# Persistence. Only the Hugging Face model cache, and this chart's own: with
+# existingClaim empty it creates <release>-hf-cache, so the worker no longer
+# has to run on the api's node.
 # ---------------------------------------------------------------------------
 persistence:
-  sqlite:
-    enabled: true
-    existingClaim: "knowledge-provider-api-sqlite"
-  documents:
-    enabled: true
-    existingClaim: "knowledge-provider-api-documents"
-  books:
-    enabled: false
-    existingClaim: "knowledge-provider-api-books"
   hfCache:
     enabled: true
-    existingClaim: "knowledge-provider-api-hf-cache"
+    existingClaim: ""
+    size: 20Gi
+    storageClassName: ""
+    accessMode: ReadWriteOnce
 
 # ============================================================================
 # ENVIRONMENT CONFIGURATION - non-secret, non-derived config.
 # Mirrors knowledge-provider-api's envConfig: compose loads the identical
-# .env file into both api and worker, so this chart keeps parity rather than
-# guessing which vars pipeline/worker.py's import graph actually touches.
+# .env file into both api and worker, so this chart keeps parity.
 # Full annotated reference: knowledge-provider/ENV.md in the app repo.
 # ============================================================================
 envConfig:
@@ -175,6 +181,8 @@ envConfig:
   EMBEDDING_MODEL: "intfloat/multilingual-e5-large"
   EMBEDDING_DIM: "1024"
   EMBEDDING_VECTOR_SIZE: "1024"
+  # e5, embeddinggemma or plain. Changing it or the model needs a new collection.
+  EMBEDDING_PROMPT_STYLE: "e5"
   EMBEDDING_BASE_URL: ""
 
   HF_HOME: "/opt/hf-cache"
@@ -211,18 +219,9 @@ envConfig:
 
   TEMPORAL_MAX_CONCURRENT_ACTIVITIES: "4"
 
-  # Master Catalog Postgres - BYO, not provisioned by any chart here.
-  MASTER_CATALOG_PG_HOST: ""
-  MASTER_CATALOG_PG_PORT: "5432"
-  MASTER_CATALOG_PG_DB: "master_catalog"
-  MASTER_CATALOG_PG_USER: "master_catalog"
-  MASTER_CATALOG_PG_SSLMODE: "disable"
-
-  # AI-layer Redis (bharat-oan-api) - leave host empty to disable the push.
-  AI_LAYER_REDIS_HOST: ""
-  AI_LAYER_REDIS_PORT: "6379"
-  AI_LAYER_REDIS_DB: "0"
-  MASTER_CATALOG_REDIS_TTL_SECONDS: "172800"
+  # true: index all intake into vectorStore.collectionName, with no approval
+  # or network publishing.
+  KP_INDEX_ONLY: "false"
 
   # Publish to Network (Discovery Service) - worker-only.
   DISCOVERY_SERVICE_ENDPOINT: ""
@@ -237,15 +236,17 @@ envFromSecrets: []
 # Same Secret names as knowledge-provider-api's secretEnv - point both charts
 # at the same Secrets rather than creating duplicates.
 secretEnv:
-  MINIO_ACCESS_KEY:
+  # Static S3 credentials (objectStore.credentialsType: static).
+  AWS_ACCESS_KEY_ID:
     name: knowledge-provider-minio-credentials
     key: access-key
-  MINIO_SECRET_KEY:
+  AWS_SECRET_ACCESS_KEY:
     name: knowledge-provider-minio-credentials
     key: secret-key
+  # Required by any Qdrant that is not local; the qdrant chart reads the same key.
   VECTOR_DB_API_KEY:
-    name: knowledge-provider-provider-keys
-    key: vector-db-api-key
+    name: knowledge-provider-qdrant
+    key: api-key
     optional: true
   PROD_VECTOR_DB_API_KEY:
     name: knowledge-provider-provider-keys
@@ -275,14 +276,6 @@ secretEnv:
   VLLM_API_KEY:
     name: knowledge-provider-provider-keys
     key: vllm-api-key
-    optional: true
-  MASTER_CATALOG_PG_PASSWORD:
-    name: knowledge-provider-master-catalog-db
-    key: password
-    optional: true
-  AI_LAYER_REDIS_PASSWORD:
-    name: knowledge-provider-ai-layer-redis
-    key: password
     optional: true
 
 extraEnv: []

@@ -5,6 +5,32 @@ All notable changes to the `knowledge-provider-worker` chart are documented here
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-11-20
+
+Matches the app's PostgreSQL migration (knowledge-provider `kp-migrations`).
+Needs an image built from that branch.
+
+### Added
+- `database.*`, `objectStore.*`, `waitFor.database`, `waitFor.objectStore`,
+  `envConfig.EMBEDDING_PROMPT_STYLE` and `KP_INDEX_ONLY`, as in
+  `knowledge-provider-api` 0.4.0. The backing-service env is the same template
+  in both charts.
+- `templates/pvc.yaml`: the worker creates its own `<release>-hf-cache` PVC
+  when `persistence.hfCache.existingClaim` is empty.
+
+### Changed
+- **Breaking:** `minio.*` replaced by `objectStore.*`; `MINIO_ACCESS_KEY`/
+  `MINIO_SECRET_KEY` renamed to `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`.
+- `secretEnv.VECTOR_DB_API_KEY` reads `knowledge-provider-qdrant`/`api-key`.
+- `vectorStore.collectionName` defaults to `documents-index`.
+- Pod runs as uid/gid 65532 with `podSecurityContext` on.
+
+### Removed
+- **Breaking:** `persistence.sqlite`, `documents` and `books`, and the
+  requirement to mount the api's PVCs. The worker no longer has to share a
+  node with the api.
+- `envConfig` `MASTER_CATALOG_*`, `AI_LAYER_REDIS_*` and their passwords.
+
 ## [0.3.0] - 2026-11-13
 
 ### Changed

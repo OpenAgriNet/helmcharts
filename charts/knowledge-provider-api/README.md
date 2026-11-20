@@ -14,11 +14,11 @@ rationale.
 
 | Resource | Notes |
 |---|---|
-| Deployment | Probes on `/health`, resources mandatory, `replicaCount` fixed at 1 (see [SQLite is single-writer](#sqlite-is-single-writer)) |
+| Deployment | Probes on `/health`, resources mandatory, runs as uid 65532 |
 | Service | `ClusterIP` on 8001 |
 | ConfigMap (env) | Non-secret config, see [Configuration](#configuration) |
 | ServiceAccount | Dedicated, never `default` |
-| PersistentVolumeClaim | Up to four: `sqlite`, `documents`, `books` (off by default), `hf-cache` |
+| PersistentVolumeClaim | `hf-cache` only (the Hugging Face model cache) |
 | Ingress | Optional, off by default |
 
 No Secret is rendered. Everything under [Secrets](#secrets) is referenced by
@@ -27,7 +27,8 @@ name and created outside this chart.
 ## Install order
 
 ```bash
-# 1. Postgres for keycloak-db and temporal-db
+# 1. Postgres for the app, Keycloak and Temporal
+helm install knowledge-provider-db charts/postgresql-cnpg -n knowledge-provider -f ...
 helm install knowledge-provider-keycloak-db charts/postgresql-cnpg -n knowledge-provider -f ...
 helm install knowledge-provider-temporal-db charts/postgresql-cnpg -n knowledge-provider -f ...
 
@@ -47,35 +48,31 @@ helm install knowledge-provider-api charts/knowledge-provider-api -n knowledge-p
 ```
 
 Starting before a dependency is up is not fatal — the `waitFor` init
-containers (below) block until Temporal/MinIO/Qdrant answer, or fail the pod
-after `waitFor.timeoutSeconds` (default 300s) with the dependency named.
+containers block until PostgreSQL/Temporal/the object store/Qdrant answer, or
+fail the pod after `waitFor.timeoutSeconds` (default 300s) with the dependency
+named.
 
-## SQLite is single-writer
+## Storage
 
-SQLite is this service's **canonical** metadata/review-state store (documents,
-pages, chunks, jobs, artifacts, audit log) — not a cache. `replicaCount` must
-stay `1` and autoscaling must stay off until the application migrates off
-SQLite. `NOTES.txt` prints a warning if you override it upward anyway.
+PostgreSQL is the canonical store for documents, revisions, review state,
+search settings and audit. The API and the worker each apply pending SQL
+migrations on startup, serialised by a PostgreSQL advisory lock. Blobs
+(uploads, normalised files, stage artifacts) go to the object store, so
+neither pod keeps documents on a volume.
 
-## Shared volumes with knowledge-provider-worker
+The `knowledge-provider-db` cluster needs a database `knowledge_provider`
+owned by role `knowledge_provider`; CNPG writes its password into
+`knowledge-provider-db-app`, which `database.passwordSecret` points at.
 
-compose mounts the same `sqlite-data`, `documents-data`, `./books` and
-`HF_HOME` volumes into both `api` and `worker`. Here they are two separate
-Deployments (two Pods), so sharing requires a **ReadWriteMany**-capable
-StorageClass (NFS, EFS, Longhorn, CephFS, ...) — a plain `ReadWriteOnce` PVC
-cannot be mounted by two Pods that may land on different nodes.
+Moving an existing SQLite deployment is a data migration, not a values
+change: see `docs/UPGRADE.md` and the "Move data from an older stack" section
+of `ENV.md` in the app repo.
 
-This chart is the PVC **owner**: with `persistence.<vol>.existingClaim` empty
-it creates the PVC (named `<release>-sqlite`, `-documents`, `-books`,
-`-hf-cache`). Point `knowledge-provider-worker`'s matching
-`persistence.<vol>.existingClaim` at those exact names so both charts mount the
-same underlying volume. `books` is off by default — enable it only if your
-deployment relies on pre-seeded reference documents (populate the PVC once,
-e.g. `kubectl cp`, after creating it) rather than user uploads. `hf-cache` is
-on by default because the default `EMBEDDING_PROVIDER` is
-`sentence_transformers`, which downloads and caches a local model on first use;
-switch to `EMBEDDING_PROVIDER=openai_compatible` (remote embeddings) and set
-`persistence.hfCache.enabled: false` to skip it.
+The only volume left is `hf-cache`, on by default because the default
+`EMBEDDING_PROVIDER` is `sentence_transformers`, which downloads a local model
+on first use. Switch to `EMBEDDING_PROVIDER=openai_compatible` and set
+`persistence.hfCache.enabled: false` to skip it. The worker keeps its own
+cache, so the two pods need neither a ReadWriteMany volume nor one node.
 
 ## Configuration
 
@@ -85,45 +82,46 @@ non-computed config and lives in `envConfig` as-is. A handful of variables are
 
 | Variable | Comes from |
 |---|---|
+| `DATABASE_URL`, `PGPASSWORD` | `database.*` (the password stays out of the URL) |
 | `TEMPORAL_HOST` | `temporal.host`:`temporal.port` |
-| `MINIO_ENDPOINT`, `MINIO_BUCKET` | `minio.*` |
+| `OBJECT_STORE_*` | `objectStore.*` (`s3` for MinIO/AWS, `gcs`) |
 | `VECTOR_DB_URL`, `VECTOR_DB_COLLECTION_NAME`, `VECTOR_DB_TIMEOUT_SECONDS` | `vectorStore.*` (the bundled DEV Qdrant) |
 | `PROD_VECTOR_DB_URL`, `PROD_VECTOR_DB_COLLECTION_NAME`, `PROD_VECTOR_DB_TIMEOUT_SECONDS` | `prodVectorStore.*` (always external — PROD Qdrant is never bundled) |
-| `DOCUMENT_DB_PATH`, `ALLOWED_FILE_PATHS` | fixed to this chart's mount paths (`/data/documents.db`, `/app/books,/data/documents`) |
-| `AUTH_DISABLED` | `keycloak.authDisabled` |
-| `KEYCLOAK_ISSUER`, `KEYCLOAK_JWKS_URL` | `keycloak.url` + `keycloak.realm` |
-| `KEYCLOAK_AUDIENCE`, `KEYCLOAK_JWT_LEEWAY_SECONDS`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_ADMIN_*` | `keycloak.*` |
+| `AUTH_DISABLED`, `KP_RUNTIME_PROFILE` | `keycloak.authDisabled`, `runtimeProfile` |
+| `KEYCLOAK_ISSUER` | `keycloak.issuerUrl` (default `keycloak.url`) + `keycloak.realm` |
+| `KEYCLOAK_JWKS_URL`, `KEYCLOAK_BACKCHANNEL_URL` | `keycloak.url` + `keycloak.realm` |
+| `KEYCLOAK_AUDIENCE`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CONSOLE_REDIRECT_URI`, `KEYCLOAK_GOOGLE_CONSOLE_URL`, `KEYCLOAK_PROVIDER_GROUP_ROOT`, `KEYCLOAK_VERIFY_LIVE_GROUPS`, `KEYCLOAK_ADMIN_*` | `keycloak.*` |
 
-Setting `keycloak.authDisabled: false` without `keycloak.url` fails the
-render — a confidential-client auth setup with no issuer to validate against
-fails at boot anyway, so the render fails first and names the value.
+`keycloak.url` is the private address the API reaches Keycloak on;
+`keycloak.issuerUrl` is the public one Keycloak writes into tokens, when they
+differ (Keycloak behind the gateway on `/auth`).
+
+The legacy object-store variables (`MINIO_*`, `BLOB_STORAGE_*`) still work in
+the app but only when no `OBJECT_STORE_*` is set, which this chart always sets.
 
 ## Secrets
 
-None are rendered. Defaults in `secretEnv` name the Secrets this chart expects
-— create them before installing, or point the values at your own:
+None are rendered. Defaults in `secretEnv` and `database.passwordSecret` name
+the Secrets this chart expects — create them before installing, or point the
+values at your own:
 
 | Secret (default name) | Keys |
 |---|---|
-| `knowledge-provider-minio-credentials` | `access-key`, `secret-key` — must match the `minio` release (`charts/minio`) |
-| `knowledge-provider-provider-keys` | `vector-db-api-key`, `prod-vector-db-api-key`, `embedding-api-key`, `hf-token`, `mistral-api-key`, `gemma-api-key`, `translation-api-key`, `vllm-api-key` (all optional — omit a key and that env var is simply unset) |
-| `knowledge-provider-keycloak-client` | `client-secret` |
-| `knowledge-provider-keycloak-admin` | `password` |
-| `knowledge-provider-master-catalog-db` | `password` (BYO Postgres — see `ENV.md`) |
-| `knowledge-provider-ai-layer-redis` | `password` |
-
-`MINIO_ACCESS_KEY`/`MINIO_SECRET_KEY` are wired via `secretEnv`, not
-`envConfig`, even though an access key is not itself highly sensitive — it is
-paired 1:1 with the secret key it authenticates, and keeping both in the same
-Secret means rotating one is one edit, not two.
+| `knowledge-provider-db-app` | `password` — created by CNPG for the `knowledge-provider-db` cluster |
+| `knowledge-provider-minio-credentials` | `access-key`, `secret-key` — must match the `minio` release (`charts/minio`); sent as `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` |
+| `knowledge-provider-qdrant` | `api-key` (optional) — same Secret as the `qdrant` release's `apiKeySecret` |
+| `knowledge-provider-provider-keys` | `prod-vector-db-api-key`, `embedding-api-key`, `hf-token`, `mistral-api-key`, `gemma-api-key`, `translation-api-key`, `vllm-api-key` (all optional — omit a key and that env var is simply unset) |
+| `knowledge-provider-keycloak-client` | `client-secret` (optional) |
+| `knowledge-provider-keycloak-admin-client` | `client-secret` (optional) — the realm service account `keycloak.adminClientId` |
 
 ## Differences from compose
 
 | | compose | chart | Why |
 |---|---|---|---|
 | `api`/`worker` | one `docker-compose.yml`, two services, same image | two separate Helm charts | See `knowledge-provider-worker`'s README |
-| SQLite/documents/books/HF cache volumes | Docker named volumes, implicitly shared (single host) | PVCs, requires a ReadWriteMany StorageClass to share across api+worker Pods | Kubernetes Pods are not guaranteed to co-locate on one node |
-| `TEMPORAL_HOST`/`MINIO_ENDPOINT`/`VECTOR_DB_URL` | hardcoded Docker-network service names in `docker-compose.yml` | derived from `temporal.*`/`minio.*`/`vectorStore.*` | Same idea, chart-parameterized service names |
+| PostgreSQL | one shared server; `postgres-init` creates the roles and databases | one CNPG cluster per database (`knowledge-provider-db`, `-keycloak-db`, `-temporal-db`) | CNPG bootstraps the database and owner, and generates the password |
+| HF cache volume | one named volume shared by api and worker | one PVC per pod | Pods are not guaranteed to land on one node |
+| `TEMPORAL_HOST`/`OBJECT_STORE_ENDPOINT`/`VECTOR_DB_URL` | hardcoded Docker-network service names in `docker-compose.yml` | derived from `temporal.*`/`objectStore.*`/`vectorStore.*` | Same idea, chart-parameterized service names |
 
 ## Validation
 
@@ -137,4 +135,6 @@ Render-time guardrails, all of which name the value and the reason:
 - `image.repository` empty (`common`)
 - `resources` empty (`common`)
 - a probe with no handler or with two (`common`)
-- `keycloak.authDisabled: false` with `keycloak.url` empty
+- `keycloak.authDisabled: false` with `keycloak.url` or `keycloak.audience` empty
+- `keycloak.authDisabled: true` without `runtimeProfile: local` (the app refuses to start)
+- `database.host`, `database.passwordSecret.name` or `objectStore.bucket` empty
