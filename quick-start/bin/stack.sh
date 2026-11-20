@@ -585,10 +585,15 @@ register_provider() {
     preflight
     [ -n "${PROVIDER:-}" ] \
         || die "which provider? e.g. make register-provider PROVIDER=mausamgram"
-    local update=()
-    [ -n "${UPDATE:-}" ] && update=(--update)
-    step 1 1 "provider $PROVIDER${update[0]:+ (updating)}"
-    python3 bin/setup.py register-provider "$PROVIDER" "${update[@]}"
+    # A plain string rather than an array: macOS still ships bash 3.2, where an
+    # EMPTY array expands as an unbound variable under `set -u`. So this target
+    # died at the first expansion whenever UPDATE was not set -- which is to
+    # say, on every first registration of a provider.
+    local update=""
+    [ -n "${UPDATE:-}" ] && update="--update"
+    step 1 1 "provider $PROVIDER${update:+ (updating)}"
+    # Unquoted on purpose: it is one flag or nothing, and neither can split.
+    python3 bin/setup.py register-provider "$PROVIDER" $update
 }
 
 # Fetch every mapping URL the registry holds and name the ones that 404.

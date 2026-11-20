@@ -1,0 +1,37 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "status",
+    "version": "2.0.0",
+    "networkId": "oan.dev",
+    "senderId": "oan.dev",
+    "receiverId": "oan.dev",
+    "transactionId": "00000000-0000-4000-8000-000000000001",
+    "messageId": "00000000-0000-4000-8000-000000000002",
+    "timestamp": "2026-11-20T06:30:00.000Z"
+  },
+  "message": {
+    "contract": {
+      "id": "00000000-0000-4000-8000-00000000000d",
+      "commitments": [
+        {
+          "status": { "descriptor": { "code": "ACTIVE" } },
+          "offer": {
+            "id": "off:pmkisan:application-status",
+            "provider": { "id": "pmkisan", "descriptor": { "name": "PM-KISAN" } },
+            "resourceIds": ["res:pmkisan:application-status"]
+          },
+          "resources": [{ "id": "res:pmkisan:application-status", "quantity": { "count": 1 } }],
+          "commitmentAttributes": {
+            "@context": "https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.1/context.jsonld",
+            "@type": "openagrinet:SchemeApplication",
+            "informationMode": "OnDemand",
+            "scheme": { "code": "PM-KISAN" },
+            "applicant": { "mobile": "9812345670" },
+            "challenge": { "response": { "method": "OTP", "value": "1234" } }
+          }
+        }
+      ]
+    }
+  }
+}

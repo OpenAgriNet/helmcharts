@@ -144,17 +144,19 @@ PROVIDERS = {
         "method": "POST", "default_path": None,
         "needs": [],
     },
-    # Two capabilities on two hosts, each answering several actions. No schema
-    # rows: neither pack is published on network-specs yet.
+    # Two capabilities on two hosts, each answering several actions. Each names
+    # its own pack, because a capability code with no schema row resolves to no
+    # pack and the binding then answers nothing.
     "pmkisan": {
         "prefix": "PMKISAN", "name": "PM-KISAN",
         "needs": ["PMKISAN_BASE_URL", "PMKISAN_CHATBOT_BASE_URL"],
         "capabilities": (
-            ("openagrinet:Grievance", None, (
+            ("openagrinet:Grievance", "Grievance", "v0.1", None, (
                 ("init", "/ChatbotOTP", "grievance.init.yaml", 20000, 0),
                 ("support", "/LodgeGrievance", "grievance.support.yaml", 30000, 0),
                 ("status", "/GrievanceStatusCheck", "grievance.status.yaml", 30000, 2))),
-            ("openagrinet:SchemeApplication", "PMKISAN_CHATBOT_BASE_URL", (
+            ("openagrinet:SchemeApplication", "Scheme Application", "v0.1",
+             "PMKISAN_CHATBOT_BASE_URL", (
                 ("init", "/ChatbotOTP", "application-status.init.yaml", 20000, 0),
                 ("status", "/ChatbotUserDetails", "application-status.status.yaml", 30000, 0))),
         ),
@@ -529,12 +531,13 @@ def register_capabilities(provider, participant):
     """A provider answering more than one capability. Mappings come from this
     repo's published copies, so the folder name is all the entry carries."""
     mappings = env(f"{provider['prefix']}_MAPPING_BASE_URL").rstrip("/")
-    for capability, host_var, actions in provider["capabilities"]:
+    for capability, name, version, host_var, actions in provider["capabilities"]:
         ensure_actions_binding(
             participant, capability,
             [(action, path, f"{mappings}/{mapping}", timeout, retries)
              for action, path, mapping, timeout, retries in actions],
             base_url=env(host_var) if host_var else None)
+        ensure_capability_schema(capability, name, version)
         print(f"  binding key {participant}|{capability}")
 
 

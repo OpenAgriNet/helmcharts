@@ -559,6 +559,41 @@ services:
     ports:
       - "127.0.0.1:${MOCKAGMARKNET_PORT}:9101"
 
+  # PM-KISAN is two services behind one host here: the OTP chatbot, whose
+  # envelope carries its key beside the ciphertext, and the grievance desk,
+  # whose envelope is AES-GCM under a key and nonce fixed in the environment.
+  # The adapter chooses between them by capability, so a mock speaking only one
+  # would leave half the provider leg untested.
+  #
+  # The key and nonce come from the same two variables the adapter reads. That
+  # is deliberate: were they separate, a drift between the two sides would look
+  # exactly like a mapping fault.
+  mock-pmkisan:
+    image: ${MOCKPMKISAN_IMAGE}
+    pull_policy: missing
+    container_name: ${STACK_PREFIX:-}mock-pmkisan
+    restart: unless-stopped
+    logging: *logging
+    networks: [oan-internal]
+    environment:
+      PMKISAN_GRIEVANCE_KEY: ${PMKISAN_GRIEVANCE_KEY}
+      PMKISAN_GRIEVANCE_IV: ${PMKISAN_GRIEVANCE_IV}
+    command:
+      - "-addr=:9102"
+      # Both services answer plain text where the envelope belongs when the
+      # token is wrong, which is how the real ones refuse. That is what proves
+      # the adapter sent a token rather than the call happening to work.
+      - "-otp-token=${PMKISAN_OTP_TOKEN}"
+      - "-service-token=${PMKISAN_SERVICE_TOKEN}"
+      # The OTP that verifies, and the one registration that does NOT exist.
+      # Inverted on purpose: holding a single valid id made every fixture
+      # carrying a different one look like a fault, when the not-found path is
+      # the rarer thing worth reaching deliberately.
+      - "-otp=${MOCKPMKISAN_OTP:-1234}"
+      - "-unknown-reg-no=${MOCKPMKISAN_UNKNOWN_REG_NO:-UNKNOWN0000}"
+    ports:
+      - "127.0.0.1:${MOCKPMKISAN_PORT}:9102"
+
   # Verifies the caller, calls the upstream provider, answers synchronously.
   # It has no provider address of its own: it reads the ProviderSchema row,
   # so repointing it at a different upstream is a registry write, not a
