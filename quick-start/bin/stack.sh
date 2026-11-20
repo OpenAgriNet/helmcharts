@@ -137,7 +137,52 @@ preflight() {
     command -v envsubst >/dev/null 2>&1 \
         || die "envsubst is not installed -- it renders the federation front door (apt install gettext-base)"
 
+    spec_agreement
+
     federation_prerequisites
+}
+
+# The adapter and discovery-service must validate against the SAME spec.
+#
+# discovery-service reads VALIDATION_SPEC_URL, which docker-compose feeds from
+# BECKN_SPEC_URL. The adapter reads the location rendered into its config. Both
+# now come from that one .env line, so they agree when the config is freshly
+# rendered -- but editing .env and restarting discovery-service without
+# re-running `make configure-adapter` leaves the adapter on the old spec.
+#
+# Worth a hard stop because the symptom does not point here. A request validates
+# at the adapter, gets signed, gets routed, and only then dies at $.context with
+# a schema error -- which reads as an adapter bug. It took a request-id traced
+# through both containers' logs to find it the first time.
+#
+# Only the location lines are read out of the rendered config. It also holds
+# this node's private keys, so nothing else from it is touched or printed.
+spec_agreement() {
+    local want
+    want="${BECKN_SPEC_URL:-$(sed -n 's/^BECKN_SPEC_URL=//p' .env | tail -n 1 | tr -d "\"'")}"
+    [ -n "$want" ] \
+        || die "BECKN_SPEC_URL is not set in .env -- the adapter and discovery-service both validate against it"
+
+    local config
+    for config in config/adapters/single-adapter/network-adapter.yaml \
+                  config/adapters/multi-adapter/*-adapter.yaml; do
+        # Absent until `make configure-adapter` has run once, which is fine:
+        # whatever it renders next will be this value.
+        [ -f "$config" ] || continue
+        local other
+        # `|| true` because the whole point is that grep usually matches
+        # nothing, and under `set -e` a non-zero pipeline in a command
+        # substitution kills the script with no message at all.
+        other=$(sed -n 's/^[[:space:]]*location:[[:space:]]*//p' "$config" \
+                | tr -d "\"'" | grep -v "^$want$" | sort -u | head -n 1 || true)
+        [ -z "$other" ] || die "$config validates against
+    $other
+  but .env says BECKN_SPEC_URL is
+    $want
+  discovery-service follows .env, the adapter follows its config, and a
+  mismatch shows up as a schema error at \$.context on a request that already
+  passed signing. Re-render the adapter:  make configure-adapter"
+    done
 }
 
 # ------------------------------------------------------- federation plumbing

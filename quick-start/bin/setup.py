@@ -685,6 +685,13 @@ def configure_adapter(identity):
                 # and forwards it on. /network/publish expects a signature the
                 # crawl does not carry, and in multi mode /publish is elsewhere.
                 ("__DISCOVERY_PUSH_URL__", publish_url(folder)),
+                # The same .env line discovery-service gets as
+                # VALIDATION_SPEC_URL. Rendered from one value rather than
+                # written into both, because the two validators disagreeing is
+                # invisible until a request that passed signing and routing
+                # dies at $.context -- which reads as an adapter bug and is
+                # not. That is what the array networkId 400 was.
+                ("__BECKN_SPEC_URL__", env("BECKN_SPEC_URL")),
                 # on/off in .env, true/false in the config.
                 ("__FEDERATION_ENABLED__",
                  "false" if env("FEDERATION_CRAWL_PEERS", "off").lower() == "off"
