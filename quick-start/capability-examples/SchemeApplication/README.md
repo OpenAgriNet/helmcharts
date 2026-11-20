@@ -1,6 +1,7 @@
 # SchemeApplication — PM-KISAN beneficiary status
 
-Two calls sharing one `transactionId` and one `contract.id`:
+Two calls sharing one `transactionId` (a shared `contract.id` reads better in
+a log but is not required — the OTP is tied to the registration):
 
     init  ->  status
 

@@ -2,8 +2,12 @@
 
 Send these in order against the consumer adapter
 (`localhost:9201/consumer/<action>`), replacing `transactionId`, `messageId`
-and `timestamp` each run. `init` and `status` must share one `transactionId`
-and one `contract.id`; `support` shares the transaction.
+and `timestamp` each run. All three share one `transactionId`.
+
+They do **not** have to share a `contract.id` — checked, and `status` is
+answered with a fresh one. The OTP is tied to the registration, not to the
+contract. Keep them the same anyway in anything you write by hand: it costs
+nothing and it is what makes a log readable.
 
     init  ->  support  ->  status
 
