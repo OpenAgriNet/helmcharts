@@ -741,6 +741,55 @@ def need_identity():
     return identity
 
 
+def check_mappings():
+    """Fetch every registered mapping URL and report the ones that are gone.
+
+    A binding names its mapping by URL, and most of ours point at a BRANCH.
+    That makes a branch rename or delete a silent outage: the registry row is
+    still valid, the adapter still routes, and the call fails at mapping-fetch
+    time with NET_INTERNAL_ERROR -- which says nothing about a URL. Renaming
+    `mandi-migration-pilot` to `bv-migration` broke the mausamgram select
+    exactly this way, and nothing noticed until a request was tried by hand.
+
+    Read-only. It changes nothing, so it is safe to run after any branch work.
+    """
+    wait_for_registry()
+    rows = search("ProviderSchema", {})
+    if not rows:
+        sys.exit("setup: the registry holds no provider binding to check")
+    broken = 0
+    for row in sorted(rows, key=lambda r: r.get("bindingKey") or ""):
+        for action in row.get("actions") or []:
+            url = action.get("mappings")
+            if not url:
+                continue
+            label = f"{row.get('bindingKey')} {action.get('action')}"
+            try:
+                req = urllib.request.Request(url, method="GET")
+                with urllib.request.urlopen(req, timeout=20) as r:
+                    status = r.status
+            except urllib.error.HTTPError as e:
+                status = e.code
+            except Exception as e:
+                print(f"  {label}: UNREACHABLE -- {type(e).__name__}")
+                print(f"    {url}")
+                broken += 1
+                continue
+            if status == 200:
+                print(f"  {label}: ok")
+            else:
+                print(f"  {label}: HTTP {status}")
+                print(f"    {url}")
+                broken += 1
+    if broken:
+        sys.exit(f"setup: {broken} mapping URL(s) do not resolve.\n"
+                 "  A select against those bindings fails at mapping-fetch\n"
+                 "  time with NET_INTERNAL_ERROR, which does not name the URL.\n"
+                 "  Correct the *_MAPPING_URL in .env, then:\n"
+                 "    make register-provider PROVIDER=<name> UPDATE=1")
+    print("all mapping URLs resolve")
+
+
 def main(argv):
     global UPDATE
     load_dotenv()
@@ -763,6 +812,8 @@ def main(argv):
         register_provider(names[0])
     elif command == "configure-adapter":
         configure_adapter(need_identity())
+    elif command == "check-mappings":
+        check_mappings()
     else:
         sys.exit(__doc__)
 

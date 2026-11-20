@@ -137,9 +137,38 @@ preflight() {
     command -v envsubst >/dev/null 2>&1 \
         || die "envsubst is not installed -- it renders the federation front door (apt install gettext-base)"
 
+    image_pins
+
     spec_agreement
 
     federation_prerequisites
+}
+
+# This config needs the 0.2.0 images. On 0.0.1 the adapter dies at boot with
+# `unrecognized step: checkCrossNetworkRequester` -- a config step that build
+# does not have -- and nothing in that message says "your image is too old".
+#
+# .env.example has shipped 0.2.0 for a while, so this only catches a .env
+# carried over from before. A docker-compose.override.yml used to paper over it
+# by pinning the images a second time; that is gone, because two places to set
+# a version is two places to disagree.
+image_pins() {
+    local name value
+    for name in ADAPTER_IMAGE DISCOVERY_IMAGE; do
+        # The shell environment wins over .env, as it does for compose.
+        value="${!name:-}"
+        [ -n "$value" ] \
+            || value="$(sed -n "s/^$name=//p" .env | tail -n 1 | tr -d "\"'")"
+        [ -n "$value" ] \
+            || die "$name is not set in .env -- compose would resolve it to an empty image name"
+        case "$value" in
+            *:0.0.1)
+                die "$name is $value
+  That build does not have the config steps this quick-start uses, so the
+  adapter exits at boot with: unrecognized step: checkCrossNetworkRequester
+  Set it to the tag in .env.example (0.2.0) and re-run." ;;
+        esac
+    done
 }
 
 # The adapter and discovery-service must validate against the SAME spec.
@@ -562,6 +591,22 @@ register_provider() {
     python3 bin/setup.py register-provider "$PROVIDER" "${update[@]}"
 }
 
+# Fetch every mapping URL the registry holds and name the ones that 404.
+#
+# A binding names its mapping by URL and most of ours point at a BRANCH, so a
+# branch rename or delete is a silent outage: the row is still valid, the
+# adapter still routes, and the call dies at mapping-fetch time with
+# NET_INTERNAL_ERROR -- which never mentions a URL. Renaming
+# mandi-migration-pilot to bv-migration broke the mausamgram select exactly
+# this way and nothing noticed until a request was tried by hand.
+#
+# Read-only, so it is safe to run after any branch work.
+check_mappings() {
+    preflight
+    step 1 1 "mapping URLs"
+    python3 bin/setup.py check-mappings
+}
+
 # Asked rather than passed as a flag. Skipped when given as an environment
 # variable, or when there is no terminal -- CI keeps working off .env.
 
@@ -757,6 +802,8 @@ bin/stack.sh <command>
   register-provider  one upstream, its binding and its schema   PROVIDER=
                      Creates only. UPDATE=1 also corrects rows already there,
                      printing every field it moves.
+  check-mappings     fetch every registered mapping URL, fail on any that 404
+                     Most point at a branch, so a rename breaks them silently.
   configure-adapter  render the adapter configs from the registry, start them
                      Asks for the deployment mode and whether to crawl other
                      networks, and writes both answers back to .env. Set
@@ -795,6 +842,7 @@ case "${1:-}" in
     certs)          REISSUING_CERTS=1 preflight; certs ;;
     register-network) register_network ;;
     register-provider) register_provider ;;
+    check-mappings) check_mappings ;;
     configure-adapter) configure_adapter ;;
     host-descriptor) host_descriptor ;;
     admit)          admit ;;

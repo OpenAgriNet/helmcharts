@@ -12,17 +12,7 @@ services:
   sunbird-registry-service:
     platform: linux/amd64
 
-  # Image pins.
-  #
-  # dev.env carries ADAPTER_IMAGE/DISCOVERY_IMAGE at 0.0.1, but this checkout of
-  # quick-start is newer than that: its last config commit is "pin the 0.2.0
-  # images and the core-v2.1.0-lts spec" (0772b02). Against 0.0.1 the adapter
-  # dies on boot with `unrecognized step: checkCrossNetworkRequester` -- a step
-  # the config names and that build does not have.
-  #
-  # Overridden here rather than in .env only because .env is not ours to edit.
-  # Move these into .env and drop this block when the pilot is folded back in.
-  network-adapter:
-    image: ghcr.io/openagrinet/network-adapter:0.2.0
-  discovery-service:
-    image: ghcr.io/openagrinet/discovery-service:0.2.0
+# The image pins that used to live here are gone. They are ADAPTER_IMAGE and
+# DISCOVERY_IMAGE in .env, which .env.example already sets to 0.2.0, and
+# stack.sh preflight refuses to start on the 0.0.1 pair. One place to set the
+# version beats two that can disagree.
