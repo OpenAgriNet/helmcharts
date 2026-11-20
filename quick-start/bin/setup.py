@@ -6,11 +6,19 @@
     python3 bin/setup.py register-provider NAME  one upstream and what it answers
     python3 bin/setup.py configure-adapter       render the adapter configs
 
-Four commands rather than one run, because all four CREATE ONLY: a row that
-already exists is left alone, never overwritten. So a wrong value is not fixed
-by re-running -- it is fixed by a PUT against the stored row, the way oanfed.py
-does it. Registering one provider at a time keeps that correction to one
-provider rather than the whole network.
+Four commands rather than one run, because all four CREATE BY DEFAULT: a row
+that already exists is left alone, never overwritten, so a re-run is a no-op.
+
+A wrong value is corrected by register-provider --update, which PUTs the row
+back from .env and prints every field that moved. Correcting one provider at a
+time is why the command takes a provider rather than doing the network.
+
+    make register-provider PROVIDER=mausamgram UPDATE=1
+
+Update is opt-in because these rows are read by the adapters at request time,
+and because a row may have been corrected by hand -- --update puts .env back in
+charge of it. register-network has no update: rewriting a key row gives it a
+new osid, and every signature made with the old id stops verifying.
 
 An id that was deleted still cannot be reused: delete is soft and keeps the
 unique index.
@@ -246,10 +254,8 @@ def registry_url():
     return f"http://localhost:{env('REGISTRY_PORT', '8081')}"
 
 
-def post(entity, payload):
-    # No {"EntityName": {...}} wrapper: this registry takes the record itself,
-    # and a wrapper comes back as "extraneous key [...] is not permitted".
-    req = urllib.request.Request(f"{registry_url()}/api/v1/{entity}", method="POST",
+def write(method, path, payload, refused):
+    req = urllib.request.Request(f"{registry_url()}/api/v1/{path}", method=method,
                                  data=json.dumps(payload).encode(),
                                  headers={"Content-Type": "application/json"})
     try:
@@ -265,7 +271,29 @@ def post(entity, payload):
             return json.loads(raw)
         except ValueError:
             detail = raw.decode(errors="replace").strip()[:200] or "(empty body)"
-            sys.exit(f"setup: the registry refused a write -- HTTP {e.code}: {detail}")
+            sys.exit(f"setup: the registry refused {refused} -- HTTP {e.code}: {detail}")
+
+
+def post(entity, payload):
+    # No {"EntityName": {...}} wrapper: this registry takes the record itself,
+    # and a wrapper comes back as "extraneous key [...] is not permitted".
+    return write("POST", entity, payload, "a write")
+
+
+def put(entity, osid, payload):
+    # Whole-record: the registry has no merge, so a field left out is cleared.
+    return write("PUT", f"{entity}/{osid}", payload, "an update")
+
+
+def without_os_fields(value):
+    """The record as it can be written back. A read carries osid, osOwner and
+    osCreatedAt at every level, and a PUT that includes them is refused."""
+    if isinstance(value, dict):
+        return {k: without_os_fields(v) for k, v in value.items()
+                if not k.startswith("os")}
+    if isinstance(value, list):
+        return [without_os_fields(v) for v in value]
+    return value
 
 
 def search(entity, filters):
@@ -321,44 +349,105 @@ def upstream(participant_id, name, base_url):
             "status": "active", "baseUrl": base_url}
 
 
-def created(result, what):
+def created(result, what, verb="created"):
     """Report a write, and stop on one the registry refused.
 
-    These commands create only, so a refusal leaves a row absent rather than
-    wrong -- and the first symptom further on is a crawl that collects nothing."""
+    A refusal leaves the row absent or still wrong rather than corrected -- and
+    the first symptom further on is a crawl that collects nothing."""
     params = result.get("params", {}) if isinstance(result, dict) else {}
     if params.get("status") != "SUCCESSFUL":
         sys.exit(f"setup: the registry refused {what}: "
                  f"{params.get('errmsg', result)}\n"
                  f"  Nothing after this point was written.")
-    print(f"  {what}: created")
+    print(f"  {what}: {verb}")
+
+
+# Set by `register-provider --update`. Every ensure_* below reads it.
+UPDATE = False
+
+
+def summarise(value):
+    """One field change on one line, because a whole action object printed in
+    full buries the single field that moved."""
+    text = value if isinstance(value, str) else json.dumps(value)
+    return text if len(text) <= 110 else text[:107] + "..."
+
+
+def changes(stored, row):
+    """Every field of row that differs from the stored record, as (name, old,
+    new). Actions are matched by action name rather than list position, so a
+    registry that hands them back in another order is not a change."""
+    found = []
+    for key, new in row.items():
+        old = without_os_fields(stored.get(key))
+        if old == new:
+            continue
+        if key == "actions" and isinstance(old, list) and isinstance(new, list):
+            found.extend(action_changes(old, new))
+        else:
+            found.append((key, old, new))
+    return found
+
+
+def action_changes(old, new):
+    stored = {a.get("action"): a for a in old if isinstance(a, dict)}
+    found = []
+    for action in new:
+        before = stored.pop(action.get("action"), None)
+        if before is None:
+            found.append((f"actions[{action.get('action')}]", None, action))
+            continue
+        found.extend((f"actions[{action.get('action')}].{field}",
+                      before.get(field), value)
+                     for field, value in action.items()
+                     if before.get(field) != value)
+    found.extend((f"actions[{name}]", "present", "removed") for name in stored)
+    return found
+
+
+def ensure_row(entity, filters, row, what):
+    """Create the row, or with --update correct the one already there."""
+    found = search(entity, filters)
+    if not found:
+        created(post(entity, row), what)
+        return
+    stored = found[0]
+    if not UPDATE:
+        print(f"  {what}: already present -- UPDATE=1 to correct it")
+        return
+    moved = changes(stored, row)
+    if not moved:
+        print(f"  {what}: already present, nothing to correct")
+        return
+    if stored.get("keys"):
+        sys.exit(f"setup: {what} carries signing keys, which --update will not\n"
+                 "  rewrite -- the key row would get a new osid and every\n"
+                 "  signature made with the old id would stop verifying.")
+    body = without_os_fields(stored)
+    body.update(row)
+    created(put(entity, stored["osid"], body), what, verb="updated")
+    for name, old, new in moved:
+        print(f"    {name}: {summarise(old)} -> {summarise(new)}")
 
 
 def ensure_binding(participant_id, capability, path, mapping_url,
                    method="GET"):
-    """Create a capability binding only when absent. The shape of actions,
+    """A capability binding answering select only. The shape of actions,
     mappings and method is docs/adr/0005-filling-the-registry.md."""
     binding = f"{participant_id}|{capability}"
-    if search("ProviderSchema", {"bindingKey": {"eq": binding}}):
-        print(f"  {binding}: already present")
-        return
-    result = post("ProviderSchema", {
+    ensure_row("ProviderSchema", {"bindingKey": {"eq": binding}}, {
         "bindingKey": binding, "participantId": participant_id,
         "capabilityCode": capability, "status": "active",
         "actions": [{"action": "select", "method": method, "path": path,
                      "mappings": mapping_url,
                      "timeoutMs": 15000, "retryMax": 2,
-                     "status": "active"}]})
-    created(result, binding)
+                     "status": "active"}]}, binding)
 
 
 def ensure_actions_binding(participant_id, capability, actions, base_url=None):
-    """Create a binding that answers more than select, only when absent.
-    base_url overrides the participant's, for a capability on another host."""
+    """A binding that answers more than select. base_url overrides the
+    participant's, for a capability served on another host."""
     binding = f"{participant_id}|{capability}"
-    if search("ProviderSchema", {"bindingKey": {"eq": binding}}):
-        print(f"  {binding}: already present")
-        return
     row = {"bindingKey": binding, "participantId": participant_id,
            "capabilityCode": capability, "status": "active",
            "actions": [{"action": action, "method": "POST", "path": path,
@@ -367,7 +456,7 @@ def ensure_actions_binding(participant_id, capability, actions, base_url=None):
                        for action, path, mappings, timeout, retries in actions]}
     if base_url:
         row["baseUrl"] = base_url
-    created(post("ProviderSchema", row), binding)
+    ensure_row("ProviderSchema", {"bindingKey": {"eq": binding}}, row, binding)
 
 
 def schema_url(capability, version):
@@ -379,25 +468,19 @@ def schema_url(capability, version):
 
 
 def ensure_capability_schema(capability, name, version):
-    """Create a capability's schema row only when absent. A wrong schemaUrl is
-    permanent for that code -- see docs/adr/0005-filling-the-registry.md."""
-    if search("SchemaRegistry", {"capabilityCode": {"eq": capability}}):
-        print(f"  {capability}: already present")
-        return
-    result = post("SchemaRegistry", {
+    """What a capability code MEANS. One row per code, shared by every provider
+    of it -- see docs/adr/0005-filling-the-registry.md."""
+    ensure_row("SchemaRegistry", {"capabilityCode": {"eq": capability}}, {
         "capabilityCode": capability, "name": name, "version": version,
         "schemaUrl": schema_url(capability, version),
-        "status": "active"})
-    created(result, capability)
+        "status": "active"}, capability)
 
 
 def ensure_participant(participant_id, payload):
-    """Create only when absent. Delete here is soft and keeps the unique index,
-    so a recreate would fail on a duplicate key rather than replacing."""
-    if search("Participant", {"participantId": {"eq": participant_id}}):
-        print(f"  {participant_id}: already present")
-        return
-    created(post("Participant", payload), participant_id)
+    """Delete here is soft and keeps the unique index, so a wrong row is
+    corrected in place -- a delete-and-recreate fails on a duplicate key."""
+    ensure_row("Participant", {"participantId": {"eq": participant_id}},
+               payload, participant_id)
 
 
 def register_network(identity):
@@ -652,6 +735,7 @@ def need_identity():
 
 
 def main(argv):
+    global UPDATE
     load_dotenv()
     command = argv[0] if argv else ""
 
@@ -662,10 +746,14 @@ def main(argv):
         require(network_requirements())
         register_network(load_or_generate_keys())
     elif command == "register-provider":
-        if len(argv) != 2 or argv[1] not in PROVIDERS:
+        flags = [a for a in argv[1:] if a.startswith("-")]
+        names = [a for a in argv[1:] if not a.startswith("-")]
+        if len(names) != 1 or names[0] not in PROVIDERS \
+                or set(flags) - {"--update"}:
             sys.exit("setup: register-provider takes one of "
-                     + ", ".join(PROVIDERS))
-        register_provider(argv[1])
+                     + ", ".join(PROVIDERS) + ", optionally with --update")
+        UPDATE = "--update" in flags
+        register_provider(names[0])
     elif command == "configure-adapter":
         configure_adapter(need_identity())
     else:

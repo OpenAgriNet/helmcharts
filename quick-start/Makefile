@@ -51,6 +51,12 @@ certs:             ; @$(STACK) certs
 register-network:  ; @$(STACK) register-network
 
 # PROVIDER is one of mausamgram, agmarknet, vistaar, pocra, pmkisan.
+#
+# Creates only, so a re-run is a no-op. UPDATE=1 instead PUTs the rows back from
+# .env and prints every field that moved -- which is how a wrong mapping URL,
+# path or base URL is corrected:
+#
+#     make register-provider PROVIDER=mausamgram UPDATE=1
 register-provider: ; @$(STACK) register-provider
 
 # Renders from the registry's bindings, then starts the adapters -- together,

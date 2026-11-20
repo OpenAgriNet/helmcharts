@@ -506,12 +506,15 @@ register_network() {
 }
 
 # One upstream, its binding and its schema. PROVIDER=mausamgram.
+# UPDATE=1 corrects the rows already there from .env instead of skipping them.
 register_provider() {
     preflight
     [ -n "${PROVIDER:-}" ] \
         || die "which provider? e.g. make register-provider PROVIDER=mausamgram"
-    step 1 1 "provider $PROVIDER"
-    python3 bin/setup.py register-provider "$PROVIDER"
+    local update=()
+    [ -n "${UPDATE:-}" ] && update=(--update)
+    step 1 1 "provider $PROVIDER${update[0]:+ (updating)}"
+    python3 bin/setup.py register-provider "$PROVIDER" "${update[@]}"
 }
 
 # Asked rather than passed as a flag. Skipped when given as an environment
@@ -707,6 +710,8 @@ bin/stack.sh <command>
   keys               generate keys/keys.json
   register-network   publish our own entry and read its key id back
   register-provider  one upstream, its binding and its schema   PROVIDER=
+                     Creates only. UPDATE=1 also corrects rows already there,
+                     printing every field it moves.
   configure-adapter  render the adapter configs from the registry, start them
                      Asks for the deployment mode and whether to crawl other
                      networks, and writes both answers back to .env. Set
