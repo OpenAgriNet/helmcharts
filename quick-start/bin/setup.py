@@ -161,6 +161,21 @@ PROVIDERS = {
                 ("status", "/ChatbotUserDetails", "application-status.status.yaml", 30000, 0))),
         ),
     },
+    # One capability, two actions, and a login to get a token first. Shares the
+    # Grievance step with PM-KISAN.
+    "pmfby": {
+        "prefix": "PMFBY", "name": "PMFBY grievance",
+        "needs": ["PMFBY_BASE_URL", "PMFBY_TOKEN_URL",
+                  "PMFBY_ACCESS_UID", "PMFBY_ACCESS_PWD"],
+        "capabilities": (
+            ("openagrinet:Grievance", "Grievance", "v0.1", None, (
+                # A retried filing opens a second ticket, so support never retries.
+                ("support", "/krphapi/FGMS/AddKRPHNCIPGrievenceSupportTicket",
+                 "grievance.support.yaml", 30000, 0),
+                ("status", "/krphapi/FGMS/GetGrievenceTicketsStatus",
+                 "grievance.status.yaml", 30000, 2))),
+        ),
+    },
 }
 
 
@@ -589,33 +604,72 @@ def registered_providers():
     return sorted(found)
 
 
+PROVIDER_CONFIG = "__PROVIDER_CONFIG__"
+
+
+def fragment(name):
+    """(step id, step header, per-provider body) from a provider template.
+
+    A template with no __PROVIDER_CONFIG__ marker is all header: nothing else
+    shares its step, and its step id is the one its `- id:` line names. A
+    template that is all body names the step it JOINS on the marker line, since
+    it has no `- id:` of its own."""
+    text = (ADAPTERS / "providers" / f"{name}.yaml.tmpl").read_text()
+    head, marked, rest = text.partition(PROVIDER_CONFIG)
+    joins, body = rest.partition("\n")[0].strip(), rest.partition("\n")[2]
+    if not marked:
+        head, body = text, ""
+    if head.strip():
+        declared = [line.split(":", 1)[1].strip() for line in head.splitlines()
+                    if line.strip().startswith("- id:")]
+        if len(declared) != 1:
+            sys.exit(f"setup: {name}.yaml.tmpl must name exactly one `- id:` step")
+        return declared[0], head, body
+    if not joins:
+        sys.exit(f"setup: {name}.yaml.tmpl is all body and names no step to join")
+    return joins, "", body
+
+
 def provider_steps(providers):
-    """The providerSteps entries and their names, one fragment per provider --
-    the auth shape is the one thing the registry does not hold."""
+    """The providerSteps entries and their names, one entry per STEP."""
     blocks, ids = [], []
-    # Grouped by provider: one serving two capabilities is one step, because
-    # its two bindings refer to each other -- PM-KISAN's OTP is the case.
-    for name, bindings, participant in grouped(providers):
-        fragment = (ADAPTERS / "providers" / f"{name}.yaml.tmpl").read_text()
-        blocks.append(fragment.replace("__BINDING_KEY__", ",".join(bindings))
-                              .replace("__PARTICIPANT_ID__", participant))
-        ids.append(f"        - {step_id(bindings[0])}")
+    for step, members in grouped(providers):
+        bindings, head, bodies = [], "", []
+        for name, participant, member_bindings in members:
+            _, member_head, body = fragment(name)
+            bindings += member_bindings
+            if member_head:
+                if head:
+                    sys.exit(f"setup: two provider templates carry the {step} "
+                             f"step header; only one may")
+                head = member_head.replace("__PARTICIPANT_ID__", participant)
+            bodies.append(body.replace("__PARTICIPANT_ID__", participant))
+        if not head:
+            sys.exit(f"setup: no provider template carries the {step} step header")
+        blocks.append((head + "".join(bodies))
+                      .replace("__BINDING_KEY__", ",".join(bindings)))
+        ids.append(f"        - {step}")
     return "".join(blocks).rstrip("\n"), "\n".join(ids)
 
 
 def grouped(providers):
-    """(name, [binding, ...], participant) per provider, bindings in order."""
-    by_name = {}
+    """(step id, [(name, participant, [binding, ...]), ...]) per STEP.
+
+    By step and not by provider, because two providers can answer one
+    capability -- PM-KISAN and PMFBY both answer Grievance -- and the adapter
+    picks per-provider config by binding key from inside a step. Two steps with
+    the same id would leave one of them unreachable.
+
+    A provider's own several capabilities land in one step for a different
+    reason: its bindings refer to each other, as PM-KISAN's OTP does."""
+    by_step = {}
     for name, binding, participant in providers:
-        by_name.setdefault(name, (participant, []))[1].append(binding)
-    return [(name, bindings, participant)
-            for name, (participant, bindings) in by_name.items()]
+        members = by_step.setdefault(fragment(name)[0], {})
+        members.setdefault(name, (participant, []))[1].append(binding)
+    return [(step, [(name, participant, bindings)
+                    for name, (participant, bindings) in members.items()])
+            for step, members in by_step.items()]
 
-
-def step_id(binding_key):
-    """The plugin id a capability is served by: the capability code without its
-    namespace, so openagrinet:WeatherObservation is served by WeatherObservation."""
-    return binding_key.partition("|")[2].partition(":")[2]
 
 
 # ------------------------------------------------------------------ configs
@@ -684,6 +738,7 @@ def configure_adapter(identity):
                 # and reach the adapter through its environment.
                 ("__AGMARKNET_TOKEN_URL__", token_url("agmarknet", "AGMARKNET_TOKEN_URL", serving)),
                 ("__VISTAAR_TOKEN_URL__", token_url("vistaar", "VISTAAR_TOKEN_URL", serving)),
+                ("__PMFBY_TOKEN_URL__", token_url("pmfby", "PMFBY_TOKEN_URL", serving)),
                 # The crawler hands a crawled catalog to /publish, which signs it
                 # and forwards it on. /network/publish expects a signature the
                 # crawl does not carry, and in multi mode /publish is elsewhere.
