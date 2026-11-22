@@ -620,6 +620,8 @@ services:
       # halves. Named here and read at call time, so the value is in neither a
       # config file nor the registry.
       MAUSAMGRAM_AUTH: ${MAUSAMGRAM_AUTH}
+      # SATHI's key goes in the JSON body (authScheme body), read at call time.
+      SATHI_API_KEY: ${SATHI_API_KEY}
       # The mandi upstream's credentials. Agmarknet issues its own token, so
       # these two are exchanged for one at call time. Named here and read then,
       # so neither is in a config file or in the registry.
@@ -672,6 +674,7 @@ services:
       # Upstream credentials for the single-mode provider module, read at call
       # time -- the same variables and reasons as provider-adapter.
       MAUSAMGRAM_AUTH: ${MAUSAMGRAM_AUTH}
+      SATHI_API_KEY: ${SATHI_API_KEY}
       AGMARKNET_ACCESS_NAME: ${AGMARKNET_ACCESS_NAME}
       AGMARKNET_PASSWORD: ${AGMARKNET_PASSWORD}
       MOCKAGMARKNET_TOKEN: ${MOCKAGMARKNET_TOKEN:-local-mandi-token}

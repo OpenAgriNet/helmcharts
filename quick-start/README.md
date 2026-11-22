@@ -35,6 +35,7 @@ when you register the provider that needs it:
 |---|---|---|
 | `pocra` | Agriculture Facility | nothing |
 | `mausamgram` | Weather Observation | `MAUSAMGRAM_AUTH` |
+| `sathi` | Agriculture Resource (seed stock) | `SATHI_API_KEY` |
 | `agmarknet` | Mandi Price | base URL, token URL, access name, password |
 | `vistaar` | Knowledge Advisory | base URL, token URL, client id, secret |
 | `pmkisan` | Grievance and Scheme Application | two hosts, an AES key and nonce, two service tokens |
