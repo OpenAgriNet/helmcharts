@@ -1,0 +1,49 @@
+# SATHI seed stock, openagrinet:AgricultureResource, select. SATHI's own request
+# and answer travel untranslated as a ProviderOperationPayload in commitmentAttributes.
+
+required:
+  - check: |
+      (
+        $p := beckn.message.contract.commitments[0].commitmentAttributes.payload;
+        $type($p) = "object" and $exists($p.cropCode) and $exists($p.seedClass)
+          and $exists($p.stateCode) and $exists($p.districtCode)
+      )
+    message: "this capability needs commitmentAttributes.payload with cropCode, seedClass, stateCode and districtCode"
+
+# The body is the caller's payload as is. The adapter adds apiKey (authScheme body).
+request: |
+  beckn.message.contract.commitments[0].commitmentAttributes.payload
+
+# SATHI's answer goes back unchanged, a 200 with lots or a 409 "Data Not Found",
+# under the same operationRef the caller sent.
+response: |
+  (
+    $selected := beckn.message.contract.commitments[0];
+    {
+      "context": {
+        "version": beckn.context.version,
+        "action": "on_select",
+        "networkId": beckn.context.networkId,
+        "transactionId": beckn.context.transactionId,
+        "messageId": beckn.context.messageId,
+        "timestamp": $now()
+      },
+      "message": {
+        "contract": {
+          "commitments": [
+            {
+              "status": { "descriptor": { "code": "ACTIVE", "name": "active" } },
+              "resources": [$selected.resources],
+              "offer": $selected.offer,
+              "commitmentAttributes": {
+                "@context": $selected.commitmentAttributes.`@context`,
+                "@type": "ProviderOperationPayload",
+                "operationRef": $selected.commitmentAttributes.operationRef,
+                "payload": response
+              }
+            }
+          ]
+        }
+      }
+    }
+  )
