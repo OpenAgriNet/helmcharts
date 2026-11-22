@@ -1,0 +1,25 @@
+# Temporary: network-specs bv-features ships only context.jsonld for this type,
+# so extended validation has no schema. Replace with theirs once it is published.
+openapi: 3.1.1
+info:
+  title: Provider operation payload
+  version: 0.0.1
+  description: A provider's own request or answer, carried untranslated and named by the OpenAPI operation it belongs to.
+
+components:
+  schemas:
+    ProviderOperationPayload:
+      type: object
+      required: ["@context", "@type", operationRef, payload]
+      properties:
+        "@context":
+          type: string
+        "@type":
+          const: ProviderOperationPayload
+        operationRef:
+          type: string
+          format: uri
+          description: The OpenAPI operation the payload belongs to.
+        payload:
+          type: object
+          description: The provider's own request or answer, in its own shape.

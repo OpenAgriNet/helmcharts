@@ -1,0 +1,9 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "example": "https://openagrinet.github.io/network-specs/schema/examples/provider-payload/#",
+    "ProviderOperationPayload": "example:ProviderOperationPayload",
+    "operationRef": {"@id": "example:operationRef", "@type": "@id"},
+    "payload": {"@id": "example:payload", "@type": "@json"}
+  }
+}
