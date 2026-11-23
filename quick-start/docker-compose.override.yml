@@ -1,0 +1,18 @@
+# Apple Silicon only.
+#
+# ghcr.io/sunbird-rc/sunbird-rc-core publishes amd64 and nothing else, so on an
+# arm64 host `docker compose up` fails with "no matching manifest for
+# linux/arm64/v8" before anything starts. Pinning the platform runs it under
+# Rosetta: slower to boot, correct behaviour.
+#
+# Only this service. Every other image in the stack -- the adapter, discovery,
+# postgres, pgvector -- publishes arm64, and forcing them to amd64 would
+# emulate them for no reason.
+services:
+  sunbird-registry-service:
+    platform: linux/amd64
+
+# The image pins that used to live here are gone. They are ADAPTER_IMAGE and
+# DISCOVERY_IMAGE in .env, which .env.example already sets to 0.2.0, and
+# stack.sh preflight refuses to start on the 0.0.1 pair. One place to set the
+# version beats two that can disagree.

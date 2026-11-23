@@ -1,0 +1,25 @@
+apiVersion: v2
+name: redis
+description: >-
+  Redis (single pod, in memory only) - session state for the
+  decision-support-system's form flows (DSS ADR-0022). Password required,
+  nothing saved to disk, restarts empty. Not a cache cluster, not HA.
+type: application
+version: 0.1.1
+appVersion: "8.10-alpine"
+maintainers:
+  - name: OpenAgriNet Engineering Team
+    url: https://github.com/OpenAgriNet
+keywords:
+  - oan
+  - openagrinet
+  - redis
+  - session-state
+home: https://github.com/OpenAgriNet/helmcharts
+sources:
+  - https://github.com/OpenAgriNet/helmcharts
+  - https://github.com/redis/redis
+dependencies:
+  - name: common
+    version: "0.2.x"
+    repository: "file://../common"

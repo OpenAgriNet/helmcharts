@@ -137,7 +137,81 @@ preflight() {
     command -v envsubst >/dev/null 2>&1 \
         || die "envsubst is not installed -- it renders the federation front door (apt install gettext-base)"
 
+    image_pins
+
+    spec_agreement
+
     federation_prerequisites
+}
+
+# This config needs the 0.2.0 images. On 0.0.1 the adapter dies at boot with
+# `unrecognized step: checkCrossNetworkRequester` -- a config step that build
+# does not have -- and nothing in that message says "your image is too old".
+#
+# .env.example has shipped 0.2.0 for a while, so this only catches a .env
+# carried over from before. A docker-compose.override.yml used to paper over it
+# by pinning the images a second time; that is gone, because two places to set
+# a version is two places to disagree.
+image_pins() {
+    local name value
+    for name in ADAPTER_IMAGE DISCOVERY_IMAGE; do
+        # The shell environment wins over .env, as it does for compose.
+        value="${!name:-}"
+        [ -n "$value" ] \
+            || value="$(sed -n "s/^$name=//p" .env | tail -n 1 | tr -d "\"'")"
+        [ -n "$value" ] \
+            || die "$name is not set in .env -- compose would resolve it to an empty image name"
+        case "$value" in
+            *:0.0.1)
+                die "$name is $value
+  That build does not have the config steps this quick-start uses, so the
+  adapter exits at boot with: unrecognized step: checkCrossNetworkRequester
+  Set it to the tag in .env.example (0.2.0) and re-run." ;;
+        esac
+    done
+}
+
+# The adapter and discovery-service must validate against the SAME spec.
+#
+# discovery-service reads VALIDATION_SPEC_URL, which docker-compose feeds from
+# BECKN_SPEC_URL. The adapter reads the location rendered into its config. Both
+# now come from that one .env line, so they agree when the config is freshly
+# rendered -- but editing .env and restarting discovery-service without
+# re-running `make configure-adapter` leaves the adapter on the old spec.
+#
+# Worth a hard stop because the symptom does not point here. A request validates
+# at the adapter, gets signed, gets routed, and only then dies at $.context with
+# a schema error -- which reads as an adapter bug. It took a request-id traced
+# through both containers' logs to find it the first time.
+#
+# Only the location lines are read out of the rendered config. It also holds
+# this node's private keys, so nothing else from it is touched or printed.
+spec_agreement() {
+    local want
+    want="${BECKN_SPEC_URL:-$(sed -n 's/^BECKN_SPEC_URL=//p' .env | tail -n 1 | tr -d "\"'")}"
+    [ -n "$want" ] \
+        || die "BECKN_SPEC_URL is not set in .env -- the adapter and discovery-service both validate against it"
+
+    local config
+    for config in config/adapters/single-adapter/network-adapter.yaml \
+                  config/adapters/multi-adapter/*-adapter.yaml; do
+        # Absent until `make configure-adapter` has run once, which is fine:
+        # whatever it renders next will be this value.
+        [ -f "$config" ] || continue
+        local other
+        # `|| true` because the whole point is that grep usually matches
+        # nothing, and under `set -e` a non-zero pipeline in a command
+        # substitution kills the script with no message at all.
+        other=$(sed -n 's/^[[:space:]]*location:[[:space:]]*//p' "$config" \
+                | tr -d "\"'" | grep -v "^$want$" | sort -u | head -n 1 || true)
+        [ -z "$other" ] || die "$config validates against
+    $other
+  but .env says BECKN_SPEC_URL is
+    $want
+  discovery-service follows .env, the adapter follows its config, and a
+  mismatch shows up as a schema error at \$.context on a request that already
+  passed signing. Re-render the adapter:  make configure-adapter"
+    done
 }
 
 # ------------------------------------------------------- federation plumbing
@@ -506,12 +580,36 @@ register_network() {
 }
 
 # One upstream, its binding and its schema. PROVIDER=mausamgram.
+# UPDATE=1 corrects the rows already there from .env instead of skipping them.
 register_provider() {
     preflight
     [ -n "${PROVIDER:-}" ] \
         || die "which provider? e.g. make register-provider PROVIDER=mausamgram"
-    step 1 1 "provider $PROVIDER"
-    python3 bin/setup.py register-provider "$PROVIDER"
+    # A plain string rather than an array: macOS still ships bash 3.2, where an
+    # EMPTY array expands as an unbound variable under `set -u`. So this target
+    # died at the first expansion whenever UPDATE was not set -- which is to
+    # say, on every first registration of a provider.
+    local update=""
+    [ -n "${UPDATE:-}" ] && update="--update"
+    step 1 1 "provider $PROVIDER${update:+ (updating)}"
+    # Unquoted on purpose: it is one flag or nothing, and neither can split.
+    python3 bin/setup.py register-provider "$PROVIDER" $update
+}
+
+# Fetch every mapping URL the registry holds and name the ones that 404.
+#
+# A binding names its mapping by URL and most of ours point at a BRANCH, so a
+# branch rename or delete is a silent outage: the row is still valid, the
+# adapter still routes, and the call dies at mapping-fetch time with
+# NET_INTERNAL_ERROR -- which never mentions a URL. Renaming
+# mandi-migration-pilot to bv-migration broke the mausamgram select exactly
+# this way and nothing noticed until a request was tried by hand.
+#
+# Read-only, so it is safe to run after any branch work.
+check_mappings() {
+    preflight
+    step 1 1 "mapping URLs"
+    python3 bin/setup.py check-mappings
 }
 
 # Asked rather than passed as a flag. Skipped when given as an environment
@@ -707,6 +805,10 @@ bin/stack.sh <command>
   keys               generate keys/keys.json
   register-network   publish our own entry and read its key id back
   register-provider  one upstream, its binding and its schema   PROVIDER=
+                     Creates only. UPDATE=1 also corrects rows already there,
+                     printing every field it moves.
+  check-mappings     fetch every registered mapping URL, fail on any that 404
+                     Most point at a branch, so a rename breaks them silently.
   configure-adapter  render the adapter configs from the registry, start them
                      Asks for the deployment mode and whether to crawl other
                      networks, and writes both answers back to .env. Set
@@ -745,6 +847,7 @@ case "${1:-}" in
     certs)          REISSUING_CERTS=1 preflight; certs ;;
     register-network) register_network ;;
     register-provider) register_provider ;;
+    check-mappings) check_mappings ;;
     configure-adapter) configure_adapter ;;
     host-descriptor) host_descriptor ;;
     admit)          admit ;;

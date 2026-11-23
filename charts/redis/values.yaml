@@ -1,0 +1,182 @@
+# ============================================================================
+# redis - default values
+#
+# One Redis pod holding the decision-support-system's form-session state
+# (DSS ADR-0022). In memory only: a password is required, nothing is saved to
+# disk (no RDB, no AOF, no volume), and a restart comes back EMPTY - every
+# open form flow is lost and the farmer is asked to start again, which the ADR
+# accepts. Not HA, not a cluster, not exposed outside the cluster.
+#
+# Runs the same command as the DSS docker-compose.yml `redis` service, plus a
+# memory ceiling.
+#
+# Minimum you must set:
+#   - auth.existingSecret (the render fails without it)
+# ============================================================================
+
+image:
+  registry: docker.io
+  repository: redis
+  # Empty falls back to Chart.appVersion ("8.10-alpine"). Redis 8 because it can
+  # be used under AGPLv3, an open-source licence; 7.4 is RSALv2/SSPLv1 only.
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  enabled: true
+  name: ""
+  annotations: {}
+  # Redis never talks to the Kubernetes API.
+  automountServiceAccountToken: false
+
+service:
+  port: 6379
+  targetPort: 6379
+  annotations: {}
+
+# ---------------------------------------------------------------------------
+# The password. This chart renders no Secret: it reads REDIS_PASSWORD from an
+# existing one. There is no way to switch auth off - an empty existingSecret
+# fails the render.
+#
+# The DSS puts the password into DSS_REDIS_URL as it is, so keep it to
+# letters, digits, `-` and `_` (the same rule as DSS's docker-compose.yml).
+# ---------------------------------------------------------------------------
+auth:
+  existingSecret: ""
+  passwordKey: password
+
+# ---------------------------------------------------------------------------
+# Memory ceiling. Without one, Redis grows until the container's memory limit
+# kills it - and a killed Redis restarts empty, losing every open flow rather
+# than the few oldest. Keep it well under resources.limits.memory: Redis's own
+# overhead and fragmentation sit on top of the data.
+# ---------------------------------------------------------------------------
+maxmemory: 100mb
+
+# What to drop once maxmemory is reached. Every key the DSS writes - session
+# state and lock - carries a TTL (180 s, and the lock's lease), so in practice
+# allkeys-lru and volatile-lru evict the same keys. allkeys-lru is chosen
+# because it also covers a key written without a TTL by mistake: under
+# volatile-* such a key can never be evicted and, once memory fills, every
+# write fails with OOM; under noeviction every form turn would fail outright.
+# Evicting a session costs one farmer a restarted flow, and evicting a lock at
+# worst lets two turns overlap once - both outcomes ADR-0022 already accepts.
+maxmemoryPolicy: allkeys-lru
+
+# Resource requests and limits. REQUIRED - the render fails if this is empty.
+# The memory limit leaves headroom over maxmemory (see above).
+resources:
+  limits:
+    cpu: 250m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 128Mi
+
+# Probes run redis-cli inside the container, as DSS's compose healthcheck does.
+# It authenticates from REDISCLI_AUTH, which the chart sets from the same
+# Secret, so the password is never on a command line.
+# `grep -q PONG` matters: redis-cli can exit 0 on an error reply such as
+# NOAUTH, so the exit code alone would pass a Redis rejecting the password.
+# common.probeSpec allows exactly one handler - to swap `exec` for another,
+# null this one out (`--set livenessProbe.exec=null`).
+livenessProbe:
+  enabled: true
+  exec:
+    command:
+      - sh
+      - -c
+      - redis-cli ping | grep -q PONG
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  # Six misses (a minute) before a restart, not three: a restart empties the
+  # store, and a CPU-throttled fork of sh + redis-cli can miss a probe while
+  # Redis itself is fine. Readiness stays quick.
+  failureThreshold: 6
+
+readinessProbe:
+  enabled: true
+  exec:
+    command:
+      - sh
+      - -c
+      - redis-cli ping | grep -q PONG
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Redis starts in well under a second with nothing to load from disk.
+startupProbe:
+  enabled: false
+  exec:
+    command:
+      - sh
+      - -c
+      - redis-cli ping | grep -q PONG
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+# On by default: the image's own `redis` user. In the alpine image that is
+# uid 999, gid 1000 (the Debian-based image uses 999/999; either works, as
+# Redis writes nothing to disk here). No fsGroup - there is no volume.
+podSecurityContext:
+  enabled: true
+  runAsUser: 999
+  runAsGroup: 1000
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# Read-only root filesystem enforces "nothing saved to disk" rather than just
+# configuring it: with --save "" and --appendonly no Redis has nothing to
+# write, so a write attempt is a misconfiguration and should fail loudly.
+securityContext:
+  enabled: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 999
+  capabilities:
+    drop:
+      - ALL
+
+# ---------------------------------------------------------------------------
+# Who may connect. On by default: there is no TLS, so this and the password
+# are what keep other pods away from form values. `from` is a list of
+# NetworkPolicy peers; the default is the DSS's pods in this release's
+# namespace. Only ingress is restricted, and only on the Redis port.
+#
+# Needs a CNI that enforces NetworkPolicy (on EKS, the VPC CNI with network
+# policy turned on); without one it is accepted and does nothing. The probes
+# run inside the pod, so they are not affected.
+# ---------------------------------------------------------------------------
+networkPolicy:
+  enabled: true
+  from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: decision-support-system
+
+# Scheduling
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podLabels: {}
+podAnnotations: {}
+
+# Individual env vars from Secret keys, and raw env entries, passed through
+# common.env. Redis is configured by flags, so neither is normally needed.
+secretEnv: {}
+extraEnv: []
+
+commonLabels: {}
+commonAnnotations: {}

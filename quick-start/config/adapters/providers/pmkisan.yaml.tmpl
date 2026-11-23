@@ -1,10 +1,15 @@
-          # One step for both of PM-KISAN's capabilities: the OTP taken for a
-          # SchemeApplication is what a Grievance then presents, so they share.
+          # The Grievance step, shared by every provider that answers the
+          # capability -- PM-KISAN and PMFBY today. One step, not one each: the
+          # adapter picks per-provider config by binding key from inside a
+          # step, so a second step named Grievance would shadow this one.
+          # PM-KISAN's own two capabilities are here for a second reason: the
+          # OTP taken for a SchemeApplication is what a Grievance presents.
           - id: Grievance
             config:
               bindingKeys: "__BINDING_KEY__"
               providerIdAt: "message.contract.commitments[].offer.provider.id, message.support.channels[].provider.id"
               capabilityCodeAt: "message.contract.commitments[].commitmentAttributes.@type, message.support.channels[].@type"
+__PROVIDER_CONFIG__ Grievance
               __PARTICIPANT_ID__:
                 authScheme: none
               "__PARTICIPANT_ID__|openagrinet:Grievance":

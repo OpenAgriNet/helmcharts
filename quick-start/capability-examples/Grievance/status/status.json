@@ -1,0 +1,38 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "status",
+    "version": "2.0.0",
+    "networkId": "oan.dev",
+    "senderId": "oan.dev",
+    "receiverId": "oan.dev",
+    "transactionId": "00000000-0000-4000-8000-000000000001",
+    "messageId": "00000000-0000-4000-8000-000000000002",
+    "timestamp": "2026-11-20T06:30:00.000Z"
+  },
+  "message": {
+    "contract": {
+      "id": "00000000-0000-4000-8000-00000000000c",
+      "commitments": [
+        {
+          "status": { "descriptor": { "code": "ACTIVE" } },
+          "offer": {
+            "id": "off:pmkisan:grievance",
+            "provider": { "id": "pmkisan", "descriptor": { "name": "PM-KISAN" } },
+            "resourceIds": ["res:pmkisan:grievance"]
+          },
+          "resources": [{ "id": "res:pmkisan:grievance", "quantity": { "count": 1 } }],
+          "commitmentAttributes": {
+            "@context": "https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld",
+            "@type": "openagrinet:Grievance",
+            "informationMode": "OnDemand",
+            "scheme": { "code": "PM-KISAN" },
+            "enrolmentId": "UP12345678A",
+            "case": { "filedOn": "REPLACE-WITH-THE-filedOn-support-RETURNED" },
+            "challenge": { "response": { "method": "OTP", "value": "1234" } }
+          }
+        }
+      ]
+    }
+  }
+}

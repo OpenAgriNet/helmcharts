@@ -228,6 +228,19 @@ ConfigMap injected with envFrom.
 - name: DSS_PHOTON_CACHE_MAX_ENTRIES
   value: {{ $photon.cache.maxEntries | quote }}
 {{- end }}
+{{- with .Values.redis.urlSecret.name }}
+{{- if not $.Values.redis.urlSecret.key }}
+{{- fail (printf "%s: redis.urlSecret.name is set but redis.urlSecret.key is empty - name the key holding the redis:// URL" $.Chart.Name) }}
+{{- end }}
+- name: DSS_REDIS_URL
+  valueFrom:
+    secretKeyRef:
+      name: {{ . }}
+      key: {{ $.Values.redis.urlSecret.key }}
+      {{- if $.Values.redis.urlSecret.optional }}
+      optional: true
+      {{- end }}
+{{- end }}
 {{- with .Values.schemes.configPath }}
 - name: DSS_SCHEMES_CONFIG_PATH
   value: {{ . | quote }}

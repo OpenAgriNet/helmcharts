@@ -6,11 +6,19 @@
     python3 bin/setup.py register-provider NAME  one upstream and what it answers
     python3 bin/setup.py configure-adapter       render the adapter configs
 
-Four commands rather than one run, because all four CREATE ONLY: a row that
-already exists is left alone, never overwritten. So a wrong value is not fixed
-by re-running -- it is fixed by a PUT against the stored row, the way oanfed.py
-does it. Registering one provider at a time keeps that correction to one
-provider rather than the whole network.
+Four commands rather than one run, because all four CREATE BY DEFAULT: a row
+that already exists is left alone, never overwritten, so a re-run is a no-op.
+
+A wrong value is corrected by register-provider --update, which PUTs the row
+back from .env and prints every field that moved. Correcting one provider at a
+time is why the command takes a provider rather than doing the network.
+
+    make register-provider PROVIDER=mausamgram UPDATE=1
+
+Update is opt-in because these rows are read by the adapters at request time,
+and because a row may have been corrected by hand -- --update puts .env back in
+charge of it. register-network has no update: rewriting a key row gives it a
+new osid, and every signature made with the old id stops verifying.
 
 An id that was deleted still cannot be reused: delete is soft and keeps the
 unique index.
@@ -136,19 +144,36 @@ PROVIDERS = {
         "method": "POST", "default_path": None,
         "needs": [],
     },
-    # Two capabilities on two hosts, each answering several actions. No schema
-    # rows: neither pack is published on network-specs yet.
+    # Two capabilities on two hosts, each answering several actions. Each names
+    # its own pack, because a capability code with no schema row resolves to no
+    # pack and the binding then answers nothing.
     "pmkisan": {
         "prefix": "PMKISAN", "name": "PM-KISAN",
         "needs": ["PMKISAN_BASE_URL", "PMKISAN_CHATBOT_BASE_URL"],
         "capabilities": (
-            ("openagrinet:Grievance", None, (
+            ("openagrinet:Grievance", "Grievance", "v0.1", None, (
                 ("init", "/ChatbotOTP", "grievance.init.yaml", 20000, 0),
                 ("support", "/LodgeGrievance", "grievance.support.yaml", 30000, 0),
                 ("status", "/GrievanceStatusCheck", "grievance.status.yaml", 30000, 2))),
-            ("openagrinet:SchemeApplication", "PMKISAN_CHATBOT_BASE_URL", (
+            ("openagrinet:SchemeApplication", "Scheme Application", "v0.1",
+             "PMKISAN_CHATBOT_BASE_URL", (
                 ("init", "/ChatbotOTP", "application-status.init.yaml", 20000, 0),
                 ("status", "/ChatbotUserDetails", "application-status.status.yaml", 30000, 0))),
+        ),
+    },
+    # One capability, two actions, and a login to get a token first. Shares the
+    # Grievance step with PM-KISAN.
+    "pmfby": {
+        "prefix": "PMFBY", "name": "PMFBY grievance",
+        "needs": ["PMFBY_BASE_URL", "PMFBY_TOKEN_URL",
+                  "PMFBY_ACCESS_UID", "PMFBY_ACCESS_PWD"],
+        "capabilities": (
+            ("openagrinet:Grievance", "Grievance", "v0.1", None, (
+                # A retried filing opens a second ticket, so support never retries.
+                ("support", "/krphapi/FGMS/AddKRPHNCIPGrievenceSupportTicket",
+                 "grievance.support.yaml", 30000, 0),
+                ("status", "/krphapi/FGMS/GetGrievenceTicketsStatus",
+                 "grievance.status.yaml", 30000, 2))),
         ),
     },
 }
@@ -246,10 +271,8 @@ def registry_url():
     return f"http://localhost:{env('REGISTRY_PORT', '8081')}"
 
 
-def post(entity, payload):
-    # No {"EntityName": {...}} wrapper: this registry takes the record itself,
-    # and a wrapper comes back as "extraneous key [...] is not permitted".
-    req = urllib.request.Request(f"{registry_url()}/api/v1/{entity}", method="POST",
+def write(method, path, payload, refused):
+    req = urllib.request.Request(f"{registry_url()}/api/v1/{path}", method=method,
                                  data=json.dumps(payload).encode(),
                                  headers={"Content-Type": "application/json"})
     try:
@@ -265,7 +288,29 @@ def post(entity, payload):
             return json.loads(raw)
         except ValueError:
             detail = raw.decode(errors="replace").strip()[:200] or "(empty body)"
-            sys.exit(f"setup: the registry refused a write -- HTTP {e.code}: {detail}")
+            sys.exit(f"setup: the registry refused {refused} -- HTTP {e.code}: {detail}")
+
+
+def post(entity, payload):
+    # No {"EntityName": {...}} wrapper: this registry takes the record itself,
+    # and a wrapper comes back as "extraneous key [...] is not permitted".
+    return write("POST", entity, payload, "a write")
+
+
+def put(entity, osid, payload):
+    # Whole-record: the registry has no merge, so a field left out is cleared.
+    return write("PUT", f"{entity}/{osid}", payload, "an update")
+
+
+def without_os_fields(value):
+    """The record as it can be written back. A read carries osid, osOwner and
+    osCreatedAt at every level, and a PUT that includes them is refused."""
+    if isinstance(value, dict):
+        return {k: without_os_fields(v) for k, v in value.items()
+                if not k.startswith("os")}
+    if isinstance(value, list):
+        return [without_os_fields(v) for v in value]
+    return value
 
 
 def search(entity, filters):
@@ -321,44 +366,105 @@ def upstream(participant_id, name, base_url):
             "status": "active", "baseUrl": base_url}
 
 
-def created(result, what):
+def created(result, what, verb="created"):
     """Report a write, and stop on one the registry refused.
 
-    These commands create only, so a refusal leaves a row absent rather than
-    wrong -- and the first symptom further on is a crawl that collects nothing."""
+    A refusal leaves the row absent or still wrong rather than corrected -- and
+    the first symptom further on is a crawl that collects nothing."""
     params = result.get("params", {}) if isinstance(result, dict) else {}
     if params.get("status") != "SUCCESSFUL":
         sys.exit(f"setup: the registry refused {what}: "
                  f"{params.get('errmsg', result)}\n"
                  f"  Nothing after this point was written.")
-    print(f"  {what}: created")
+    print(f"  {what}: {verb}")
+
+
+# Set by `register-provider --update`. Every ensure_* below reads it.
+UPDATE = False
+
+
+def summarise(value):
+    """One field change on one line, because a whole action object printed in
+    full buries the single field that moved."""
+    text = value if isinstance(value, str) else json.dumps(value)
+    return text if len(text) <= 110 else text[:107] + "..."
+
+
+def changes(stored, row):
+    """Every field of row that differs from the stored record, as (name, old,
+    new). Actions are matched by action name rather than list position, so a
+    registry that hands them back in another order is not a change."""
+    found = []
+    for key, new in row.items():
+        old = without_os_fields(stored.get(key))
+        if old == new:
+            continue
+        if key == "actions" and isinstance(old, list) and isinstance(new, list):
+            found.extend(action_changes(old, new))
+        else:
+            found.append((key, old, new))
+    return found
+
+
+def action_changes(old, new):
+    stored = {a.get("action"): a for a in old if isinstance(a, dict)}
+    found = []
+    for action in new:
+        before = stored.pop(action.get("action"), None)
+        if before is None:
+            found.append((f"actions[{action.get('action')}]", None, action))
+            continue
+        found.extend((f"actions[{action.get('action')}].{field}",
+                      before.get(field), value)
+                     for field, value in action.items()
+                     if before.get(field) != value)
+    found.extend((f"actions[{name}]", "present", "removed") for name in stored)
+    return found
+
+
+def ensure_row(entity, filters, row, what):
+    """Create the row, or with --update correct the one already there."""
+    found = search(entity, filters)
+    if not found:
+        created(post(entity, row), what)
+        return
+    stored = found[0]
+    if not UPDATE:
+        print(f"  {what}: already present -- UPDATE=1 to correct it")
+        return
+    moved = changes(stored, row)
+    if not moved:
+        print(f"  {what}: already present, nothing to correct")
+        return
+    if stored.get("keys"):
+        sys.exit(f"setup: {what} carries signing keys, which --update will not\n"
+                 "  rewrite -- the key row would get a new osid and every\n"
+                 "  signature made with the old id would stop verifying.")
+    body = without_os_fields(stored)
+    body.update(row)
+    created(put(entity, stored["osid"], body), what, verb="updated")
+    for name, old, new in moved:
+        print(f"    {name}: {summarise(old)} -> {summarise(new)}")
 
 
 def ensure_binding(participant_id, capability, path, mapping_url,
                    method="GET"):
-    """Create a capability binding only when absent. The shape of actions,
+    """A capability binding answering select only. The shape of actions,
     mappings and method is docs/adr/0005-filling-the-registry.md."""
     binding = f"{participant_id}|{capability}"
-    if search("ProviderSchema", {"bindingKey": {"eq": binding}}):
-        print(f"  {binding}: already present")
-        return
-    result = post("ProviderSchema", {
+    ensure_row("ProviderSchema", {"bindingKey": {"eq": binding}}, {
         "bindingKey": binding, "participantId": participant_id,
         "capabilityCode": capability, "status": "active",
         "actions": [{"action": "select", "method": method, "path": path,
                      "mappings": mapping_url,
                      "timeoutMs": 15000, "retryMax": 2,
-                     "status": "active"}]})
-    created(result, binding)
+                     "status": "active"}]}, binding)
 
 
 def ensure_actions_binding(participant_id, capability, actions, base_url=None):
-    """Create a binding that answers more than select, only when absent.
-    base_url overrides the participant's, for a capability on another host."""
+    """A binding that answers more than select. base_url overrides the
+    participant's, for a capability served on another host."""
     binding = f"{participant_id}|{capability}"
-    if search("ProviderSchema", {"bindingKey": {"eq": binding}}):
-        print(f"  {binding}: already present")
-        return
     row = {"bindingKey": binding, "participantId": participant_id,
            "capabilityCode": capability, "status": "active",
            "actions": [{"action": action, "method": "POST", "path": path,
@@ -367,7 +473,7 @@ def ensure_actions_binding(participant_id, capability, actions, base_url=None):
                        for action, path, mappings, timeout, retries in actions]}
     if base_url:
         row["baseUrl"] = base_url
-    created(post("ProviderSchema", row), binding)
+    ensure_row("ProviderSchema", {"bindingKey": {"eq": binding}}, row, binding)
 
 
 def schema_url(capability, version):
@@ -379,25 +485,19 @@ def schema_url(capability, version):
 
 
 def ensure_capability_schema(capability, name, version):
-    """Create a capability's schema row only when absent. A wrong schemaUrl is
-    permanent for that code -- see docs/adr/0005-filling-the-registry.md."""
-    if search("SchemaRegistry", {"capabilityCode": {"eq": capability}}):
-        print(f"  {capability}: already present")
-        return
-    result = post("SchemaRegistry", {
+    """What a capability code MEANS. One row per code, shared by every provider
+    of it -- see docs/adr/0005-filling-the-registry.md."""
+    ensure_row("SchemaRegistry", {"capabilityCode": {"eq": capability}}, {
         "capabilityCode": capability, "name": name, "version": version,
         "schemaUrl": schema_url(capability, version),
-        "status": "active"})
-    created(result, capability)
+        "status": "active"}, capability)
 
 
 def ensure_participant(participant_id, payload):
-    """Create only when absent. Delete here is soft and keeps the unique index,
-    so a recreate would fail on a duplicate key rather than replacing."""
-    if search("Participant", {"participantId": {"eq": participant_id}}):
-        print(f"  {participant_id}: already present")
-        return
-    created(post("Participant", payload), participant_id)
+    """Delete here is soft and keeps the unique index, so a wrong row is
+    corrected in place -- a delete-and-recreate fails on a duplicate key."""
+    ensure_row("Participant", {"participantId": {"eq": participant_id}},
+               payload, participant_id)
 
 
 def register_network(identity):
@@ -446,12 +546,13 @@ def register_capabilities(provider, participant):
     """A provider answering more than one capability. Mappings come from this
     repo's published copies, so the folder name is all the entry carries."""
     mappings = env(f"{provider['prefix']}_MAPPING_BASE_URL").rstrip("/")
-    for capability, host_var, actions in provider["capabilities"]:
+    for capability, name, version, host_var, actions in provider["capabilities"]:
         ensure_actions_binding(
             participant, capability,
             [(action, path, f"{mappings}/{mapping}", timeout, retries)
              for action, path, mapping, timeout, retries in actions],
             base_url=env(host_var) if host_var else None)
+        ensure_capability_schema(capability, name, version)
         print(f"  binding key {participant}|{capability}")
 
 
@@ -503,33 +604,72 @@ def registered_providers():
     return sorted(found)
 
 
+PROVIDER_CONFIG = "__PROVIDER_CONFIG__"
+
+
+def fragment(name):
+    """(step id, step header, per-provider body) from a provider template.
+
+    A template with no __PROVIDER_CONFIG__ marker is all header: nothing else
+    shares its step, and its step id is the one its `- id:` line names. A
+    template that is all body names the step it JOINS on the marker line, since
+    it has no `- id:` of its own."""
+    text = (ADAPTERS / "providers" / f"{name}.yaml.tmpl").read_text()
+    head, marked, rest = text.partition(PROVIDER_CONFIG)
+    joins, body = rest.partition("\n")[0].strip(), rest.partition("\n")[2]
+    if not marked:
+        head, body = text, ""
+    if head.strip():
+        declared = [line.split(":", 1)[1].strip() for line in head.splitlines()
+                    if line.strip().startswith("- id:")]
+        if len(declared) != 1:
+            sys.exit(f"setup: {name}.yaml.tmpl must name exactly one `- id:` step")
+        return declared[0], head, body
+    if not joins:
+        sys.exit(f"setup: {name}.yaml.tmpl is all body and names no step to join")
+    return joins, "", body
+
+
 def provider_steps(providers):
-    """The providerSteps entries and their names, one fragment per provider --
-    the auth shape is the one thing the registry does not hold."""
+    """The providerSteps entries and their names, one entry per STEP."""
     blocks, ids = [], []
-    # Grouped by provider: one serving two capabilities is one step, because
-    # its two bindings refer to each other -- PM-KISAN's OTP is the case.
-    for name, bindings, participant in grouped(providers):
-        fragment = (ADAPTERS / "providers" / f"{name}.yaml.tmpl").read_text()
-        blocks.append(fragment.replace("__BINDING_KEY__", ",".join(bindings))
-                              .replace("__PARTICIPANT_ID__", participant))
-        ids.append(f"        - {step_id(bindings[0])}")
+    for step, members in grouped(providers):
+        bindings, head, bodies = [], "", []
+        for name, participant, member_bindings in members:
+            _, member_head, body = fragment(name)
+            bindings += member_bindings
+            if member_head:
+                if head:
+                    sys.exit(f"setup: two provider templates carry the {step} "
+                             f"step header; only one may")
+                head = member_head.replace("__PARTICIPANT_ID__", participant)
+            bodies.append(body.replace("__PARTICIPANT_ID__", participant))
+        if not head:
+            sys.exit(f"setup: no provider template carries the {step} step header")
+        blocks.append((head + "".join(bodies))
+                      .replace("__BINDING_KEY__", ",".join(bindings)))
+        ids.append(f"        - {step}")
     return "".join(blocks).rstrip("\n"), "\n".join(ids)
 
 
 def grouped(providers):
-    """(name, [binding, ...], participant) per provider, bindings in order."""
-    by_name = {}
+    """(step id, [(name, participant, [binding, ...]), ...]) per STEP.
+
+    By step and not by provider, because two providers can answer one
+    capability -- PM-KISAN and PMFBY both answer Grievance -- and the adapter
+    picks per-provider config by binding key from inside a step. Two steps with
+    the same id would leave one of them unreachable.
+
+    A provider's own several capabilities land in one step for a different
+    reason: its bindings refer to each other, as PM-KISAN's OTP does."""
+    by_step = {}
     for name, binding, participant in providers:
-        by_name.setdefault(name, (participant, []))[1].append(binding)
-    return [(name, bindings, participant)
-            for name, (participant, bindings) in by_name.items()]
+        members = by_step.setdefault(fragment(name)[0], {})
+        members.setdefault(name, (participant, []))[1].append(binding)
+    return [(step, [(name, participant, bindings)
+                    for name, (participant, bindings) in members.items()])
+            for step, members in by_step.items()]
 
-
-def step_id(binding_key):
-    """The plugin id a capability is served by: the capability code without its
-    namespace, so openagrinet:WeatherObservation is served by WeatherObservation."""
-    return binding_key.partition("|")[2].partition(":")[2]
 
 
 # ------------------------------------------------------------------ configs
@@ -598,10 +738,18 @@ def configure_adapter(identity):
                 # and reach the adapter through its environment.
                 ("__AGMARKNET_TOKEN_URL__", token_url("agmarknet", "AGMARKNET_TOKEN_URL", serving)),
                 ("__VISTAAR_TOKEN_URL__", token_url("vistaar", "VISTAAR_TOKEN_URL", serving)),
+                ("__PMFBY_TOKEN_URL__", token_url("pmfby", "PMFBY_TOKEN_URL", serving)),
                 # The crawler hands a crawled catalog to /publish, which signs it
                 # and forwards it on. /network/publish expects a signature the
                 # crawl does not carry, and in multi mode /publish is elsewhere.
                 ("__DISCOVERY_PUSH_URL__", publish_url(folder)),
+                # The same .env line discovery-service gets as
+                # VALIDATION_SPEC_URL. Rendered from one value rather than
+                # written into both, because the two validators disagreeing is
+                # invisible until a request that passed signing and routing
+                # dies at $.context -- which reads as an adapter bug and is
+                # not. That is what the array networkId 400 was.
+                ("__BECKN_SPEC_URL__", env("BECKN_SPEC_URL")),
                 # on/off in .env, true/false in the config.
                 ("__FEDERATION_ENABLED__",
                  "false" if env("FEDERATION_CRAWL_PEERS", "off").lower() == "off"
@@ -651,7 +799,57 @@ def need_identity():
     return identity
 
 
+def check_mappings():
+    """Fetch every registered mapping URL and report the ones that are gone.
+
+    A binding names its mapping by URL, and most of ours point at a BRANCH.
+    That makes a branch rename or delete a silent outage: the registry row is
+    still valid, the adapter still routes, and the call fails at mapping-fetch
+    time with NET_INTERNAL_ERROR -- which says nothing about a URL. Renaming
+    `mandi-migration-pilot` to `bv-migration` broke the mausamgram select
+    exactly this way, and nothing noticed until a request was tried by hand.
+
+    Read-only. It changes nothing, so it is safe to run after any branch work.
+    """
+    wait_for_registry()
+    rows = search("ProviderSchema", {})
+    if not rows:
+        sys.exit("setup: the registry holds no provider binding to check")
+    broken = 0
+    for row in sorted(rows, key=lambda r: r.get("bindingKey") or ""):
+        for action in row.get("actions") or []:
+            url = action.get("mappings")
+            if not url:
+                continue
+            label = f"{row.get('bindingKey')} {action.get('action')}"
+            try:
+                req = urllib.request.Request(url, method="GET")
+                with urllib.request.urlopen(req, timeout=20) as r:
+                    status = r.status
+            except urllib.error.HTTPError as e:
+                status = e.code
+            except Exception as e:
+                print(f"  {label}: UNREACHABLE -- {type(e).__name__}")
+                print(f"    {url}")
+                broken += 1
+                continue
+            if status == 200:
+                print(f"  {label}: ok")
+            else:
+                print(f"  {label}: HTTP {status}")
+                print(f"    {url}")
+                broken += 1
+    if broken:
+        sys.exit(f"setup: {broken} mapping URL(s) do not resolve.\n"
+                 "  A select against those bindings fails at mapping-fetch\n"
+                 "  time with NET_INTERNAL_ERROR, which does not name the URL.\n"
+                 "  Correct the *_MAPPING_URL in .env, then:\n"
+                 "    make register-provider PROVIDER=<name> UPDATE=1")
+    print("all mapping URLs resolve")
+
+
 def main(argv):
+    global UPDATE
     load_dotenv()
     command = argv[0] if argv else ""
 
@@ -662,12 +860,18 @@ def main(argv):
         require(network_requirements())
         register_network(load_or_generate_keys())
     elif command == "register-provider":
-        if len(argv) != 2 or argv[1] not in PROVIDERS:
+        flags = [a for a in argv[1:] if a.startswith("-")]
+        names = [a for a in argv[1:] if not a.startswith("-")]
+        if len(names) != 1 or names[0] not in PROVIDERS \
+                or set(flags) - {"--update"}:
             sys.exit("setup: register-provider takes one of "
-                     + ", ".join(PROVIDERS))
-        register_provider(argv[1])
+                     + ", ".join(PROVIDERS) + ", optionally with --update")
+        UPDATE = "--update" in flags
+        register_provider(names[0])
     elif command == "configure-adapter":
         configure_adapter(need_identity())
+    elif command == "check-mappings":
+        check_mappings()
     else:
         sys.exit(__doc__)
 

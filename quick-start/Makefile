@@ -16,7 +16,7 @@
 
 STACK := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))bin/stack.sh
 
-.PHONY: help up up-core down destroy keys certs register-network register-provider configure-adapter host-descriptor admit refresh suspend verify reverse-proxy observability pull restart restart-edge ps logs
+.PHONY: help up up-core down destroy keys certs register-network register-provider check-mappings configure-adapter host-descriptor admit refresh suspend verify reverse-proxy observability pull restart restart-edge ps logs
 
 # Default target: running a bare `make` in a directory that can delete a
 # Postgres volume should print the menu, not pick something from it.
@@ -51,7 +51,20 @@ certs:             ; @$(STACK) certs
 register-network:  ; @$(STACK) register-network
 
 # PROVIDER is one of mausamgram, agmarknet, vistaar, pocra, pmkisan.
+#
+# Creates only, so a re-run is a no-op. UPDATE=1 instead PUTs the rows back from
+# .env and prints every field that moved -- which is how a wrong mapping URL,
+# path or base URL is corrected:
+#
+#     make register-provider PROVIDER=mausamgram UPDATE=1
 register-provider: ; @$(STACK) register-provider
+
+# A binding names its mapping by URL, and most of ours point at a branch rather
+# than a tag. Renaming or deleting that branch leaves the registry row valid and
+# the routing intact, and the call fails at mapping-fetch time with
+# NET_INTERNAL_ERROR -- which does not name the URL. Run this after any branch
+# work. It changes nothing.
+check-mappings:    ; @$(STACK) check-mappings
 
 # Renders from the registry's bindings, then starts the adapters -- together,
 # because a rendered config nothing picked up did nothing.

@@ -215,6 +215,27 @@ photon:
     maxEntries: 10000
 
 # ---------------------------------------------------------------------------
+# Session store for form flows (ADR-0022)
+#
+# DSS_REDIS_URL, e.g. redis://:<password>@redis.<ns>.svc.cluster.local:6379/0.
+# It carries the password, so it is a Secret reference, never a plain value.
+# Not deployed by this chart (see the `redis` chart). Unset (default), there
+# is no store: a form turn's session lasts that turn only, so a form that
+# waits for an OTP cannot finish. Every replica must use the same Redis: the
+# per-session lock lives there.
+#
+# optional: true marks the reference optional, so a missing Secret (or key)
+# leaves DSS_REDIS_URL unset - the same as no store - instead of keeping the
+# pod from starting. Use it when the Secret may lag the deploy (pushed to
+# OpenBao separately); the cost is that a forgotten Secret is silent.
+# ---------------------------------------------------------------------------
+redis:
+  urlSecret:
+    name: ""
+    key: url
+    optional: false
+
+# ---------------------------------------------------------------------------
 # Scheme catalog (ADR-0021)
 #
 # The CSV the intent model is shown. The default is the catalog the image

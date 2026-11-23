@@ -144,7 +144,30 @@ request: |
     $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
     {
       "lat": $ra.location.geo.coordinates[1],
-      "lon": $ra.location.geo.coordinates[0]
+      "lon": $ra.location.geo.coordinates[0],
+      /* Required, despite the provider's own OpenAPI marking it optional.
+         get-daily answers 500 Internal Server Error for every request that
+         omits it. Measured on 2026-11-19 by interleaving the two forms against
+         the live endpoint, so the two samples saw the same service weather:
+
+             without date   0 / 20 requests returned 200
+             with date      5 / 20 requests returned 200
+
+         Zero out of twenty is not the provider being flaky. The remaining
+         failures in the second column are -- see the note on availability in
+         migration-plan/weather/plan.md.
+
+         Today in IST, which is the date the forecast is issued for. 19800000ms
+         is +05:30; the provider is an Indian service and has no other timezone.
+         $fromMillis with no picture string yields ISO 8601, and the date half
+         is everything before the T -- spelled this way rather than with a
+         picture because it relies on less of the JSONata implementation.
+
+         NOT YET PROVEN TO YIELD A FORECAST. Every 200 collected while writing
+         this returned fcstday1..5 as empty objects and lat_r/lon_r as null, so
+         this is confirmed to fix the 500 and is unconfirmed to fix anything
+         beyond it. */
+      "date": $substringBefore($fromMillis($millis() + 19800000), "T")
     }
   )
 

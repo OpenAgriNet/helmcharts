@@ -88,3 +88,17 @@ config/*/
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Local agent-tooling state. Scratch databases and session logs written by
+# editor-side tools; machine-specific and of no use to anyone else.
+.claude/
+.claude-flow/
+.swarm/
+ruvector.db
+
+# Personal Postman environment exports. These carry a registry password and
+# point at whichever server the person was testing against, so they are not
+# shareable. Only direct children of api-collection/ -- the shared collections
+# live at the same level and the local environments under
+# api-collection/environments/ are tracked on purpose.
+/api-collection/*environment*.json

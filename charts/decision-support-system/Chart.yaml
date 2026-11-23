@@ -3,10 +3,10 @@ name: decision-support-system
 description: >-
   The DSS reasoning runtime: interprets a farmer's turn (intent, moderation,
   provider discovery, planning, composition) and streams back a curated
-  answer. Stateless - state lives in the LLM providers it calls and the OAN
-  network it discovers against, not in this service.
+  answer. No state in the pod - it lives in the LLM providers it calls, the
+  OAN network it discovers against and, for form flows, an external Redis.
 type: application
-version: 0.2.0
+version: 0.3.0
 appVersion: "v0.1.0"
 maintainers:
   - name: OpenAgriNet Engineering Team

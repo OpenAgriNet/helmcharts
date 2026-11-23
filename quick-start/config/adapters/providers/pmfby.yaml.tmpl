@@ -1,0 +1,16 @@
+__PROVIDER_CONFIG__ Grievance
+              # No OTP and no envelope, but not credential-free: the call
+              # carries a token exchanged at PMFBY's own login, held until the
+              # login reply's validTo and sent bare in Authorization. Ported
+              # from charts/adapter-service/config/single-adapter/
+              # network-adapter-config.yaml, which is the deployed source.
+              __PARTICIPANT_ID__:
+                authScheme: tokenHeader
+                tokenUrl: "__PMFBY_TOKEN_URL__"
+                tokenUserField: appAccessUID
+                tokenUserEnv: PMFBY_ACCESS_UID
+                tokenSecretField: appAccessPWD
+                tokenSecretEnv: PMFBY_ACCESS_PWD
+                tokenResponseField: responseDynamic.token.Token
+                tokenExpiryField: responseDynamic.token.validTo
+                headerName: Authorization

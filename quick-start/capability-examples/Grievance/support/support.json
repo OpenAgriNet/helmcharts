@@ -1,0 +1,32 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "support",
+    "version": "2.0.0",
+    "networkId": "oan.dev",
+    "senderId": "oan.dev",
+    "receiverId": "oan.dev",
+    "transactionId": "00000000-0000-4000-8000-000000000001",
+    "messageId": "00000000-0000-4000-8000-000000000002",
+    "timestamp": "2026-11-20T06:30:00.000Z"
+  },
+  "message": {
+    "support": {
+      "channels": [
+        {
+          "@context": "https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld",
+          "@type": "openagrinet:Grievance",
+          "informationMode": "OnDemand",
+          "scheme": { "code": "PM-KISAN" },
+          "enrolmentId": "UP12345678A",
+          "provider": { "id": "pmkisan", "descriptor": { "name": "PM-KISAN" } },
+          "grievance": {
+            "category": { "code": "G003" },
+            "description": "Third instalment for 2026 has not been credited."
+          },
+          "challenge": { "response": { "method": "OTP", "value": "1234" } }
+        }
+      ]
+    }
+  }
+}

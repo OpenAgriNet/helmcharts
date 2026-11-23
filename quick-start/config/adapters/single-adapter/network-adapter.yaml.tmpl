@@ -49,31 +49,12 @@ plugins:
       retry_wait_max: 500ms
       maxResponseBytes: 1048576
 
-  # The crawler: a background pass, not something a request reaches.
-  # No dbDsn -- nothing here keeps a record between runs.
-  crawler:
-    id: catalogcrawler
-    config:
-      # The /publish mount, which signs a crawled catalog and forwards it on.
-      # Not /network/publish: that one expects a signature the crawl has none of.
-      discoveryPushUrl: "__DISCOVERY_PUSH_URL__"
-      participantId: "__NETWORK_SUBSCRIBER_ID__"
-
-      # Off means this network never crawls. It still ANSWERS another network's
-      # crawl, which is the network module's job and unaffected by this.
-      federationEnabled: "__FEDERATION_ENABLED__"
-      signingPrivateKey: "__NETWORK_SIGNING_PRIVATE__"
-      keyId: "__NETWORK_KEY_ID__"
-      # How often every admitted network is asked.
-      federationRefreshSeconds: "__FEDERATION_REFRESH_SECONDS__"
-      # How many catalogs one call asks for. Discovery's own default is 20, so
-      # without this a network sharing more is only partly collected and
-      # nothing says so.
-      federationPageSize: "__FEDERATION_PAGE_SIZE__"
-      # What breadth of another network's catalogue to ask for. Required in
-      # practice: discovery refuses an intent that narrows nothing, so leaving
-      # it unset mirrors zero catalogs with no error anywhere.
-      federationIntent: '__FEDERATION_INTENT__'
+  # No crawler block on purpose.
+  # The crawler is what pulls catalogs in on a schedule; this pilot publishes
+  # them by hand to /publish instead. The plugin also requires a dbDsn for its
+  # queue/cursor store (catalogcrawler.go), which the old comment here denied,
+  # and the adapter died on boot because of it. Leaving the block out makes
+  # initCrawler skip cleanly (cmd/adapter/main.go:157).
 
 modules:
   # consumer-adapter: our own app, never another network's. Checks no
@@ -119,7 +100,7 @@ modules:
           id: schemav2validator
           config:
             type: url
-            location: https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/tags/core-v2.1.0-lts/api/v2.0.0/beckn.yaml
+            location: __BECKN_SPEC_URL__
             cacheTTL: '3600'
             extendedSchema_enabled: "false"
             extendedSchema_cacheTTL: '86400'
@@ -180,7 +161,7 @@ modules:
           id: schemav2validator
           config:
             type: url
-            location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/tags/core-v2.1.0-lts/api/v2.0.0/beckn.yaml"
+            location: "__BECKN_SPEC_URL__"
             cacheTTL: "3600"
             extendedSchema_enabled: "false"
             extendedSchema_cacheTTL: "86400"
@@ -239,7 +220,7 @@ modules:
           id: schemav2validator
           config:
             type: url
-            location: https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/tags/core-v2.1.0-lts/api/v2.0.0/beckn.yaml
+            location: __BECKN_SPEC_URL__
             cacheTTL: '3600'
             extendedSchema_enabled: "true"
             extendedSchema_allowedDomains: raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io
@@ -306,7 +287,7 @@ __PROVIDER_STEP_IDS__
           id: schemav2validator
           config:
             type: url
-            location: https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/tags/core-v2.1.0-lts/api/v2.0.0/beckn.yaml
+            location: __BECKN_SPEC_URL__
             cacheTTL: '3600'
             extendedSchema_enabled: "true"
             extendedSchema_allowedDomains: raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io
