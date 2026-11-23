@@ -1,0 +1,21 @@
+{{- /* The gateway's config file, only for what has no environment variable.
+       Tracing is one: OTEL_EXPORTER and OTEL_ENDPOINT say where spans go, but
+       LiteLLM exports nothing until `otel` is one of its callbacks, and that
+       is set here or not at all. The model list is not in it -- that lives in
+       the database (STORE_MODEL_IN_DB), applied by the reconcile Job. */}}
+{{- if .Values.otel.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "litellm.fullname" . }}-config
+  labels:
+    {{- include "litellm.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  config.yaml: |
+    litellm_settings:
+      callbacks: ["otel"]
+{{- end }}
