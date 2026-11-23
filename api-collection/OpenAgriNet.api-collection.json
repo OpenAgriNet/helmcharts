@@ -79,6 +79,36 @@
       "key": "network-adapter-publish",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "aif-transactionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "aif-schema-base",
+      "value": "https://openagrinet.github.io/network-specs/schema",
+      "type": "string"
+    },
+    {
+      "key": "aif-networkId",
+      "value": "oan.dev",
+      "type": "string"
+    },
+    {
+      "key": "aif-beneficiary-id",
+      "value": "101",
+      "type": "string"
+    },
+    {
+      "key": "aif-loan-number",
+      "value": "201",
+      "type": "string"
+    },
+    {
+      "key": "aif-otp",
+      "value": "123456",
+      "type": "string"
     }
   ],
   "item": [
@@ -2177,6 +2207,557 @@
                   "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
                 ]
               }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "AIF - loan and grievance status",
+      "description": "Two capabilities on one host and one verification. Run Journey top to bottom: request 1 sets aif-transactionId and 2 to 4 reuse it, because that is what the adapter keys the farmer's session on. Out of order, or with a fresh id, status is refused.\n\nSet aif-schema-base to whichever host serves the v0.2 packs. openagrinet.github.io serves v0.1 only today, so against a local stack this is http://spec-files/schema and that host is listed in the adapter's EXTRA_SCHEMA_DOMAINS. The adapter fetches the pack, not Postman, so the name only has to resolve inside the compose network.\n\naif-networkId is oan.dev rather than the net-a.oan.dev the other folders use: AIF is served by the single adapter.\n\nThe defaults are the mock's: beneficiary 101, loan 201, OTP 123456. Against the real service the OTP arrives by SMS and the other two are the farmer's. See migration-plan/aif/quick-try.md.",
+      "item": [
+        {
+          "name": "Registry",
+          "item": [
+            {
+              "name": "Read - participant",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+                      "pm.test('an upstream', () => pm.expect(pm.response.json().data[0].type).to.eql('upstream'));",
+                      "// The base URL is registry data, so swapping the mock for the real",
+                      "// service is this field and nothing in the adapter config.",
+                      "console.log('AIF baseUrl:', pm.response.json().data[0].baseUrl);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"filters\": {\n    \"participantId\": {\n      \"eq\": \"aif\"\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{registry-host}}/api/v1/Participant/search",
+                  "host": [
+                    "{{registry-host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "Participant",
+                    "search"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Read - SchemeApplication binding",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+                      "pm.test('init and status', () => pm.expect(pm.response.json().data[0].actions.map(a => a.action)).to.have.members(['init', 'status']));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"filters\": {\n    \"bindingKey\": {\n      \"eq\": \"aif|openagrinet:SchemeApplication\"\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{registry-host}}/api/v1/ProviderSchema/search",
+                  "host": [
+                    "{{registry-host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "ProviderSchema",
+                    "search"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Read - Grievance binding",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+                      "pm.test('status only -- AIF publishes no filing call', () => pm.expect(pm.response.json().data[0].actions.map(a => a.action)).to.have.members(['status']));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"filters\": {\n    \"bindingKey\": {\n      \"eq\": \"aif|openagrinet:Grievance\"\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{registry-host}}/api/v1/ProviderSchema/search",
+                  "host": [
+                    "{{registry-host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "ProviderSchema",
+                    "search"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Journey",
+          "item": [
+            {
+              "name": "1. Init - send the OTP",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// One transaction for the whole journey. The adapter keys the",
+                      "// session on it, so requests 2 to 4 must reuse what this sets.",
+                      "pm.collectionVariables.set('aif-transactionId', pm.variables.replaceIn('{{$guid}}'));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "const c = pm.response.json().message.contract.commitments[0];",
+                      "pm.test('DRAFT -- nothing is verified yet', () => pm.expect(c.status.descriptor.code).to.eql('DRAFT'));",
+                      "pm.test('OTP shape: length 6, NUMERIC', () => {",
+                      "  const i = c.commitmentAttributes.challenge.issued;",
+                      "  pm.expect(i.method).to.eql('OTP');",
+                      "  pm.expect(i.channel).to.eql('SMS');",
+                      "  pm.expect(i.length).to.eql(6);",
+                      "  pm.expect(i.valueType).to.eql('NUMERIC');",
+                      "});",
+                      "// AIF masks it; the agent reads it back so a farmer with two phones",
+                      "// knows which one to check.",
+                      "pm.test('the masked mobile comes back', () => pm.expect(c.commitmentAttributes.challenge.issued.sentTo).to.match(/^X{6}/));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{aif-networkId}}\",\n    \"senderId\": \"{{aif-networkId}}\",\n    \"receiverId\": \"{{aif-networkId}}\",\n    \"transactionId\": \"{{aif-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:aif:loan-status\",\n            \"provider\": {\n              \"id\": \"aif\",\n              \"descriptor\": {\n                \"name\": \"Agriculture Infrastructure Fund\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:aif:loan-status\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:aif:loan-status\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{aif-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"AIF\"\n            },\n            \"beneficiaryId\": \"{{aif-beneficiary-id}}\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/init",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "init"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Init - answer the OTP",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "const c = pm.response.json().message.contract.commitments[0];",
+                      "pm.test('ACTIVE -- the session is bought', () => pm.expect(c.status.descriptor.code).to.eql('ACTIVE'));",
+                      "pm.test('AIF names the applicant', () => pm.expect(c.commitmentAttributes.applicant.name).to.be.a('string'));",
+                      "// The token is the point of this request and must not be in the answer:",
+                      "// it lives in Redis against the transaction. A signed callback carrying",
+                      "// it would hand the farmer's session to whoever reads the log.",
+                      "pm.test('no token on the wire', () => pm.expect(JSON.stringify(pm.response.json())).to.not.match(/[Tt]oken/));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{aif-networkId}}\",\n    \"senderId\": \"{{aif-networkId}}\",\n    \"receiverId\": \"{{aif-networkId}}\",\n    \"transactionId\": \"{{aif-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:aif:loan-status\",\n            \"provider\": {\n              \"id\": \"aif\",\n              \"descriptor\": {\n                \"name\": \"Agriculture Infrastructure Fund\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:aif:loan-status\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:aif:loan-status\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{aif-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"AIF\"\n            },\n            \"beneficiaryId\": \"{{aif-beneficiary-id}}\",\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"{{aif-otp}}\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/init",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "init"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "3. Status - loan application",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "const a = pm.response.json().message.contract.commitments[0].commitmentAttributes;",
+                      "pm.test('a status came back', () => pm.expect(a.application.status.name).to.be.a('string'));",
+                      "pm.test('the answer names the application asked about', () => pm.expect(String(a.loanApplicationNumber)).to.eql(pm.collectionVariables.get('aif-loan-number')));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{aif-networkId}}\",\n    \"senderId\": \"{{aif-networkId}}\",\n    \"receiverId\": \"{{aif-networkId}}\",\n    \"transactionId\": \"{{aif-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:aif:loan-status\",\n            \"provider\": {\n              \"id\": \"aif\",\n              \"descriptor\": {\n                \"name\": \"Agriculture Infrastructure Fund\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:aif:loan-status\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:aif:loan-status\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{aif-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"AIF\"\n            },\n            \"beneficiaryId\": \"{{aif-beneficiary-id}}\",\n            \"loanApplicationNumber\": \"{{aif-loan-number}}\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/status",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "status"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "4. Status - support tickets",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "const a = pm.response.json().message.contract.commitments[0].commitmentAttributes;",
+                      "// Always an array, empty included. AIF checked and found nothing is an",
+                      "// answer a farmer can be given; a missing field is one they cannot.",
+                      "pm.test('cases is an array', () => pm.expect(a.cases).to.be.an('array'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{aif-networkId}}\",\n    \"senderId\": \"{{aif-networkId}}\",\n    \"receiverId\": \"{{aif-networkId}}\",\n    \"transactionId\": \"{{aif-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:aif:tickets\",\n            \"provider\": {\n              \"id\": \"aif\",\n              \"descriptor\": {\n                \"name\": \"Agriculture Infrastructure Fund\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:aif:tickets\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:aif:tickets\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{aif-schema-base}}/Grievance/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"AIF\"\n            },\n            \"beneficiaryId\": \"{{aif-beneficiary-id}}\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/status",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "status"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Refusals",
+          "item": [
+            {
+              "name": "Init - a beneficiary AIF does not hold",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                      "const e = pm.response.json().message.error;",
+                      "pm.test('AIF answered, so BIZ_', () => pm.expect(e.code).to.eql('BIZ_GENERIC_ERROR'));",
+                      "pm.test('readable to a farmer', () => pm.expect(e.message).to.include('no beneficiary'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{aif-networkId}}\",\n    \"senderId\": \"{{aif-networkId}}\",\n    \"receiverId\": \"{{aif-networkId}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:aif:loan-status\",\n            \"provider\": {\n              \"id\": \"aif\",\n              \"descriptor\": {\n                \"name\": \"Agriculture Infrastructure Fund\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:aif:loan-status\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:aif:loan-status\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{aif-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"AIF\"\n            },\n            \"beneficiaryId\": \"999999\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/init",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "init"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Init - the wrong OTP",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                      "const e = pm.response.json().message.error;",
+                      "pm.test('AIF answered, so BIZ_', () => pm.expect(e.code).to.eql('BIZ_GENERIC_ERROR'));",
+                      "pm.test('says which field', () => pm.expect(e.details.path).to.include('challenge.response.value'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{aif-networkId}}\",\n    \"senderId\": \"{{aif-networkId}}\",\n    \"receiverId\": \"{{aif-networkId}}\",\n    \"transactionId\": \"{{aif-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:aif:loan-status\",\n            \"provider\": {\n              \"id\": \"aif\",\n              \"descriptor\": {\n                \"name\": \"Agriculture Infrastructure Fund\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:aif:loan-status\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:aif:loan-status\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{aif-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"AIF\"\n            },\n            \"beneficiaryId\": \"{{aif-beneficiary-id}}\",\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"000000\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/init",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "init"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Status - with no verified session",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                      "const e = pm.response.json().message.error;",
+                      "// A fresh transaction has no session, so this never reaches AIF.",
+                      "pm.test('refused before the provider is called', () => pm.expect(e.message).to.include('verified session'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{aif-networkId}}\",\n    \"senderId\": \"{{aif-networkId}}\",\n    \"receiverId\": \"{{aif-networkId}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:aif:loan-status\",\n            \"provider\": {\n              \"id\": \"aif\",\n              \"descriptor\": {\n                \"name\": \"Agriculture Infrastructure Fund\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:aif:loan-status\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:aif:loan-status\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{aif-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"AIF\"\n            },\n            \"beneficiaryId\": \"{{aif-beneficiary-id}}\",\n            \"loanApplicationNumber\": \"{{aif-loan-number}}\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/status",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "status"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Status - about a different beneficiary",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                      "const e = pm.response.json().message.error;",
+                      "// The whole point of binding the session to a beneficiary: holding a",
+                      "// transaction id must not be enough to read someone else's loan.",
+                      "pm.test('refused', () => pm.expect(e.message).to.match(/different beneficiary|verified session/));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{aif-networkId}}\",\n    \"senderId\": \"{{aif-networkId}}\",\n    \"receiverId\": \"{{aif-networkId}}\",\n    \"transactionId\": \"{{aif-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:aif:loan-status\",\n            \"provider\": {\n              \"id\": \"aif\",\n              \"descriptor\": {\n                \"name\": \"Agriculture Infrastructure Fund\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:aif:loan-status\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:aif:loan-status\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{aif-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"AIF\"\n            },\n            \"beneficiaryId\": \"109\",\n            \"loanApplicationNumber\": \"{{aif-loan-number}}\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/status",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "status"
+                  ]
+                }
+              },
+              "response": []
             }
           ]
         }

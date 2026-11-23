@@ -70,13 +70,19 @@ response: |
                   }
                 : {
                     "challenge": {
-                      "issued": {
-                        "method":    "OTP",
-                        "channel":   "SMS",
-                        "length":    6,
-                        "valueType": "NUMERIC",
-                        "expiresAt": $fromMillis($millis() + $otpWindowMillis)
-                      }
+                      "issued": $merge([
+                        {
+                          "method":    "OTP",
+                          "channel":   "SMS",
+                          "length":    6,
+                          "valueType": "NUMERIC",
+                          "expiresAt": $fromMillis($millis() + $otpWindowMillis)
+                        },
+                        /* AIF masks it already (XXXXXX1134). The farmer is told
+                           which phone to look at, and no full number travels. */
+                        $exists(response.MobileNumber)
+                          ? { "sentTo": response.MobileNumber } : {}
+                      ])
                     }
                   }
             ])
