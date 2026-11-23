@@ -695,6 +695,159 @@
       ]
     },
     {
+      "name": "AgricultureResource Capability - SATHI",
+      "description": "SATHI certified seed stock. One resource per district carries the SATHI crop list and the district's LGD codes; select asks for one crop in one district. This sample publishes Nashik only, with a rough rectangle for its boundary, and replaces any cat-sathi already published. Select fetches live stock, so it needs egress and SATHI_API_KEY.",
+      "item": [
+        {
+          "name": "Publish - On-demand",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                  "// status code alone does not tell you the call worked.",
+                  "pm.test('not a NACK', () => {",
+                  "    const b = pm.response.json();",
+                  "    const err = (b.error) || (b.message && b.message.error);",
+                  "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{network-adapter-publish}}",
+              "host": [
+                "{{network-adapter-publish}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context\": {\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\"\n  },\n  \"message\": {\n    \"catalogs\": [\n      {\n        \"id\": \"cat-sathi\",\n        \"bppId\": \"{{bppId}}\",\n        \"bppUri\": \"{{bppUri}}\",\n        \"descriptor\": {\n          \"code\": \"SATHI_SEED_STOCK\",\n          \"name\": \"SATHI certified seed availability\"\n        },\n        \"provider\": {\n          \"id\": \"sathi\",\n          \"descriptor\": {\n            \"code\": \"SATHI\",\n            \"name\": \"SATHI (Seed Authentication, Traceability and Holistic Inventory)\"\n          }\n        },\n        \"isActive\": true,\n        \"resources\": [\n          {\n            \"id\": \"res-sathi-stock:27:487\",\n            \"descriptor\": {\n              \"code\": \"sathi-stock\",\n              \"name\": \"SATHI certified seed stock - Nashik, Maharashtra\"\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-features/schema/AgricultureResource/v0.2/context.jsonld\",\n              \"@type\": \"openagrinet:AgricultureResource\",\n              \"informationMode\": \"OnDemand\",\n              \"subjectCategories\": [\n                \"Crop\"\n              ],\n              \"agricultureSubjects\": [\n                {\n                  \"descriptor\": {\n                    \"code\": \"A0102\",\n                    \"name\": \"PADDY (DHAN)\"\n                  }\n                },\n                {\n                  \"descriptor\": {\n                    \"code\": \"A0104\",\n                    \"name\": \"WHEAT\"\n                  }\n                },\n                {\n                  \"descriptor\": {\n                    \"code\": \"A0101\",\n                    \"name\": \"BARLEY\"\n                  }\n                }\n              ],\n              \"coverageAreas\": [\n                {\n                  \"codeScheme\": \"LGD\",\n                  \"areaLevel\": \"State\",\n                  \"areaCode\": \"27\",\n                  \"areaName\": \"Maharashtra\"\n                },\n                {\n                  \"codeScheme\": \"LGD\",\n                  \"areaLevel\": \"District\",\n                  \"areaCode\": \"487\",\n                  \"areaName\": \"Nashik\"\n                },\n                {\n                  \"type\": \"Polygon\",\n                  \"coordinates\": [\n                    [\n                      [\n                        73.6,\n                        19.8\n                      ],\n                      [\n                        74.1,\n                        19.8\n                      ],\n                      [\n                        74.1,\n                        20.2\n                      ],\n                      [\n                        73.6,\n                        20.2\n                      ],\n                      [\n                        73.6,\n                        19.8\n                      ]\n                    ]\n                  ]\n                }\n              ],\n              \"actions\": [\n                {\n                  \"action\": \"select\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/sathi/stock/v0.2/openapi.yaml#/paths/~1inv-apis~1stock~1getSeedAvailability/post\"\n                }\n              ]\n            }\n          }\n        ]\n      }\n    ],\n    \"publishDirectives\": [\n      {\n        \"catalogId\": \"cat-sathi\",\n        \"catalogType\": \"REGULAR\"\n      }\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Nashik only, three crops, rectangle boundary."
+          }
+        },
+        {
+          "name": "Discover - On-demand",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                  "// status code alone does not tell you the call worked.",
+                  "pm.test('not a NACK', () => {",
+                  "    const b = pm.response.json();",
+                  "    const err = (b.error) || (b.message && b.message.error);",
+                  "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{network-adapter-host}}/discover",
+              "host": [
+                "{{network-adapter-host}}"
+              ],
+              "path": [
+                "discover"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"schemaContext\": [\n      \"https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-features/schema/AgricultureResource/v0.2/context.jsonld#openagrinet:AgricultureResource\"\n    ],\n    \"networkId\": \"*\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.resourceAttributes.actions[*].operationRef == \\\"https://openagrinet.github.io/network-specs/api/external/sathi/stock/v0.2/openapi.yaml#/paths/~1inv-apis~1stock~1getSeedAvailability/post\\\")\"\n      },\n      \"spatial\": [\n        {\n          \"op\": \"S_INTERSECTS\",\n          \"targets\": \"$.catalogs[*].resources[*].resourceAttributes.coverageAreas[*]\",\n          \"geometry\": {\n            \"type\": \"Point\",\n            \"coordinates\": [\n              73.7898,\n              19.9975\n            ]\n          },\n          \"quantifier\": \"ANY\"\n        }\n      ]\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "networkId is \"*\": the catalog is public. Matches SATHI by operationRef and the point by S_INTERSECTS."
+          }
+        },
+        {
+          "name": "Select",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                  "// status code alone does not tell you the call worked.",
+                  "pm.test('not a NACK', () => {",
+                  "    const b = pm.response.json();",
+                  "    const err = (b.error) || (b.message && b.message.error);",
+                  "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{network-adapter-host}}/select",
+              "host": [
+                "{{network-adapter-host}}"
+              ],
+              "path": [
+                "select"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"select\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"schemaContext\": [\n      \"https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-features/schema/AgricultureResource/v0.2/context.jsonld#openagrinet:AgricultureResource\"\n    ],\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"status\": {\n        \"code\": \"ACTIVE\",\n        \"name\": \"active\"\n      },\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\",\n              \"name\": \"active\"\n            }\n          },\n          \"resources\": [\n            {\n              \"id\": \"res-sathi-stock:27:487\",\n              \"quantity\": {\n                \"count\": 1\n              },\n              \"resourceAttributes\": {\n                \"@context\": \"https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-features/schema/AgricultureResource/v0.2/context.jsonld\",\n                \"@type\": \"openagrinet:AgricultureResource\",\n                \"informationMode\": \"OnDemand\",\n                \"subjectCategories\": [\n                  \"Crop\"\n                ],\n                \"actions\": [\n                  {\n                    \"action\": \"select\",\n                    \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/sathi/stock/v0.2/openapi.yaml#/paths/~1inv-apis~1stock~1getSeedAvailability/post\"\n                  }\n                ],\n                \"agricultureSubjects\": [\n                  {\n                    \"descriptor\": {\n                      \"code\": \"A0102\",\n                      \"name\": \"PADDY (DHAN)\"\n                    }\n                  }\n                ],\n                \"coverageAreas\": [\n                  {\n                    \"codeScheme\": \"LGD\",\n                    \"areaLevel\": \"State\",\n                    \"areaCode\": \"27\"\n                  },\n                  {\n                    \"codeScheme\": \"LGD\",\n                    \"areaLevel\": \"District\",\n                    \"areaCode\": \"487\"\n                  }\n                ]\n              }\n            }\n          ],\n          \"offer\": {\n            \"id\": \"offer:sathi-stock\",\n            \"resourceIds\": [\n              \"res-sathi-stock:27:487\"\n            ],\n            \"provider\": {\n              \"id\": \"sathi\",\n              \"descriptor\": {\n                \"code\": \"SATHI\",\n                \"name\": \"SATHI (Seed Authentication, Traceability and Holistic Inventory)\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "One crop in agricultureSubjects and the LGD State and District codes in coverageAreas. The adapter adds seedClass via the mapping and apiKey via authScheme body."
+          }
+        }
+      ]
+    },
+    {
       "name": "Grievance",
       "item": [
         {
