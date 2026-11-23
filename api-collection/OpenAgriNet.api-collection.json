@@ -109,6 +109,36 @@
       "key": "aif-otp",
       "value": "123456",
       "type": "string"
+    },
+    {
+      "key": "pmfby-transactionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pmfby-farmer-id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pmfby-mobile",
+      "value": "0000000000",
+      "type": "string"
+    },
+    {
+      "key": "pmfby-otp",
+      "value": "123456",
+      "type": "string"
+    },
+    {
+      "key": "pmfby-season",
+      "value": "Kharif",
+      "type": "string"
+    },
+    {
+      "key": "pmfby-year",
+      "value": "2026",
+      "type": "string"
     }
   ],
   "item": [
@@ -2887,6 +2917,657 @@
                     "status"
                   ]
                 }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "PMFBY - policy and claim status",
+      "description": "PMFBY insurance on SchemeApplication v0.2. One capability, four actions on one binding: init sends the OTP, confirm answers it and opens the session, status reads policies and select reads crop-loss claims.\n\nRun Journey top to bottom: request 1 sets pmfby-transactionId and 2 to 4 reuse it, because that is what the adapter keys the farmer's session on. Out of order, or with a fresh id, status and select are refused without PMFBY being called.\n\nThe payload @context stays on openagrinet.github.io. v0.2 is not served there yet, so the adapter rewrites the fetch address through extendedSchema_contextRewrite -- the published address is the pack's identity and a branch URL in a stored catalog goes dead when the branch does.\n\nRegistry, Publish and Discover run today. Journey and Refusals do not: there is no insurance base URL in the registry and no mock, so they document the intended exchange rather than a verified one. See bharat-oan-api/migration-plan/pmfby/scheme-application.md for the three open blockers, all of which are one call to PMFBY.",
+      "item": [
+        {
+          "name": "Registry",
+          "item": [
+            {
+              "name": "Read - participant",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+                      "// The base URL is registry data, so swapping a placeholder host for the",
+                      "// real insurance host is this field and nothing in the adapter config.",
+                      "console.log('PMFBY baseUrl:', pm.response.json().data[0].baseUrl);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{registry-host}}/api/v1/Participant/search",
+                  "host": [
+                    "{{registry-host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "Participant",
+                    "search"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"filters\": {\n    \"participantId\": {\n      \"eq\": \"pmfby\"\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Read - SchemeApplication binding",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+                      "// Four actions on one binding: a binding is a map keyed by action name,",
+                      "// so a second entry for the same name would overwrite the first.",
+                      "pm.test('init, confirm, status and select', () => pm.expect(pm.response.json().data[0].actions.map(a => a.action)).to.have.members(['init', 'confirm', 'status', 'select']));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{registry-host}}/api/v1/ProviderSchema/search",
+                  "host": [
+                    "{{registry-host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "ProviderSchema",
+                    "search"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"filters\": {\n    \"bindingKey\": {\n      \"eq\": \"pmfby|openagrinet:SchemeApplication\"\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Read - Grievance binding",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+                      "// The grievance binding is unchanged. Both PMFBY bindings sit in one",
+                      "// provider step, which is why neither needed a new one.",
+                      "pm.test('support and status', () => pm.expect(pm.response.json().data[0].actions.map(a => a.action)).to.have.members(['support', 'status']));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{registry-host}}/api/v1/ProviderSchema/search",
+                  "host": [
+                    "{{registry-host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "ProviderSchema",
+                    "search"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"filters\": {\n    \"bindingKey\": {\n      \"eq\": \"pmfby|openagrinet:Grievance\"\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Publish",
+          "item": [
+            {
+              "name": "Publish - On-demand",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "pm.test('the resource is accepted', () => {",
+                      "    const r = pm.response.json().message.results[0];",
+                      "    pm.expect(r.status).to.eql('ACCEPTED');",
+                      "    pm.expect(r.stats.itemCount).to.eql(1);",
+                      "    pm.expect(r.stats.providerCount).to.eql(1);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{network-adapter-publish}}",
+                  "host": [
+                    "{{network-adapter-publish}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\"\n  },\n  \"message\": {\n    \"publishDirectives\": [\n      {\n        \"catalogId\": \"cat-pmfby-insurance\",\n        \"catalogType\": \"REGULAR\",\n        \"updateMode\": \"MERGE\",\n        \"visibleTo\": [\n          \"{{networkId}}\",\n          \"{{otherNetworkId}}\"\n        ]\n      }\n    ],\n    \"catalogs\": [\n      {\n        \"id\": \"cat-pmfby-insurance\",\n        \"bppId\": \"{{bppId}}\",\n        \"bppUri\": \"{{bppUri}}\",\n        \"descriptor\": {\n          \"code\": \"PMFBY-INSURANCE\",\n          \"name\": \"PMFBY policy and claim status\"\n        },\n        \"provider\": {\n          \"id\": \"pmfby\",\n          \"descriptor\": {\n            \"code\": \"PMFBY\",\n            \"name\": \"Pradhan Mantri Fasal Bima Yojana\"\n          }\n        },\n        \"isActive\": true,\n        \"resources\": [\n          {\n            \"id\": \"res:pmfby:insurance\",\n            \"descriptor\": {\n              \"code\": \"pmfby-insurance\",\n              \"name\": \"PMFBY policy and claim lookup\",\n              \"shortDesc\": \"Verify a farmer by OTP, then read insurance policies or crop-loss claims for one season and crop year.\"\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.2/context.jsonld\",\n              \"@type\": \"openagrinet:SchemeApplication\",\n              \"informationMode\": \"OnDemand\",\n              \"scheme\": {\n                \"code\": \"PMFBY\",\n                \"name\": \"Pradhan Mantri Fasal Bima Yojana\"\n              },\n              \"challenge\": {\n                \"methods\": [\n                  {\n                    \"method\": \"OTP\",\n                    \"channel\": \"SMS\",\n                    \"length\": 6,\n                    \"valueType\": \"NUMERIC\"\n                  }\n                ]\n              },\n              \"actions\": [\n                {\n                  \"action\": \"init\",\n                  \"description\": \"Ask PMFBY to send a six-digit OTP to the farmer's registered mobile number. Call this before confirm.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/pmfby/insurance/v0.2/openapi.yaml#/paths/~1api~1v1~1services~1nic~1getOtp/post\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                },\n                {\n                  \"action\": \"confirm\",\n                  \"description\": \"Answer the OTP sent by init. A correct answer opens the verified session that status and select spend; nothing else identifies the farmer.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/pmfby/insurance/v0.2/openapi.yaml#/paths/~1api~1v1~1services~1nic~1verifyMobile/post\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                },\n                {\n                  \"action\": \"status\",\n                  \"description\": \"List the farmer's insurance policies and the applications under them for one season and crop year. Needs the session confirm opened.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/pmfby/insurance/v0.2/openapi.yaml#/paths/~1api~1v1~1policy~1policy~1farmerpolicylist/get\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                },\n                {\n                  \"action\": \"select\",\n                  \"description\": \"Read the farmer's crop-loss claims for one season and crop year. Needs the session confirm opened.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/pmfby/insurance/v0.2/openapi.yaml#/paths/~1api~1v1~1claims~1claims~1claimSearchReport/get\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                }\n              ]\n            }\n          }\n        ],\n        \"offers\": [\n          {\n            \"id\": \"off:pmfby:insurance\",\n            \"resourceIds\": [\n              \"res:pmfby:insurance\"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "One SchemeApplication v0.2 resource, separate from the grievance catalog so publishing one never disturbs the other.\n\nWhat is here is what the next calls need: scheme.code is how discover tells this resource from PM-KISAN's, challenge.methods[0].length is where the tool reads that the OTP is six digits rather than hardcoding it, and the four actions are what the tool checks before it sends one.\n\nThe season codes are not here. SchemeApplicationFields is closed by unevaluatedProperties, has no options field, and is shared with PM-KISAN and AIF -- so the mapping owns the season translation instead."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Discover",
+          "item": [
+            {
+              "name": "Discover - policy and claim status",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "const rs = pm.response.json().message.catalogs.flatMap(c => c.resources || []);",
+                      "pm.test('finds res:pmfby:insurance', () => pm.expect(rs.map(r => r.id)).to.include('res:pmfby:insurance'));",
+                      "",
+                      "const r = rs.find(x => x.id === 'res:pmfby:insurance');",
+                      "pm.test('advertises all four actions', () => pm.expect(r.resourceAttributes.actions.map(a => a.action)).to.have.members(['init', 'confirm', 'status', 'select']));",
+                      "// The tool reads the OTP length here instead of hardcoding six.",
+                      "pm.test('publishes the OTP shape', () => {",
+                      "    const m = r.resourceAttributes.challenge.methods[0];",
+                      "    pm.expect(m.method).to.eql('OTP');",
+                      "    pm.expect(m.length).to.eql(6);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{network-adapter-host}}/discover",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "discover"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.resourceAttributes.\\\"@type\\\" == \\\"openagrinet:SchemeApplication\\\" && @.resourceAttributes.scheme.code == \\\"PMFBY\\\")\"\n      }\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "@type alone would also return PM-KISAN and AIF, which publish the same pack. scheme.code is what separates them, and it is the filter the v2 tool sends."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Journey",
+          "item": [
+            {
+              "name": "1. Init - send the OTP",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// One transaction for the whole journey. The adapter keys the",
+                      "// session on it, so requests 2 to 4 must reuse what this sets.",
+                      "pm.collectionVariables.set('pmfby-transactionId', pm.variables.replaceIn('{{$guid}}'));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "const c = pm.response.json().message.contract.commitments[0];",
+                      "pm.test('DRAFT -- nothing is verified yet', () => pm.expect(c.status.descriptor.code).to.eql('DRAFT'));",
+                      "pm.test('OTP shape: length 6, NUMERIC', () => {",
+                      "  const i = c.commitmentAttributes.challenge.issued;",
+                      "  pm.expect(i.method).to.eql('OTP');",
+                      "  pm.expect(i.channel).to.eql('SMS');",
+                      "  pm.expect(i.length).to.eql(6);",
+                      "  pm.expect(i.valueType).to.eql('NUMERIC');",
+                      "});",
+                      "// The OTP is sent by SMS and must never come back on the wire.",
+                      "pm.test('no OTP in the answer', () => pm.expect(JSON.stringify(c.commitmentAttributes.challenge)).to.not.match(/\"value\"/));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{network-adapter-host}}/init",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "init"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"transactionId\": \"{{pmfby-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmfby:insurance\",\n            \"provider\": {\n              \"id\": \"pmfby\",\n              \"descriptor\": {\n                \"name\": \"Pradhan Mantri Fasal Bima Yojana\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmfby:insurance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmfby:insurance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PMFBY\"\n            },\n            \"applicant\": {\n              \"mobile\": \"{{pmfby-mobile}}\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Confirm - answer the OTP",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "const c = pm.response.json().message.contract.commitments[0];",
+                      "pm.test('ACTIVE -- the session is bought', () => pm.expect(c.status.descriptor.code).to.eql('ACTIVE'));",
+                      "",
+                      "// farmerId is a required query parameter on both reads and the adapter",
+                      "// cannot put a session value in a query string, so it travels in the",
+                      "// payload. The session, not secrecy, is what stops one farmer reading",
+                      "// another's records.",
+                      "pm.test('PMFBY names the farmer', () => pm.expect(c.commitmentAttributes.farmerId).to.not.be.empty);",
+                      "pm.collectionVariables.set('pmfby-farmer-id', String(c.commitmentAttributes.farmerId));",
+                      "",
+                      "// The provider token lives in the adapter cache against the transaction.",
+                      "// A signed answer carrying it would hand the session to whoever reads the log.",
+                      "pm.test('no token on the wire', () => pm.expect(JSON.stringify(pm.response.json())).to.not.match(/[Tt]oken/));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{network-adapter-host}}/confirm",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "confirm"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"confirm\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"transactionId\": \"{{pmfby-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmfby:insurance\",\n            \"provider\": {\n              \"id\": \"pmfby\",\n              \"descriptor\": {\n                \"name\": \"Pradhan Mantri Fasal Bima Yojana\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmfby:insurance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmfby:insurance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PMFBY\"\n            },\n            \"applicant\": {\n              \"mobile\": \"{{pmfby-mobile}}\"\n            },\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"{{pmfby-otp}}\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "3. Status - policies",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "const a = pm.response.json().message.contract.commitments[0].commitmentAttributes;",
+                      "// Always an array, empty included. PMFBY checked and found nothing is an",
+                      "// answer a farmer can be given; a missing field is one they cannot.",
+                      "pm.test('policies is an array', () => pm.expect(a.policies).to.be.an('array'));",
+                      "",
+                      "// The mapping allow-lists. Accounts and land details may come back from",
+                      "// PMFBY and must not reach a signed Beckn answer.",
+                      "pm.test('no account or land details', () => pm.expect(JSON.stringify(a)).to.not.match(/account|bank|ifsc|khasra|khata|aadhaar|address/i));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{network-adapter-host}}/status",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "status"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"transactionId\": \"{{pmfby-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmfby:insurance\",\n            \"provider\": {\n              \"id\": \"pmfby\",\n              \"descriptor\": {\n                \"name\": \"Pradhan Mantri Fasal Bima Yojana\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmfby:insurance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmfby:insurance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PMFBY\"\n            },\n            \"applicant\": {\n              \"mobile\": \"{{pmfby-mobile}}\"\n            },\n            \"farmerId\": \"{{pmfby-farmer-id}}\",\n            \"season\": \"{{pmfby-season}}\",\n            \"year\": \"{{pmfby-year}}\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "season and year are the farmer's words. The mapping builds PMFBY's sssyID from them -- \"040\" + the season code + \"00\" + the last two year digits, so Kharif 2026 is 04010026."
+              },
+              "response": []
+            },
+            {
+              "name": "4. Select - claims",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "const a = pm.response.json().message.contract.commitments[0].commitmentAttributes;",
+                      "pm.test('claims is an array', () => pm.expect(a.claims).to.be.an('array'));",
+                      "pm.test('no account or land details', () => pm.expect(JSON.stringify(a)).to.not.match(/account|bank|ifsc|khasra|khata|aadhaar|address/i));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{network-adapter-host}}/select",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "select"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"select\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"transactionId\": \"{{pmfby-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmfby:insurance\",\n            \"provider\": {\n              \"id\": \"pmfby\",\n              \"descriptor\": {\n                \"name\": \"Pradhan Mantri Fasal Bima Yojana\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmfby:insurance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmfby:insurance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PMFBY\"\n            },\n            \"applicant\": {\n              \"mobile\": \"{{pmfby-mobile}}\"\n            },\n            \"farmerId\": \"{{pmfby-farmer-id}}\",\n            \"season\": \"{{pmfby-season}}\",\n            \"year\": \"{{pmfby-year}}\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "The same season and year, sent differently: the claim read takes the season as 1, 2 or 3 and the full four-digit year. Same payload from the tool either way -- the mapping owns the difference."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Refusals",
+          "item": [
+            {
+              "name": "Confirm - the wrong OTP",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                      "const e = pm.response.json().message.error;",
+                      "pm.test('PMFBY answered, so BIZ_', () => pm.expect(e.code).to.eql('BIZ_GENERIC_ERROR'));",
+                      "pm.test('says which field', () => pm.expect(e.details.path).to.include('challenge.response.value'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{network-adapter-host}}/confirm",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "confirm"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"confirm\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"transactionId\": \"{{pmfby-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmfby:insurance\",\n            \"provider\": {\n              \"id\": \"pmfby\",\n              \"descriptor\": {\n                \"name\": \"Pradhan Mantri Fasal Bima Yojana\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmfby:insurance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmfby:insurance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PMFBY\"\n            },\n            \"applicant\": {\n              \"mobile\": \"{{pmfby-mobile}}\"\n            },\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"000000\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Status - with no verified session",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                      "const e = pm.response.json().message.error;",
+                      "// A fresh transaction has no session, so this never reaches PMFBY --",
+                      "// the adapter fetches the session before it builds the request.",
+                      "pm.test('refused before the provider is called', () => pm.expect(e.message).to.include('verified session'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{network-adapter-host}}/status",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "status"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmfby:insurance\",\n            \"provider\": {\n              \"id\": \"pmfby\",\n              \"descriptor\": {\n                \"name\": \"Pradhan Mantri Fasal Bima Yojana\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmfby:insurance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmfby:insurance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PMFBY\"\n            },\n            \"applicant\": {\n              \"mobile\": \"{{pmfby-mobile}}\"\n            },\n            \"farmerId\": \"{{pmfby-farmer-id}}\",\n            \"season\": \"{{pmfby-season}}\",\n            \"year\": \"{{pmfby-year}}\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "A fresh transaction id, everything else unchanged. Supplying somebody else's farmerId gets no further than this."
+              },
+              "response": []
+            },
+            {
+              "name": "Status - about a different mobile number",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                      "const e = pm.response.json().message.error;",
+                      "// The point of binding the session to the verified mobile: holding a",
+                      "// transaction id must not be enough to read someone else's policies.",
+                      "pm.test('refused', () => pm.expect(e.message).to.match(/different beneficiary|verified session/));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{network-adapter-host}}/status",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "status"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"transactionId\": \"{{pmfby-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmfby:insurance\",\n            \"provider\": {\n              \"id\": \"pmfby\",\n              \"descriptor\": {\n                \"name\": \"Pradhan Mantri Fasal Bima Yojana\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmfby:insurance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmfby:insurance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PMFBY\"\n            },\n            \"applicant\": {\n              \"mobile\": \"9000000009\"\n            },\n            \"farmerId\": \"{{pmfby-farmer-id}}\",\n            \"season\": \"{{pmfby-season}}\",\n            \"year\": \"{{pmfby-year}}\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "The journey's transaction id with another farmer's mobile. The session is bound to the number that answered the OTP, and the bind is compared on every call that spends the token."
               },
               "response": []
             }
