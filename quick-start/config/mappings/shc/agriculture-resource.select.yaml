@@ -1,0 +1,61 @@
+# Soil Health Card reports, openagrinet:AgricultureResource, select. resourceAttributes
+# carries SHC's own GraphQL request and answer (its OpenAPI) beside @context and @type.
+
+required:
+  - check: |
+      (
+        $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
+        $exists($ra.query) and $exists($ra.variables.phone) and $exists($ra.variables.cycle)
+      )
+    message: "this capability needs query, variables.phone and variables.cycle in resourceAttributes"
+
+# The body is SHC's GraphQL request as sent. The adapter adds the Bearer token.
+request: |
+  (
+    $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
+    {
+      "query": $ra.query,
+      "variables": $ra.variables
+    }
+  )
+
+# SHC's answer goes back unchanged inside resourceAttributes, reports under
+# data.getTestForAuthUser.
+response: |
+  (
+    $selected := beckn.message.contract.commitments[0];
+    $asked := $selected.resources[0];
+    {
+      "context": {
+        "version": beckn.context.version,
+        "action": "on_select",
+        "networkId": beckn.context.networkId,
+        "transactionId": beckn.context.transactionId,
+        "messageId": beckn.context.messageId,
+        "timestamp": $now()
+      },
+      "message": {
+        "contract": {
+          "commitments": [
+            {
+              "status": { "descriptor": { "code": "ACTIVE", "name": "active" } },
+              "resources": [
+                {
+                  "id": $asked.id,
+                  "quantity": { "count": 1 },
+                  "resourceAttributes": $merge([
+                    {
+                      "@context": $asked.resourceAttributes.`@context`,
+                      "@type": $asked.resourceAttributes.`@type`
+                    },
+                    response
+                  ])
+                }
+              ],
+              "offer": $selected.offer
+            }
+          ]
+        }
+      }
+    }
+  )

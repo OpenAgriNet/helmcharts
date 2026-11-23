@@ -146,6 +146,12 @@ PROVIDERS = {
         "method": "POST", "default_path": "/inv-apis2/stock/getSeedAvailability",
         "needs": ["SATHI_API_KEY"],
     },
+    "shc": {
+        "prefix": "SHC", "name": "Soil Health Card reports",
+        "capability_name": "Agriculture Resource", "version": "v0.2",
+        "method": "POST", "default_path": "/",
+        "needs": ["SHC_TOKEN_URL", "SHC_REFRESH_TOKEN"],
+    },
     "pocra": {
         "prefix": "POCRA", "name": "POCRA agriculture facilities",
         "capability_name": "Agriculture Facility", "version": "v0.1",
@@ -851,6 +857,7 @@ def configure_adapter(identity):
                 ("__AGMARKNET_TOKEN_URL__", token_url("agmarknet", "AGMARKNET_TOKEN_URL", serving)),
                 ("__VISTAAR_TOKEN_URL__", token_url("vistaar", "VISTAAR_TOKEN_URL", serving)),
                 ("__PMFBY_TOKEN_URL__", token_url("pmfby", "PMFBY_TOKEN_URL", serving)),
+                ("__SHC_TOKEN_URL__", token_url("shc", "SHC_TOKEN_URL", serving)),
                 # The crawler hands a crawled catalog to /publish, which signs it
                 # and forwards it on. /network/publish expects a signature the
                 # crawl does not carry, and in multi mode /publish is elsewhere.

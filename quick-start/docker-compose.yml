@@ -703,6 +703,8 @@ services:
       MAUSAMGRAM_AUTH: ${MAUSAMGRAM_AUTH}
       # SATHI's key goes in the JSON body (authScheme body), read at call time.
       SATHI_API_KEY: ${SATHI_API_KEY}
+      # SHC's refresh token, traded for an access token at call time.
+      SHC_REFRESH_TOKEN: ${SHC_REFRESH_TOKEN}
       # The mandi upstream's credentials. Agmarknet issues its own token, so
       # these two are exchanged for one at call time. Named here and read then,
       # so neither is in a config file or in the registry.
@@ -765,6 +767,7 @@ services:
       # time -- the same variables and reasons as provider-adapter.
       MAUSAMGRAM_AUTH: ${MAUSAMGRAM_AUTH}
       SATHI_API_KEY: ${SATHI_API_KEY}
+      SHC_REFRESH_TOKEN: ${SHC_REFRESH_TOKEN}
       AGMARKNET_ACCESS_NAME: ${AGMARKNET_ACCESS_NAME}
       AGMARKNET_PASSWORD: ${AGMARKNET_PASSWORD}
       MOCKAGMARKNET_TOKEN: ${MOCKAGMARKNET_TOKEN:-local-mandi-token}
