@@ -121,7 +121,8 @@ modules:
             type: url
             location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/tags/core-v2.1.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
-            extendedSchema_enabled: "true"
+            # Off for now: the SATHI select carries SATHI's own fields, which the AgricultureResource pack does not declare.
+            extendedSchema_enabled: "false"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
@@ -253,7 +254,8 @@ modules:
             type: url
             location: "https://raw.githubusercontent.com/OpenAgriNet/protocol-specifications-v2/refs/tags/core-v2.1.0-lts/api/v2.0.0/beckn.yaml"
             cacheTTL: "3600"
-            extendedSchema_enabled: "true"
+            # Off for now: the SATHI select carries SATHI's own fields, which the AgricultureResource pack does not declare.
+            extendedSchema_enabled: "false"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
@@ -386,6 +388,15 @@ modules:
                 followUpField: _beneficiaryStatus
                 followUpActions: status
                 followUpTimeoutMs: "10000"
+          - id: AgricultureResource
+            config:
+              bindingKeys: "sathi|openagrinet:AgricultureResource"
+              # SATHI takes its key only in the JSON body; 409 is its "no stock" answer, mapped rather than failed.
+              sathi:
+                authScheme: body
+                bodyField: apiKey
+                bodyValueEnv: SATHI_API_KEY
+                answerStatuses: "409"
       steps:
         - validateSign
         - checkCrossNetworkRequester
@@ -395,6 +406,7 @@ modules:
         - KnowledgeAdvisory
         - AgricultureFacility
         - Grievance
+        - AgricultureResource
         - sign
 
   # provider-publish: the catalogue system publishes at /publish, signed as the
