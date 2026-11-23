@@ -78,19 +78,6 @@ spec:
           resources:
             {{- include "common.resources" . | nindent 12 }}
           volumeMounts:
-            {{- if .Values.persistence.sqlite.enabled }}
-            - name: sqlite
-              mountPath: /data
-            {{- end }}
-            {{- if .Values.persistence.documents.enabled }}
-            - name: documents
-              mountPath: /data/documents
-            {{- end }}
-            {{- if .Values.persistence.books.enabled }}
-            - name: books
-              mountPath: /app/books
-              readOnly: true
-            {{- end }}
             {{- if .Values.persistence.hfCache.enabled }}
             - name: hf-cache
               mountPath: /opt/hf-cache
@@ -99,25 +86,10 @@ spec:
             {{- toYaml . | nindent 12 }}
             {{- end }}
       volumes:
-        {{- if .Values.persistence.sqlite.enabled }}
-        - name: sqlite
-          persistentVolumeClaim:
-            claimName: {{ required "persistence.sqlite.existingClaim is required - point it at the PVC knowledge-provider-api created" .Values.persistence.sqlite.existingClaim }}
-        {{- end }}
-        {{- if .Values.persistence.documents.enabled }}
-        - name: documents
-          persistentVolumeClaim:
-            claimName: {{ required "persistence.documents.existingClaim is required - point it at the PVC knowledge-provider-api created" .Values.persistence.documents.existingClaim }}
-        {{- end }}
-        {{- if .Values.persistence.books.enabled }}
-        - name: books
-          persistentVolumeClaim:
-            claimName: {{ required "persistence.books.existingClaim is required - point it at the PVC knowledge-provider-api created" .Values.persistence.books.existingClaim }}
-        {{- end }}
         {{- if .Values.persistence.hfCache.enabled }}
         - name: hf-cache
           persistentVolumeClaim:
-            claimName: {{ required "persistence.hfCache.existingClaim is required - point it at the PVC knowledge-provider-api created" .Values.persistence.hfCache.existingClaim }}
+            claimName: {{ .Values.persistence.hfCache.existingClaim | default (printf "%s-hf-cache" (include "knowledge-provider-worker.fullname" .)) }}
         {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}

@@ -3,8 +3,8 @@
 #   helm install knowledge-provider-worker charts/knowledge-provider-worker \
 #     -n knowledge-provider -f charts/knowledge-provider-worker/examples/knowledge-provider-worker.dev.yaml
 #
-# Install AFTER knowledge-provider-api (owns the PVCs this chart mounts) - see
-# that chart's README for the full install order.
+# Install alongside knowledge-provider-api - see that chart's README for the
+# full install order.
 
 image:
   registry: ghcr.io

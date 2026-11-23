@@ -38,16 +38,37 @@
 {{- include "common.envConfigMapName" . -}}
 {{- end }}
 
+
+{{/*
+host/port of objectStore.endpoint, for the wait. Empty for GCS or no endpoint.
+*/}}
+{{- define "knowledge-provider-api.objectStoreAddress" -}}
+{{- $os := .Values.objectStore -}}
+{{- if and (eq $os.type "s3") $os.endpoint -}}
+{{- $u := urlParse $os.endpoint -}}
+{{- $parts := splitList ":" $u.host -}}
+{{- $port := ternary "443" "80" (eq $u.scheme "https") -}}
+{{- if gt (len $parts) 1 }}{{ $port = last $parts }}{{ end -}}
+{{- dict "host" (first $parts) "port" $port | toJson -}}
+{{- end -}}
+{{- end }}
+
 {{/*
 Dependency waits, derived from this chart's own backing-service settings.
 */}}
 {{- define "knowledge-provider-api.waitFor" -}}
 {{- $tcp := list -}}
+{{- if .Values.waitFor.database }}
+{{- $tcp = append $tcp (dict "name" "database" "host" .Values.database.host "port" .Values.database.port) -}}
+{{- end -}}
 {{- if .Values.waitFor.temporal }}
 {{- $tcp = append $tcp (dict "name" "temporal" "host" .Values.temporal.host "port" .Values.temporal.port) -}}
 {{- end -}}
-{{- if .Values.waitFor.minio }}
-{{- $tcp = append $tcp (dict "name" "minio" "host" .Values.minio.host "port" .Values.minio.port) -}}
+{{- with (include "knowledge-provider-api.objectStoreAddress" . ) }}
+{{- if $.Values.waitFor.objectStore }}
+{{- $addr := fromJson . -}}
+{{- $tcp = append $tcp (dict "name" "object-store" "host" $addr.host "port" $addr.port) -}}
+{{- end -}}
 {{- end -}}
 {{- if .Values.waitFor.qdrant }}
 {{- $tcp = append $tcp (dict "name" "qdrant" "host" .Values.vectorStore.host "port" .Values.vectorStore.port) -}}
@@ -58,18 +79,47 @@ Dependency waits, derived from this chart's own backing-service settings.
 {{- end }}
 
 {{/*
-Everything this chart derives from its structured values (backing-service
-addresses, Keycloak issuer/JWKS, mount paths), as container env entries. These
-take precedence over the envConfig ConfigMap, then common.env (secretEnv /
-extraEnv) is appended.
+Backing-service env shared with knowledge-provider-worker: PostgreSQL, Temporal,
+object store and Qdrant. Keep the two charts' copies identical.
 */}}
-{{- define "knowledge-provider-api.env" -}}
+{{- define "knowledge-provider-api.backingEnv" -}}
+{{- $db := .Values.database -}}
+{{- if not $db.host }}
+{{- fail (printf "%s: database.host is required - the PostgreSQL service, e.g. knowledge-provider-db-rw" .Chart.Name) }}
+{{- end }}
+{{- if not $db.passwordSecret.name }}
+{{- fail (printf "%s: database.passwordSecret.name is required - this chart renders no Secrets" .Chart.Name) }}
+{{- end }}
+- name: DATABASE_URL
+  value: {{ printf "postgresql://%s@%s:%v/%s?sslmode=%s" $db.user $db.host $db.port $db.name $db.sslmode | quote }}
+{{- /* libpq reads PGPASSWORD, so the URL needs no encoding. */}}
+- name: PGPASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ $db.passwordSecret.name }}
+      key: {{ $db.passwordSecret.key }}
 - name: TEMPORAL_HOST
   value: {{ printf "%s:%v" .Values.temporal.host .Values.temporal.port | quote }}
-- name: MINIO_ENDPOINT
-  value: {{ printf "%s:%v" .Values.minio.host .Values.minio.port | quote }}
-- name: MINIO_BUCKET
-  value: {{ .Values.minio.bucket | quote }}
+{{- $os := .Values.objectStore }}
+{{- if not $os.bucket }}
+{{- fail (printf "%s: objectStore.bucket is required" .Chart.Name) }}
+{{- end }}
+- name: OBJECT_STORE_TYPE
+  value: {{ $os.type | quote }}
+{{- with $os.endpoint }}
+- name: OBJECT_STORE_ENDPOINT
+  value: {{ . | quote }}
+{{- end }}
+- name: OBJECT_STORE_BUCKET
+  value: {{ $os.bucket | quote }}
+- name: OBJECT_STORE_CREDENTIALS_TYPE
+  value: {{ $os.credentialsType | quote }}
+{{- with $os.region }}
+- name: OBJECT_STORE_REGION
+  value: {{ . | quote }}
+{{- end }}
+- name: OBJECT_STORE_CREATE_BUCKET
+  value: {{ $os.createBucket | quote }}
 - name: VECTOR_DB_URL
   value: {{ printf "http://%s:%v" .Values.vectorStore.host .Values.vectorStore.port | quote }}
 - name: VECTOR_DB_COLLECTION_NAME
@@ -82,34 +132,66 @@ extraEnv) is appended.
   value: {{ .Values.prodVectorStore.collectionName | quote }}
 - name: PROD_VECTOR_DB_TIMEOUT_SECONDS
   value: {{ .Values.prodVectorStore.timeoutSeconds | quote }}
-- name: DOCUMENT_DB_PATH
-  value: "/data/documents.db"
-- name: ALLOWED_FILE_PATHS
-  value: "/app/books,/data/documents"
-- name: AUTH_DISABLED
-  value: {{ .Values.keycloak.authDisabled | quote }}
-{{- if not .Values.keycloak.authDisabled }}
-{{- if not .Values.keycloak.url }}
-{{- fail (printf "%s: keycloak.url is required when keycloak.authDisabled is false - it is the base URL the issuer/JWKS URLs are derived from" .Chart.Name) }}
 {{- end }}
+
+{{/*
+Everything this chart derives from its structured values (backing services,
+Keycloak), as container env entries. These take precedence over the envConfig
+ConfigMap, then common.env (secretEnv / extraEnv) is appended.
+*/}}
+{{- define "knowledge-provider-api.env" -}}
+{{ include "knowledge-provider-api.backingEnv" . | trim }}
+{{- $kc := .Values.keycloak }}
+- name: AUTH_DISABLED
+  value: {{ $kc.authDisabled | quote }}
+{{- if and $kc.authDisabled (ne .Values.runtimeProfile "local") }}
+{{- fail (printf "%s: keycloak.authDisabled requires runtimeProfile: local - the app refuses to start otherwise" .Chart.Name) }}
+{{- end }}
+- name: KP_RUNTIME_PROFILE
+  value: {{ .Values.runtimeProfile | quote }}
+{{- if not $kc.authDisabled }}
+{{- if not $kc.url }}
+{{- fail (printf "%s: keycloak.url is required when keycloak.authDisabled is false - the private base URL the JWKS and backchannel URLs are derived from" .Chart.Name) }}
+{{- end }}
+{{- if not $kc.audience }}
+{{- fail (printf "%s: keycloak.audience is required when keycloak.authDisabled is false" .Chart.Name) }}
+{{- end }}
+{{- $private := printf "%s/realms/%s" ($kc.url | trimSuffix "/") $kc.realm }}
+{{- $public := printf "%s/realms/%s" ($kc.issuerUrl | default $kc.url | trimSuffix "/") $kc.realm }}
 - name: KEYCLOAK_ISSUER
-  value: {{ printf "%s/realms/%s" (.Values.keycloak.url | trimSuffix "/") .Values.keycloak.realm | quote }}
+  value: {{ $public | quote }}
 - name: KEYCLOAK_JWKS_URL
-  value: {{ printf "%s/realms/%s/protocol/openid-connect/certs" (.Values.keycloak.url | trimSuffix "/") .Values.keycloak.realm | quote }}
+  value: {{ printf "%s/protocol/openid-connect/certs" $private | quote }}
+- name: KEYCLOAK_BACKCHANNEL_URL
+  value: {{ $private | quote }}
 - name: KEYCLOAK_AUDIENCE
-  value: {{ .Values.keycloak.audience | quote }}
+  value: {{ $kc.audience | quote }}
 - name: KEYCLOAK_JWT_LEEWAY_SECONDS
-  value: {{ .Values.keycloak.jwtLeewaySeconds | quote }}
+  value: {{ $kc.jwtLeewaySeconds | quote }}
 - name: KEYCLOAK_CLIENT_ID
-  value: {{ .Values.keycloak.clientId | quote }}
+  value: {{ $kc.clientId | quote }}
+{{- with $kc.consoleRedirectUri }}
+- name: KEYCLOAK_CONSOLE_REDIRECT_URI
+  value: {{ . | quote }}
+{{- end }}
+{{- with $kc.googleConsoleUrl }}
+- name: KEYCLOAK_GOOGLE_CONSOLE_URL
+  value: {{ . | quote }}
+{{- end }}
+- name: KEYCLOAK_PROVIDER_GROUP_ROOT
+  value: {{ $kc.providerGroupRoot | quote }}
+- name: KEYCLOAK_VERIFY_LIVE_GROUPS
+  value: {{ $kc.verifyLiveGroups | quote }}
 - name: KEYCLOAK_ADMIN_BASE_URL
-  value: {{ .Values.keycloak.adminBaseUrl | default .Values.keycloak.url | quote }}
+  value: {{ $kc.adminBaseUrl | default $kc.url | quote }}
 - name: KEYCLOAK_ADMIN_REALM
-  value: {{ .Values.keycloak.adminRealm | quote }}
+  value: {{ $kc.adminRealm | default $kc.realm | quote }}
+{{- with $kc.adminTokenRealm }}
 - name: KEYCLOAK_ADMIN_TOKEN_REALM
-  value: {{ .Values.keycloak.adminTokenRealm | quote }}
-{{- with .Values.keycloak.adminUsername }}
-- name: KEYCLOAK_ADMIN_USERNAME
+  value: {{ . | quote }}
+{{- end }}
+{{- with $kc.adminClientId }}
+- name: KEYCLOAK_ADMIN_CLIENT_ID
   value: {{ . | quote }}
 {{- end }}
 {{- end }}
@@ -117,4 +199,3 @@ extraEnv) is appended.
 {{ . }}
 {{- end }}
 {{- end }}
-

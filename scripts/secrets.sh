@@ -209,6 +209,23 @@ knowledge-provider-minio-credentials:
 knowledge-provider-keycloak-admin:
   password: $(q "$(password)")
 
+# namespaces: knowledge-provider (Qdrant API key; qdrant, api and worker read it)
+knowledge-provider-qdrant:
+  api-key: $(q "$(openssl rand -hex 24)")
+
+EOF
+  # One Redis password, two entries: clients read redis/password; redis-config is
+  # appended whole to redis.conf, so it must hold only config lines.
+  pw="$(openssl rand -hex 24)"
+  cat <<EOF
+# namespaces: redis (+ the namespaces of its clients)
+redis:
+  password: $(q "$pw")
+
+# namespaces: redis (mounted into the Redis pod, appended to redis.conf)
+redis-config:
+  requirepass.conf: $(q "requirepass $pw")
+
 # namespaces: langfuse (pinned: chart-generated values would rotate on every Argo CD sync)
 langfuse-app-keys:
   salt: $(q "$(openssl rand -base64 32)")

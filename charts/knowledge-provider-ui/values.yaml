@@ -4,10 +4,11 @@
 # Bharat Vistaar Docs Pipeline operator console (React/Vite), served as a
 # static bundle via nginx (ui/Dockerfile.prod in the app repo).
 #
-# IMPORTANT: VITE_API_BASE, VITE_KEYCLOAK_*, VITE_BASE and VITE_AUTH_ENABLED
-# are baked into the JS bundle at `docker build` time, NOT read at container
-# runtime. Changing them means building a new image, not editing this
-# values.yaml - see README.md, "Build-time configuration".
+# IMPORTANT: VITE_API_BASE (/knowledge-provider-api), VITE_BASE
+# (/knowledge-provider/) and VITE_AUTH_ENABLED (true) are baked into the JS
+# bundle at `docker build` time, NOT read at container runtime. The gateway
+# must serve the API at /knowledge-provider-api/ with the prefix stripped.
+# See README.md, "Build-time configuration".
 # ============================================================================
 
 replicaCount: 1
@@ -29,10 +30,11 @@ serviceAccount:
   annotations: {}
   automountServiceAccountToken: false
 
+# nginx in the image listens on 8080 (ui/nginx.prod.conf).
 service:
   type: ClusterIP
   port: 80
-  targetPort: 80
+  targetPort: 8080
   annotations: {}
 
 ingress:
@@ -42,7 +44,7 @@ ingress:
   hosts:
     - host: docs-pipeline.local
       paths:
-        - path: /
+        - path: /knowledge-provider
           pathType: Prefix
   tls: []
 

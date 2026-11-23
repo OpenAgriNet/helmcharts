@@ -20,20 +20,22 @@ ingress:
   hosts:
     - host: registry-sandbox-vistaar.da.gov.in
       paths:
-        - path: /docs-pipeline-api
+        - path: /knowledge-provider-api
           pathType: Prefix
 
 keycloak:
   authDisabled: false
   url: "https://dev-auth-vistaar.da.gov.in/auth"
   realm: docs-pipeline
+  audience: docs-pipeline-api
   clientId: docs-pipeline-ui
-  adminUsername: admin
+  consoleRedirectUri: "https://registry-sandbox-vistaar.da.gov.in/knowledge-provider/auth/sso-callback"
+  adminClientId: docs-pipeline-api
 
 envConfig:
   LOG_LEVEL: "info"
   CORS_ORIGINS: "https://registry-sandbox-vistaar.da.gov.in"
-  DOCS_PIPELINE_API_URL: "https://registry-sandbox-vistaar.da.gov.in/docs-pipeline-api"
+  DOCS_PIPELINE_API_URL: "https://registry-sandbox-vistaar.da.gov.in/knowledge-provider-api"
   DOCS_PIPELINE_UI_URL: "https://registry-sandbox-vistaar.da.gov.in/knowledge-provider"
   AGRINET_GEMMA_BASE_URL: "https://dev-vistaar.da.gov.in/gemma4"
   TRANSLATION_VLLM_BASE_URL: "https://dev-vistaar.da.gov.in/gemma4"
@@ -51,10 +53,6 @@ resources:
     memory: 4Gi
 
 persistence:
-  sqlite:
-    size: 10Gi
-  documents:
-    size: 50Gi
   hfCache:
     size: 30Gi
 

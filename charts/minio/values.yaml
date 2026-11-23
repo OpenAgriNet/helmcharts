@@ -151,7 +151,7 @@ bucketInit:
 # ---------------------------------------------------------------------------
 # Root credentials. This chart renders no Secret - create it before
 # installing (see README.md, "Secrets"). Same Secret name/keys as
-# knowledge-provider-api/-worker's MINIO_ACCESS_KEY/MINIO_SECRET_KEY, so all
+# knowledge-provider-api/-worker's AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, so all
 # three charts share one Secret rather than three copies of the same values.
 # ---------------------------------------------------------------------------
 credentialsSecret:

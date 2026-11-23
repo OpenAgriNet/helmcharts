@@ -9,7 +9,7 @@ nginx (`ui/Dockerfile.prod` in the app repo, `ui/nginx.prod.conf`).
 | Resource | Notes |
 |---|---|
 | Deployment | Probes on `/health`, resources mandatory |
-| Service | `ClusterIP` on 80 |
+| Service | `ClusterIP` on 80, to nginx on 8080 |
 | ConfigMap (env) | Empty by default — see [Build-time configuration](#build-time-configuration) |
 | ServiceAccount | `automountServiceAccountToken: false` — nginx calls no Kubernetes API |
 | Ingress | Optional, off by default |
@@ -22,15 +22,25 @@ proxy in front of both), not this Pod.
 ## Build-time configuration
 
 **This chart cannot configure the running application.** `VITE_API_BASE`,
-`VITE_BASE`, `VITE_KEYCLOAK_URL`, `VITE_KEYCLOAK_REALM`,
-`VITE_KEYCLOAK_CLIENT_ID`, `VITE_KEYCLOAK_IDP_HINT` and `VITE_AUTH_ENABLED` are
-Vite build args — they get compiled into the static JS bundle when the image
-is built (`docker build --build-arg VITE_API_BASE=... -f Dockerfile.prod`),
-not read from the environment at container start. `envConfig`/`extraEnv` on
-this chart reach the nginx process, which never looks at them.
+`VITE_BASE` and `VITE_AUTH_ENABLED` are Vite build args — they get compiled
+into the static JS bundle when the image is built
+(`docker build --build-arg VITE_API_BASE=... -f Dockerfile.prod`), not read
+from the environment at container start. `envConfig`/`extraEnv` on this chart
+reach the nginx process, which never looks at them.
+
+The published image uses the Dockerfile defaults:
+
+| Build arg | Value | Means |
+|---|---|---|
+| `VITE_BASE` | `/knowledge-provider/` | the SPA is served under this path; nginx redirects `/` to it |
+| `VITE_API_BASE` | `/knowledge-provider-api` | the browser calls the API here, so the gateway must route `/knowledge-provider-api/` to `knowledge-provider-api` with the prefix stripped |
+| `VITE_AUTH_ENABLED` | `true` | the login page is shown; the API must have auth on |
+
+The console no longer talks to Keycloak from the browser: sign-in goes through
+the API (`/auth/email/*`), so there are no `VITE_KEYCLOAK_*` args any more.
 
 Practical consequence: **one image per environment that needs a different API
-base path, Keycloak realm, or auth toggle.** Point `image.tag` at the image
+base path or auth toggle.** Point `image.tag` at the image
 built for that environment; there is no values-only way to repoint an already
 built image. This is a real limitation of the current CI/build setup, not
 something to work around here — see the app repo's CI workflow

@@ -31,10 +31,10 @@ helm install minio charts/minio -n knowledge-provider \
   -f charts/minio/examples/minio.dev.yaml
 ```
 
-Release name matters: `knowledge-provider-api`/`-worker`'s `minio.host`
-defaults to `minio`, assuming this chart is installed under that release name
-in the same namespace — override `minio.host` on those charts if you name
-this release differently.
+Release name matters: `knowledge-provider-api`/`-worker`'s
+`objectStore.endpoint` defaults to `http://minio:9000`, assuming this chart is
+installed under that release name in the same namespace — override
+`objectStore.endpoint` on those charts if you name this release differently.
 
 The bucket-init Job runs automatically on install/upgrade — check it with
 `kubectl logs job/minio-bucket-init` if `knowledge-provider-api` reports the
@@ -49,7 +49,7 @@ bucket-init Job read `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD` from — keys
 `access-key`/`secret-key` by default (`credentialsSecret.*Key`).
 
 Use the **same** Secret name/keys on `knowledge-provider-api` and
-`knowledge-provider-worker`'s `secretEnv.MINIO_ACCESS_KEY`/`MINIO_SECRET_KEY`
+`knowledge-provider-worker`'s `secretEnv.AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`
 (their defaults already match this chart's default) — one Secret, three
 charts, not three copies of the same credential.
 

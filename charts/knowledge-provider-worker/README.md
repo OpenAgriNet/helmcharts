@@ -22,14 +22,14 @@ duplicating the (large) shared config surface between the two charts'
 | Deployment | No ports, no probes (compose defines none for `worker` either); resources still mandatory |
 | ConfigMap (env) | Non-secret config, kept at parity with `knowledge-provider-api`'s `envConfig` |
 | ServiceAccount | Dedicated, never `default` |
+| PersistentVolumeClaim | `hf-cache`, this pod's own Hugging Face model cache |
 
-No Service, no Ingress, no PersistentVolumeClaim — this chart **mounts**
-volumes but never creates one. See [Shared volumes](#shared-volumes-with-knowledge-provider-api).
+No Service and no Ingress.
 
 ## Install order
 
-Install **after** `knowledge-provider-api` (which owns the shared PVCs) and
-after Temporal/MinIO/Qdrant:
+Install alongside `knowledge-provider-api`, after PostgreSQL, Temporal, the
+object store and Qdrant:
 
 ```bash
 helm install knowledge-provider-worker charts/knowledge-provider-worker -n knowledge-provider \
@@ -38,30 +38,21 @@ helm install knowledge-provider-worker charts/knowledge-provider-worker -n knowl
 
 See `knowledge-provider-api`'s README for the full install order.
 
-## Shared volumes with knowledge-provider-api
+## Storage
 
-compose mounts the same `sqlite-data`, `documents-data`, `./books` and
-`HF_HOME` volumes into both `api` and `worker`. This chart's
-`persistence.<vol>.existingClaim` values default to the PVC names
-`knowledge-provider-api` creates by default (`knowledge-provider-api-sqlite`,
-`-documents`, `-books`, `-hf-cache`) — override them if you installed that
-chart under a different release name. The render **fails** if an enabled
-volume has no `existingClaim` set, since a worker pointed at nothing is a
-silent misconfiguration otherwise.
-
-This requires a **ReadWriteMany**-capable StorageClass (NFS, EFS, Longhorn,
-CephFS, ...) in the target cluster — api and worker are separate Pods that may
-be scheduled on different nodes. `books` is off by default, matching
-`knowledge-provider-api`.
+The worker shares state with the API through PostgreSQL, the object store and
+Qdrant, not through volumes, so it can run on any node. It applies pending SQL
+migrations on startup too, under the same advisory lock as the API. Its only
+volume is its own `hf-cache` PVC (`<release>-hf-cache`, or
+`persistence.hfCache.existingClaim`).
 
 ## Configuration
 
-Same derivation as `knowledge-provider-api` for `TEMPORAL_HOST`,
-`MINIO_ENDPOINT`, `VECTOR_DB_URL`, `PROD_VECTOR_DB_URL`, `DOCUMENT_DB_PATH`,
-`ALLOWED_FILE_PATHS` — see that chart's README for the full table. This chart
-has no `keycloak.*` block: auth (JWT validation, admin API calls) is handled
-entirely by `knowledge-provider-api`'s HTTP layer, which this process never
-touches.
+Same derivation as `knowledge-provider-api` for `DATABASE_URL`/`PGPASSWORD`,
+`TEMPORAL_HOST`, `OBJECT_STORE_*`, `VECTOR_DB_*` and `PROD_VECTOR_DB_*` — see
+that chart's README for the full table. Keep `database`, `objectStore` and
+`vectorStore` identical in both charts. This chart has no `keycloak.*` block:
+auth is handled entirely by `knowledge-provider-api`'s HTTP layer.
 
 `ENABLE_PUBLISH_TO_NETWORK`, `DISCOVERY_SERVICE_ENDPOINT` and `NETWORK_SENDER_ID` are
 **worker-only** per `ENV.md` — the `publishing_to_network` workflow stage runs
@@ -84,4 +75,4 @@ Render-time guardrails:
 
 - `image.repository` empty (`common`)
 - `resources` empty (`common`)
-- any enabled `persistence.<vol>.existingClaim` left blank
+- `database.host`, `database.passwordSecret.name` or `objectStore.bucket` empty

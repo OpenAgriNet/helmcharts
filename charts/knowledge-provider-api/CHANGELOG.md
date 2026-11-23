@@ -5,6 +5,57 @@ All notable changes to the `knowledge-provider-api` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-11-20
+
+Matches the app's PostgreSQL migration (knowledge-provider `kp-migrations`).
+Needs an image built from that branch; older images still expect SQLite.
+
+### Added
+- `database.*`: renders `DATABASE_URL` and `PGPASSWORD` (from
+  `database.passwordSecret`, default the CNPG Secret `knowledge-provider-db-app`).
+  The app applies its SQL migrations on startup.
+- `objectStore.*`: renders `OBJECT_STORE_TYPE`, `_ENDPOINT`, `_BUCKET`,
+  `_CREDENTIALS_TYPE`, `_REGION`, `_CREATE_BUCKET`. Supports `s3` (MinIO, AWS)
+  and `gcs`.
+- `runtimeProfile` (`KP_RUNTIME_PROFILE`, default `production`). The app
+  accepts `keycloak.authDisabled: true` only with `runtimeProfile: local`;
+  the render now fails on the mismatch.
+- `keycloak.issuerUrl`, `consoleRedirectUri`, `googleConsoleUrl`,
+  `providerGroupRoot`, `verifyLiveGroups`, `adminClientId`. The API now also
+  gets `KEYCLOAK_BACKCHANNEL_URL`.
+- `waitFor.database` and `waitFor.objectStore`.
+- `envConfig.EMBEDDING_PROMPT_STYLE` (`e5`) and `KP_INDEX_ONLY` (`"false"`).
+
+### Changed
+- **Breaking:** `minio.*` replaced by `objectStore.*`; `secretEnv`
+  `MINIO_ACCESS_KEY`/`MINIO_SECRET_KEY` renamed to
+  `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` (same Secret and keys).
+- **Breaking:** `keycloak.audience` is required when auth is on.
+  `KEYCLOAK_JWKS_URL` comes from `keycloak.url` (private), `KEYCLOAK_ISSUER`
+  from `keycloak.issuerUrl` when set.
+- **Breaking:** Keycloak admin access is a realm service account:
+  `keycloak.adminUsername` and `secretEnv.KEYCLOAK_ADMIN_PASSWORD` are replaced
+  by `keycloak.adminClientId` and `secretEnv.KEYCLOAK_ADMIN_CLIENT_SECRET`
+  (`knowledge-provider-keycloak-admin-client`). `adminRealm` defaults to
+  `realm` and `adminTokenRealm` to the managed realm (was `master`).
+- `secretEnv.VECTOR_DB_API_KEY` reads `knowledge-provider-qdrant`/`api-key`,
+  the Secret the `qdrant` chart's `apiKeySecret` uses.
+- `vectorStore.collectionName` defaults to `documents-index` (the app's).
+- `envConfig.RATE_LIMIT_OTP` renamed to `RATE_LIMIT_SIGN_IN`.
+- Pod runs as uid/gid 65532 (the Docker Hardened Image user);
+  `podSecurityContext` is on so `fsGroup` makes `hf-cache` writable.
+- NOTES.txt health check uses python; the image has no wget.
+
+### Removed
+- **Breaking:** `persistence.sqlite`, `persistence.documents` and
+  `persistence.books`, and `DOCUMENT_DB_PATH`/`ALLOWED_FILE_PATHS`. Only
+  `persistence.hfCache` remains. Existing SQLite data needs the app's
+  migration kit (`docs/UPGRADE.md`), not a values change.
+- `envConfig` `MASTER_CATALOG_PG_*`, `AI_LAYER_REDIS_*`,
+  `MASTER_CATALOG_REDIS_TTL_SECONDS`, and their `secretEnv` passwords. The
+  app no longer reads them.
+- The replicaCount > 1 warning: PostgreSQL has no single-writer limit.
+
 ## [0.3.0] - 2026-11-13
 
 ### Changed

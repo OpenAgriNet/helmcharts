@@ -78,19 +78,6 @@ spec:
           resources:
             {{- include "common.resources" . | nindent 12 }}
           volumeMounts:
-            {{- if .Values.persistence.sqlite.enabled }}
-            - name: sqlite
-              mountPath: /data
-            {{- end }}
-            {{- if .Values.persistence.documents.enabled }}
-            - name: documents
-              mountPath: /data/documents
-            {{- end }}
-            {{- if .Values.persistence.books.enabled }}
-            - name: books
-              mountPath: /app/books
-              readOnly: true
-            {{- end }}
             {{- if .Values.persistence.hfCache.enabled }}
             - name: hf-cache
               mountPath: /opt/hf-cache
@@ -99,21 +86,6 @@ spec:
             {{- toYaml . | nindent 12 }}
             {{- end }}
       volumes:
-        {{- if .Values.persistence.sqlite.enabled }}
-        - name: sqlite
-          persistentVolumeClaim:
-            claimName: {{ .Values.persistence.sqlite.existingClaim | default (printf "%s-sqlite" (include "knowledge-provider-api.fullname" .)) }}
-        {{- end }}
-        {{- if .Values.persistence.documents.enabled }}
-        - name: documents
-          persistentVolumeClaim:
-            claimName: {{ .Values.persistence.documents.existingClaim | default (printf "%s-documents" (include "knowledge-provider-api.fullname" .)) }}
-        {{- end }}
-        {{- if .Values.persistence.books.enabled }}
-        - name: books
-          persistentVolumeClaim:
-            claimName: {{ .Values.persistence.books.existingClaim | default (printf "%s-books" (include "knowledge-provider-api.fullname" .)) }}
-        {{- end }}
         {{- if .Values.persistence.hfCache.enabled }}
         - name: hf-cache
           persistentVolumeClaim:
