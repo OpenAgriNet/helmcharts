@@ -1103,10 +1103,17 @@
                           "    if (err) throw new Error(`${err.code}: ${err.message}`);",
                           "});",
                           "",
-                          "// Discovery may answer later (on_discover); check the catalog only when it is in this reply.",
-                          "const catalogs = (pm.response.json().message || {}).catalogs;",
-                          "(catalogs ? pm.test : pm.test.skip)('pmkisan is discovered', () => {",
-                          "    pm.expect(catalogs.some(c => c.provider && c.provider.id === 'pmkisan')).to.be.true;",
+                          "// The same filter the tool's own _discover_* function sends. Matching on",
+                          "// @type alone would return every scheme publishing the capability, so the",
+                          "// half of the match: without it this request answers with the other scheme's",
+                          "// desk as well, and a tool taking the first hit would call the wrong provider.",
+                          "const catalogs = (pm.response.json().message || {}).catalogs || [];",
+                          "pm.test('exactly one catalog, and it is pmkisan', () => {",
+                          "    pm.expect(catalogs).to.have.lengthOf(1);",
+                          "    pm.expect(catalogs[0].provider.id).to.eql('pmkisan');",
+                          "});",
+                          "pm.test('the resource the tool will post is the one discovered', () => {",
+                          "    pm.expect(catalogs[0].resources.map(r => r.id)).to.eql(['res:pmkisan:grievance']);",
                           "});"
                         ]
                       }
@@ -1122,7 +1129,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"context\": {\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.resourceAttributes.\\\"@type\\\" == \\\"openagrinet:Grievance\\\" && @.resourceAttributes.informationMode == \\\"OnDemand\\\")\"\n      }\n    }\n  }\n}",
+                      "raw": "{\n  \"context\": {\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.resourceAttributes.\\\"@type\\\" == \\\"openagrinet:Grievance\\\" && @.resourceAttributes.scheme.code == \\\"PM-KISAN\\\")\"\n      }\n    }\n  }\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1562,11 +1569,27 @@
                         "type": "text/javascript",
                         "exec": [
                           "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-                          "const id = 'pmfby';",
-                          "const cat = (pm.response.json().message.catalogs || []).find(k => k.provider.id === id);",
-                          "pm.test('the PMFBY desk is listed', () => pm.expect(cat).to.be.ok);",
-                          "const res = cat.resources[0];",
-                          "pm.test('no OTP: no challenge published', () => pm.expect(res.resourceAttributes.challenge).to.be.undefined);"
+                          "",
+                          "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                          "// status code alone does not tell you the call worked.",
+                          "pm.test('not a NACK', () => {",
+                          "    const b = pm.response.json();",
+                          "    const err = (b.error) || (b.message && b.message.error);",
+                          "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                          "});",
+                          "",
+                          "// The same filter the tool's own _discover_* function sends. Matching on",
+                          "// @type alone would return every scheme publishing the capability, so the",
+                          "// half of the match: without it this request answers with the other scheme's",
+                          "// desk as well, and a tool taking the first hit would call the wrong provider.",
+                          "const catalogs = (pm.response.json().message || {}).catalogs || [];",
+                          "pm.test('exactly one catalog, and it is pmfby', () => {",
+                          "    pm.expect(catalogs).to.have.lengthOf(1);",
+                          "    pm.expect(catalogs[0].provider.id).to.eql('pmfby');",
+                          "});",
+                          "pm.test('the resource the tool will post is the one discovered', () => {",
+                          "    pm.expect(catalogs[0].resources.map(r => r.id)).to.eql(['res:pmfby:grievance']);",
+                          "});"
                         ]
                       }
                     }
@@ -1581,7 +1604,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"context\": {\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.resourceAttributes.\\\"@type\\\" == \\\"openagrinet:Grievance\\\")\"\n      }\n    }\n  }\n}",
+                      "raw": "{\n  \"context\": {\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.resourceAttributes.\\\"@type\\\" == \\\"openagrinet:Grievance\\\" && @.resourceAttributes.scheme.code == \\\"PMFBY\\\")\"\n      }\n    }\n  }\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1959,10 +1982,17 @@
                       "    if (err) throw new Error(`${err.code}: ${err.message}`);",
                       "});",
                       "",
-                      "// Discovery may answer later (on_discover); check the catalog only when it is in this reply.",
-                      "const catalogs = (pm.response.json().message || {}).catalogs;",
-                      "(catalogs ? pm.test : pm.test.skip)('pmkisan application status is discovered', () => {",
-                      "    pm.expect(catalogs.some(c => c.provider && c.provider.id === 'pmkisan')).to.be.true;",
+                      "// The same filter the tool's own _discover_* function sends. Matching on",
+                      "// @type alone would return every scheme publishing the capability, so the",
+                      "// half of the match: without it this request answers with the other scheme's",
+                      "// desk as well, and a tool taking the first hit would call the wrong provider.",
+                      "const catalogs = (pm.response.json().message || {}).catalogs || [];",
+                      "pm.test('exactly one catalog, and it is pmkisan', () => {",
+                      "    pm.expect(catalogs).to.have.lengthOf(1);",
+                      "    pm.expect(catalogs[0].provider.id).to.eql('pmkisan');",
+                      "});",
+                      "pm.test('the resource the tool will post is the one discovered', () => {",
+                      "    pm.expect(catalogs[0].resources.map(r => r.id)).to.eql(['res:pmkisan:application-status']);",
                       "});"
                     ]
                   }
@@ -1978,7 +2008,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"context\": {\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.resourceAttributes.\\\"@type\\\" == \\\"openagrinet:SchemeApplication\\\" && @.resourceAttributes.informationMode == \\\"OnDemand\\\")\"\n      }\n    }\n  }\n}",
+                  "raw": "{\n  \"context\": {\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.resourceAttributes.\\\"@type\\\" == \\\"openagrinet:SchemeApplication\\\" && @.resourceAttributes.scheme.code == \\\"PM-KISAN\\\")\"\n      }\n    }\n  }\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -2302,6 +2332,167 @@
                 }
               },
               "response": []
+            }
+          ]
+        },
+        {
+          "name": "Publish",
+          "item": [
+            {
+              "name": "Publish - On-demand",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "pm.test('both resources accepted', () => {",
+                      "    const r = pm.response.json().message.results[0];",
+                      "    pm.expect(r.status).to.eql('ACCEPTED');",
+                      "    pm.expect(r.stats.itemCount).to.eql(2);",
+                      "    pm.expect(r.stats.providerCount).to.eql(1);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{network-adapter-publish}}",
+                  "host": [
+                    "{{network-adapter-publish}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"a1f00000-0000-4000-8000-000000000001\",\n    \"messageId\": \"a1f00000-0000-4000-8000-000000000002\",\n    \"timestamp\": \"2026-11-23T09:30:00Z\",\n    \"networkId\": \"oan.dev\",\n    \"senderId\": \"oan.dev\",\n    \"receiverId\": \"oan.dev\"\n  },\n  \"message\": {\n    \"catalogs\": [\n      {\n        \"id\": \"cat-aif\",\n        \"bppId\": \"oan.dev\",\n        \"bppUri\": \"https://net-a.oan.dev\",\n        \"descriptor\": {\n          \"code\": \"AIF\",\n          \"name\": \"Agriculture Infrastructure Fund\"\n        },\n        \"provider\": {\n          \"id\": \"aif\",\n          \"descriptor\": {\n            \"code\": \"AIF\",\n            \"name\": \"Agriculture Infrastructure Fund\"\n          }\n        },\n        \"isActive\": true,\n        \"resources\": [\n          {\n            \"id\": \"res-aif-loan-status\",\n            \"descriptor\": {\n              \"code\": \"aif-loan-status\",\n              \"name\": \"AIF loan application status\",\n              \"shortDesc\": \"Verify an AIF beneficiary by OTP, then read one loan application's status.\"\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/schema/AgricultureResource/v0.2/context.jsonld\",\n              \"@type\": \"openagrinet:AgricultureResource\",\n              \"informationMode\": \"OnDemand\",\n              \"subjectCategories\": [\n                \"Scheme\"\n              ],\n              \"agricultureSubjects\": [\n                {\n                  \"descriptor\": {\n                    \"code\": \"AIF\",\n                    \"name\": \"Agriculture Infrastructure Fund\"\n                  }\n                }\n              ],\n              \"languages\": [\n                \"en\"\n              ],\n              \"coverageAreas\": [\n                {\n                  \"codeScheme\": \"ISO-3166-1\",\n                  \"areaLevel\": \"Country\",\n                  \"areaCode\": \"IN\",\n                  \"areaName\": \"India\"\n                }\n              ],\n              \"actions\": [\n                {\n                  \"action\": \"init\",\n                  \"operationRef\": \"https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/api/external/aif/loan/v0.2/openapi.yaml#/paths/~1validate_beneficiaries~1/post\"\n                },\n                {\n                  \"action\": \"status\",\n                  \"operationRef\": \"https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/api/external/aif/loan/v0.2/openapi.yaml#/paths/~1Status/get\"\n                }\n              ]\n            }\n          },\n          {\n            \"id\": \"res-aif-tickets\",\n            \"descriptor\": {\n              \"code\": \"aif-support-tickets\",\n              \"name\": \"AIF support tickets\",\n              \"shortDesc\": \"Read the support tickets raised by a verified AIF beneficiary.\"\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/schema/AgricultureResource/v0.2/context.jsonld\",\n              \"@type\": \"openagrinet:AgricultureResource\",\n              \"informationMode\": \"OnDemand\",\n              \"subjectCategories\": [\n                \"Scheme\"\n              ],\n              \"agricultureSubjects\": [\n                {\n                  \"descriptor\": {\n                    \"code\": \"AIF\",\n                    \"name\": \"Agriculture Infrastructure Fund\"\n                  }\n                }\n              ],\n              \"languages\": [\n                \"en\"\n              ],\n              \"coverageAreas\": [\n                {\n                  \"codeScheme\": \"ISO-3166-1\",\n                  \"areaLevel\": \"Country\",\n                  \"areaCode\": \"IN\",\n                  \"areaName\": \"India\"\n                }\n              ],\n              \"actions\": [\n                {\n                  \"action\": \"status\",\n                  \"operationRef\": \"https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/api/external/aif/tickets/v0.2/openapi.yaml#/paths/~1support-tickets/get\"\n                }\n              ]\n            }\n          }\n        ]\n      }\n    ],\n    \"publishDirectives\": [\n      {\n        \"catalogId\": \"cat-aif\",\n        \"catalogType\": \"REGULAR\",\n        \"updateMode\": \"MERGE\",\n        \"visibleTo\": [\n          \"*\"\n        ]\n      }\n    ]\n  }\n}"
+                },
+                "description": "Both AIF capabilities as one AgricultureResource v0.2 catalog. visibleTo is [\"*\"], which is what a discover sending networkId \"*\" matches."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Discover",
+          "item": [
+            {
+              "name": "Discover - loan status",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "pm.test('finds res-aif-loan-status', () => {",
+                      "    const rs = pm.response.json().message.catalogs",
+                      "        .flatMap(c => c.resources || []);",
+                      "    pm.expect(rs.map(r => r.id)).to.include('res-aif-loan-status');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{network-adapter-host}}/discover",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "discover"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"networkId\": \"*\",\n    \"senderId\": \"oan.dev\",\n    \"receiverId\": \"oan.dev\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.descriptor.code == \\\"aif-loan-status\\\")\"\n      }\n    }\n  }\n}"
+                },
+                "description": "Both AIF resources are openagrinet:AgricultureResource, so @type cannot tell them apart; descriptor.code can. The resource carries the init and status actions the journey below sends."
+              }
+            },
+            {
+              "name": "Discover - support tickets",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "pm.test('finds res-aif-tickets', () => {",
+                      "    const rs = pm.response.json().message.catalogs",
+                      "        .flatMap(c => c.resources || []);",
+                      "    pm.expect(rs.map(r => r.id)).to.include('res-aif-tickets');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{network-adapter-host}}/discover",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "discover"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"networkId\": \"*\",\n    \"senderId\": \"oan.dev\",\n    \"receiverId\": \"oan.dev\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.descriptor.code == \\\"aif-support-tickets\\\")\"\n      }\n    }\n  }\n}"
+                },
+                "description": "The tickets resource advertises status only. The tool refuses to send init against it rather than discovering that upstream."
+              }
             }
           ]
         },

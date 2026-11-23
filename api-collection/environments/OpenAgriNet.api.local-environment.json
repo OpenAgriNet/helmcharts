@@ -25,7 +25,7 @@
     },
     {
       "key": "networkId",
-      "value": "net-a.oan.dev",
+      "value": "oan.dev",
       "type": "default",
       "enabled": true
     },
@@ -37,25 +37,25 @@
     },
     {
       "key": "senderId",
-      "value": "net-a.oan.dev",
+      "value": "oan.dev",
       "type": "default",
       "enabled": true
     },
     {
       "key": "receiverId",
-      "value": "net-a.oan.dev",
+      "value": "oan.dev",
       "type": "default",
       "enabled": true
     },
     {
       "key": "bppId",
-      "value": "net-a.oan.dev",
+      "value": "oan.dev",
       "type": "default",
       "enabled": true
     },
     {
       "key": "bppUri",
-      "value": "https://net-a.oan.dev",
+      "value": "https://oan.dev",
       "type": "default",
       "enabled": true
     },
