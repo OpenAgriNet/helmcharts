@@ -1,0 +1,10 @@
+          - id: AgricultureResource
+            config:
+              bindingKeys: "__BINDING_KEY__"
+              # body: SATHI refuses its apiKey in a header or the query string.
+              # 409 is SATHI's "no stock" answer, so it is mapped, not failed.
+              __PARTICIPANT_ID__:
+                authScheme: body
+                bodyField: apiKey
+                bodyValueEnv: SATHI_API_KEY
+                answerStatuses: "409"
