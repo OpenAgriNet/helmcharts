@@ -1,21 +1,38 @@
-# SATHI seed stock, openagrinet:AgricultureResource, select. SATHI's own request
-# and answer travel untranslated as a ProviderOperationPayload in commitmentAttributes.
+# SATHI seed stock, openagrinet:AgricultureResource, select. The request is built from
+# AgricultureResource fields; the answer goes back as SATHI's own reply.
 
+# The select names one crop and the district's LGD codes with AgricultureResource fields.
 required:
   - check: |
       (
-        $p := beckn.message.contract.commitments[0].commitmentAttributes.payload;
-        $type($p) = "object" and $exists($p.cropCode) and $exists($p.seedClass)
-          and $exists($p.stateCode) and $exists($p.districtCode)
+        $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
+        $count($ra.agricultureSubjects) = 1 and $exists($ra.agricultureSubjects[0].descriptor.code)
       )
-    message: "this capability needs commitmentAttributes.payload with cropCode, seedClass, stateCode and districtCode"
+    message: "this capability needs exactly one crop in agricultureSubjects, with its SATHI crop code"
+  - check: |
+      (
+        $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
+        $exists($ra.coverageAreas[codeScheme = "LGD" and areaLevel = "State"].areaCode)
+          and $exists($ra.coverageAreas[codeScheme = "LGD" and areaLevel = "District"].areaCode)
+      )
+    message: "this capability needs the LGD State and District codes in coverageAreas"
 
-# The body is the caller's payload as is. The adapter adds apiKey (authScheme body).
+# seedClass has no pack field and v1 always asks for CERTIFIED I. apiKey is listed so
+# SATHI's full body is visible; adapterCredential is empty here, and the adapter fills it.
 request: |
-  beckn.message.contract.commitments[0].commitmentAttributes.payload
+  (
+    $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
+    {
+      "cropCode": $ra.agricultureSubjects[0].descriptor.code,
+      "seedClass": "CERTIFIED I",
+      "stateCode": $ra.coverageAreas[codeScheme = "LGD" and areaLevel = "State"].areaCode,
+      "districtCode": $ra.coverageAreas[codeScheme = "LGD" and areaLevel = "District"].areaCode,
+      "apiKey": adapterCredential
+    }
+  )
 
-# SATHI's answer goes back unchanged, a 200 with lots or a 409 "Data Not Found",
-# under the same operationRef the caller sent.
+# Temporary until the response is decided: SATHI's answer goes back unchanged, a 200
+# with lots or a 409 "Data Not Found", as a ProviderOperationPayload.
 response: |
   (
     $selected := beckn.message.contract.commitments[0];
@@ -36,9 +53,9 @@ response: |
               "resources": [$selected.resources],
               "offer": $selected.offer,
               "commitmentAttributes": {
-                "@context": $selected.commitmentAttributes.`@context`,
+                "@context": "https://raw.githubusercontent.com/OpenAgriNet/helmcharts/feat/agriculture-resource-sathi/quick-start/config/schemas/provider-payload/context.jsonld",
                 "@type": "ProviderOperationPayload",
-                "operationRef": $selected.commitmentAttributes.operationRef,
+                "operationRef": "https://openagrinet.github.io/network-specs/api/external/sathi/stock/v0.2/openapi.yaml#/paths/~1inv-apis~1stock~1getSeedAvailability/post",
                 "payload": response
               }
             }
