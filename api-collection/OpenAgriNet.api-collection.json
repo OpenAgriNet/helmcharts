@@ -2153,66 +2153,6 @@
       ]
     },
     {
-      "name": "Stack Health",
-      "description": "Run these first. Every one is a plain GET and none of them signs anything.",
-      "item": [
-        {
-          "name": "network adapter",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{network-adapter-host}}/health",
-              "host": [
-                "{{network-adapter-host}}"
-              ],
-              "path": [
-                "health"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "discovery",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{discovery-host}}/healthz",
-              "host": [
-                "{{discovery-host}}"
-              ],
-              "path": [
-                "healthz"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
       "name": "AIF - loan and grievance status",
       "description": "Two capabilities on one host and one verification. Run Journey top to bottom: request 1 sets aif-transactionId and 2 to 4 reuse it, because that is what the adapter keys the farmer's session on. Out of order, or with a fresh id, status is refused.\n\nSet aif-schema-base to whichever host serves the v0.2 packs. openagrinet.github.io serves v0.1 only today, so against a local stack this is http://spec-files/schema and that host is listed in the adapter's EXTRA_SCHEMA_DOMAINS. The adapter fetches the pack, not Postman, so the name only has to resolve inside the compose network.\n\naif-networkId is oan.dev rather than the net-a.oan.dev the other folders use: AIF is served by the single adapter.\n\nThe defaults are the mock's: beneficiary 101, loan 201, OTP 123456. Against the real service the OTP arrives by SMS and the other two are the farmer's. See migration-plan/aif/quick-try.md.",
       "item": [
@@ -2758,6 +2698,66 @@
                 }
               },
               "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Stack Health",
+      "description": "Run these first. Every one is a plain GET and none of them signs anything.",
+      "item": [
+        {
+          "name": "network adapter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{network-adapter-host}}/health",
+              "host": [
+                "{{network-adapter-host}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "discovery",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{discovery-host}}/healthz",
+              "host": [
+                "{{discovery-host}}"
+              ],
+              "path": [
+                "healthz"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
             }
           ]
         }
