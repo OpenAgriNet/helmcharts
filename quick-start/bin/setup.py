@@ -138,6 +138,14 @@ PROVIDERS = {
         "needs": ["VISTAAR_TOKEN_URL", "VISTAAR_CLIENT_ID",
                   "VISTAAR_CLIENT_SECRET"],
     },
+    # The stock call only. Crop and district codes come from the published
+    # catalog, so SATHI's master API is not called.
+    "sathi": {
+        "prefix": "SATHI", "name": "SATHI seed availability",
+        "capability_name": "Agriculture Resource", "version": "v0.2",
+        "method": "POST", "default_path": "/inv-apis2/stock/getSeedAvailability",
+        "needs": ["SATHI_API_KEY"],
+    },
     "pocra": {
         "prefix": "POCRA", "name": "POCRA agriculture facilities",
         "capability_name": "Agriculture Facility", "version": "v0.1",

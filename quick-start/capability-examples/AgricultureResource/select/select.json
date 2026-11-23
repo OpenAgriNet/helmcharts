@@ -1,0 +1,64 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "select",
+    "version": "2.0.0",
+    "transactionId": "a3000000-0000-4000-8000-000000000001",
+    "messageId": "b3000000-0000-4000-8000-000000000003",
+    "timestamp": "2026-11-23T09:30:00Z",
+    "bppUri": "https://net-a.oan.dev",
+    "schemaContext": [
+      "https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-features/schema/AgricultureResource/v0.2/context.jsonld#openagrinet:AgricultureResource"
+    ],
+    "networkId": "net-a.oan.dev",
+    "senderId": "net-a.oan.dev",
+    "receiverId": "net-a.oan.dev"
+  },
+  "message": {
+    "contract": {
+      "status": {
+        "code": "ACTIVE",
+        "name": "active"
+      },
+      "commitments": [
+        {
+          "status": {
+            "descriptor": {
+              "code": "ACTIVE",
+              "name": "active"
+            }
+          },
+          "resources": [
+            {
+              "id": "res-sathi-stock:27:487",
+              "quantity": {
+                "count": 1
+              },
+              "resourceAttributes": {
+                "@context": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-features/schema/AgricultureResource/v0.2/context.jsonld",
+                "@type": "openagrinet:AgricultureResource",
+                "cropCode": "A0102",
+                "seedClass": "CERTIFIED I",
+                "stateCode": "27",
+                "districtCode": "487"
+              }
+            }
+          ],
+          "offer": {
+            "id": "offer:sathi-stock",
+            "resourceIds": [
+              "res-sathi-stock:27:487"
+            ],
+            "provider": {
+              "id": "sathi",
+              "descriptor": {
+                "code": "SATHI",
+                "name": "SATHI (Seed Authentication, Traceability and Holistic Inventory)"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

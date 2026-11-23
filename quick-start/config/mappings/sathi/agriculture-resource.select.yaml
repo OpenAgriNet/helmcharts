@@ -1,0 +1,65 @@
+# SATHI seed stock, openagrinet:AgricultureResource, select. resourceAttributes carries
+# SATHI's own request and answer fields (its OpenAPI) beside the pack's @context and @type.
+
+required:
+  - check: |
+      (
+        $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
+        $exists($ra.cropCode) and $exists($ra.seedClass) and $exists($ra.stateCode) and $exists($ra.districtCode)
+      )
+    message: "this capability needs cropCode, seedClass, stateCode and districtCode in resourceAttributes"
+
+# The body is SATHI's request as sent. apiKey is listed so the full body is visible;
+# adapterCredential is empty here, and the adapter fills it (authScheme body).
+request: |
+  (
+    $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
+    {
+      "cropCode": $ra.cropCode,
+      "seedClass": $ra.seedClass,
+      "stateCode": $ra.stateCode,
+      "districtCode": $ra.districtCode,
+      "apiKey": adapterCredential
+    }
+  )
+
+# SATHI's answer goes back unchanged inside resourceAttributes: 200 with lots, or
+# 409 "Data Not Found" for no stock.
+response: |
+  (
+    $selected := beckn.message.contract.commitments[0];
+    $asked := $selected.resources[0];
+    {
+      "context": {
+        "version": beckn.context.version,
+        "action": "on_select",
+        "networkId": beckn.context.networkId,
+        "transactionId": beckn.context.transactionId,
+        "messageId": beckn.context.messageId,
+        "timestamp": $now()
+      },
+      "message": {
+        "contract": {
+          "commitments": [
+            {
+              "status": { "descriptor": { "code": "ACTIVE", "name": "active" } },
+              "resources": [
+                {
+                  "id": $asked.id,
+                  "quantity": { "count": 1 },
+                  "resourceAttributes": $merge([
+                    {
+                      "@context": $asked.resourceAttributes.`@context`,
+                      "@type": $asked.resourceAttributes.`@type`
+                    },
+                    response
+                  ])
+                }
+              ],
+              "offer": $selected.offer
+            }
+          ]
+        }
+      }
+    }
+  )

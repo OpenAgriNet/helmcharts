@@ -1,0 +1,38 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "discover",
+    "version": "2.0.0",
+    "transactionId": "a3000000-0000-4000-8000-000000000001",
+    "messageId": "b3000000-0000-4000-8000-000000000002",
+    "timestamp": "2026-11-23T09:30:00Z",
+    "schemaContext": [
+      "https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-features/schema/AgricultureResource/v0.2/context.jsonld#openagrinet:AgricultureResource"
+    ],
+    "networkId": "*",
+    "senderId": "net-a.oan.dev",
+    "receiverId": "net-a.oan.dev"
+  },
+  "message": {
+    "intent": {
+      "filters": {
+        "type": "jsonpath",
+        "expression": "$.catalogs[*].resources[*] ? (@.descriptor.code == \"sathi-stock\")"
+      },
+      "spatial": [
+        {
+          "op": "S_INTERSECTS",
+          "targets": "$.catalogs[*].resources[*].resourceAttributes.coverageAreas[*]",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              73.7898,
+              19.9975
+            ]
+          },
+          "quantifier": "ANY"
+        }
+      ]
+    }
+  }
+}
