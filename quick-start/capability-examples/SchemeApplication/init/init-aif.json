@@ -1,0 +1,56 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "init",
+    "version": "2.0.0",
+    "networkId": "oan.dev",
+    "senderId": "oan.dev",
+    "receiverId": "oan.dev",
+    "transactionId": "aaaaaaaa-0000-4000-8000-00000000a1f0",
+    "messageId": "aaaaaaaa-0000-4000-8000-0000000000a1",
+    "timestamp": "2026-11-23T13:10:00.000Z"
+  },
+  "message": {
+    "contract": {
+      "id": "aaaaaaaa-0000-4000-8000-00000000c0de",
+      "commitments": [
+        {
+          "status": {
+            "descriptor": {
+              "code": "DRAFT"
+            }
+          },
+          "offer": {
+            "id": "off:aif:loan-status",
+            "provider": {
+              "id": "aif",
+              "descriptor": {
+                "name": "Agriculture Infrastructure Fund"
+              }
+            },
+            "resourceIds": [
+              "res:aif:loan-status"
+            ]
+          },
+          "resources": [
+            {
+              "id": "res:aif:loan-status",
+              "quantity": {
+                "count": 1
+              }
+            }
+          ],
+          "commitmentAttributes": {
+            "@context": "https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.2/context.jsonld",
+            "@type": "openagrinet:SchemeApplication",
+            "informationMode": "OnDemand",
+            "scheme": {
+              "code": "AIF"
+            },
+            "beneficiaryId": "101"
+          }
+        }
+      ]
+    }
+  }
+}

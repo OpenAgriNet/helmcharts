@@ -1,0 +1,34 @@
+__PROVIDER_CONFIG__ Grievance
+              # Two credentials on every read, and they are not alternatives:
+              # apiKey says which service is calling, the bearer says which
+              # farmer consented. AIF checks both on the same request.
+              #
+              # The apiKey is the provider's, so it sits in the provider block
+              # and applies to both bindings.
+              __PARTICIPANT_ID__:
+                authScheme: header
+                headerName: apiKey
+                headerValueEnv: AIF_API_KEY
+              # The bearer is the farmer's, bought on init when they answer the
+              # OTP and spent on every status call until it expires. Held in
+              # the cache against the transaction, never returned on the wire.
+              "__PARTICIPANT_ID__|openagrinet:SchemeApplication":
+                sessionKeyAt: "context.transactionId,context.transaction_id"
+                sessionCaptureOn: init
+                sessionSendOn: status
+                sessionTokenField: Token
+                sessionTtlField: ExpiresIn
+                # The floor when AIF states no ExpiresIn, and the slack taken
+                # off whatever lifetime is used so a token is not spent in the
+                # second it expires.
+                sessionTtl: 1h
+                sessionTtlMargin: 60s
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.beneficiaryId"
+              # Grievance buys no session of its own: AIF has one verification
+              # and one token, so this binding spends the one the scheme
+              # application bought. sessionBindingKey is what points at it.
+              "__PARTICIPANT_ID__|openagrinet:Grievance":
+                sessionKeyAt: "context.transactionId,context.transaction_id"
+                sessionBindingKey: "__PARTICIPANT_ID__|openagrinet:SchemeApplication"
+                sessionSendOn: status
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.beneficiaryId"

@@ -1,0 +1,67 @@
+# AIF scheme application, status -> GET /Status.
+#
+# GET, so what the request half produces becomes the query string rather than
+# a body. The farmer's session rides as Authorization: Bearer beside the
+# service apiKey; neither is named here, both are the adapter's.
+
+required:
+  - check: |
+      (
+        $ca := beckn.message.contract.commitments[0].commitmentAttributes;
+        $exists($ca.beneficiaryId) and $exists($ca.loanApplicationNumber)
+      )
+    message: "this capability needs beneficiaryId and loanApplicationNumber in commitmentAttributes"
+
+# beneficiaryId is not sent: AIF reads it from the bearer. It is still required
+# above, because the adapter checks it against the beneficiary the session was
+# bought for -- a transaction id alone must not be enough to ask about someone
+# else.
+request: |
+  {
+    "loanApplicationNumber": $number(
+      beckn.message.contract.commitments[0].commitmentAttributes.loanApplicationNumber)
+  }
+
+# A bare JSON string is the answer ("Disbursed"). An object means AIF refused,
+# and says so in Message or message even with a 200.
+response: |
+  $exists(_status)
+  ? {}
+  : (
+    $c := beckn.message.contract.commitments[0];
+    $ca := $c.commitmentAttributes;
+    $at := "$.message.contract.commitments[0].commitmentAttributes.";
+    $state := $type(response) = "string" ? $trim(response) : undefined;
+    $said := $exists(response.Message) ? response.Message : response.message;
+
+    $not($exists($state)) or $state = ""
+    ? { "_error": {
+          "status": 400,
+          "code": "BIZ_GENERIC_ERROR",
+          "message": "AIF holds no loan application with that number for this beneficiary.",
+          "path": $at & "loanApplicationNumber",
+          "cause": $said } }
+    : {
+      "context": $merge([beckn.context, { "action": "on_status", "timestamp": $now() }]),
+      "message": {
+        "contract": {
+          "id": beckn.message.contract.id,
+          "commitments": [{
+            "status": { "descriptor": { "code": "CLOSED" } },
+            "offer":     $c.offer,
+            "resources": $c.resources,
+            "commitmentAttributes": {
+              "@type":                 $ca.`@type`,
+              "informationMode":       "OnDemand",
+              "scheme":                $ca.scheme,
+              "beneficiaryId":         $ca.beneficiaryId,
+              "loanApplicationNumber": $ca.loanApplicationNumber,
+              "application": {
+                "status": { "code": $replace($state, /\s+/, ""), "name": $state }
+              }
+            }
+          }]
+        }
+      }
+    }
+  )

@@ -1,0 +1,20 @@
+          # The Grievance step, shared by every provider that answers the
+          # capability -- PM-KISAN, PMFBY and AIF today. One step, not one
+          # each: the adapter picks per-provider config by binding key from
+          # inside a step, so a second step named Grievance would shadow this
+          # one.
+          #
+          # SchemeApplication is served from the same step for a second
+          # reason: a provider's two bindings refer to each other. The OTP
+          # taken for a SchemeApplication is what a Grievance presents --
+          # PM-KISAN through otpBindingKey, AIF through sessionBindingKey --
+          # and a binding can only name another inside its own step.
+          #
+          # The head is here rather than in one provider's fragment so that
+          # any member can be served without the others. It carries no
+          # provider's settings; those are in the fragments.
+          - id: Grievance
+            config:
+              bindingKeys: "__BINDING_KEY__"
+              providerIdAt: "message.contract.commitments[].offer.provider.id, message.support.channels[].provider.id"
+              capabilityCodeAt: "message.contract.commitments[].commitmentAttributes.@type, message.support.channels[].@type"

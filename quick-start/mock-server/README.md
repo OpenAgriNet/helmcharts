@@ -1,13 +1,19 @@
 # Mock providers
 
-Three stand-in upstreams, so the stack can be exercised end to end without
+Four stand-in upstreams, so the stack can be exercised end to end without
 credentials for the real services.
+
+Three are a convenience: the real service can be called, and in a normal
+deployment is. `mockaif` is not. AIF verifies a farmer with an OTP to their
+registered mobile number, so nobody who is not that farmer can exercise the
+session path against the real service at all.
 
 | mock | stands in for | port | auth |
 |---|---|---|---|
 | `mockimd` | IMD Mausamgram NWP | 9100 | basic |
 | `mockagmarknet` | Agmarknet Vistaar | 9101 | token as a query parameter |
 | `mockpmkisan` | PM-KISAN chatbot + grievance APIs | 9102 | a token in the body, one per service |
+| `mockaif` | Agriculture Infrastructure Fund | 9103 | an `apiKey` header **and** a per-farmer bearer |
 
 ## Why the sources are here
 
@@ -18,17 +24,19 @@ pulled like everything else:
     docker build -t ghcr.io/<org>/oan-mockimd:latest        mock-server/mockimd
     docker build -t ghcr.io/<org>/oan-mockagmarknet:latest  mock-server/mockagmarknet
     docker build -t ghcr.io/<org>/oan-mockpmkisan:latest    mock-server/mockpmkisan
+    docker build -t ghcr.io/<org>/oan-mockaif:latest        mock-server/mockaif
     docker push ghcr.io/<org>/oan-mockimd:latest
     docker push ghcr.io/<org>/oan-mockagmarknet:latest
     docker push ghcr.io/<org>/oan-mockpmkisan:latest
+    docker push ghcr.io/<org>/oan-mockaif:latest
 
-Then set `MOCKIMD_IMAGE`, `MOCKAGMARKNET_IMAGE` and `MOCKPMKISAN_IMAGE` in
-`.env`.
+Then set `MOCKIMD_IMAGE`, `MOCKAGMARKNET_IMAGE`, `MOCKPMKISAN_IMAGE` and
+`MOCKAIF_IMAGE` in `.env`.
 
 ## What they deliberately get wrong
 
 A mock that answered tidily would let a mapping pass here and fail against the
-real service, so all three reproduce the awkward parts on purpose.
+real service, so all four reproduce the awkward parts on purpose.
 
 `mockimd` answers `fcstday1..N` with the count coming from `-days`, so a mapping
 that hardcodes five days is caught. Forecasts derive from the requested point,
@@ -58,6 +66,22 @@ real one does. A missing or wrong token is answered with **plain text where the
 envelope belongs**, which is how the real service refuses, so a passing run
 proves the token was actually sent.
 
-None of the three reproduces the real services' rate limits, downtime pages or
+`mockaif` spells its flag `Success` and its text `Message` on every happy path
+and `success`/`message` on the one BV42201 refusal, as the real one does, so a
+mapping reading a single casing is caught. `/Status` answers a **bare JSON
+string** (`"Disbursed"`), and `/support-tickets` answers a bare string when
+there are no tickets and an array when there are — so a mapping that always
+iterates, or always reads a field, fails visibly. The OTP is **single-use**:
+verifying twice with the same one is refused, which is what forces the adapter
+to hold the session rather than re-verify per call. Both credentials are
+checked on every read, and a bearer issued for one beneficiary cannot be used
+to ask about another, so a passing run proves the apiKey AND the farmer's
+consent were both sent.
+
+An even `loanApplicationNumber` has no loan and an even `beneficiaryId` has no
+tickets, so the empty and not-found paths are reachable without a second magic
+constant.
+
+None of the four reproduces the real services' rate limits, downtime pages or
 error bodies. What the real ones do on no-data, throttling or auth failure is
 still unobserved.

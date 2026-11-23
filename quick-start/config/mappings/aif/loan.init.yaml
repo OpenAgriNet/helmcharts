@@ -1,0 +1,87 @@
+# AIF scheme application, init -> POST /validate_beneficiaries/.
+#
+# One action and one endpoint for both halves of the OTP exchange, because AIF
+# has it that way: the same URL sends the OTP when the body carries none and
+# issues a session Token when it carries one. The binding holds one ActionPlan
+# per action name, so the branch is here rather than in the registry.
+#
+# The Token NEVER appears in the answer. The adapter holds it in the cache
+# against this transaction and sends it on the status calls; putting it in a
+# signed callback would hand a farmer's session to whoever reads the log.
+
+required:
+  - check: |
+      $exists(beckn.message.contract.commitments[0].commitmentAttributes.beneficiaryId)
+    message: "this capability needs beneficiaryId in commitmentAttributes"
+
+# beneficiaryId as a number: AIF's contract says integer, and its validator
+# refuses the quoted form. It is a string in the Beckn payload because the
+# adapter's session binding reads strings only.
+request: |
+  (
+    $ca := beckn.message.contract.commitments[0].commitmentAttributes;
+    $otp := $ca.challenge.response.value;
+    $asked := { "beneficiaryId": $number($ca.beneficiaryId) };
+    $exists($otp) ? $merge([$asked, { "otp": $string($otp) }]) : $asked
+  )
+
+# AIF spells its flag Success and its text Message on every happy path, and
+# success and message on the BV42201 refusal alone. Both are read.
+response: |
+  $exists(_status)
+  ? {}
+  : (
+    $ok := $exists(response.Success) ? response.Success : response.success;
+    $said := $exists(response.Message) ? response.Message : response.message;
+    $c := beckn.message.contract.commitments[0];
+    $ca := $c.commitmentAttributes;
+    $verifying := $exists($ca.challenge.response.value);
+    $at := "$.message.contract.commitments[0].commitmentAttributes.";
+
+    $otpWindowMillis := 10 * 60 * 1000;
+
+    $ok != true
+    ? { "_error": {
+          "status": 400,
+          "code": "BIZ_GENERIC_ERROR",
+          "message": $verifying
+            ? "AIF did not accept that OTP."
+            : "AIF holds no beneficiary with that id.",
+          "path": $at & ($verifying ? "challenge.response.value" : "beneficiaryId"),
+          "cause": $said } }
+    : {
+      "context": $merge([beckn.context, { "action": "on_init", "timestamp": $now() }]),
+      "message": {
+        "contract": $merge([beckn.message.contract, {
+          "commitments": [$merge([$c, {
+            "status": { "descriptor": { "code": $verifying ? "ACTIVE" : "DRAFT" } },
+            "commitmentAttributes": $merge([
+              {
+                "@type":           $ca.`@type`,
+                "informationMode": "OnDemand",
+                "scheme":          $ca.scheme,
+                "beneficiaryId":   $ca.beneficiaryId
+              },
+              $verifying
+                ? {
+                    "applicant": {
+                      "name": response.Beneficiary.Beneficiary_Name
+                    }
+                  }
+                : {
+                    "challenge": {
+                      "issued": {
+                        "method":    "OTP",
+                        "channel":   "SMS",
+                        "length":    6,
+                        "valueType": "NUMERIC",
+                        "expiresAt": $fromMillis($millis() + $otpWindowMillis)
+                      }
+                    }
+                  }
+            ])
+          }])]
+        }])
+      }
+    }
+  )

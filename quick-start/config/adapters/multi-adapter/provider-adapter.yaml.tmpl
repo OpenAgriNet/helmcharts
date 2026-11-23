@@ -102,7 +102,7 @@ modules:
             # host it and its $refs resolve to must be listed. Loading one pack
             # pulls 13-16 documents across these hosts -- drop any one and no
             # pack loads at all.
-            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io__EXTRA_SCHEMA_DOMAINS__"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
@@ -123,6 +123,7 @@ modules:
             # unbounded allocation driven by whoever can write a registry row.
             maxMappingBytes: 262144
             maxCacheEntries: 200
+__PROVIDER_CACHE__
 
         # One step per capability. Each recognises its own binding key and
         # passes anything else through.
@@ -237,7 +238,7 @@ __PROVIDER_STEP_IDS__
             cacheTTL: "3600"
             extendedSchema_enabled: "true"
             # Same trust boundary as the module above; see the note there.
-            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io"
+            extendedSchema_allowedDomains: "raw.githubusercontent.com,schema.beckn.io,schema.nfh.global,openagrinet.github.io__EXTRA_SCHEMA_DOMAINS__"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"

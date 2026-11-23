@@ -1,0 +1,86 @@
+# AIF grievance, status -> GET /support-tickets.
+#
+# Reading only. AIF publishes no filing call, so this capability answers
+# status and nothing else -- a support action would have no endpoint behind it.
+#
+# The session this spends was bought by the scheme-application binding's OTP
+# verification, exactly as PM-KISAN's grievance spends its chatbot OTP. The
+# adapter resolves that through sessionBindingKey; nothing here knows about it.
+
+required:
+  - check: |
+      $exists(beckn.message.contract.commitments[0].commitmentAttributes.beneficiaryId)
+    message: "this capability needs beneficiaryId in commitmentAttributes"
+
+# GET, so this becomes the query string.
+request: |
+  {
+    "beneficiaryId": $number(
+      beckn.message.contract.commitments[0].commitmentAttributes.beneficiaryId)
+  }
+
+# An array is the list of tickets; a bare string means there are none, which is
+# an answer and not a failure. An object carries a refusal, in Message or
+# message, even with a 200.
+response: |
+  $exists(_status)
+  ? {}
+  : (
+    $c := beckn.message.contract.commitments[0];
+    $ca := $c.commitmentAttributes;
+    $at := "$.message.contract.commitments[0].commitmentAttributes.";
+    $said := $exists(response.Message) ? response.Message : response.message;
+    /* "array" covers the list; "string" is AIF's way of saying none. */
+    $kind := $type(response);
+    $tickets := $kind = "array" ? response : [];
+
+    $STATUS_CODES := { "open": "Registered", "closed": "Resolved",
+                       "in progress": "UnderReview", "resolved": "Resolved" };
+    $text := function($v) {
+      $type($v) = "string" and $length($trim($v)) > 0 ? $trim($v)
+    };
+    /* A function body is one expression, so the local goes in a block. */
+    $caseStatus := function($v) {(
+      $known := $text($v) ? $lookup($STATUS_CODES, $lowercase($trim($v)));
+      $exists($known) ? $known : "UnderReview"
+    )};
+
+    $kind != "array" and $kind != "string"
+    ? { "_error": {
+          "status": 400,
+          "code": "BIZ_GENERIC_ERROR",
+          "message": "AIF could not list the support tickets for this beneficiary.",
+          "path": $at & "beneficiaryId",
+          "cause": $said } }
+    : {
+      "context": $merge([beckn.context, { "action": "on_status", "timestamp": $now() }]),
+      "message": {
+        "contract": {
+          "id": beckn.message.contract.id,
+          "commitments": [{
+            "status": { "descriptor": { "code": "ACTIVE" } },
+            "offer":     $c.offer,
+            "resources": $c.resources,
+            "commitmentAttributes": {
+              "@type":           $ca.`@type`,
+              "informationMode": "OnDemand",
+              "scheme":          $ca.scheme,
+              "beneficiaryId":   $ca.beneficiaryId,
+              /* Always an array, empty included: "no tickets" is a result the
+                 caller can render, and a missing field is one they cannot. */
+              "cases": [$map($tickets, function($t) {
+                {
+                  "ticketNo":              $string($t.LoanApplicationNumber),
+                  "loanApplicationNumber": $string($t.LoanApplicationNumber),
+                  "status":                { "code": $caseStatus($t.Status), "name": $text($t.Status) },
+                  "subject":               $text($t.Question),
+                  "description":           $text($t.description),
+                  "category":              { "name": $text($t.subQueryType) }
+                }
+              })]
+            }
+          }]
+        }
+      }
+    }
+  )
