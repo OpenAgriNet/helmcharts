@@ -1,0 +1,82 @@
+# photon-proxy: lets bharat-oan-api use the public Photon geocoder (photon.komoot.io).
+#
+# The API always calls Photon over plain http://host:port and with the default
+# python-httpx User-Agent; komoot redirects http to https and refuses that agent
+# with 403. This nginx forwards over https with its own agent, so no API change.
+#
+# Public Photon is a free fair-use service with no uptime promise, and every
+# place name a farmer types goes to komoot. Fine for dev, not for real traffic.
+#
+# Deploy:
+#   kubectl apply -f photon-proxy.yaml
+#   kubectl -n bharat-oan-api rollout status deploy/photon-proxy
+#   then set PHOTON_HOST=http://photon-proxy.bharat-oan-api.svc.cluster.local:2322
+#   in bharat-oan-api.env, update the Secret and restart bharat-oan-api.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: photon-proxy
+  namespace: bharat-oan-api
+data:
+  default.conf: |
+    server {
+      listen 2322;
+      location / {
+        proxy_pass https://photon.komoot.io;
+        proxy_ssl_server_name on;
+        proxy_set_header Host photon.komoot.io;
+        # komoot answers 403 to python-httpx's default agent.
+        proxy_set_header User-Agent "bharat-oan-api";
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: photon-proxy
+  namespace: bharat-oan-api
+  labels:
+    app: photon-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: photon-proxy
+  template:
+    metadata:
+      labels:
+        app: photon-proxy
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 2322
+          readinessProbe:
+            tcpSocket:
+              port: 2322
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: config
+          configMap:
+            name: photon-proxy
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: photon-proxy
+  namespace: bharat-oan-api
+spec:
+  selector:
+    app: photon-proxy
+  ports:
+    - port: 2322
+      targetPort: 2322

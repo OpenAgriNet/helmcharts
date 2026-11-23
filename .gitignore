@@ -102,3 +102,5 @@ ruvector.db
 # live at the same level and the local environments under
 # api-collection/environments/ are tracked on purpose.
 /api-collection/*environment*.json
+
+bharat-oan-api.env

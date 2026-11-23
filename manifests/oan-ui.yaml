@@ -1,0 +1,95 @@
+# OAN-UI: the chat web UI (nginx serving a static bundle on 8081).
+#
+# Before applying, replace every <...> below. The API URL is baked into the
+# image at build time, so use the image built for this environment.
+#
+# Deploy:
+#   kubectl apply -f oan-ui.yaml
+#   kubectl -n oan-ui create secret docker-registry ghcr-pull-secret \
+#     --docker-server=ghcr.io --docker-username=<github-user> --docker-password=<token-with-read:packages>
+#   kubectl -n oan-ui rollout status deploy/oan-ui
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: oan-ui
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oan-ui
+  namespace: oan-ui
+  labels:
+    app: oan-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oan-ui
+  template:
+    metadata:
+      labels:
+        app: oan-ui
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: oan-ui
+          image: ghcr.io/openagrinet/oan-ui:bh-dev-rc1
+          ports:
+            - name: http
+              containerPort: 8081
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oan-ui
+  namespace: oan-ui
+spec:
+  selector:
+    app: oan-ui
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: oan-ui
+  namespace: oan-ui
+  annotations:
+    # cert-manager gets a Let's Encrypt certificate for the tls host below.
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: kong
+  tls:
+    - hosts:
+        - oan.15.252.120.61.sslip.io
+      secretName: oan-tls
+  rules:
+    - host: oan.15.252.120.61.sslip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: oan-ui
+                port:
+                  name: http

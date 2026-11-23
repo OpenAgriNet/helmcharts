@@ -1,0 +1,130 @@
+# bharat-oan-api: the FastAPI app (port 8000, health at /api/health/*).
+#
+# Before applying, replace <image-tag>, <ingress-class> and <api-host> below,
+# and fill in bharat-oan-api.env (every setting the API reads lives there).
+#
+# Deploy, from this directory:
+#   kubectl apply -f bharat-oan-api.yaml
+#   kubectl -n bharat-oan-api create secret docker-registry ghcr-pull-secret \
+#     --docker-server=ghcr.io --docker-username=<github-user> --docker-password=<token-with-read:packages>
+#   kubectl -n bharat-oan-api create secret generic bharat-oan-api-env --from-env-file=bharat-oan-api.env
+#   # JWT pair: the API signs UI login tokens with the private key and verifies them with the public one
+#   openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out private_key.pem
+#   openssl pkey -in private_key.pem -pubout -out jwt_public_key.pem
+#   kubectl -n bharat-oan-api create secret generic bharat-oan-api-keys \
+#     --from-file=private_key.pem --from-file=jwt_public_key.pem
+#   kubectl -n bharat-oan-api rollout status deploy/bharat-oan-api
+#
+# Changed a value? Recreate the Secret and restart; env vars are read only at start:
+#   kubectl -n bharat-oan-api create secret generic bharat-oan-api-env --from-env-file=bharat-oan-api.env \
+#     --dry-run=client -o yaml | kubectl apply -f -
+#   kubectl -n bharat-oan-api rollout restart deploy/bharat-oan-api
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bharat-oan-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bharat-oan-api
+  namespace: bharat-oan-api
+  labels:
+    app: bharat-oan-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bharat-oan-api
+  template:
+    metadata:
+      labels:
+        app: bharat-oan-api
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: bharat-oan-api
+          image: ghcr.io/openagrinet/bharat-oan-api:bv-dev-2302de3
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: bharat-oan-api-env
+          env:
+            # Where the JWT pair below is mounted.
+            - name: JWT_PUBLIC_KEY_PATH
+              value: /etc/bharat-oan-api/keys/jwt_public_key.pem
+            - name: JWT_PRIVATE_KEY_PATH
+              value: /etc/bharat-oan-api/keys/private_key.pem
+          volumeMounts:
+            - name: jwt-keys
+              mountPath: /etc/bharat-oan-api/keys
+              readOnly: true
+          # Model load and 8 uvicorn workers can take minutes on a cold node.
+          startupProbe:
+            httpGet:
+              path: /api/health/live
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /api/health/live
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 5
+          # Ready only once Redis answers.
+          readinessProbe:
+            httpGet:
+              path: /api/health/ready
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          # Measured about 1 GiB per uvicorn worker at idle; the image runs 8.
+          resources:
+            requests:
+              cpu: "1"
+              memory: 8Gi
+            limits:
+              memory: 12Gi
+      volumes:
+        - name: jwt-keys
+          secret:
+            secretName: bharat-oan-api-keys
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bharat-oan-api
+  namespace: bharat-oan-api
+spec:
+  selector:
+    app: bharat-oan-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bharat-oan-api
+  namespace: bharat-oan-api
+spec:
+  ingressClassName: kong
+  # No tls block: Kong serves certificates by host name, so the oan-ui Ingress's
+  # certificate for this same host covers /api too. A second one would conflict.
+  rules:
+    - host: oan.15.252.120.61.sslip.io
+      http:
+        paths:
+          # Shares the host with oan-ui; every API route is under /api.
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: bharat-oan-api
+                port:
+                  name: http
