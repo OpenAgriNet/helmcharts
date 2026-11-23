@@ -4,6 +4,17 @@ All notable changes to the `litellm` chart are documented here. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this chart
 follows [Semantic Versioning](https://semver.org/).
 
+## [0.2.2] - 2026-11-23
+
+### Fixed
+
+- `otel.enabled: true` now exports spans. It set `OTEL_EXPORTER` and
+  `OTEL_ENDPOINT`, but LiteLLM exports nothing unless `otel` is one of its
+  callbacks, which only its config file can set -- so the gateway sent no
+  spans at all. With tracing on, the chart now renders that file
+  (ConfigMap `<release>-config`, `litellm_settings.callbacks: ["otel"]`) and
+  starts the gateway with `--config`. Nothing changes with tracing off.
+
 ## [0.2.1] - 2026-11-07
 
 ### Changed
