@@ -1,0 +1,96 @@
+# PMFBY scheme application, init -> POST /api/v1/services/nic/getOtp.
+#
+# Sends the OTP and nothing else. PMFBY splits the exchange across two
+# endpoints where AIF keeps it on one, so init and confirm are two actions
+# here rather than one branching on whether an answer was supplied.
+#
+# Never retried: a retry sends a second OTP and invalidates the first, so the
+# farmer reads one code and types another.
+
+required:
+  - check: |
+      $exists(beckn.message.contract.commitments[0].commitmentAttributes.applicant.mobile)
+    message: "this capability needs applicant.mobile in commitmentAttributes"
+
+# otpType is PMFBY's channel selector and SMS is the only one it serves.
+request: |
+  {
+    "mobile": $string(
+      beckn.message.contract.commitments[0].commitmentAttributes.applicant.mobile),
+    "otpType": "SMS"
+  }
+
+# The NIC envelope: a BOOLEAN status, the reason in error, and data as a bare
+# string on this call. Nothing about the OTP itself comes back, and nothing
+# about it is invented here -- the answer says a code was sent and where to
+# look for it, never what it is.
+response: |
+  (
+    /* Constants */
+    $SCHEME := { "code": "PMFBY", "name": "Pradhan Mantri Fasal Bima Yojana" };
+    $INFORMATION_MODE := "OnDemand";
+    $COMMITMENT_STATUS_DRAFT := "DRAFT";
+    $OTP_LENGTH := 6;
+    $OTP_WINDOW_MILLIS := 10 * 60 * 1000;
+    $ATTRIBUTES_PATH := "$.message.contract.commitments[0].commitmentAttributes.";
+
+    $MSG_REFUSED := "PMFBY could not send an OTP to that mobile number. Check that it is the number registered against the policy.";
+    $MSG_UNAVAILABLE := "PMFBY could not send an OTP right now. Please try again later.";
+
+    $ERROR_REFUSED := { "status": 400, "code": "BIZ_GENERIC_ERROR" };
+    $ERROR_UNAVAILABLE := { "status": 502, "code": "NET_DOWNSTREAM_UNAVAILABLE" };
+    /* PMFBY fails everything with status false, so its wording is the only way
+       to tell a caller mistake from a PMFBY fault. */
+    $KNOWN_REFUSALS := /not registered|invalid mobile|mobile number is required/;
+
+    /* Helpers */
+    $isText := function($value) { $type($value) = "string" and $trim($value) != "" };
+    $error := function($kind, $message, $path, $cause) {
+      { "_error": $merge([$kind, {
+          "message": $message, "path": $path, "cause": $cause }]) }
+    };
+
+    /* Inputs */
+    $commitment := beckn.message.contract.commitments[0];
+    $attributes := $commitment.commitmentAttributes;
+    $mobile := $string($attributes.applicant.mobile);
+    $pmfbyMessage := $isText(response.error) ? $trim(response.error);
+    $isSent := response.status = true;
+    $isCallerFault := $exists($pmfbyMessage) and $contains($lowercase($pmfbyMessage), $KNOWN_REFUSALS);
+    /* Masked here rather than echoed: the caller already knows the number it
+       sent, and an unmasked one in a signed callback outlives the exchange. */
+    $sentTo := "XXXXXX" & $substring($mobile, -4);
+
+    /* Output */
+    $isSent
+    ? {
+      "context": $merge([beckn.context, { "action": "on_init", "timestamp": $now() }]),
+      "message": {
+        "contract": $merge([beckn.message.contract, {
+          "commitments": [$merge([$commitment, {
+            "status": { "descriptor": { "code": $COMMITMENT_STATUS_DRAFT } },
+            "commitmentAttributes": {
+              "@context": $attributes.`@context`,
+              "@type": $attributes.`@type`,
+              "informationMode": $INFORMATION_MODE,
+              "scheme": $SCHEME,
+              "applicant": { "mobile": $mobile },
+              "challenge": {
+                "issued": {
+                  "method": "OTP",
+                  "channel": "SMS",
+                  "length": $OTP_LENGTH,
+                  "valueType": "NUMERIC",
+                  "sentTo": $sentTo,
+                  "expiresAt": $fromMillis($millis() + $OTP_WINDOW_MILLIS)
+                }
+              }
+            }
+          }])]
+        }])
+      }
+    }
+    : $isCallerFault
+      ? $error($ERROR_REFUSED, $MSG_REFUSED, $ATTRIBUTES_PATH & "applicant.mobile", $pmfbyMessage)
+      : $error($ERROR_UNAVAILABLE, $MSG_UNAVAILABLE, undefined, $pmfbyMessage)
+  )

@@ -1,0 +1,131 @@
+# PMFBY scheme application, select -> GET /api/v1/claims/claims/claimSearchReport.
+#
+# Reads the farmer's CLAIMS. Policies are the status action against a
+# different endpoint; both are openagrinet:SchemeApplication, so the action is
+# what tells them apart.
+#
+# GET, so what the request half produces becomes the query string, and the two
+# credentials that ride with it are the adapter's, not this mapping's.
+
+required:
+  - check: |
+      (
+        $attributes := beckn.message.contract.commitments[0].commitmentAttributes;
+        $exists($attributes.farmerId) and $exists($attributes.applicant.mobile)
+          and $exists($attributes.season) and $exists($attributes.year)
+      )
+    message: "this capability needs farmerId, applicant.mobile, season and year in commitmentAttributes"
+
+# season is PMFBY's own numbering -- 1 Kharif, 2 Rabi, 3 Zaid -- and is passed
+# through rather than mapped, because a season name has no single number
+# across its calls and guessing one would read the wrong season silently.
+#
+# applicant.mobile is not sent, for the same reason as on status: PMFBY reads
+# the farmer from farmerID, and the mobile is here so the adapter can check it
+# against the session.
+request: |
+  (
+    $attributes := beckn.message.contract.commitments[0].commitmentAttributes;
+    {
+      "farmerID": $string($attributes.farmerId),
+      "searchType": "farmerID",
+      "season": $string($attributes.season),
+      "year": $string($attributes.year)
+    }
+  )
+
+# The claim rows are flat, where the policy rows nest, and they mix key cases
+# on siblings -- Status beside ClaimStatus beside claimPaymentStatus. Both are
+# PMFBY's, so both are read as spelled.
+#
+# Only listed fields are returned. The account number, the IFSC and the
+# Aadhaar-linked payment flag arrive on every row and are dropped: a claim's
+# state is what was asked for, and the farmer's banking details are not needed
+# to answer it.
+response: |
+  (
+    /* Constants */
+    $SCHEME := { "code": "PMFBY", "name": "Pradhan Mantri Fasal Bima Yojana" };
+    $INFORMATION_MODE := "OnDemand";
+    $COMMITMENT_STATUS_ACTIVE := "ACTIVE";
+    $SEASON_NAMES := { "1": "Kharif", "2": "Rabi", "3": "Zaid" };
+
+    $DIGITS_PATTERN := /^[0-9]+$/;
+
+    $MSG_REFUSED := "PMFBY could not return the claim list for this farmer, season and year.";
+    $MSG_UNAVAILABLE := "PMFBY could not return the claim list right now. Please try again later.";
+
+    $ERROR_REFUSED := { "status": 400, "code": "BIZ_GENERIC_ERROR" };
+    $ERROR_UNAVAILABLE := { "status": 502, "code": "NET_DOWNSTREAM_UNAVAILABLE" };
+    $KNOWN_REFUSALS := /farmerid is required|no record found|invalid farmer|invalid season|invalid year/;
+
+    /* Helpers */
+    $isText := function($value) { $type($value) = "string" and $trim($value) != "" };
+    $asText := function($value) { $isText($value) ? $trim($value) };
+    $asAmount := function($value) {
+      $type($value) = "number" ? $value
+        : $isText($value) and $contains($trim($value), $DIGITS_PATTERN) ? $number($trim($value))
+    };
+    $omitIfEmpty := function($object) { $exists($keys($object)[0]) ? $object };
+    $error := function($kind, $message, $cause) {
+      { "_error": $merge([$kind, { "message": $message, "cause": $cause }]) }
+    };
+
+    /* Inputs */
+    $commitment := beckn.message.contract.commitments[0];
+    $attributes := $commitment.commitmentAttributes;
+    $season := $string($attributes.season);
+    $pmfbyMessage := $isText(response.error) ? $trim(response.error);
+    $isAccepted := response.status = true;
+    $isCallerFault := $exists($pmfbyMessage) and $contains($lowercase($pmfbyMessage), $KNOWN_REFUSALS);
+
+    /* [] wraps a lone object so one claim reads the same way as several; the
+       guard is there because [] around an empty list yields a list holding an
+       empty list, which a caller reads as one claim. */
+    $claims := $exists(response.data[0]) ? [[response.data].{
+      "applicationNo": $asText($string(applicationNo)),
+      "crop": $omitIfEmpty({ "code": $asText($string(cropID)), "name": $asText(cropName) }),
+      "type": $asText(ClaimType),
+      "status": $omitIfEmpty({
+        "code": $asText(ClaimStatus),
+        "stage": $asText(Status)
+      }),
+      "amountClaimed": $asAmount(TotalClaim),
+      "amountPayable": $asAmount(totalPayable),
+      "amountPaid": $asAmount(amount),
+      "settledOn": $asText(claimDate),
+      "payment": $omitIfEmpty({
+        "status": $asText(claimPaymentStatus),
+        "mode": $asText(paymentMode),
+        "reference": $asText(UtrNumber)
+      })
+    }] : [];
+
+    /* Output */
+    /* An empty list is an ANSWER: a farmer with no claim this season is told
+       so, rather than shown a failure they cannot act on. */
+    $isAccepted
+    ? {
+      "context": $merge([beckn.context, { "action": "on_select", "timestamp": $now() }]),
+      "message": {
+        "contract": $merge([beckn.message.contract, {
+          "commitments": [$merge([$commitment, {
+            "status": { "descriptor": { "code": $COMMITMENT_STATUS_ACTIVE } },
+            "commitmentAttributes": {
+              "@context": $attributes.`@context`,
+              "@type": $attributes.`@type`,
+              "informationMode": $INFORMATION_MODE,
+              "scheme": $SCHEME,
+              "farmerId": $string($attributes.farmerId),
+              "season": $exists($lookup($SEASON_NAMES, $season))
+                ? $lookup($SEASON_NAMES, $season) : $season,
+              "cropYear": $string($attributes.year),
+              "claims": $claims
+            }
+          }])]
+        }])
+      }
+    }
+    : $isCallerFault ? $error($ERROR_REFUSED, $MSG_REFUSED, $pmfbyMessage)
+    : $error($ERROR_UNAVAILABLE, $MSG_UNAVAILABLE, $pmfbyMessage)
+  )

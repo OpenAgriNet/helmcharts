@@ -621,6 +621,35 @@ services:
     ports:
       - "127.0.0.1:${MOCKAIF_PORT}:9103"
 
+  # PMFBY gates its policy and claim reads behind an OTP to the farmer's
+  # registered mobile, for the same reason AIF does, so the same argument
+  # applies: a mock is the only way the session path gets run locally.
+  #
+  # It serves both halves of PMFBY -- the NIC insurance endpoints and the FGMS
+  # grievance ones behind their own login -- because they are one host with
+  # two envelopes, and an adapter that gets the envelopes crossed should fail
+  # here rather than in production.
+  mock-pmfby:
+    image: ${MOCKPMFBY_IMAGE:-oan-mockpmfby:local}
+    pull_policy: missing
+    container_name: ${STACK_PREFIX:-}mock-pmfby
+    restart: unless-stopped
+    logging: *logging
+    networks: [oan-internal]
+    command:
+      - "-addr=:9104"
+      # The same variables the adapter's pmfby auth reads, so a drift between
+      # the two sides cannot look like a mapping fault.
+      - "-access-uid=${PMFBY_ACCESS_UID:-local-pmfby-uid}"
+      - "-access-pwd=${PMFBY_ACCESS_PWD:-local-pmfby-pwd}"
+      - "-otp=${MOCKPMFBY_OTP:-123456}"
+      # The one mobile PMFBY does not know, for reaching the refusal path on
+      # purpose rather than by holding a single valid number.
+      - "-unknown-mobile=${MOCKPMFBY_UNKNOWN_MOBILE:-9999999999}"
+      - "-expires-in=${MOCKPMFBY_EXPIRES_IN:-3600}"
+    ports:
+      - "127.0.0.1:${MOCKPMFBY_PORT:-9104}:9104"
+
   # Where a farmer's session lives between the call that buys it and the calls
   # that spend it. Only a provider that holds one needs this -- AIF today --
   # and the adapter dials it only when setup.py renders the cache plugin, so

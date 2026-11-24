@@ -14,3 +14,29 @@ __PROVIDER_CONFIG__ Grievance
                 tokenResponseField: responseDynamic.token.Token
                 tokenExpiryField: responseDynamic.token.validTo
                 headerName: Authorization
+              # The insurance reads are the farmer's, not the service's. The
+              # OTP answered on confirm buys a session; policy and claim both
+              # spend it. Held in the cache against the transaction, never
+              # returned on the wire.
+              #
+              # What is held is the farmerID PMFBY resolved from the mobile.
+              # It is a session token in the sense that matters here -- it is
+              # what the reads cannot be made without, and it only exists once
+              # the OTP was answered -- but it is NOT a bearer, so it goes in
+              # a header of its own rather than Authorization, which already
+              # carries the service's own login token.
+              "__PARTICIPANT_ID__|openagrinet:SchemeApplication":
+                sessionKeyAt: "context.transactionId,context.transaction_id"
+                sessionCaptureOn: confirm
+                sessionSendOn: "status,select"
+                sessionTokenField: data.farmerID
+                # PMFBY states no lifetime on verifyMobile, so this is the
+                # whole of it, less the slack that keeps a session from being
+                # spent in the second it expires.
+                sessionTtl: 15m
+                sessionTtlMargin: 60s
+                # The session was bought for one mobile number. Without this a
+                # transaction id is enough to read another farmer's policies.
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.applicant.mobile"
+                sessionHeader: X-PMFBY-Farmer-Session
+                sessionPrefix: ""

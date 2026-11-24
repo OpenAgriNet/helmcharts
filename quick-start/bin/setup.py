@@ -169,10 +169,17 @@ PROVIDERS = {
                 ("status", "/ChatbotUserDetails", "application-status.status.yaml", 30000, 0))),
         ),
     },
-    # One capability, two actions, and a login to get a token first. Shares the
-    # Grievance step with PM-KISAN.
+    # Two capabilities on one host and a login to get a token first. Shares
+    # the Grievance step with PM-KISAN.
+    #
+    # The insurance capability answers FOUR actions on ONE binding, which is
+    # why the actions are the ones they are. Policy status and claim status
+    # are both openagrinet:SchemeApplication, so the capability code cannot
+    # tell them apart and the ACTION has to: status reads policies, select
+    # reads claims. init sends the OTP and confirm answers it, for the same
+    # reason -- one binding, one entry per action name.
     "pmfby": {
-        "prefix": "PMFBY", "name": "PMFBY grievance",
+        "prefix": "PMFBY", "name": "PMFBY",
         "needs": ["PMFBY_BASE_URL", "PMFBY_TOKEN_URL",
                   "PMFBY_ACCESS_UID", "PMFBY_ACCESS_PWD"],
         "capabilities": (
@@ -182,6 +189,18 @@ PROVIDERS = {
                  "grievance.support.yaml", 30000, 0),
                 ("status", "/krphapi/FGMS/GetGrievenceTicketsStatus",
                  "grievance.status.yaml", 30000, 2))),
+            ("openagrinet:SchemeApplication", "Scheme Application", "v0.2", None, (
+                # Never retried: a retry would send a second OTP.
+                ("init", "/api/v1/services/nic/getOtp",
+                 "insurance.init.yaml", 20000, 0),
+                # Never retried either: the OTP is single-use, so a retry
+                # spends it and the farmer's own answer is then refused.
+                ("confirm", "/api/v1/services/nic/verifyMobile",
+                 "insurance.confirm.yaml", 20000, 0),
+                ("status", "/api/v1/policy/policy/farmerpolicylist",
+                 "insurance.status.yaml", 30000, 2, "GET"),
+                ("select", "/api/v1/claims/claims/claimSearchReport",
+                 "insurance.select.yaml", 30000, 2, "GET"))),
         ),
     },
     # Two capabilities on one host, sharing one verification. init sends the

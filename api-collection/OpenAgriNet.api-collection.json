@@ -106,6 +106,11 @@
       "type": "string"
     },
     {
+      "key": "pmkisan-otp",
+      "value": "1234",
+      "type": "string"
+    },
+    {
       "key": "aif-otp",
       "value": "123456",
       "type": "string"
@@ -138,6 +143,11 @@
     {
       "key": "pmfby-year",
       "value": "2026",
+      "type": "string"
+    },
+    {
+      "key": "grievance-filed-on",
+      "value": "",
       "type": "string"
     }
   ],
@@ -895,7 +905,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"select\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"schemaContext\": [\n      \"https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-features/schema/AgricultureResource/v0.2/context.jsonld#openagrinet:AgricultureResource\"\n    ],\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"status\": {\n        \"code\": \"ACTIVE\",\n        \"name\": \"active\"\n      },\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\",\n              \"name\": \"active\"\n            }\n          },\n          \"resources\": [\n            {\n              \"id\": \"res-sathi-stock:27:487\",\n              \"quantity\": {\n                \"count\": 1\n              },\n              \"resourceAttributes\": {\n                \"@context\": \"https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-features/schema/AgricultureResource/v0.2/context.jsonld\",\n                \"@type\": \"openagrinet:AgricultureResource\",\n                \"cropCode\": \"A0102\",\n                \"seedClass\": \"CERTIFIED I\",\n                \"stateCode\": \"27\",\n                \"districtCode\": \"487\"\n              }\n            }\n          ],\n          \"offer\": {\n            \"id\": \"offer:sathi-stock\",\n            \"resourceIds\": [\n              \"res-sathi-stock:27:487\"\n            ],\n            \"provider\": {\n              \"id\": \"sathi\",\n              \"descriptor\": {\n                \"code\": \"SATHI\",\n                \"name\": \"SATHI (Seed Authentication, Traceability and Holistic Inventory)\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+              "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"select\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"schemaContext\": [\n      \"https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-features/schema/AgricultureResource/v0.2/context.jsonld#openagrinet:AgricultureResource\"\n    ],\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"status\": {\n        \"code\": \"ACTIVE\",\n        \"name\": \"active\"\n      },\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\",\n              \"name\": \"active\"\n            }\n          },\n          \"resources\": [\n            {\n              \"id\": \"res-sathi-stock:27:487\",\n              \"quantity\": {\n                \"count\": 1\n              },\n              \"resourceAttributes\": {\n                \"@context\": \"https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-features/schema/AgricultureResource/v0.2/context.jsonld\",\n                \"@type\": \"openagrinet:AgricultureResource\",\n                \"informationMode\": \"OnDemand\",\n                \"subjectCategories\": [\n                  \"Crop\"\n                ],\n                \"actions\": [\n                  {\n                    \"action\": \"select\",\n                    \"operationRef\": \"https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-features/api/external/sathi/stock/v0.2/openapi.yaml#/paths/~1inv-apis~1stock~1getSeedAvailability/post\"\n                  }\n                ],\n                \"cropCode\": \"A0102\",\n                \"seedClass\": \"CERTIFIED I\",\n                \"stateCode\": \"27\",\n                \"districtCode\": \"487\"\n              }\n            }\n          ],\n          \"offer\": {\n            \"id\": \"offer:sathi-stock\",\n            \"resourceIds\": [\n              \"res-sathi-stock:27:487\"\n            ],\n            \"provider\": {\n              \"id\": \"sathi\",\n              \"descriptor\": {\n                \"code\": \"SATHI\",\n                \"name\": \"SATHI (Seed Authentication, Traceability and Holistic Inventory)\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1262,7 +1272,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"context\": {\n    \"action\": \"support\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"support\": {\n      \"channels\": [\n        {\n          \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n          \"@type\": \"openagrinet:Grievance\",\n          \"informationMode\": \"OnDemand\",\n          \"provider\": {\n            \"id\": \"pmkisan\",\n            \"descriptor\": {\n              \"name\": \"PM-KISAN\"\n            }\n          },\n          \"scheme\": {\n            \"code\": \"PM-KISAN\"\n          },\n          \"enrolmentId\": \"UP12345678A\",\n          \"grievance\": {\n            \"category\": {\n              \"code\": \"G003\"\n            },\n            \"description\": \"Third instalment for 2026 has not been credited.\"\n          },\n          \"challenge\": {\n            \"response\": {\n              \"method\": \"OTP\",\n              \"value\": \"4821\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "raw": "{\n  \"context\": {\n    \"action\": \"support\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"support\": {\n      \"channels\": [\n        {\n          \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n          \"@type\": \"openagrinet:Grievance\",\n          \"informationMode\": \"OnDemand\",\n          \"provider\": {\n            \"id\": \"pmkisan\",\n            \"descriptor\": {\n              \"name\": \"PM-KISAN\"\n            }\n          },\n          \"scheme\": {\n            \"code\": \"PM-KISAN\"\n          },\n          \"enrolmentId\": \"UP12345678A\",\n          \"grievance\": {\n            \"category\": {\n              \"code\": \"G003\"\n            },\n            \"description\": \"Third instalment for 2026 has not been credited.\"\n          },\n          \"challenge\": {\n            \"response\": {\n              \"method\": \"OTP\",\n              \"value\": \"{{pmkisan-otp}}\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1337,6 +1347,17 @@
                   "name": "Status - read the grievance with the new OTP",
                   "event": [
                     {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "// The grievance was lodged a moment ago, so it is filed today. PM-KISAN",
+                          "// matches on the filing date, and the stack keeps UTC dates.",
+                          "pm.collectionVariables.set('grievance-filed-on', new Date().toISOString().slice(0, 10));"
+                        ]
+                      }
+                    },
+                    {
                       "listen": "test",
                       "script": {
                         "type": "text/javascript",
@@ -1346,7 +1367,7 @@
                           "pm.test(\"ACTIVE\", () => pm.expect(j.message.contract.commitments[0].status.descriptor.code).to.eql(\"ACTIVE\"));",
                           "pm.test(\"grievance description returned\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.grievance.description).to.be.a(\"string\").and.not.empty);",
                           "pm.test(\"OnDemand\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.informationMode).to.eql(\"OnDemand\"));",
-                          "pm.test(\"case\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.case).to.eql({\"status\": {\"code\": \"Replied\"}, \"filedOn\": \"2026-09-28\", \"reply\": \"Bank account seeded with Aadhaar; payment in next cycle.\", \"repliedOn\": \"2026-10-01\"}));",
+                          "pm.test(\"case\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.case).to.eql({\"status\": {\"code\": \"UnderReview\"}, \"filedOn\": pm.collectionVariables.get(\"grievance-filed-on\")}));",
                           "pm.test('no ticketNo, no enrolmentId, no personal data', () => { pm.expect(j.message.contract.commitments[0].commitmentAttributes.case).to.not.have.property('ticketNo'); pm.expect(j.message.contract.commitments[0].commitmentAttributes).to.not.have.property('enrolmentId'); ['SURESH','9999999999','Barhan'].forEach(s => pm.expect(pm.response.text()).to.not.include(s)); });"
                         ]
                       }
@@ -1362,7 +1383,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"context\": {\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"c9b31a45-0f78-4e2d-9a60-84b7d3e15c02\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:grievance\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"enrolmentId\": \"UP12345678A\",\n            \"case\": {\n              \"filedOn\": \"2026-09-28\"\n            },\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"7390\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "raw": "{\n  \"context\": {\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"c9b31a45-0f78-4e2d-9a60-84b7d3e15c02\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:grievance\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"enrolmentId\": \"UP12345678A\",\n            \"case\": {\n              \"filedOn\": \"{{grievance-filed-on}}\"\n            },\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"{{pmkisan-otp}}\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1378,7 +1399,7 @@
                         "status"
                       ]
                     },
-                    "description": "Reads the grievance back. OTP 7390."
+                    "description": "Reads the grievance back. OTP from {{pmkisan-otp}}."
                   },
                   "response": []
                 }
@@ -1403,7 +1424,9 @@
                           "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
                           "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
                           "const r = pm.response.json().data[0];",
-                          "pm.test('the Grievance pack', () => pm.expect(r.schemaUrl).to.eql('https://raw.githubusercontent.com/OpenAgriNet/network-specs/main/schema/Grievance/v0.1/attributes.yaml'));"
+                          "// The host the packs are served from is deployment config, so only the",
+                          "// pack and its version are asserted here.",
+                          "pm.test('the Grievance pack', () => pm.expect(r.schemaUrl).to.include('/Grievance/v0.1/attributes.yaml'));"
                         ]
                       }
                     }
@@ -1451,10 +1474,10 @@
                           "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
                           "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
                           "const r = pm.response.json().data[0];",
-                          "pm.test('upstream at the PMFBY base URL', () => {",
-                          "    pm.expect(r.type).to.eql('upstream');",
-                          "    pm.expect(r.baseUrl).to.eql('https://pmfbydemo.amnex.co.in');",
-                          "});"
+                          "pm.test('an upstream', () => pm.expect(r.type).to.eql('upstream'));",
+                          "// The base URL is registry data, so swapping the mock for the real",
+                          "// service is this field and nothing in the adapter config.",
+                          "console.log('PMFBY baseUrl:', r.baseUrl);"
                         ]
                       }
                     }
@@ -2121,13 +2144,23 @@
                     "exec": [
                       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
                       "const j = pm.response.json();",
+                      "const a = j.message.contract.commitments[0].commitmentAttributes;",
                       "pm.test(\"CLOSED\", () => pm.expect(j.message.contract.commitments[0].status.descriptor.code).to.eql(\"CLOSED\"));",
-                      "pm.test(\"OnDemand\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.informationMode).to.eql(\"OnDemand\"));",
-                      "pm.test(\"enrolmentId\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.enrolmentId).to.eql(\"UP45678901C\"));",
-                      "pm.test(\"registeredOn\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.application.registeredOn).to.eql(\"2021-06-14T00:00:00+05:30\"));",
-                      "pm.test(\"latestInstalmentPaid\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.application.latestInstalmentPaid).to.eql(15));",
-                      "pm.test(\"ekyc.code\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.application.ekyc.code).to.eql(\"Pending\"));",
-                      "pm.test('blockers', () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.application.blockers).to.have.deep.members([{code:'LandSeedingPending',name:'Land Seeding, KYS'},{code:'Other',name:'Bank account details could not be verified'}]));"
+                      "pm.test(\"OnDemand\", () => pm.expect(a.informationMode).to.eql(\"OnDemand\"));",
+                      "// The values below are the provider's, not ours, so the shape is asserted",
+                      "// and the figures are not -- the same assertions hold against the real",
+                      "// portal as against the stand-in.",
+                      "pm.test(\"enrolmentId\", () => pm.expect(a.enrolmentId).to.match(/^[A-Z]{2}[0-9]+[A-Z]$/));",
+                      "pm.test(\"registeredOn\", () => pm.expect(a.application.registeredOn).to.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([+-]\\d{2}:\\d{2}|Z)$/));",
+                      "pm.test(\"latestInstalmentPaid\", () => { pm.expect(a.application.latestInstalmentPaid).to.be.a(\"number\"); pm.expect(a.application.latestInstalmentPaid).to.be.at.least(0); });",
+                      "pm.test(\"ekyc.code\", () => pm.expect(a.application.ekyc.code).to.be.oneOf([\"Done\", \"Pending\"]));",
+                      "pm.test('blockers', () => {",
+                      "    pm.expect(a.application.blockers).to.be.an('array').that.is.not.empty;",
+                      "    a.application.blockers.forEach(b => {",
+                      "        pm.expect(b.code).to.be.oneOf(['IncomeTaxPayee', 'LandSeedingPending', 'AadhaarNotSeeded', 'Other']);",
+                      "        pm.expect(b.name).to.be.a('string').and.not.empty;",
+                      "    });",
+                      "});"
                     ]
                   }
                 }
@@ -2142,7 +2175,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"context\": {\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"a9f3b062-5e17-4c84-9d20-6b48f1c7e053\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:application-status\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:application-status\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:application-status\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"applicant\": {\n              \"mobile\": \"9812345670\"\n            },\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"4827\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "raw": "{\n  \"context\": {\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"a9f3b062-5e17-4c84-9d20-6b48f1c7e053\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:application-status\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:application-status\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:application-status\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"applicant\": {\n              \"mobile\": \"9812345670\"\n            },\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"{{pmkisan-otp}}\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -2158,7 +2191,7 @@
                     "status"
                   ]
                 },
-                "description": "Payment blocked. OTP 4827. ekyc has no name: the portal sends only Y or N."
+                "description": "Payment blocked. OTP from {{pmkisan-otp}}. ekyc has no name: the portal sends only Y or N."
               },
               "response": []
             },
@@ -2172,8 +2205,14 @@
                     "exec": [
                       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
                       "const j = pm.response.json();",
-                      "pm.test(\"enrolmentId\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.enrolmentId).to.eql(\"UP77554433D\"));",
-                      "pm.test(\"application\", () => pm.expect(j.message.contract.commitments[0].commitmentAttributes.application).to.eql({\"blockers\": [], \"ekyc\": {\"code\": \"Done\"}, \"latestInstalmentPaid\": 16, \"registeredOn\": \"2021-02-08T00:00:00+05:30\"}));"
+                      "const a = j.message.contract.commitments[0].commitmentAttributes;",
+                      "pm.test(\"enrolmentId\", () => pm.expect(a.enrolmentId).to.match(/^[A-Z]{2}[0-9]+[A-Z]$/));",
+                      "pm.test('application', () => {",
+                      "    pm.expect(a.application.blockers).to.eql([]);",
+                      "    pm.expect(a.application.ekyc.code).to.be.oneOf(['Done', 'Pending']);",
+                      "    pm.expect(a.application.latestInstalmentPaid).to.be.a('number');",
+                      "    pm.expect(a.application.registeredOn).to.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([+-]\\d{2}:\\d{2}|Z)$/);",
+                      "});"
                     ]
                   }
                 }
@@ -2188,7 +2227,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"context\": {\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"a9f3b062-5e17-4c84-9d20-6b48f1c7e053\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:application-status\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:application-status\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:application-status\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"enrolmentId\": \"UP77554433D\",\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"4827\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "raw": "{\n  \"context\": {\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"a9f3b062-5e17-4c84-9d20-6b48f1c7e053\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:application-status\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:application-status\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:application-status\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"enrolmentId\": \"UP77554433A\",\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"{{pmkisan-otp}}\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -2204,7 +2243,7 @@
                     "status"
                   ]
                 },
-                "description": "A different farmer, looked up by registration number. No blockers."
+                "description": "A registration with nothing holding the payment up. Against the stand-in portal this particular number is the one that comes back clear; against the real portal use a registration you know is clear."
               },
               "response": []
             }
@@ -3343,6 +3382,10 @@
                       "// Always an array, empty included. PMFBY checked and found nothing is an",
                       "// answer a farmer can be given; a missing field is one they cannot.",
                       "pm.test('policies is an array', () => pm.expect(a.policies).to.be.an('array'));",
+                      "// Every row must be a policy object. An empty answer is [], never [[]]:",
+                      "// a nested empty array passes an is-an-array check and then breaks any",
+                      "// caller that reads the rows.",
+                      "pm.test('policies holds only rows', () => pm.expect(a.policies.every(r => r !== null && typeof r === 'object' && !Array.isArray(r))).to.be.true);",
                       "",
                       "// The mapping allow-lists. Accounts and land details may come back from",
                       "// PMFBY and must not reach a signed Beckn answer.",
@@ -3392,6 +3435,8 @@
                       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
                       "const a = pm.response.json().message.contract.commitments[0].commitmentAttributes;",
                       "pm.test('claims is an array', () => pm.expect(a.claims).to.be.an('array'));",
+                      "// Same rule as policies: an empty answer is [], never [[]].",
+                      "pm.test('claims holds only rows', () => pm.expect(a.claims.every(r => r !== null && typeof r === 'object' && !Array.isArray(r))).to.be.true);",
                       "pm.test('no account or land details', () => pm.expect(JSON.stringify(a)).to.not.match(/account|bank|ifsc|khasra|khata|aadhaar|address/i));"
                     ]
                   }
@@ -3585,9 +3630,9 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{network-adapter-host}}/health",
+              "raw": "{{network-adapter-base}}/health",
               "host": [
-                "{{network-adapter-host}}"
+                "{{network-adapter-base}}"
               ],
               "path": [
                 "health"
