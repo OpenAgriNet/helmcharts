@@ -1,0 +1,100 @@
+# KHC grievance, status -> POST /v1/state/grievances/verify-otp.
+#
+# Step two: the farmer's answer to the status OTP, and the read it unlocks.
+# KHC takes BOTH values in the body here, unlike check-status, which reads its
+# only value from the query string. The inconsistency is the provider's; each
+# mapping follows the call in front of it.
+#
+# Refused without a challenge: KHC answers 401 to a verify that no check-status
+# preceded, so a caller cannot skip step one and read a grievance with a number
+# alone. That gate is the whole reason the ungated GET /v1/state/grievances/status
+# is left unbound.
+#
+# Never retried. The OTP is single-use, so a retry spends it and the farmer's
+# own answer is then refused.
+
+required:
+  - check: |
+      $exists(beckn.message.contract.commitments[0].commitmentAttributes.case.ticketNo)
+    message: "this capability needs case.ticketNo -- the grievance number select asked about"
+  - check: |
+      $exists(beckn.message.contract.commitments[0].commitmentAttributes.challenge.response.value)
+    message: "this capability needs challenge.response.value -- the code the farmer read out"
+
+request: |
+  (
+    $ca := beckn.message.contract.commitments[0].commitmentAttributes;
+    {
+      "grievanceNo": $string($ca.case.ticketNo),
+      "otp": $string($ca.challenge.response.value)
+    }
+  )
+
+# Two fields come back and two are mapped. KHC's reply also carries currentLevel
+# and createdAt, which its contract does not declare, so neither is read here --
+# a field the contract does not promise is not one an answer can rest on. See
+# migration-plan/khc/plan.md.
+response: |
+  (
+    $c := beckn.message.contract.commitments[0];
+    $ca := $c.commitmentAttributes;
+    $said := $string(response.status);
+    $at := "$.message.contract.commitments[0].commitmentAttributes.";
+
+    /* CaseStatusCode by lowercased phrase, as pmkisan and pmfby map theirs.
+       KHC's own wording does not travel: caseStatus is an enum, and a portal
+       phrase in its place is a value no caller can branch on. KHC has not
+       published its set, so this covers what the desk is seen to return and
+       anything else is reported as under review rather than guessed at. */
+    $codes := {
+      "open": "Registered", "registered": "Registered",
+      "inprogress": "UnderReview", "underreview": "UnderReview",
+      "pending": "UnderReview",
+      "replied": "Replied", "disposed": "Replied",
+      "resolved": "Resolved", "rejected": "Rejected", "closed": "Closed"
+    };
+    $phrase := $type(response.data.currentStatus) = "string"
+      ? $lowercase($replace($trim(response.data.currentStatus), /[^A-Za-z]/, ""));
+    $mapped := $phrase ? $lookup($codes, $phrase);
+    $caseStatus := $exists($mapped) ? $mapped : "UnderReview";
+
+    $contains($said, "200") != true
+    ? { "_error": {
+          "status": 400,
+          "code": "BIZ_GENERIC_ERROR",
+          "message": "KHC did not accept that OTP.",
+          "path": $at & "challenge.response.value",
+          "cause": $exists(response.message) ? response.message : $said } }
+    /* A 200 carrying no grievance number is not a read. Reporting a status
+       against a number KHC did not name would show the farmer the wrong
+       grievance's state. */
+    : $exists(response.data.grievanceNo) != true
+    ? { "_error": {
+          "status": 400,
+          "code": "BIZ_GENERIC_ERROR",
+          "message": "KHC verified the OTP but returned no grievance.",
+          "path": $at & "case.ticketNo",
+          "cause": $said } }
+    : {
+      "context": $merge([beckn.context, { "action": "on_status", "timestamp": $now() }]),
+      "message": {
+        "contract": $merge([beckn.message.contract, {
+          "commitments": [$merge([$c, {
+            "status": { "descriptor": { "code": "ACTIVE" } },
+            "commitmentAttributes": {
+              "@context":        $ca.`@context`,
+              "@type":           $ca.`@type`,
+              "informationMode": "OnDemand",
+              "scheme":          $ca.scheme,
+              "case": {
+                /* KHC's own number, not the one asked for: the answer reports
+                   what the desk returned. */
+                "ticketNo": $string(response.data.grievanceNo),
+                "status": { "code": $caseStatus }
+              }
+            }
+          }])]
+        }])
+      }
+    }
+  )
