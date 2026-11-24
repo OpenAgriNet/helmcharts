@@ -1,0 +1,58 @@
+__PROVIDER_CONFIG__ Grievance
+              # Two credentials, one of each kind. The service token says
+              # which system is calling and is the adapter's; the OTP says
+              # which farmer consented and is the farmer's. KCC checks both.
+              #
+              # The login is form-encoded and wants a third field beside the
+              # pair -- entityType, a deployment constant naming which kind of
+              # caller this is. KCC states its lifetime as a relative
+              # sessionTTL, which tokenExpiryField cannot read because that
+              # field wants an absolute time, so the hour is stated here.
+              __PARTICIPANT_ID__:
+                authScheme: tokenHeader
+                tokenUrl: "__KCC_TOKEN_URL__"
+                tokenEncoding: form
+                tokenExtraFields: "entityType=__KCC_ENTITY_TYPE__"
+                tokenUserField: userID
+                tokenUserEnv: KCC_USER_ID
+                tokenSecretField: password
+                tokenSecretEnv: KCC_PASSWORD
+                tokenResponseField: data.token
+                tokenTtl: 1h
+                headerName: token
+              "__PARTICIPANT_ID__|openagrinet:SchemeApplication":
+                # Every body travels sealed, in both directions: AES-256-CBC
+                # under a fixed key shared out of band, written as hex under
+                # data. The IV is the key's first sixteen bytes unless
+                # KCC_ENCRYPTION_IV names one -- the one fact KCC has not
+                # confirmed, and the only thing that changes if they do.
+                envelope: aesCbcFixedKey
+                envelopeKeyEnv: KCC_ENCRYPTION_KEY
+                envelopeRequestField: data
+                envelopeResponsePaths: "data"
+                # A refusal -- a wrong OTP, an unknown mobile -- comes back
+                # with no envelope to open. Without this the adapter would
+                # call that an unreachable provider and the farmer would be
+                # told to try later instead of being told their OTP was wrong.
+                envelopeResponseOptional: true
+                # The requestID the OTP call answers with is the farmer's
+                # session. Held in the cache against the transaction and sent
+                # back on status; it never travels on the wire, because a
+                # requestID in a signed callback is a session anyone reading
+                # the log can spend.
+                sessionKeyAt: "context.transactionId,context.transaction_id"
+                sessionCaptureOn: init
+                sessionSendOn: status
+                sessionTokenField: requestID
+                sessionTtlField: expiresIn
+                # KCC says 300 seconds; these are the floor when it says
+                # nothing, and the slack that keeps a session from being spent
+                # in the second it expires.
+                sessionTtl: 5m
+                sessionTtlMargin: 30s
+                # The session was bought for one mobile number. Without this a
+                # transaction id alone is enough to read another farmer's
+                # loan applications.
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.applicant.mobile"
+                sessionHeader: X-KCC-Request-Session
+                sessionPrefix: ""

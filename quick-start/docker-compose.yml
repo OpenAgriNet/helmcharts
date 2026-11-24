@@ -650,6 +650,36 @@ services:
     ports:
       - "127.0.0.1:${MOCKPMFBY_PORT:-9104}:9104"
 
+  # KCC's own host is PRODUCTION -- an OTP sent there is a real SMS to a real
+  # farmer's phone -- so a mock is the only way this leg gets run locally at
+  # all, not merely the convenient way.
+  #
+  # Every body on the wire is sealed with the same fixed AES-256 key the
+  # adapter holds, and only successes are sealed: a refusal comes back in
+  # clear. An adapter that reads the two the same way should fail here.
+  mock-kcc:
+    image: ${MOCKKCC_IMAGE:-oan-mockkcc:local}
+    pull_policy: missing
+    container_name: ${STACK_PREFIX:-}mock-kcc
+    restart: unless-stopped
+    logging: *logging
+    networks: [oan-internal]
+    command:
+      - "-addr=:9105"
+      # The same variables the adapter's kcc auth and envelope read, so a
+      # drift between the two sides cannot look like a mapping fault.
+      - "-key=${KCC_ENCRYPTION_KEY:-dev-only-mock-kcc-key-0123456789}"
+      - "-user-id=${KCC_USER_ID:-local-kcc-user}"
+      - "-password=${KCC_PASSWORD:-local-kcc-password}"
+      - "-entity-type=${KCC_ENTITY_TYPE:-KRISHIKA}"
+      - "-otp=${MOCKKCC_OTP:-123456}"
+      # The one mobile KCC has no application for, for reaching the refusal
+      # path on purpose rather than by holding a single valid number.
+      - "-unknown-mobile=${MOCKKCC_UNKNOWN_MOBILE:-9999999999}"
+      - "-expires-in=${MOCKKCC_EXPIRES_IN:-300}"
+    ports:
+      - "127.0.0.1:${MOCKKCC_PORT:-9106}:9105"
+
   # Where a farmer's session lives between the call that buys it and the calls
   # that spend it. Only a provider that holds one needs this -- AIF today --
   # and the adapter dials it only when setup.py renders the cache plugin, so
@@ -736,6 +766,13 @@ services:
       # bearer. The bearer is not here: it is bought per farmer at call time
       # and held in Redis, never configured.
       AIF_API_KEY: ${AIF_API_KEY:-}
+      # KCC's login pair and the key every body is sealed under. The key is
+      # shared out of band and is the same in both directions; the IV is the
+      # key's first sixteen bytes unless KCC names one.
+      KCC_USER_ID: ${KCC_USER_ID:-}
+      KCC_PASSWORD: ${KCC_PASSWORD:-}
+      KCC_ENCRYPTION_KEY: ${KCC_ENCRYPTION_KEY:-}
+      KCC_ENCRYPTION_IV: ${KCC_ENCRYPTION_IV:-}
     volumes:
       - ./config/adapters/multi-adapter/provider-adapter.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/multi-adapter/routing-provider.yaml:/app/config/routing-provider.yaml:ro
@@ -787,6 +824,13 @@ services:
       # bearer. The bearer is not here: it is bought per farmer at call time
       # and held in Redis, never configured.
       AIF_API_KEY: ${AIF_API_KEY:-}
+      # KCC's login pair and the key every body is sealed under. The key is
+      # shared out of band and is the same in both directions; the IV is the
+      # key's first sixteen bytes unless KCC names one.
+      KCC_USER_ID: ${KCC_USER_ID:-}
+      KCC_PASSWORD: ${KCC_PASSWORD:-}
+      KCC_ENCRYPTION_KEY: ${KCC_ENCRYPTION_KEY:-}
+      KCC_ENCRYPTION_IV: ${KCC_ENCRYPTION_IV:-}
     volumes:
       - ./config/adapters/${NETWORK_ADAPTER_DEPLOYMENT_MODE:-single-adapter}/network-adapter.yaml:/app/config/adapter.yaml:ro
       - ./tls/ca.crt:/etc/oan/ca.crt:ro

@@ -149,6 +149,56 @@
       "key": "grievance-filed-on",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "kcc-transactionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "kcc-request-id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "kcc-empty-transactionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "kcc-empty-request-id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "kcc-networkId",
+      "value": "oan.dev",
+      "type": "string"
+    },
+    {
+      "key": "kcc-schema-base",
+      "value": "https://openagrinet.github.io/network-specs/schema",
+      "type": "string"
+    },
+    {
+      "key": "kcc-mobile",
+      "value": "9876543212",
+      "type": "string"
+    },
+    {
+      "key": "kcc-mobile-none",
+      "value": "9876543210",
+      "type": "string"
+    },
+    {
+      "key": "kcc-mobile-unknown",
+      "value": "9999999999",
+      "type": "string"
+    },
+    {
+      "key": "kcc-otp",
+      "value": "123456",
+      "type": "string"
     }
   ],
   "item": [
@@ -3675,6 +3725,736 @@
                   "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
                 ]
               }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "KCC - loan application status",
+      "description": "KCC loan applications on SchemeApplication v0.2. One capability, TWO actions: init sends the OTP, and status answers that OTP and reads the applications in the same call. There is no confirm, because KCC publishes no verify endpoint -- which is why a wrong OTP is refused on status rather than before it.\n\nRun Registry, Publish and Discover first, then Journey top to bottom: request 1 sets kcc-transactionId and kcc-request-id, and request 2 reuses both. The transaction is what the adapter keys the farmer's session on; the requestId is KCC's own handle on the OTP and travels in the PAYLOAD, because the session layer delivers a header and cannot write a field inside a sealed body.\n\nEvery body on the wire is sealed: AES-256-CBC under a fixed key, hex under data. Only successes are sealed -- a refusal comes back in clear, and that asymmetry is how the mappings tell the two apart.\n\nThe payload @context stays on openagrinet.github.io. v0.2 is not served there yet, so the adapter rewrites the fetch address through extendedSchema_contextRewrite -- the published address is the pack's identity, and a branch URL in a stored catalog goes dead when the branch does.\n\nDefaults are the mock's: mobile 9876543212 (three applications, one of them rejected), 9876543210 (none), 9999999999 (unknown), OTP 123456. Which applications come back is keyed off the mobile's last digit. Against the real service the OTP arrives by SMS and the mobile is the farmer's -- and note KCC's host is PRODUCTION, so an init there sends a real SMS to a real phone.",
+      "item": [
+        {
+          "name": "Registry",
+          "item": [
+            {
+              "name": "Read - participant",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+                      "pm.test('an upstream', () => pm.expect(pm.response.json().data[0].type).to.eql('upstream'));",
+                      "// The base URL is registry data, so swapping the mock for the real",
+                      "// service is this field and nothing in the adapter config.",
+                      "console.log('KCC baseUrl:', pm.response.json().data[0].baseUrl);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"filters\": {\n    \"participantId\": {\n      \"eq\": \"kcc\"\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{registry-host}}/api/v1/Participant/search",
+                  "host": [
+                    "{{registry-host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "Participant",
+                    "search"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Read - SchemeApplication binding",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+                      "// Two actions, not three. KCC has no verify endpoint, so status answers",
+                      "// the OTP and reads the applications in the same call.",
+                      "pm.test('init and status only', () => pm.expect(pm.response.json().data[0].actions.map(a => a.action)).to.have.members(['init', 'status']));",
+                      "// The pack version is NOT here: the registry holds one version per",
+                      "// capability, and SchemeApplication sits at v0.1 while PM-KISAN serves it.",
+                      "// KCC's own contract is v0.2 -- that lives in the catalog and the mapping."
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"filters\": {\n    \"bindingKey\": {\n      \"eq\": \"kcc|openagrinet:SchemeApplication\"\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{registry-host}}/api/v1/ProviderSchema/search",
+                  "host": [
+                    "{{registry-host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "ProviderSchema",
+                    "search"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Publish",
+          "item": [
+            {
+              "name": "Publish - On-demand",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "pm.test('the resource is accepted', () => {",
+                      "    const r = pm.response.json().message.results[0];",
+                      "    pm.expect(r.status).to.eql('ACCEPTED');",
+                      "    pm.expect(r.stats.itemCount).to.eql(1);",
+                      "    pm.expect(r.stats.providerCount).to.eql(1);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"cc400000-0000-4000-8000-000000000001\",\n    \"messageId\": \"cc400000-0000-4000-8000-000000000002\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\"\n  },\n  \"message\": {\n    \"catalogs\": [\n      {\n        \"id\": \"cat-kcc-loan\",\n        \"bppId\": \"{{bppId}}\",\n        \"bppUri\": \"{{bppUri}}\",\n        \"descriptor\": {\n          \"code\": \"KCC-LOAN\",\n          \"name\": \"KCC loan application status\"\n        },\n        \"provider\": {\n          \"id\": \"kcc\",\n          \"descriptor\": {\n            \"code\": \"KCC\",\n            \"name\": \"Kisan Credit Card\"\n          }\n        },\n        \"isActive\": true,\n        \"resources\": [\n          {\n            \"id\": \"res:kcc:loan\",\n            \"descriptor\": {\n              \"code\": \"kcc-loan\",\n              \"name\": \"KCC loan application lookup\",\n              \"shortDesc\": \"Send an OTP to the mobile a Kisan Credit Card application was filed from, then read every application on that mobile.\"\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.2/context.jsonld\",\n              \"@type\": \"openagrinet:SchemeApplication\",\n              \"informationMode\": \"OnDemand\",\n              \"scheme\": {\n                \"code\": \"KCC\",\n                \"name\": \"Kisan Credit Card\"\n              },\n              \"challenge\": {\n                \"methods\": [\n                  {\n                    \"method\": \"OTP\",\n                    \"channel\": \"SMS\",\n                    \"length\": 6,\n                    \"valueType\": \"NUMERIC\"\n                  }\n                ]\n              },\n              \"actions\": [\n                {\n                  \"action\": \"init\",\n                  \"description\": \"Ask KCC to send a six-digit OTP to the mobile the application was filed from. Call this before status. It answers with a requestId, which status has to send back.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/kcc/loan/v0.2/openapi.yaml#/paths/~1auth~1requestOtp/post\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                },\n                {\n                  \"action\": \"status\",\n                  \"description\": \"Answer the OTP sent by init and read every KCC loan application on that mobile in the same call. There is no separate verify step, so a wrong OTP is refused here. Needs the requestId init returned.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/kcc/loan/v0.2/openapi.yaml#/paths/~1bharatVistaar~1krishika~1applicationStatus/post\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                }\n              ]\n            }\n          }\n        ],\n        \"offers\": [\n          {\n            \"id\": \"off:kcc:loan\",\n            \"resourceIds\": [\n              \"res:kcc:loan\"\n            ]\n          }\n        ]\n      }\n    ],\n    \"publishDirectives\": [\n      {\n        \"catalogId\": \"cat-kcc-loan\",\n        \"catalogType\": \"REGULAR\",\n        \"updateMode\": \"MERGE\",\n        \"visibleTo\": [\n          \"{{networkId}}\",\n          \"{{otherNetworkId}}\"\n        ]\n      }\n    ]\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-publish}}",
+                  "host": [
+                    "{{network-adapter-publish}}"
+                  ]
+                },
+                "description": "What a caller needs to drive the two actions without being told anything out of band: the OTP's shape, the order, and the operationRef for each call. The requestId init returns is named in the status description, because nothing else says it has to be sent back."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Discover",
+          "item": [
+            {
+              "name": "Discover - loan application status",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "const rs = pm.response.json().message.catalogs.flatMap(c => c.resources || []);",
+                      "pm.test('finds res:kcc:loan', () => pm.expect(rs.map(r => r.id)).to.include('res:kcc:loan'));",
+                      "",
+                      "// The point of publishing the actions: a caller reads the order and the",
+                      "// OTP's shape off the catalog rather than being told them out of band.",
+                      "pm.test('the catalog says init then status', () => {",
+                      "    const a = rs.find(r => r.id === 'res:kcc:loan').resourceAttributes;",
+                      "    pm.expect(a.actions.map(x => x.action)).to.have.members(['init', 'status']);",
+                      "    pm.expect(a.challenge.methods[0]).to.deep.include({method: 'OTP', channel: 'SMS', length: 6, valueType: 'NUMERIC'});",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.descriptor.code == \\\"kcc-loan\\\")\"\n      }\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/discover",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "discover"
+                  ]
+                },
+                "description": "KCC publishes one resource, so descriptor.code is enough to find it. Everything the journey below needs -- the two actions, their operationRefs and the OTP's length -- comes back on resourceAttributes."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Journey",
+          "item": [
+            {
+              "name": "1. Init - send the OTP",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// One transaction for the whole journey. The adapter keys the farmer's",
+                      "// session on it, so request 2 must reuse what this sets.",
+                      "pm.collectionVariables.set('kcc-transactionId', pm.variables.replaceIn('{{$guid}}'));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "const c = pm.response.json().message.contract.commitments[0];",
+                      "pm.test('DRAFT -- nothing is verified yet', () => pm.expect(c.status.descriptor.code).to.eql('DRAFT'));",
+                      "pm.test('OTP shape: length 6, NUMERIC', () => {",
+                      "  const i = c.commitmentAttributes.challenge.issued;",
+                      "  pm.expect(i.method).to.eql('OTP');",
+                      "  pm.expect(i.channel).to.eql('SMS');",
+                      "  pm.expect(i.length).to.eql(6);",
+                      "  pm.expect(i.valueType).to.eql('NUMERIC');",
+                      "});",
+                      "// Masked, so a farmer with two phones knows which one to check without",
+                      "// the number itself travelling back out.",
+                      "pm.test('the masked mobile comes back', () => pm.expect(c.commitmentAttributes.challenge.issued.sentTo).to.match(/^X{6}/));",
+                      "",
+                      "// The requestId is KCC's handle on this OTP, and status will not work",
+                      "// without it. Unlike AIF's token it IS returned to the caller: the",
+                      "// session layer delivers a header, not a field inside a sealed body,",
+                      "// so the only way it reaches the next request is through the payload.",
+                      "pm.test('the requestId comes back', () => pm.expect(c.commitmentAttributes.requestId).to.be.a('string').and.not.empty);",
+                      "pm.collectionVariables.set('kcc-request-id', String(c.commitmentAttributes.requestId));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{kcc-networkId}}\",\n    \"senderId\": \"{{kcc-networkId}}\",\n    \"receiverId\": \"{{kcc-networkId}}\",\n    \"transactionId\": \"{{kcc-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:kcc:loan\",\n            \"provider\": {\n              \"id\": \"kcc\",\n              \"descriptor\": {\n                \"name\": \"Kisan Credit Card\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:kcc:loan\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:kcc:loan\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{kcc-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"KCC\",\n              \"name\": \"Kisan Credit Card\"\n            },\n            \"applicant\": {\n              \"mobile\": \"{{kcc-mobile}}\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/init",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "init"
+                  ]
+                },
+                "description": "Sends the OTP and nothing else. KCC answers with a requestId and a five-minute window; both come back on commitmentAttributes."
+              },
+              "response": []
+            },
+            {
+              "name": "2. Status - answer the OTP and read the applications",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "const c = pm.response.json().message.contract.commitments[0];",
+                      "pm.test('ACTIVE -- the OTP was accepted', () => pm.expect(c.status.descriptor.code).to.eql('ACTIVE'));",
+                      "const apps = c.commitmentAttributes.applications;",
+                      "pm.test('a list, always', () => pm.expect(apps).to.be.an('array'));",
+                      "pm.test('three applications for this mobile', () => pm.expect(apps.length).to.eql(3));",
+                      "",
+                      "// A REJECTED application is put back to DRAFT by the portal, so the",
+                      "// status alone hides the rejection. The mapping forces the code to",
+                      "// REJECTED whenever a reason is present; name keeps what KCC said.",
+                      "pm.test('a rejection is not hidden behind DRAFT', () => {",
+                      "    const r = apps.find(a => a.rejectionReason);",
+                      "    pm.expect(r.status.code).to.eql('REJECTED');",
+                      "    pm.expect(r.status.name).to.eql('DRAFT');",
+                      "});",
+                      "",
+                      "// applicationNo arrives as a number on one row and a string on another.",
+                      "pm.test('every applicationNo reads as text', () => apps.forEach(a => pm.expect(a.applicationNo).to.be.a('string')));",
+                      "pm.test('history is a list on every row', () => apps.forEach(a => pm.expect(a.history).to.be.an('array')));",
+                      "",
+                      "// Nothing KCC uses to identify the farmer should travel back out.",
+                      "pm.test('no OTP on the wire', () => pm.expect(JSON.stringify(pm.response.json())).to.not.match(/\"otp\"/i));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{kcc-networkId}}\",\n    \"senderId\": \"{{kcc-networkId}}\",\n    \"receiverId\": \"{{kcc-networkId}}\",\n    \"transactionId\": \"{{kcc-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:kcc:loan\",\n            \"provider\": {\n              \"id\": \"kcc\",\n              \"descriptor\": {\n                \"name\": \"Kisan Credit Card\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:kcc:loan\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:kcc:loan\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{kcc-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"KCC\",\n              \"name\": \"Kisan Credit Card\"\n            },\n            \"applicant\": {\n              \"mobile\": \"{{kcc-mobile}}\"\n            },\n            \"requestId\": \"{{kcc-request-id}}\",\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"{{kcc-otp}}\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/status",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "status"
+                  ]
+                },
+                "description": "One call does two jobs: it checks the OTP and answers with the applications. requestId is sent in the payload because the adapter's session layer delivers a header, not a field inside the sealed body."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Nothing filed",
+          "item": [
+            {
+              "name": "1. Init - a mobile with no applications",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('kcc-empty-transactionId', pm.variables.replaceIn('{{$guid}}'));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "const c = pm.response.json().message.contract.commitments[0];",
+                      "pm.collectionVariables.set('kcc-empty-request-id', String(c.commitmentAttributes.requestId));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{kcc-networkId}}\",\n    \"senderId\": \"{{kcc-networkId}}\",\n    \"receiverId\": \"{{kcc-networkId}}\",\n    \"transactionId\": \"{{kcc-empty-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:kcc:loan\",\n            \"provider\": {\n              \"id\": \"kcc\",\n              \"descriptor\": {\n                \"name\": \"Kisan Credit Card\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:kcc:loan\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:kcc:loan\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{kcc-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"KCC\",\n              \"name\": \"Kisan Credit Card\"\n            },\n            \"applicant\": {\n              \"mobile\": \"{{kcc-mobile-none}}\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/init",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "init"
+                  ]
+                },
+                "description": "KCC sends the OTP for any mobile it knows, whether or not an application was filed from it."
+              },
+              "response": []
+            },
+            {
+              "name": "2. Status - an empty list is an answer, not a refusal",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "const c = pm.response.json().message.contract.commitments[0];",
+                      "pm.test('ACTIVE -- the OTP was accepted', () => pm.expect(c.status.descriptor.code).to.eql('ACTIVE'));",
+                      "// The farmer is TOLD there is nothing, rather than shown a failure they",
+                      "// cannot act on. The mapping reads the applications KEY rather than its",
+                      "// value, because an empty list does not exist as a JSONata value.",
+                      "pm.test('an empty list, not an error', () => {",
+                      "    pm.expect(c.commitmentAttributes.applications).to.be.an('array').that.is.empty;",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{kcc-networkId}}\",\n    \"senderId\": \"{{kcc-networkId}}\",\n    \"receiverId\": \"{{kcc-networkId}}\",\n    \"transactionId\": \"{{kcc-empty-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:kcc:loan\",\n            \"provider\": {\n              \"id\": \"kcc\",\n              \"descriptor\": {\n                \"name\": \"Kisan Credit Card\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:kcc:loan\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:kcc:loan\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{kcc-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"KCC\",\n              \"name\": \"Kisan Credit Card\"\n            },\n            \"applicant\": {\n              \"mobile\": \"{{kcc-mobile-none}}\"\n            },\n            \"requestId\": \"{{kcc-empty-request-id}}\",\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"{{kcc-otp}}\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/status",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "status"
+                  ]
+                },
+                "description": "The case a mapping most easily gets wrong: zero applications is a successful answer. Reading the value rather than the key turns it into a 502."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Refusals",
+          "item": [
+            {
+              "name": "Init - a mobile KCC holds nothing for",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400 -- the caller can fix this', () => pm.response.to.have.status(400));",
+                      "const e = pm.response.json().error || pm.response.json().message.error;",
+                      "pm.test('a business refusal, not a downstream failure', () => pm.expect(e.code).to.eql('BIZ_GENERIC_ERROR'));",
+                      "// KCC answers this one in CLEAR while it seals its successes, which is",
+                      "// the only thing telling the two apart once the envelope is opened.",
+                      "pm.test('the reason names the mobile', () => pm.expect(e.message.toLowerCase()).to.include('mobile'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{kcc-networkId}}\",\n    \"senderId\": \"{{kcc-networkId}}\",\n    \"receiverId\": \"{{kcc-networkId}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:kcc:loan\",\n            \"provider\": {\n              \"id\": \"kcc\",\n              \"descriptor\": {\n                \"name\": \"Kisan Credit Card\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:kcc:loan\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:kcc:loan\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{kcc-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"KCC\",\n              \"name\": \"Kisan Credit Card\"\n            },\n            \"applicant\": {\n              \"mobile\": \"{{kcc-mobile-unknown}}\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/init",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "init"
+                  ]
+                },
+                "description": "A mobile with no KCC application is the caller's mistake, so it is a 400. A 502 here would read as 'KCC is down' and send the farmer away."
+              },
+              "response": []
+            },
+            {
+              "name": "Status - the wrong OTP",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400 -- the caller can fix this', () => pm.response.to.have.status(400));",
+                      "const e = pm.response.json().error || pm.response.json().message.error;",
+                      "pm.test('a business refusal', () => pm.expect(e.code).to.eql('BIZ_GENERIC_ERROR'));",
+                      "// The field the caller has to change is named under details, which is where",
+                      "// the adapter puts everything that is about the request rather than about",
+                      "// the failure.",
+                      "pm.test('it points at the OTP the caller sent', () => pm.expect(e.details.path).to.include('challenge.response.value'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{kcc-networkId}}\",\n    \"senderId\": \"{{kcc-networkId}}\",\n    \"receiverId\": \"{{kcc-networkId}}\",\n    \"transactionId\": \"{{kcc-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:kcc:loan\",\n            \"provider\": {\n              \"id\": \"kcc\",\n              \"descriptor\": {\n                \"name\": \"Kisan Credit Card\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:kcc:loan\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:kcc:loan\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{kcc-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"KCC\",\n              \"name\": \"Kisan Credit Card\"\n            },\n            \"applicant\": {\n              \"mobile\": \"{{kcc-mobile}}\"\n            },\n            \"requestId\": \"{{kcc-request-id}}\",\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"000000\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/status",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "status"
+                  ]
+                },
+                "description": "There is no verify endpoint, so a wrong OTP is refused HERE rather than on a step of its own. Run request 1 of Journey first -- this reuses its requestId."
+              },
+              "response": []
+            },
+            {
+              "name": "Status - a requestId KCC never issued",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400 -- the caller can fix this', () => pm.response.to.have.status(400));",
+                      "const e = pm.response.json().error || pm.response.json().message.error;",
+                      "// The adapter holds the requestId against the transaction, so an invented one",
+                      "// does not match any session it is keeping and the call never reaches KCC.",
+                      "// That is the point: a requestId cannot be guessed onto someone else's",
+                      "// transaction. The refusal is the session gate's, not KCC's.",
+                      "pm.test('the session gate refuses it', () => pm.expect(e.code).to.eql('SCH_INVALID_FORMAT'));",
+                      "pm.test('it says the session is the thing missing', () => pm.expect(e.message.toLowerCase()).to.include('verified session'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{kcc-networkId}}\",\n    \"senderId\": \"{{kcc-networkId}}\",\n    \"receiverId\": \"{{kcc-networkId}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:kcc:loan\",\n            \"provider\": {\n              \"id\": \"kcc\",\n              \"descriptor\": {\n                \"name\": \"Kisan Credit Card\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:kcc:loan\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:kcc:loan\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{kcc-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"KCC\",\n              \"name\": \"Kisan Credit Card\"\n            },\n            \"applicant\": {\n              \"mobile\": \"{{kcc-mobile}}\"\n            },\n            \"requestId\": \"RQ-0000\",\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"{{kcc-otp}}\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/status",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "status"
+                  ]
+                },
+                "description": "A requestId is KCC's handle on one OTP, and the adapter keeps it against the transaction that bought it. Inventing one is refused by the adapter's session gate before anything is sent, which is what stops a guessed requestId from being spent on another farmer's transaction."
+              },
+              "response": []
+            },
+            {
+              "name": "Status - with no init at all",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                      "const e = pm.response.json().error || pm.response.json().message.error;",
+                      "// Refused by the mapping's own required check, so KCC is never called",
+                      "// for a request that could not have worked.",
+                      "pm.test('it names what is missing', () => {",
+                      "    pm.expect(e.message).to.include('requestId');",
+                      "    pm.expect(e.message).to.include('challenge.response.value');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{kcc-networkId}}\",\n    \"senderId\": \"{{kcc-networkId}}\",\n    \"receiverId\": \"{{kcc-networkId}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:kcc:loan\",\n            \"provider\": {\n              \"id\": \"kcc\",\n              \"descriptor\": {\n                \"name\": \"Kisan Credit Card\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:kcc:loan\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:kcc:loan\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{kcc-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"KCC\",\n              \"name\": \"Kisan Credit Card\"\n            },\n            \"applicant\": {\n              \"mobile\": \"{{kcc-mobile}}\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/status",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "status"
+                  ]
+                },
+                "description": "No requestId and no OTP. The mapping refuses this before the adapter dials KCC."
+              },
+              "response": []
             }
           ]
         }
