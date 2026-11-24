@@ -3,7 +3,7 @@
     "name": "OpenAgriNet",
     "_postman_id": "0a4e1c00-0000-4000-8000-00000000oan1",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "The OAN capabilities, one folder each (Grievance holds PM-KISAN and PMFBY), requests numbered in the order you run them.\n\nImport api-collection/environments/OpenAgriNet.api.local-environment.json alongside this and select it, or every {{...-host}} resolves to nothing.\n\nBodies are generated from quick-start/capability-examples/ and are otherwise unedited, so what passes here is what a peer would send. transactionId, messageId and timestamp are filled fresh on every send by the collection pre-request script.\n\nPublish enters the PROVIDER adapter; discover and select enter the CONSUMER adapter, which takes unsigned requests because an app sits inside the trust boundary. The network adapter verifies signatures on both its endpoints, so Postman cannot call it -- it is here for its health check only."
+    "description": "The OAN capabilities, one folder each (Grievance holds PM-KISAN, PMFBY and KHC), requests numbered in the order you run them.\n\nImport api-collection/environments/OpenAgriNet.api.local-environment.json alongside this and select it, or every {{...-host}} resolves to nothing.\n\nBodies are generated from quick-start/capability-examples/ and are otherwise unedited, so what passes here is what a peer would send. transactionId, messageId and timestamp are filled fresh on every send by the collection pre-request script.\n\nPublish enters the PROVIDER adapter; discover and select enter the CONSUMER adapter, which takes unsigned requests because an app sits inside the trust boundary. The network adapter verifies signatures on both its endpoints, so Postman cannot call it -- it is here for its health check only."
   },
   "event": [
     {
@@ -198,6 +198,36 @@
     {
       "key": "kcc-otp",
       "value": "123456",
+      "type": "string"
+    },
+    {
+      "key": "khc-schema-base",
+      "value": "https://openagrinet.github.io/network-specs/schema",
+      "type": "string"
+    },
+    {
+      "key": "khc-mobile",
+      "value": "9000000001",
+      "type": "string"
+    },
+    {
+      "key": "khc-otp",
+      "value": "123456",
+      "type": "string"
+    },
+    {
+      "key": "khc-grievance-no",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "khc-transactionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "khc-status-transactionId",
+      "value": "",
       "type": "string"
     }
   ],
@@ -1853,6 +1883,754 @@
                         "status"
                       ]
                     }
+                  },
+                  "response": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "KHC",
+          "description": "The Kisan Help Center: a grievance filed in the farmer's own words after an OTP confirms the mobile it is filed against, and read back later behind a second OTP.\n\nAgainst the quick-start stack this is mock-khc, where the OTP is always 123456 and nothing leaves the machine. Point the registry's baseUrl at the real desk only with its owner's agreement: support files a grievance a person has to answer, and select sends an SMS to a real farmer's phone.\n\nOrder: Publish, Discover, then the filing journey 1 to 3, then the status journey 4 to 6. Request 3 saves the grievance number the status journey reads back, so 4 and 5 have nothing to run against until 3 has run once.\n\nkhc-schema-base must stay on openagrinet.github.io even against a local stack. The adapter picks the pack from the payload's own @context, and a base it does not recognise falls back to the registry's row for the capability -- which is Grievance v0.1, where @context is pinned to the v0.1 URL. A v0.2 catalog sent with any other base is NACKed SCH_TYPE_NOT_SUPPORTED \"value must be an array\".",
+          "item": [
+            {
+              "name": "Registry",
+              "item": [
+                {
+                  "name": "Read - participant",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                          "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+                          "const r = pm.response.json().data[0];",
+                          "pm.test('an upstream', () => pm.expect(r.type).to.eql('upstream'));",
+                          "// The base URL is registry data, so swapping mock-khc for the real",
+                          "// desk is this field and nothing in the adapter config.",
+                          "console.log('KHC baseUrl:', r.baseUrl);"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"filters\": {\n    \"participantId\": {\n      \"eq\": \"khc\"\n    }\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{registry-host}}/api/v1/Participant/search",
+                      "host": [
+                        "{{registry-host}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "Participant",
+                        "search"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Read - Grievance binding",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                          "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+                          "const r = pm.response.json().data[0];",
+                          "pm.test('five actions: the filing journey and the status journey', () =>",
+                          "    pm.expect(r.actions.map(a => a.action).sort()).to.eql(['confirm', 'init', 'select', 'status', 'support']));",
+                          "// Every one of them is single-shot. A retried OTP send invalidates the",
+                          "// code the farmer is holding, and a retried support files a second",
+                          "// grievance on a real desk.",
+                          "pm.test('nothing is ever retried', () =>",
+                          "    pm.expect(r.actions.every(a => a.retryMax === 0)).to.be.true);",
+                          "// select's grievance number rides the query string, which a Path cannot",
+                          "// hold -- the mapping names it under _query and the adapter puts it on",
+                          "// the URL.",
+                          "pm.test('select points at check-status, with no query in the path', () => {",
+                          "    const p = r.actions.find(a => a.action === 'select').path;",
+                          "    pm.expect(p).to.eql('/v1/state/grievances/check-status');",
+                          "});",
+                          "// The ungated GET /v1/state/grievances/status is deliberately absent: it",
+                          "// reads a grievance on a number alone, the farmer's own words included.",
+                          "pm.test('no ungated read is routed', () =>",
+                          "    pm.expect(r.actions.map(a => a.path)).to.not.include('/v1/state/grievances/status'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"filters\": {\n    \"bindingKey\": {\n      \"eq\": \"khc|openagrinet:Grievance\"\n    }\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{registry-host}}/api/v1/ProviderSchema/search",
+                      "host": [
+                        "{{registry-host}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "ProviderSchema",
+                        "search"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ],
+              "description": "The Grievance pack itself is read in the PM-KISAN folder -- one pack serves every grievance desk, so it is not read again here."
+            },
+            {
+              "name": "Publish",
+              "item": [
+                {
+                  "name": "Publish - KHC grievance desk",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                          "pm.test('catalog accepted', () => pm.expect(pm.response.json().message.results[0].status).to.eql('ACCEPTED'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"catalogs\": [\n      {\n        \"id\": \"cat-khc\",\n        \"bppId\": \"{{bppId}}\",\n        \"bppUri\": \"{{bppUri}}\",\n        \"descriptor\": {\n          \"code\": \"KHC\",\n          \"name\": \"Kisan Help Center\"\n        },\n        \"provider\": {\n          \"id\": \"khc\",\n          \"descriptor\": {\n            \"code\": \"KHC\",\n            \"name\": \"Kisan Help Center\"\n          }\n        },\n        \"isActive\": true,\n        \"resources\": [\n          {\n            \"id\": \"res-khc-grievance\",\n            \"descriptor\": {\n              \"code\": \"khc-grievance\",\n              \"name\": \"Kisan Help Center grievance\",\n              \"shortDesc\": \"File a grievance with the Kisan Help Center in the farmer's own words, after an OTP confirms the mobile number it is filed against.\",\n              \"docs\": [\n                {\n                  \"label\": \"Provider HTTP contract\",\n                  \"url\": \"https://openagrinet.github.io/network-specs/api/external/khc/tickets/v0.2/openapi.yaml\",\n                  \"mimeType\": \"application/vnd.oai.openapi\"\n                }\n              ]\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"{{khc-schema-base}}/Grievance/v0.2/context.jsonld\",\n              \"@type\": \"openagrinet:Grievance\",\n              \"informationMode\": \"OnDemand\",\n              \"scheme\": {\n                \"code\": \"38\",\n                \"name\": \"Agriculture Infrastructure Fund (AIF)\"\n              },\n              \"challenge\": {\n                \"methods\": [\n                  {\n                    \"method\": \"OTP\",\n                    \"channel\": \"SMS\",\n                    \"length\": 6,\n                    \"valueType\": \"NUMERIC\"\n                  }\n                ]\n              },\n              \"grievanceOptions\": {\n                \"categories\": [\n                  {\n                    \"code\": \"39\",\n                    \"name\": \"Bank Loan Sanction Issues\"\n                  },\n                  {\n                    \"code\": \"40\",\n                    \"name\": \"Credit Guarantee Coverage Issues\"\n                  },\n                  {\n                    \"code\": \"41\",\n                    \"name\": \"Fund Disbursement Issues\"\n                  },\n                  {\n                    \"code\": \"42\",\n                    \"name\": \"Infrastructure Implementation Issues\"\n                  },\n                  {\n                    \"code\": \"43\",\n                    \"name\": \"Interest Subvention Issues\"\n                  },\n                  {\n                    \"code\": \"44\",\n                    \"name\": \"Monitoring & Reporting Issues\"\n                  },\n                  {\n                    \"code\": \"45\",\n                    \"name\": \"Nodal Agency / Department Issues\"\n                  },\n                  {\n                    \"code\": \"46\",\n                    \"name\": \"Portal / Technical Issues\"\n                  },\n                  {\n                    \"code\": \"47\",\n                    \"name\": \"Project Appraisal & Approval Issues\"\n                  },\n                  {\n                    \"code\": \"48\",\n                    \"name\": \"Registration & Application Issues\"\n                  }\n                ]\n              },\n              \"actions\": [\n                {\n                  \"action\": \"init\",\n                  \"description\": \"Ask KHC to send a six-digit OTP to the mobile the grievance will be filed against. Call this first; nothing is filed by it.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/khc/tickets/v0.2/openapi.yaml#/paths/~1auth~1send-otp/post\"\n                },\n                {\n                  \"action\": \"confirm\",\n                  \"description\": \"Answer the OTP. KHC replies with whether it already knows this farmer, which decides whether the filing must also carry their name and gender.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/khc/tickets/v0.2/openapi.yaml#/paths/~1auth~1verify-otp/post\"\n                },\n                {\n                  \"action\": \"support\",\n                  \"description\": \"File the grievance and return the number KHC gave it. Writes to a real help desk, so call it only after the farmer has confirmed the text in words.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/khc/tickets/v0.2/openapi.yaml#/paths/~1v1~1state~1grievances/post\"\n                },\n                {\n                  \"action\": \"select\",\n                  \"description\": \"Ask after a grievance already filed. KHC sends a six-digit OTP to the mobile that grievance was filed against; nothing is read by this call. Needs the grievance number KHC returned on support, under case.ticketNo.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/khc/tickets/v0.2/openapi.yaml#/paths/~1v1~1state~1grievances~1check-status/post\"\n                },\n                {\n                  \"action\": \"status\",\n                  \"description\": \"Answer the OTP from select and read the grievance back: its number and where the case stands. The OTP is single-use, so ask the farmer for the code once and send it once.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/khc/tickets/v0.2/openapi.yaml#/paths/~1v1~1state~1grievances~1verify-otp/post\"\n                }\n              ]\n            }\n          }\n        ]\n      }\n    ],\n    \"publishDirectives\": [\n      {\n        \"catalogId\": \"cat-khc\",\n        \"catalogType\": \"REGULAR\",\n        \"updateMode\": \"MERGE\",\n        \"visibleTo\": [\n          \"{{networkId}}\",\n          \"{{otherNetworkId}}\"\n        ]\n      }\n    ]\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{network-adapter-publish}}",
+                      "host": [
+                        "{{network-adapter-publish}}"
+                      ]
+                    },
+                    "description": "Five actions, which is the whole point of this capability: init and confirm gate the filing, support files it, and select then status are the gated read. The seven reference lists KHC also serves are not published -- district and category names are read directly, the way mandi reads its master data."
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Discover",
+              "item": [
+                {
+                  "name": "Discover - KHC grievance",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                          "",
+                          "// A fault comes back inside a 200 as often as it comes back as a 4xx.",
+                          "pm.test('not a NACK', () => {",
+                          "    const b = pm.response.json();",
+                          "    const err = (b.error) || (b.message && b.message.error);",
+                          "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                          "});",
+                          "",
+                          "// The same filter the tool's own _discover sends: on the resource",
+                          "// descriptor code, not on @type, which every grievance desk shares.",
+                          "const catalogs = (pm.response.json().message || {}).catalogs || [];",
+                          "pm.test('exactly one catalog, and it is khc', () => {",
+                          "    pm.expect(catalogs).to.have.lengthOf(1);",
+                          "    pm.expect(catalogs[0].provider.id).to.eql('khc');",
+                          "});",
+                          "const res = catalogs[0].resources[0];",
+                          "pm.test('all five actions are advertised', () =>",
+                          "    pm.expect(res.resourceAttributes.actions.map(a => a.action).sort())",
+                          "      .to.eql(['confirm', 'init', 'select', 'status', 'support']));",
+                          "// The categories ride the catalog, so the agent needs no extra call to",
+                          "// offer the farmer a list.",
+                          "pm.test('the complaint categories came with it', () =>",
+                          "    pm.expect(res.resourceAttributes.grievanceOptions.categories.length).to.be.above(0));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.descriptor.code == \\\"khc-grievance\\\")\"\n      }\n    }\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{network-adapter-host}}/discover",
+                      "host": [
+                        "{{network-adapter-host}}"
+                      ],
+                      "path": [
+                        "discover"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Journey - file a grievance",
+              "description": "Run these three in order. Request 1 sets khc-transactionId and 2 and 3 reuse it, because that is what the adapter keys the farmer's session on.\n\nRequest 3 writes to the help desk. Against mock-khc that is a line in a log; against the real desk it is a grievance a person has to answer.",
+              "item": [
+                {
+                  "name": "1. Init - send the OTP",
+                  "event": [
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "// One transaction for the filing journey. Requests 2 and 3 reuse it.",
+                          "pm.collectionVariables.set('khc-transactionId', pm.variables.replaceIn('{{$guid}}'));"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                          "const c = pm.response.json().message.contract.commitments[0];",
+                          "pm.test('DRAFT -- nothing is filed yet', () => pm.expect(c.status.descriptor.code).to.eql('DRAFT'));",
+                          "pm.test('OTP shape: length 6, NUMERIC, by SMS', () => {",
+                          "  const i = c.commitmentAttributes.challenge.issued;",
+                          "  pm.expect(i.method).to.eql('OTP');",
+                          "  pm.expect(i.channel).to.eql('SMS');",
+                          "  pm.expect(i.length).to.eql(6);",
+                          "  pm.expect(i.valueType).to.eql('NUMERIC');",
+                          "});",
+                          "// The mobile is not echoed. The caller sent it and does not need telling.",
+                          "pm.test('the number is not read back', () =>",
+                          "    pm.expect(c.commitmentAttributes.farmerMobileNumber).to.be.undefined);"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"transactionId\": \"{{khc-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:khc:grievance\",\n            \"provider\": {\n              \"id\": \"khc\",\n              \"descriptor\": {\n                \"name\": \"Kisan Help Center\"\n              }\n            },\n            \"resourceIds\": [\n              \"res-khc-grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res-khc-grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{khc-schema-base}}/Grievance/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"38\"\n            },\n            \"farmerMobileNumber\": \"{{khc-mobile}}\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{network-adapter-host}}/init",
+                      "host": [
+                        "{{network-adapter-host}}"
+                      ],
+                      "path": [
+                        "init"
+                      ]
+                    },
+                    "description": "Sends an OTP to the mobile the grievance will be filed against. Nothing is filed by it. The six digits and the five-minute window the answer states are the mapping's, not KHC's -- KHC publishes neither."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "2. Confirm - answer the OTP",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                          "const c = pm.response.json().message.contract.commitments[0];",
+                          "pm.test('ACTIVE -- the number is verified', () => pm.expect(c.status.descriptor.code).to.eql('ACTIVE'));",
+                          "// Whether KHC already knows this farmer decides whether the filing must",
+                          "// also carry their name and gender.",
+                          "pm.test('KHC says whether it knows this farmer', () =>",
+                          "    pm.expect(c.commitmentAttributes.applicant.registered).to.be.a('boolean'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"confirm\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"transactionId\": \"{{khc-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:khc:grievance\",\n            \"provider\": {\n              \"id\": \"khc\",\n              \"descriptor\": {\n                \"name\": \"Kisan Help Center\"\n              }\n            },\n            \"resourceIds\": [\n              \"res-khc-grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res-khc-grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{khc-schema-base}}/Grievance/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"38\"\n            },\n            \"farmerMobileNumber\": \"{{khc-mobile}}\",\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"{{khc-otp}}\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{network-adapter-host}}/confirm",
+                      "host": [
+                        "{{network-adapter-host}}"
+                      ],
+                      "path": [
+                        "confirm"
+                      ]
+                    },
+                    "description": "The OTP is single-use. Sent twice, the second send is refused."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "3. Support - file the grievance",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                          "const ch = pm.response.json().message.support.channels[0];",
+                          "// externalReferenceNo is ours and grievanceNo is KHC's. The farmer is",
+                          "// told KHC's, because that is the one the desk answers to.",
+                          "pm.test('KHC gave the grievance a number', () =>",
+                          "    pm.expect(ch.grievanceNo).to.be.a('string').and.not.empty);",
+                          "// The status journey below reads this back.",
+                          "pm.collectionVariables.set('khc-grievance-no', ch.grievanceNo);",
+                          "pm.test('nothing of the farmer comes back', () => {",
+                          "    const text = JSON.stringify(ch);",
+                          "    pm.expect(text).not.to.include(pm.variables.get('khc-mobile'));",
+                          "});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"support\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"transactionId\": \"{{khc-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"support\": {\n      \"channels\": [\n        {\n          \"@context\": \"{{khc-schema-base}}/Grievance/v0.2/context.jsonld\",\n          \"@type\": \"openagrinet:Grievance\",\n          \"informationMode\": \"OnDemand\",\n          \"provider\": {\n            \"id\": \"khc\",\n            \"descriptor\": {\n              \"name\": \"Kisan Help Center\"\n            }\n          },\n          \"scheme\": {\n            \"code\": \"38\",\n            \"name\": \"Agriculture Infrastructure Fund (AIF)\"\n          },\n          \"referenceNo\": \"BV-postman-0001\",\n          \"farmerMobileNumber\": \"{{khc-mobile}}\",\n          \"grievance\": {\n            \"description\": \"The bank has not sanctioned my AIF loan even though the project was approved four months ago.\",\n            \"language\": \"en\",\n            \"division\": \"31\",\n            \"category\": {\n              \"code\": \"39\"\n            },\n            \"subCategory\": {\n              \"code\": \"1726\"\n            }\n          },\n          \"location\": {\n            \"stateId\": \"5\",\n            \"villageId\": \"5010101\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{network-adapter-host}}/support",
+                      "host": [
+                        "{{network-adapter-host}}"
+                      ],
+                      "path": [
+                        "support"
+                      ]
+                    },
+                    "description": "Writes a grievance. Never retried: a retried filing opens a second grievance under a real farmer's name.\n\nThe payload rides message.support.channels[0], not a contract -- which is why the grievance number comes back as grievanceNo here and as case.ticketNo on the status read."
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Journey - check the status",
+              "description": "Request 4 proves the gate: a real grievance and the right OTP, refused, because no check-status has asked for a code against it. That refusal is why the ungated GET /v1/state/grievances/status is left unbound.\n\nThen the read itself, which is two calls and not one. Request 5 asks KHC to send an OTP to the mobile the grievance was filed against; request 6 answers it and reads the grievance back.\n\nRequest 5 sets khc-status-transactionId: the status OTP is a separate challenge from the filing one, so it does not reuse khc-transactionId. All three read khc-grievance-no, which request 3 saved.\n\nOrder matters inside this folder. KHC's challenge is a flag per grievance number that a verify does not clear, so request 4 only refuses while no select has touched that grievance.",
+              "item": [
+                {
+                  "name": "4. Status - refused before any select",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const b = pm.response.json();",
+                          "const err = b.error || (b.message && b.message.error) || {};",
+                          "pm.test('refused: there is no challenge to answer', () =>",
+                          "    pm.expect(err.code).to.eql('BIZ_GENERIC_ERROR'));",
+                          "pm.test('the farmer is told the code was not accepted', () =>",
+                          "    pm.expect(err.message).to.include('did not accept that OTP'));",
+                          "// Nothing of the grievance came back, which is the point: a number alone",
+                          "// reaches no grievance.",
+                          "pm.test('no status leaked', () => pm.expect(b.message && b.message.contract).to.be.undefined);"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:khc:grievance\",\n            \"provider\": {\n              \"id\": \"khc\",\n              \"descriptor\": {\n                \"name\": \"Kisan Help Center\"\n              }\n            },\n            \"resourceIds\": [\n              \"res-khc-grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res-khc-grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{khc-schema-base}}/Grievance/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"38\"\n            },\n            \"case\": {\n              \"ticketNo\": \"{{khc-grievance-no}}\"\n            },\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"{{khc-otp}}\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{network-adapter-host}}/status",
+                      "host": [
+                        "{{network-adapter-host}}"
+                      ],
+                      "path": [
+                        "status"
+                      ]
+                    },
+                    "description": "The gate, and the reason the ungated GET /v1/state/grievances/status is not routed at all. The grievance from request 3 is real and the OTP is the right one, and KHC still refuses, because no check-status has asked for a code against this grievance.\n\nIt has to run here, before request 5. The challenge KHC holds is per grievance number and a verify does not clear it, so once select has run for a number a correct OTP against it keeps answering."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "5. Select - send the status OTP",
+                  "event": [
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "// A transaction of its own. The status OTP is a separate challenge",
+                          "// from the filing one, so request 5 reuses this and not",
+                          "// khc-transactionId.",
+                          "pm.collectionVariables.set('khc-status-transactionId', pm.variables.replaceIn('{{$guid}}'));"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                          "const c = pm.response.json().message.contract.commitments[0];",
+                          "pm.test('still DRAFT -- nothing is read yet', () => pm.expect(c.status.descriptor.code).to.eql('DRAFT'));",
+                          "const a = c.commitmentAttributes;",
+                          "pm.test('the number asked after is echoed', () =>",
+                          "    pm.expect(a.case.ticketNo).to.eql(pm.variables.get('khc-grievance-no')));",
+                          "pm.test('an OTP was issued', () => {",
+                          "  const i = a.challenge.issued;",
+                          "  pm.expect(i.method).to.eql('OTP');",
+                          "  pm.expect(i.length).to.eql(6);",
+                          "});",
+                          "// The grievance itself is not touched until the OTP is answered.",
+                          "pm.test('no status comes back on this call', () =>",
+                          "    pm.expect(a.case.status).to.be.undefined);"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"select\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"transactionId\": \"{{khc-status-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:khc:grievance\",\n            \"provider\": {\n              \"id\": \"khc\",\n              \"descriptor\": {\n                \"name\": \"Kisan Help Center\"\n              }\n            },\n            \"resourceIds\": [\n              \"res-khc-grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res-khc-grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{khc-schema-base}}/Grievance/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"38\"\n            },\n            \"case\": {\n              \"ticketNo\": \"{{khc-grievance-no}}\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{network-adapter-host}}/select",
+                      "host": [
+                        "{{network-adapter-host}}"
+                      ],
+                      "path": [
+                        "select"
+                      ]
+                    },
+                    "description": "grievanceNo travels in the QUERY STRING of this POST, not the body -- the same value in the body answers 400 \"grievanceNo is required\". A registry Path cannot hold a query, so the mapping names the field under the reserved _query key and the adapter lifts it onto the URL whatever the method.\n\nEchoing the number back is honest here and nowhere else: KHC answers 404 for a number it does not hold, so a 200 is KHC saying it knows this one."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "6. Status - answer the OTP and read the grievance",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                          "const c = pm.response.json().message.contract.commitments[0];",
+                          "pm.test('ACTIVE -- the grievance was read', () => pm.expect(c.status.descriptor.code).to.eql('ACTIVE'));",
+                          "const a = c.commitmentAttributes;",
+                          "// The number reported is the one KHC named, not the one asked about.",
+                          "pm.test('KHC named the grievance', () =>",
+                          "    pm.expect(a.case.ticketNo).to.eql(pm.variables.get('khc-grievance-no')));",
+                          "// KHC's own phrase does not travel: CaseStatusCode is an enum, and a",
+                          "// portal phrase in its place is a value no caller can branch on.",
+                          "pm.test('the status is a CaseStatusCode', () =>",
+                          "    pm.expect(['Registered', 'UnderReview', 'AwaitingApplicant', 'Replied', 'Resolved', 'Rejected', 'Closed'])",
+                          "      .to.include(a.case.status.code));",
+                          "pm.test('the OTP is not echoed', () => pm.expect(a.challenge).to.be.undefined);"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"transactionId\": \"{{khc-status-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:khc:grievance\",\n            \"provider\": {\n              \"id\": \"khc\",\n              \"descriptor\": {\n                \"name\": \"Kisan Help Center\"\n              }\n            },\n            \"resourceIds\": [\n              \"res-khc-grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res-khc-grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{khc-schema-base}}/Grievance/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"38\"\n            },\n            \"case\": {\n              \"ticketNo\": \"{{khc-grievance-no}}\"\n            },\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"{{khc-otp}}\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{network-adapter-host}}/status",
+                      "host": [
+                        "{{network-adapter-host}}"
+                      ],
+                      "path": [
+                        "status"
+                      ]
+                    },
+                    "description": "Both values travel in the body here, unlike select, which reads its only value from the query string. The inconsistency is the provider's; each mapping follows the call in front of it.\n\nKHC also returns currentLevel and createdAt on this read. Its contract declares neither, so neither is mapped -- see migration-plan/khc/plan.md."
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Refusals",
+              "description": "What the farmer is told when the call cannot be made. Each of these should come back as a refusal naming the field, not as a service that is down.",
+              "item": [
+                {
+                  "name": "Select - a grievance no desk holds",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const b = pm.response.json();",
+                          "const err = b.error || (b.message && b.message.error) || {};",
+                          "pm.test('refused, not reported as broken', () => pm.expect(err.code).to.eql('BIZ_GENERIC_ERROR'));",
+                          "pm.test('and says so in words a farmer can hear', () =>",
+                          "    pm.expect(err.message).to.include('could not send an OTP'));",
+                          "// KHC answers 404 for a number it does not hold, and the mapping admits",
+                          "// that as an answer rather than a fault.",
+                          "pm.test('it points at the grievance number', () =>",
+                          "    pm.expect((err.details || {}).path || '').to.include('case.ticketNo'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"select\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:khc:grievance\",\n            \"provider\": {\n              \"id\": \"khc\",\n              \"descriptor\": {\n                \"name\": \"Kisan Help Center\"\n              }\n            },\n            \"resourceIds\": [\n              \"res-khc-grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res-khc-grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{khc-schema-base}}/Grievance/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"38\"\n            },\n            \"case\": {\n              \"ticketNo\": \"BR/999999/9\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{network-adapter-host}}/select",
+                      "host": [
+                        "{{network-adapter-host}}"
+                      ],
+                      "path": [
+                        "select"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Select - no grievance number",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const b = pm.response.json();",
+                          "const err = b.error || (b.message && b.message.error) || {};",
+                          "// Refused before the call is made: KHC's own number is the one field",
+                          "// select cannot work without, and our externalReferenceNo is not it.",
+                          "pm.test('refused on the shape, before anything is sent', () =>",
+                          "    pm.expect(err.code).to.eql('SCH_INVALID_FORMAT'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"select\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:khc:grievance\",\n            \"provider\": {\n              \"id\": \"khc\",\n              \"descriptor\": {\n                \"name\": \"Kisan Help Center\"\n              }\n            },\n            \"resourceIds\": [\n              \"res-khc-grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res-khc-grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{khc-schema-base}}/Grievance/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"38\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{network-adapter-host}}/select",
+                      "host": [
+                        "{{network-adapter-host}}"
+                      ],
+                      "path": [
+                        "select"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Status - the wrong OTP",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const b = pm.response.json();",
+                          "const err = b.error || (b.message && b.message.error) || {};",
+                          "pm.test('refused, not reported as broken', () => pm.expect(err.code).to.eql('BIZ_GENERIC_ERROR'));",
+                          "pm.test('the farmer is told their code was wrong', () =>",
+                          "    pm.expect(err.message).to.include('did not accept that OTP'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"transactionId\": \"{{khc-status-transactionId}}\",\n    \"messageId\": \"{{messageId}}\",\n    \"timestamp\": \"{{timestamp}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:khc:grievance\",\n            \"provider\": {\n              \"id\": \"khc\",\n              \"descriptor\": {\n                \"name\": \"Kisan Help Center\"\n              }\n            },\n            \"resourceIds\": [\n              \"res-khc-grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res-khc-grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{khc-schema-base}}/Grievance/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"38\"\n            },\n            \"case\": {\n              \"ticketNo\": \"{{khc-grievance-no}}\"\n            },\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"999999\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{network-adapter-host}}/status",
+                      "host": [
+                        "{{network-adapter-host}}"
+                      ],
+                      "path": [
+                        "status"
+                      ]
+                    },
+                    "description": "Run request 4 first so there is a live challenge to fail against. A wrong code spends nothing; the farmer can read the right one out next."
                   },
                   "response": []
                 }

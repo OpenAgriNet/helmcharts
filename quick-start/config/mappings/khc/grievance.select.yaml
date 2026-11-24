@@ -1,0 +1,83 @@
+# KHC grievance, select -> POST /v1/state/grievances/check-status.
+#
+# Step one of the gated status read. The farmer names a grievance and KHC sends
+# an OTP to the mobile it was filed against. Nothing is read by this call and
+# nothing is written; a number no desk holds comes back 404, which the provider
+# block admits as an answer so the farmer is told that rather than that the
+# service is down.
+#
+# grievanceNo travels in the QUERY STRING, not the body. That is KHC's own
+# quirk -- the same value in the body answers 400 "grievanceNo is required" --
+# and it is why this mapping writes the reserved _query key. The adapter sends
+# whatever is under it as query parameters, on a POST exactly as on a GET.
+#
+# Never retried. A second check-status invalidates the first code, so the
+# farmer reads one and types another.
+
+required:
+  - check: |
+      $exists(beckn.message.contract.commitments[0].commitmentAttributes.case.ticketNo)
+    message: "this capability needs case.ticketNo -- KHC's own number for the grievance, not our externalReferenceNo"
+
+# The whole request. Nothing is left over for the body, so none is sent and no
+# Content-Type is announced for a body that is not there.
+request: |
+  {
+    "_query": {
+      "grievanceNo": $string(beckn.message.contract.commitments[0].commitmentAttributes.case.ticketNo)
+    }
+  }
+
+# KHC answers with a status STRING -- "200 OK", not the number 200 -- so the
+# body is what decides, exactly as on init.
+response: |
+  (
+    $c := beckn.message.contract.commitments[0];
+    $ca := $c.commitmentAttributes;
+    $said := $string(response.status);
+    $at := "$.message.contract.commitments[0].commitmentAttributes.";
+
+    /* The window stated to the farmer. KHC publishes neither the length of the
+       status code nor how long it lives, so this is the filing challenge's
+       figure carried over, not a value traced to KHC. */
+    $otpWindowMillis := 5 * 60 * 1000;
+
+    $contains($said, "200") != true
+    ? { "_error": {
+          "status": 400,
+          "code": "BIZ_GENERIC_ERROR",
+          "message": "KHC could not send an OTP for that grievance number.",
+          "path": $at & "case.ticketNo",
+          "cause": $exists(response.message) ? response.message : $said } }
+    : {
+      "context": $merge([beckn.context, { "action": "on_select", "timestamp": $now() }]),
+      "message": {
+        "contract": $merge([beckn.message.contract, {
+          "commitments": [$merge([$c, {
+            "status": { "descriptor": { "code": "DRAFT" } },
+            "commitmentAttributes": {
+              "@context":        $ca.`@context`,
+              "@type":           $ca.`@type`,
+              "informationMode": "OnDemand",
+              "scheme":          $ca.scheme,
+              /* The number asked after, echoed so the caller's next call has it
+                 to hand. Echoing it is honest here and nowhere else: KHC
+                 answers 404 for a number it does not hold, so a 200 is KHC
+                 saying it knows this one. The grievance itself is not read
+                 until the OTP is answered. */
+              "case": { "ticketNo": $string($ca.case.ticketNo) },
+              "challenge": {
+                "issued": {
+                  "method":    "OTP",
+                  "channel":   "SMS",
+                  "length":    6,
+                  "valueType": "NUMERIC",
+                  "expiresAt": $fromMillis($millis() + $otpWindowMillis)
+                }
+              }
+            }
+          }])]
+        }])
+      }
+    }
+  )

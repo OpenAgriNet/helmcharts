@@ -120,6 +120,16 @@
                   "action": "support",
                   "description": "File the grievance and return the number KHC gave it. Writes to a real help desk, so call it only after the farmer has confirmed the text in words.",
                   "operationRef": "https://openagrinet.github.io/network-specs/api/external/khc/tickets/v0.2/openapi.yaml#/paths/~1v1~1state~1grievances/post"
+                },
+                {
+                  "action": "select",
+                  "description": "Ask after a grievance already filed. KHC sends a six-digit OTP to the mobile that grievance was filed against; nothing is read by this call. Needs the grievance number KHC returned on support, under case.ticketNo.",
+                  "operationRef": "https://openagrinet.github.io/network-specs/api/external/khc/tickets/v0.2/openapi.yaml#/paths/~1v1~1state~1grievances~1check-status/post"
+                },
+                {
+                  "action": "status",
+                  "description": "Answer the OTP from select and read the grievance back: its number and where the case stands. The OTP is single-use, so ask the farmer for the code once and send it once.",
+                  "operationRef": "https://openagrinet.github.io/network-specs/api/external/khc/tickets/v0.2/openapi.yaml#/paths/~1v1~1state~1grievances~1verify-otp/post"
                 }
               ]
             }

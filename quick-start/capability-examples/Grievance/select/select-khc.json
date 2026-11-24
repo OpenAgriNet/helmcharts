@@ -1,0 +1,58 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "select",
+    "version": "2.0.0",
+    "networkId": "oan.dev",
+    "senderId": "oan.dev",
+    "receiverId": "oan.dev",
+    "transactionId": "11111111-0000-4000-8000-00000000khc3",
+    "messageId": "11111111-0000-4000-8000-00000000khc4",
+    "timestamp": "2026-11-24T06:30:00.000Z"
+  },
+  "message": {
+    "contract": {
+      "id": "11111111-0000-4000-8000-00000000khcs",
+      "commitments": [
+        {
+          "status": {
+            "descriptor": {
+              "code": "DRAFT"
+            }
+          },
+          "offer": {
+            "id": "off:khc:grievance",
+            "provider": {
+              "id": "khc",
+              "descriptor": {
+                "name": "Kisan Help Center"
+              }
+            },
+            "resourceIds": [
+              "res-khc-grievance"
+            ]
+          },
+          "resources": [
+            {
+              "id": "res-khc-grievance",
+              "quantity": {
+                "count": 1
+              }
+            }
+          ],
+          "commitmentAttributes": {
+            "@context": "https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/context.jsonld",
+            "@type": "openagrinet:Grievance",
+            "informationMode": "OnDemand",
+            "scheme": {
+              "code": "38"
+            },
+            "case": {
+              "ticketNo": "MH/123456/1"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
