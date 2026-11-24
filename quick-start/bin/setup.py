@@ -146,6 +146,14 @@ PROVIDERS = {
         "method": "POST", "default_path": "/inv-apis2/stock/getSeedAvailability",
         "needs": ["SATHI_API_KEY"],
     },
+    "shc": {
+        "prefix": "SHC", "name": "Soil Health Card reports",
+        "capability_name": "Agriculture Resource", "version": "v0.2",
+        "method": "POST", "default_path": "/",
+        "needs": ["SHC_TOKEN_URL", "SHC_REFRESH_TOKEN"],
+        # SHC takes 15-26s per report query. A retry would only double the wait.
+        "timeout_ms": 60000, "retries": 0,
+    },
     "pocra": {
         "prefix": "POCRA", "name": "POCRA agriculture facilities",
         "capability_name": "Agriculture Facility", "version": "v0.1",
@@ -493,7 +501,7 @@ def ensure_row(entity, filters, row, what):
 
 
 def ensure_binding(participant_id, capability, path, mapping_url,
-                   method="GET"):
+                   method="GET", timeout_ms=15000, retries=2):
     """A capability binding answering select only. The shape of actions,
     mappings and method is docs/adr/0005-filling-the-registry.md."""
     binding = f"{participant_id}|{capability}"
@@ -502,7 +510,7 @@ def ensure_binding(participant_id, capability, path, mapping_url,
         "capabilityCode": capability, "status": "active",
         "actions": [{"action": "select", "method": method, "path": path,
                      "mappings": mapping_url,
-                     "timeoutMs": 15000, "retryMax": 2,
+                     "timeoutMs": timeout_ms, "retryMax": retries,
                      "status": "active"}]}, binding)
 
 
@@ -605,7 +613,9 @@ def register_provider(name):
     ensure_binding(participant, capability,
                    env(f"{provider['prefix']}_PATH", provider["default_path"]),
                    env(f"{provider['prefix']}_MAPPING_URL"),
-                   method=provider["method"])
+                   method=provider["method"],
+                   timeout_ms=provider.get("timeout_ms", 15000),
+                   retries=provider.get("retries", 2))
     ensure_capability_schema(capability, provider["capability_name"], provider["version"])
     print(f"  binding key {participant}|{capability}")
 
@@ -851,6 +861,7 @@ def configure_adapter(identity):
                 ("__AGMARKNET_TOKEN_URL__", token_url("agmarknet", "AGMARKNET_TOKEN_URL", serving)),
                 ("__VISTAAR_TOKEN_URL__", token_url("vistaar", "VISTAAR_TOKEN_URL", serving)),
                 ("__PMFBY_TOKEN_URL__", token_url("pmfby", "PMFBY_TOKEN_URL", serving)),
+                ("__SHC_TOKEN_URL__", token_url("shc", "SHC_TOKEN_URL", serving)),
                 # The crawler hands a crawled catalog to /publish, which signs it
                 # and forwards it on. /network/publish expects a signature the
                 # crawl does not carry, and in multi mode /publish is elsewhere.

@@ -1,0 +1,13 @@
+__PROVIDER_CONFIG__ AgricultureResource
+              # SHC is GraphQL: a fixed login query trades the refresh token for a
+              # 7-day access token, sent as "Bearer <token>". Renewed after 6 days.
+              __PARTICIPANT_ID__:
+                authScheme: tokenHeader
+                tokenUrl: "__SHC_TOKEN_URL__"
+                tokenRequestBody: '{"query":"query Query($refreshToken: String!) { generateAccessToken(refreshToken: $refreshToken) }"}'
+                tokenSecretField: variables.refreshToken
+                tokenSecretEnv: SHC_REFRESH_TOKEN
+                tokenResponseField: data.generateAccessToken.token
+                tokenTtl: 144h
+                headerName: Authorization
+                tokenHeaderPrefix: Bearer
