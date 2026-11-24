@@ -1,0 +1,64 @@
+# GFR soil test, openagrinet:AgricultureResource, init. resourceAttributes carries the
+# request fields of GFR's soil-report OpenAPI beside the pack's @context and @type.
+
+required:
+  - check: |
+      (
+        $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
+        $exists($ra.query) and $exists($ra.variables.phone) and $exists($ra.variables.cycle)
+      )
+    message: "this capability needs query, variables.phone and variables.cycle in resourceAttributes"
+
+# The body is SHC's GraphQL request as sent. The adapter adds the Bearer token.
+request: |
+  (
+    $ra := beckn.message.contract.commitments[0].resources[0].resourceAttributes;
+    {
+      "query": $ra.query,
+      "variables": $ra.variables
+    }
+  )
+
+# Only the first report's soil values go back, as v1 used them: no names, addresses
+# or report cards. GraphQL errors are passed on so the caller can tell them apart.
+response: |
+  (
+    $selected := beckn.message.contract.commitments[0];
+    $asked := $selected.resources[0];
+    {
+      "context": {
+        "version": beckn.context.version,
+        "action": "on_init",
+        "networkId": beckn.context.networkId,
+        "transactionId": beckn.context.transactionId,
+        "messageId": beckn.context.messageId,
+        "timestamp": $now()
+      },
+      "message": {
+        "contract": {
+          "commitments": [
+            {
+              "status": { "descriptor": { "code": "ACTIVE", "name": "active" } },
+              "resources": [
+                {
+                  "id": $asked.id,
+                  "quantity": { "count": 1 },
+                  "resourceAttributes": $merge([
+                    {
+                      "@context": $asked.resourceAttributes.`@context`,
+                      "@type": $asked.resourceAttributes.`@type`
+                    },
+                    $exists(response.errors) ? { "errors": response.errors } : {},
+                    $exists(response.data.getTestForAuthUser[0].results)
+                      ? { "results": response.data.getTestForAuthUser[0].results }
+                      : {}
+                  ])
+                }
+              ],
+              "offer": $selected.offer
+            }
+          ]
+        }
+      }
+    }
+  )
