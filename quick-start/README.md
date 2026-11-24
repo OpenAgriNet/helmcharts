@@ -37,6 +37,7 @@ when you register the provider that needs it:
 | `mausamgram` | Weather Observation | `MAUSAMGRAM_AUTH` |
 | `sathi` | Agriculture Resource (seed stock) | `SATHI_API_KEY` |
 | `shc` | Agriculture Resource (Soil Health Card reports) | `SHC_TOKEN_URL`, `SHC_REFRESH_TOKEN` |
+| `gfr` | Agriculture Resource (GFR fertilizer recommendation) | `GFR_BASE_URL`, `GFR_TOKEN_URL`, `GFR_REFRESH_TOKEN` |
 | `agmarknet` | Mandi Price | base URL, token URL, access name, password |
 | `vistaar` | Knowledge Advisory | base URL, token URL, client id, secret |
 | `pmkisan` | Grievance and Scheme Application | two hosts, an AES key and nonce, two service tokens |
