@@ -20,16 +20,24 @@
 
 required:
   - check: |
-      $exists(beckn.message.contract.commitments[0].commitmentAttributes.applicant.mobile)
-    message: "this capability needs applicant.mobile in commitmentAttributes"
+      (
+        $attributes := beckn.message.contract.commitments[0].commitmentAttributes;
+        $exists($attributes.mobileNumber) and $exists($attributes.otpFor)
+      )
+    message: "this capability needs mobileNumber and otpFor in commitmentAttributes"
 
-# otpFor names which KCC product the code is for; krishika is the loan journey.
+# Pass-through. The caller fills the field names KCC's own contract declares --
+# the one the catalog's init operationRef points at -- so there is no second
+# vocabulary for this file to translate between, and a field KCC adds arrives
+# with a spec change rather than a change here.
 request: |
-  {
-    "mobileNumber": $string(
-      beckn.message.contract.commitments[0].commitmentAttributes.applicant.mobile),
-    "otpFor": "krishika"
-  }
+  (
+    $attributes := beckn.message.contract.commitments[0].commitmentAttributes;
+    {
+      "mobileNumber": $string($attributes.mobileNumber),
+      "otpFor": $attributes.otpFor
+    }
+  )
 
 # A sealed reply opens to requestID, message and expiresIn and carries no flag
 # -- the requestID IS the success. A refusal arrives unsealed, so it still has
@@ -38,8 +46,6 @@ request: |
 response: |
   (
     /* Constants */
-    $SCHEME := { "code": "KCC", "name": "Kisan Credit Card" };
-    $INFORMATION_MODE := "OnDemand";
     $COMMITMENT_STATUS_DRAFT := "DRAFT";
     $OTP_LENGTH := 6;
     $OTP_WINDOW_SECONDS := 300;
@@ -64,7 +70,7 @@ response: |
     /* Inputs */
     $commitment := beckn.message.contract.commitments[0];
     $attributes := $commitment.commitmentAttributes;
-    $mobile := $string($attributes.applicant.mobile);
+    $mobile := $string($attributes.mobileNumber);
     $kccMessage := $isText(response.message) ? $trim(response.message);
     $requestId := $isText($string(response.requestID)) ? $trim($string(response.requestID));
     $isSent := $exists($requestId);
@@ -78,6 +84,9 @@ response: |
     $sentTo := "XXXXXX" & $substring($mobile, -4);
 
     /* Output */
+    /* scheme and informationMode are echoed from what was sent, which is what
+       the catalog published; stating them again here would be a second place
+       to change when KCC's catalog entry changes. */
     $isSent
     ? {
       "context": $merge([beckn.context, { "action": "on_init", "timestamp": $now() }]),
@@ -88,10 +97,10 @@ response: |
             "commitmentAttributes": {
               "@context": $attributes.`@context`,
               "@type": $attributes.`@type`,
-              "informationMode": $INFORMATION_MODE,
-              "scheme": $SCHEME,
-              "applicant": { "mobile": $mobile },
-              "requestId": $requestId,
+              "informationMode": $attributes.informationMode,
+              "scheme": $attributes.scheme,
+              "mobileNumber": $mobile,
+              "requestID": $requestId,
               "challenge": {
                 "issued": {
                   "method": "OTP",
@@ -108,6 +117,6 @@ response: |
       }
     }
     : $isCallerFault
-      ? $error($ERROR_REFUSED, $MSG_REFUSED, $ATTRIBUTES_PATH & "applicant.mobile", $kccMessage)
+      ? $error($ERROR_REFUSED, $MSG_REFUSED, $ATTRIBUTES_PATH & "mobileNumber", $kccMessage)
       : $error($ERROR_UNAVAILABLE, $MSG_UNAVAILABLE, undefined, $kccMessage)
   )

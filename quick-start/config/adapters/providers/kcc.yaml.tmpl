@@ -36,10 +36,12 @@ __PROVIDER_CONFIG__ Grievance
                 # told to try later instead of being told their OTP was wrong.
                 envelopeResponseOptional: true
                 # The requestID the OTP call answers with is the farmer's
-                # session. Held in the cache against the transaction and sent
-                # back on status; it never travels on the wire, because a
-                # requestID in a signed callback is a session anyone reading
-                # the log can spend.
+                # session. Held in the cache against the transaction, and the
+                # held copy is what gates the status call below. It IS also
+                # returned to the caller, because it belongs inside the sealed
+                # body and the adapter cannot write a held value into a body it
+                # has already sealed. Safe, because the gate runs before KCC is
+                # dialled and the OTP is the secret.
                 sessionKeyAt: "context.transactionId,context.transaction_id"
                 sessionCaptureOn: init
                 sessionSendOn: status
@@ -52,7 +54,8 @@ __PROVIDER_CONFIG__ Grievance
                 sessionTtlMargin: 30s
                 # The session was bought for one mobile number. Without this a
                 # transaction id alone is enough to read another farmer's
-                # loan applications.
-                sessionBindAt: "message.contract.commitments[].commitmentAttributes.applicant.mobile"
+                # loan applications. The field is KCC's own name for it,
+                # because the attributes carry KCC's own field names.
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.mobileNumber"
                 sessionHeader: X-KCC-Request-Session
                 sessionPrefix: ""

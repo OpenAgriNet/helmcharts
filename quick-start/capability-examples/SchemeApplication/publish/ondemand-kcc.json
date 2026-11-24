@@ -68,13 +68,13 @@
               "actions": [
                 {
                   "action": "init",
-                  "description": "Ask KCC to send a six-digit OTP to the mobile the application was filed from. Call this before status. It answers with a requestId, which status has to send back.",
+                  "description": "Ask KCC to send a six-digit OTP to the mobile the application was filed from. Call this before status. It answers with a requestID, which status has to send back.",
                   "operationRef": "https://openagrinet.github.io/network-specs/api/external/kcc/loan/v0.2/openapi.yaml#/paths/~1auth~1requestOtp/post",
                   "attributesAt": "$.message.contract.commitments[0].commitmentAttributes"
                 },
                 {
                   "action": "status",
-                  "description": "Answer the OTP sent by init and read every KCC loan application on that mobile in the same call. There is no separate verify step, so a wrong OTP is refused here. Needs the requestId init returned.",
+                  "description": "Answer the OTP sent by init and read every KCC loan application on that mobile in the same call. There is no separate verify step, so a wrong OTP is refused here. Needs the requestID init returned.",
                   "operationRef": "https://openagrinet.github.io/network-specs/api/external/kcc/loan/v0.2/openapi.yaml#/paths/~1bharatVistaar~1krishika~1applicationStatus/post",
                   "attributesAt": "$.message.contract.commitments[0].commitmentAttributes"
                 }
