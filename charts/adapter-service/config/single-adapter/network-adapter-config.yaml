@@ -390,13 +390,24 @@ modules:
                 followUpTimeoutMs: "10000"
           - id: AgricultureResource
             config:
-              bindingKeys: "sathi|openagrinet:AgricultureResource"
+              bindingKeys: "sathi|openagrinet:AgricultureResource,shc|openagrinet:AgricultureResource"
               # SATHI takes its key only in the JSON body; 409 is its "no stock" answer, mapped rather than failed.
               sathi:
                 authScheme: body
                 bodyField: apiKey
                 bodyValueEnv: SATHI_API_KEY
                 answerStatuses: "409"
+              # SHC is GraphQL: a login query trades the refresh token for a 7-day access token, renewed after 6 days.
+              shc:
+                authScheme: tokenHeader
+                tokenUrl: "https://soilhealth4.dac.gov.in"
+                tokenRequestBody: '{"query":"query Query($refreshToken: String!) { generateAccessToken(refreshToken: $refreshToken) }"}'
+                tokenSecretField: variables.refreshToken
+                tokenSecretEnv: SHC_REFRESH_TOKEN
+                tokenResponseField: data.generateAccessToken.token
+                tokenTtl: 144h
+                headerName: Authorization
+                tokenHeaderPrefix: Bearer
       steps:
         - validateSign
         - checkCrossNetworkRequester
