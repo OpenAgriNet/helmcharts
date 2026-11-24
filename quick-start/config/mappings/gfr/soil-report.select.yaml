@@ -1,4 +1,4 @@
-# GFR soil test, openagrinet:AgricultureResource, init. resourceAttributes carries the
+# GFR soil test, openagrinet:AgricultureResource, select. resourceAttributes carries the
 # request fields of GFR's soil-report OpenAPI beside the pack's @context and @type.
 
 required:
@@ -28,7 +28,7 @@ response: |
     {
       "context": {
         "version": beckn.context.version,
-        "action": "on_init",
+        "action": "on_select",
         "networkId": beckn.context.networkId,
         "transactionId": beckn.context.transactionId,
         "messageId": beckn.context.messageId,
