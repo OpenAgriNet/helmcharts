@@ -272,6 +272,12 @@ modules:
             cacheTTL: 1m
             negativeTTL: 1m
             maxCacheEntries: 200
+        # Where a farmer's session lives between the OTP call and the calls that spend it (KCC, PMFBY, AIF).
+        cache:
+          id: cache
+          config:
+            addr: redis.redis.svc.cluster.local:6379
+            use_tls: "false"
         middleware:
           - id: reqpreprocessor
             config:
@@ -336,16 +342,17 @@ modules:
           # and PMKISAN_OTP_TOKEN.
           - id: Grievance
             config:
-              bindingKeys: "pmfby|openagrinet:Grievance,pmkisan|openagrinet:Grievance,pmkisan|openagrinet:SchemeApplication"
+              bindingKeys: "pmfby|openagrinet:Grievance,pmfby|openagrinet:SchemeApplication,pmkisan|openagrinet:Grievance,pmkisan|openagrinet:SchemeApplication,kcc|openagrinet:SchemeApplication,aif|openagrinet:SchemeApplication,aif|openagrinet:Grievance"
               # Paired by position, tried in order: status names the binding on
               # its contract, support on its channel.
               providerIdAt: "message.contract.commitments[].offer.provider.id, message.support.channels[].provider.id"
               capabilityCodeAt: "message.contract.commitments[].commitmentAttributes.@type, message.support.channels[].@type"
               # The token is sent bare in Authorization and held until the
               # login reply's own validTo.
+              # bv-dev: the mock-pmfby manifest serves both FGMS (grievance) and NIC (insurance).
               pmfby:
                 authScheme: tokenHeader
-                tokenUrl: "__PMFBY_TOKEN_URL__"
+                tokenUrl: "http://mock-pmfby.mock-pmfby.svc.cluster.local:9104/krphapi/FGMS/NICUsersLogin"
                 tokenUserField: appAccessUID
                 tokenUserEnv: PMFBY_ACCESS_UID
                 tokenSecretField: appAccessPWD
@@ -353,6 +360,18 @@ modules:
                 tokenResponseField: responseDynamic.token.Token
                 tokenExpiryField: responseDynamic.token.validTo
                 headerName: Authorization
+              # Insurance reads are the farmer's: the OTP answered on confirm buys a session (the
+              # farmerID), spent by policy and claim, bound to the mobile it was bought for.
+              "pmfby|openagrinet:SchemeApplication":
+                sessionKeyAt: "context.transactionId,context.transaction_id"
+                sessionCaptureOn: confirm
+                sessionSendOn: "status,select"
+                sessionTokenField: data.farmerID
+                sessionTtl: 15m
+                sessionTtlMargin: 60s
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.applicant.mobile"
+                sessionHeader: X-PMFBY-Farmer-Session
+                sessionPrefix: ""
               pmkisan:
                 authScheme: none
               "pmkisan|openagrinet:Grievance":
@@ -388,6 +407,58 @@ modules:
                 followUpField: _beneficiaryStatus
                 followUpActions: status
                 followUpTimeoutMs: "10000"
+              # KCC (bv-dev: the mock-kcc manifest). A form login with a constant entityType buys the
+              # service token; the farmer's OTP buys a session (requestID) that gates the status call.
+              kcc:
+                authScheme: tokenHeader
+                tokenUrl: "http://mock-kcc.mock-kcc.svc.cluster.local:9105/auth/login"
+                tokenEncoding: form
+                tokenExtraFields: "entityType=KRISHIKA"
+                tokenUserField: userID
+                tokenUserEnv: KCC_USER_ID
+                tokenSecretField: password
+                tokenSecretEnv: KCC_PASSWORD
+                tokenResponseField: data.token
+                tokenTtl: 1h
+                headerName: token
+              # Bodies are sealed both ways (AES-256-CBC, fixed key, hex under data); a refusal comes back
+              # unsealed. The session is bound to the mobile it was bought for.
+              "kcc|openagrinet:SchemeApplication":
+                envelope: aesCbcFixedKey
+                envelopeKeyEnv: KCC_ENCRYPTION_KEY
+                envelopeRequestField: data
+                envelopeResponsePaths: "data"
+                envelopeResponseOptional: true
+                sessionKeyAt: "context.transactionId,context.transaction_id"
+                sessionCaptureOn: init
+                sessionSendOn: status
+                sessionTokenField: requestID
+                sessionTtlField: expiresIn
+                sessionTtl: 5m
+                sessionTtlMargin: 30s
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.mobileNumber"
+                sessionHeader: X-KCC-Request-Session
+                sessionPrefix: ""
+              # AIF (bv-dev: the mock-aif manifest). The apiKey names the calling service; the farmer's
+              # bearer, bought on init by the OTP, is spent by status and by the ticket read.
+              aif:
+                authScheme: header
+                headerName: apiKey
+                headerValueEnv: AIF_API_KEY
+              "aif|openagrinet:SchemeApplication":
+                sessionKeyAt: "context.transactionId,context.transaction_id"
+                sessionCaptureOn: init
+                sessionSendOn: status
+                sessionTokenField: Token
+                sessionTtlField: ExpiresIn
+                sessionTtl: 1h
+                sessionTtlMargin: 60s
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.beneficiaryId"
+              "aif|openagrinet:Grievance":
+                sessionKeyAt: "context.transactionId,context.transaction_id"
+                sessionBindingKey: "aif|openagrinet:SchemeApplication"
+                sessionSendOn: status
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.beneficiaryId"
           - id: AgricultureResource
             config:
               bindingKeys: "sathi|openagrinet:AgricultureResource,shc|openagrinet:AgricultureResource"
