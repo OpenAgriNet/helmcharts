@@ -37,35 +37,33 @@
               "shortDesc": "Verify an AIF beneficiary by OTP, then read one loan application's status."
             },
             "resourceAttributes": {
-              "@context": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/schema/AgricultureResource/v0.2/context.jsonld",
-              "@type": "openagrinet:AgricultureResource",
+              "@context": "https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.2/context.jsonld",
+              "@type": "openagrinet:SchemeApplication",
               "informationMode": "OnDemand",
-              "subjectCategories": ["Scheme"],
-              "agricultureSubjects": [
-                {
-                  "descriptor": {
-                    "code": "AIF",
-                    "name": "Agriculture Infrastructure Fund"
+              "scheme": {
+                "code": "AIF",
+                "name": "Agriculture Infrastructure Fund"
+              },
+              "challenge": {
+                "methods": [
+                  {
+                    "method": "OTP",
+                    "channel": "SMS",
+                    "length": 6,
+                    "valueType": "NUMERIC"
                   }
-                }
-              ],
-              "languages": ["en"],
-              "coverageAreas": [
-                {
-                  "codeScheme": "ISO-3166-1",
-                  "areaLevel": "Country",
-                  "areaCode": "IN",
-                  "areaName": "India"
-                }
-              ],
+                ]
+              },
               "actions": [
                 {
                   "action": "init",
-                  "operationRef": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/api/external/aif/loan/v0.2/openapi.yaml#/paths/~1validate_beneficiaries~1/post"
+                  "description": "Start beneficiary verification, then answer the OTP AIF sends to the registered mobile. Both steps post to this operation; the body tells them apart.",
+                  "operationRef": "https://openagrinet.github.io/network-specs/api/external/aif/loan/v0.2/openapi.yaml#/paths/~1validate_beneficiaries~1/post"
                 },
                 {
                   "action": "status",
-                  "operationRef": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/api/external/aif/loan/v0.2/openapi.yaml#/paths/~1Status/get"
+                  "description": "Read one loan application's status. Requires the session a verified beneficiary holds.",
+                  "operationRef": "https://openagrinet.github.io/network-specs/api/external/aif/loan/v0.2/openapi.yaml#/paths/~1Status/get"
                 }
               ]
             }
@@ -81,7 +79,9 @@
               "@context": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/schema/AgricultureResource/v0.2/context.jsonld",
               "@type": "openagrinet:AgricultureResource",
               "informationMode": "OnDemand",
-              "subjectCategories": ["Scheme"],
+              "subjectCategories": [
+                "Scheme"
+              ],
               "agricultureSubjects": [
                 {
                   "descriptor": {
@@ -90,7 +90,9 @@
                   }
                 }
               ],
-              "languages": ["en"],
+              "languages": [
+                "en"
+              ],
               "coverageAreas": [
                 {
                   "codeScheme": "ISO-3166-1",
@@ -115,7 +117,9 @@
         "catalogId": "cat-aif",
         "catalogType": "REGULAR",
         "updateMode": "MERGE",
-        "visibleTo": ["*"]
+        "visibleTo": [
+          "*"
+        ]
       }
     ]
   }
