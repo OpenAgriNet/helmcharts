@@ -1,0 +1,141 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "catalog/publish",
+    "version": "2.0.0",
+    "transactionId": "bade0000-0000-4000-8000-000000000081",
+    "messageId": "fade0000-0000-4000-8000-000000000082",
+    "timestamp": "2026-11-24T01:00:00Z",
+    "senderId": "oan.dev",
+    "receiverId": "oan.dev",
+    "networkId": "oan.dev"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "id": "cat-khc",
+        "bppId": "oan.dev",
+        "bppUri": "https://net-a.oan.dev",
+        "descriptor": {
+          "code": "KHC",
+          "name": "Kisan Help Center"
+        },
+        "provider": {
+          "id": "khc",
+          "descriptor": {
+            "code": "KHC",
+            "name": "Kisan Help Center"
+          }
+        },
+        "isActive": true,
+        "resources": [
+          {
+            "id": "res-khc-grievance",
+            "descriptor": {
+              "code": "khc-grievance",
+              "name": "Kisan Help Center grievance",
+              "shortDesc": "File a grievance with the Kisan Help Center in the farmer's own words, after an OTP confirms the mobile number it is filed against.",
+              "docs": [
+                {
+                  "label": "Provider HTTP contract",
+                  "url": "https://openagrinet.github.io/network-specs/api/external/khc/tickets/v0.2/openapi.yaml",
+                  "mimeType": "application/vnd.oai.openapi"
+                }
+              ]
+            },
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/context.jsonld",
+              "@type": "openagrinet:Grievance",
+              "informationMode": "OnDemand",
+              "scheme": {
+                "code": "38",
+                "name": "Agriculture Infrastructure Fund (AIF)"
+              },
+              "challenge": {
+                "methods": [
+                  {
+                    "method": "OTP",
+                    "channel": "SMS",
+                    "length": 6,
+                    "valueType": "NUMERIC"
+                  }
+                ]
+              },
+              "grievanceOptions": {
+                "categories": [
+                  {
+                    "code": "39",
+                    "name": "Bank Loan Sanction Issues"
+                  },
+                  {
+                    "code": "40",
+                    "name": "Credit Guarantee Coverage Issues"
+                  },
+                  {
+                    "code": "41",
+                    "name": "Fund Disbursement Issues"
+                  },
+                  {
+                    "code": "42",
+                    "name": "Infrastructure Implementation Issues"
+                  },
+                  {
+                    "code": "43",
+                    "name": "Interest Subvention Issues"
+                  },
+                  {
+                    "code": "44",
+                    "name": "Monitoring & Reporting Issues"
+                  },
+                  {
+                    "code": "45",
+                    "name": "Nodal Agency / Department Issues"
+                  },
+                  {
+                    "code": "46",
+                    "name": "Portal / Technical Issues"
+                  },
+                  {
+                    "code": "47",
+                    "name": "Project Appraisal & Approval Issues"
+                  },
+                  {
+                    "code": "48",
+                    "name": "Registration & Application Issues"
+                  }
+                ]
+              },
+              "actions": [
+                {
+                  "action": "init",
+                  "description": "Ask KHC to send a six-digit OTP to the mobile the grievance will be filed against. Call this first; nothing is filed by it.",
+                  "operationRef": "https://openagrinet.github.io/network-specs/api/external/khc/tickets/v0.2/openapi.yaml#/paths/~1auth~1send-otp/post"
+                },
+                {
+                  "action": "confirm",
+                  "description": "Answer the OTP. KHC replies with whether it already knows this farmer, which decides whether the filing must also carry their name and gender.",
+                  "operationRef": "https://openagrinet.github.io/network-specs/api/external/khc/tickets/v0.2/openapi.yaml#/paths/~1auth~1verify-otp/post"
+                },
+                {
+                  "action": "support",
+                  "description": "File the grievance and return the number KHC gave it. Writes to a real help desk, so call it only after the farmer has confirmed the text in words.",
+                  "operationRef": "https://openagrinet.github.io/network-specs/api/external/khc/tickets/v0.2/openapi.yaml#/paths/~1v1~1state~1grievances/post"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "cat-khc",
+        "catalogType": "REGULAR",
+        "updateMode": "MERGE",
+        "visibleTo": [
+          "*"
+        ]
+      }
+    ]
+  }
+}

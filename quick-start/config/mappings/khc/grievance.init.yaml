@@ -1,0 +1,71 @@
+# KHC grievance, init -> POST /auth/send-otp.
+#
+# One field goes out: the mobile the farmer gave. The reply carries no masked
+# number and no expiry, so neither can be echoed back -- the farmer is told an
+# OTP went to the number they gave and nothing more precise. Inventing a masked
+# number is what made the agent skip the tool entirely on AIF (open-issues.md
+# item 14).
+#
+# Never retried. A second send invalidates the first code, so the farmer reads
+# one and types another.
+#
+# Refusals are mapped rather than failed: the provider block declares
+# answerStatuses 400,401,404, so KHC's own wording reaches the farmer instead
+# of a 502 that says only that something upstream went wrong.
+
+required:
+  - check: |
+      $exists(beckn.message.contract.commitments[0].commitmentAttributes.farmerMobileNumber)
+    message: "this capability needs farmerMobileNumber in commitmentAttributes"
+
+request: |
+  { "mobile": $string(beckn.message.contract.commitments[0].commitmentAttributes.farmerMobileNumber) }
+
+# KHC answers with a status STRING -- "200 OK", not the number 200 -- in the
+# body, on success and on refusal alike, so the body is what decides. An
+# adapter testing response.status = 200 would read every success as a failure.
+response: |
+  (
+    $c := beckn.message.contract.commitments[0];
+    $ca := $c.commitmentAttributes;
+    $said := $string(response.status);
+    $at := "$.message.contract.commitments[0].commitmentAttributes.";
+
+    /* The window the tool states to the farmer. KHC publishes neither the
+       length of the code nor how long it lives, so this is v1's figure
+       carried over, not a value traced to KHC. */
+    $otpWindowMillis := 5 * 60 * 1000;
+
+    $contains($said, "200") != true
+    ? { "_error": {
+          "status": 400,
+          "code": "BIZ_GENERIC_ERROR",
+          "message": "KHC could not send an OTP to that number.",
+          "path": $at & "farmerMobileNumber",
+          "cause": $exists(response.message) ? response.message : $said } }
+    : {
+      "context": $merge([beckn.context, { "action": "on_init", "timestamp": $now() }]),
+      "message": {
+        "contract": $merge([beckn.message.contract, {
+          "commitments": [$merge([$c, {
+            "status": { "descriptor": { "code": "DRAFT" } },
+            "commitmentAttributes": {
+              "@context":        $ca.`@context`,
+              "@type":           $ca.`@type`,
+              "informationMode": "OnDemand",
+              "scheme":          $ca.scheme,
+              "challenge": {
+                "issued": {
+                  "method":    "OTP",
+                  "channel":   "SMS",
+                  "length":    6,
+                  "valueType": "NUMERIC",
+                  "expiresAt": $fromMillis($millis() + $otpWindowMillis)
+                }
+              }
+            }
+          }])]
+        }])
+      }
+    }
+  )

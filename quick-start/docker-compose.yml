@@ -680,6 +680,35 @@ services:
     ports:
       - "127.0.0.1:${MOCKKCC_PORT:-9106}:9105"
 
+  # KHC's filing WRITES a real grievance to a real help desk, and the host we
+  # hold is UAT, so every local run of the filing path goes here. The live one
+  # is for a single deliberate test with the desk owner, not for development.
+  #
+  # It also answers the reference lists the tool reads directly, outside Beckn,
+  # so the geography walk can be exercised without a million-row fetch from the
+  # provider.
+  mock-khc:
+    image: ${MOCKKHC_IMAGE:-oan-mockkhc:local}
+    pull_policy: missing
+    container_name: ${STACK_PREFIX:-}mock-khc
+    restart: unless-stopped
+    logging: *logging
+    networks: [oan-internal]
+    command:
+      - "-addr=:9106"
+      # The same variable the adapter's khc auth reads, so a drift between the
+      # two sides cannot look like a mapping fault. It is the WHOLE
+      # Authorization value, because that is what a static header scheme sends.
+      - "-auth-header=${KHC_AUTH_HEADER:-ApiKey local-khc-key}"
+      - "-otp=${MOCKKHC_OTP:-123456}"
+      # The one mobile KHC already knows, for reaching the existing-farmer
+      # branch; every other mobile answers isRegistered false and so has to
+      # send a name and a gender on the filing.
+      - "-registered-mobile=${MOCKKHC_REGISTERED_MOBILE:-9000000001}"
+      - "-grievance-prefix=${MOCKKHC_GRIEVANCE_PREFIX:-BR}"
+    ports:
+      - "127.0.0.1:${MOCKKHC_PORT:-9107}:9106"
+
   # Where a farmer's session lives between the call that buys it and the calls
   # that spend it. Only a provider that holds one needs this -- AIF today --
   # and the adapter dials it only when setup.py renders the cache plugin, so
@@ -773,6 +802,10 @@ services:
       KCC_PASSWORD: ${KCC_PASSWORD:-}
       KCC_ENCRYPTION_KEY: ${KCC_ENCRYPTION_KEY:-}
       KCC_ENCRYPTION_IV: ${KCC_ENCRYPTION_IV:-}
+      # KHC's service key, whole header value and all ("ApiKey <key>"): the
+      # static header scheme sends its variable verbatim. The farmer's token is
+      # not here -- it is bought on confirm and held in Redis.
+      KHC_AUTH_HEADER: ${KHC_AUTH_HEADER:-}
     volumes:
       - ./config/adapters/multi-adapter/provider-adapter.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/multi-adapter/routing-provider.yaml:/app/config/routing-provider.yaml:ro
@@ -831,6 +864,10 @@ services:
       KCC_PASSWORD: ${KCC_PASSWORD:-}
       KCC_ENCRYPTION_KEY: ${KCC_ENCRYPTION_KEY:-}
       KCC_ENCRYPTION_IV: ${KCC_ENCRYPTION_IV:-}
+      # KHC's service key, whole header value and all ("ApiKey <key>"): the
+      # static header scheme sends its variable verbatim. The farmer's token is
+      # not here -- it is bought on confirm and held in Redis.
+      KHC_AUTH_HEADER: ${KHC_AUTH_HEADER:-}
     volumes:
       - ./config/adapters/${NETWORK_ADAPTER_DEPLOYMENT_MODE:-single-adapter}/network-adapter.yaml:/app/config/adapter.yaml:ro
       - ./tls/ca.crt:/etc/oan/ca.crt:ro

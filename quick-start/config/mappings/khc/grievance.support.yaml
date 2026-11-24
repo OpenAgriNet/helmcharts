@@ -1,0 +1,124 @@
+# KHC grievance, support -> POST /v1/state/grievances.
+#
+# The filing. It WRITES to a real help desk, so it is never retried: a timeout
+# after the request left is not evidence the grievance was not filed, and a
+# retry files a second one under a real farmer's name. The caller is told the
+# result is uncertain and asked to check the status instead.
+#
+# The payload rides message.support.channels[0], not a contract. SupportAction
+# is additionalProperties:false over a single support object, so a contract on
+# this action is refused by the protocol schema before any mapping runs.
+#
+# The farmer's token is not in this mapping. It was captured on confirm and the
+# adapter sends it as a header on this call (sessionSendOn), so a farmer who
+# never verified is refused before KHC is dialled at all.
+#
+# Ten identifiers go out and every one is required. A defaulted identifier does
+# not fail -- it files the grievance at the wrong desk and still answers 200.
+
+required:
+  - check: |
+      $exists(beckn.message.support.channels[0].referenceNo)
+    message: "this capability needs referenceNo -- our own reference for the filing"
+  - check: |
+      $exists(beckn.message.support.channels[0].farmerMobileNumber)
+    message: "this capability needs farmerMobileNumber on the support channel"
+  - check: |
+      $exists(beckn.message.support.channels[0].grievance.description)
+    message: "this capability needs grievance.description -- the farmer's own words"
+  - check: |
+      $exists(beckn.message.support.channels[0].grievance.language)
+    message: "this capability needs grievance.language"
+  - check: |
+      $exists(beckn.message.support.channels[0].grievance.division)
+    message: "this capability needs grievance.division -- it comes beside the scheme on KHC's own list"
+  - check: |
+      $exists(beckn.message.support.channels[0].grievance.category.code)
+    message: "this capability needs grievance.category.code"
+  - check: |
+      $exists(beckn.message.support.channels[0].grievance.subCategory.code)
+    message: "this capability needs grievance.subCategory.code"
+  - check: |
+      $exists(beckn.message.support.channels[0].scheme.code)
+    message: "this capability needs scheme.code"
+  - check: |
+      $exists(beckn.message.support.channels[0].location.stateId)
+    message: "this capability needs location.stateId"
+  - check: |
+      $exists(beckn.message.support.channels[0].location.villageId)
+    message: "this capability needs location.villageId"
+
+# The identifiers go out as NUMBERS. KHC's contract types them as integers and
+# they travel as strings in the Beckn payload, because an attribute the adapter
+# binds a session to has to be a string.
+#
+# farmerName and gender are sent only when they are there. KHC wants them for a
+# farmer it has not seen before -- the confirm reply said isRegistered false --
+# and refuses the filing without them; for a farmer it knows, sending them is
+# not refused but is more of the farmer's data on the wire than the call needs.
+request: |
+  (
+    $ch := beckn.message.support.channels[0];
+    $asked := {
+      "externalReferenceNo": $string($ch.referenceNo),
+      "farmerMobileNumber":  $string($ch.farmerMobileNumber),
+      "farmerText":          $trim($ch.grievance.description),
+      "farmerLanguage":      $ch.grievance.language,
+      "stateId":             $number($ch.location.stateId),
+      "villageId":           $number($ch.location.villageId),
+      "scheme":              $number($ch.scheme.code),
+      "division":            $number($ch.grievance.division),
+      "problemCategory":     $number($ch.grievance.category.code),
+      "problemSubCategory":  $number($ch.grievance.subCategory.code)
+    };
+    $exists($ch.applicantName)
+      ? $merge([$asked, {
+          "farmerName": $ch.applicantName,
+          "gender": $ch.applicantGender
+        }])
+      : $asked
+  )
+
+# externalReferenceNo is OURS and grievanceNo is KHC's. They are different
+# values and must never be reported as one: quoting our own reference back as
+# the grievance number hands the farmer a number no desk recognises. Only KHC's
+# comes back.
+response: |
+  (
+    $ch := beckn.message.support.channels[0];
+    $said := $string(response.status);
+    $at := "$.message.support.channels[0].";
+
+    $contains($said, "200") != true
+    ? { "_error": {
+          "status": 400,
+          "code": "BIZ_GENERIC_ERROR",
+          "message": "KHC did not accept the grievance.",
+          "path": $at & "grievance",
+          "cause": $exists(response.message) ? response.message : $said } }
+    /* A 200 with no grievance number is not a filing anyone can follow up.
+       It is reported as unconfirmed rather than as a success, because the
+       grievance may well exist and a second attempt would duplicate it. */
+    : $exists(response.data.grievanceNo) != true
+    ? { "_error": {
+          "status": 400,
+          "code": "BIZ_GENERIC_ERROR",
+          "message": "KHC accepted the grievance but returned no number for it.",
+          "path": $at & "grievance",
+          "cause": $said } }
+    : {
+      "context": $merge([beckn.context, { "action": "on_support", "timestamp": $now() }]),
+      "message": {
+        "support": {
+          "channels": [{
+            "@context":        $ch.`@context`,
+            "@type":           $ch.`@type`,
+            "informationMode": "OnDemand",
+            "provider":        $ch.provider,
+            "scheme":          $ch.scheme,
+            "grievanceNo":     response.data.grievanceNo
+          }]
+        }
+      }
+    }
+  )

@@ -1,0 +1,52 @@
+__PROVIDER_CONFIG__ Grievance
+              # Two credentials again, and the same division as AIF and KCC:
+              # the Authorization header says which system is calling and is
+              # ours, the per-farmer token says which farmer consented and is
+              # theirs. KHC checks the first on every call and the second only
+              # on the filing.
+              #
+              # ONE variable holds the whole header value, "ApiKey <key>",
+              # rather than a bare key this block dresses. The static header
+              # scheme sends its variable verbatim (no prefix of its own), and
+              # splitting the credential in two would mean the app's direct
+              # reference calls and the adapter read different variables for
+              # the same secret.
+              __PARTICIPANT_ID__:
+                authScheme: header
+                headerName: Authorization
+                headerValueEnv: KHC_AUTH_HEADER
+                # KHC's refusals are the farmer's answer, not an outage: an
+                # unknown mobile, a wrong OTP, a grievance number no desk
+                # holds. Without these three the adapter calls them an
+                # unreachable provider and the farmer is told to try later
+                # instead of being told what was actually wrong.
+                answerStatuses: "400,401,404"
+              # The farmer's token, bought on confirm when they answer the OTP
+              # and spent on the filing. Held against the transaction, never
+              # returned on the wire -- see grievance.confirm.yaml, which drops
+              # it from the response on purpose.
+              "__PARTICIPANT_ID__|openagrinet:Grievance":
+                sessionKeyAt: "context.transactionId,context.transaction_id"
+                sessionCaptureOn: confirm
+                sessionSendOn: support
+                sessionTokenField: data.token
+                # KHC states no lifetime with the token, so there is no
+                # sessionTtlField to read and the hour is ours: long enough for
+                # a farmer to describe a problem, short enough that an
+                # abandoned verification does not stay spendable all day.
+                sessionTtl: 1h
+                sessionTtlMargin: 60s
+                # The token was bought for one mobile number. Without this a
+                # transaction id alone is enough to file a grievance in another
+                # farmer's name. Two paths because confirm carries the number on
+                # a contract and support on a channel -- support admits no
+                # contract at all -- and a bind that names only one shape is
+                # skipped on the other.
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.farmerMobileNumber,message.support.channels[].farmerMobileNumber"
+                # KHC publishes no header for the farmer token -- the contract
+                # carries it in the verify reply and says nothing about sending
+                # it back. This name is OURS, and the mock accepts it; it is
+                # the one thing in this block that changes when KHC answers
+                # (open-issues.md item 1).
+                sessionHeader: X-KHC-Token
+                sessionPrefix: ""

@@ -248,6 +248,32 @@ PROVIDERS = {
                  "loan.status.yaml", 30000, 2))),
         ),
     },
+    # One capability and three actions, because KHC's grievance journey is
+    # three separate endpoints: send the OTP, answer it, file. The filing is
+    # the only call that carries the farmer's token.
+    #
+    # The status journey is NOT here. KHC's check-status reads its grievance
+    # number from the query string of a POST, which a registry row cannot
+    # express -- Path is a static string and a POST always carries a body
+    # (open-issues.md item 20). The six reference lists are not here either:
+    # they are read directly, like mandi's and weather's master data, because
+    # nothing about a list of district names belongs in a Beckn exchange.
+    "khc": {
+        "prefix": "KHC", "name": "Kisan Help Center",
+        "needs": ["KHC_BASE_URL", "KHC_AUTH_HEADER"],
+        "capabilities": (
+            ("openagrinet:Grievance", "Grievance", "v0.2", None, (
+                # Never retried: a second send invalidates the first code, so
+                # the farmer reads one and types another.
+                ("init", "/auth/send-otp", "grievance.init.yaml", 20000, 0),
+                # Never retried either: the OTP is single-use.
+                ("confirm", "/auth/verify-otp", "grievance.confirm.yaml", 20000, 0),
+                # Never retried: a retried filing opens a second grievance on a
+                # real desk, under a real farmer's name.
+                ("support", "/v1/state/grievances",
+                 "grievance.support.yaml", 30000, 0))),
+        ),
+    },
 }
 
 
