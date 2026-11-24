@@ -1,0 +1,156 @@
+# KCC scheme application, status -> POST /bharatVistaar/krishika/applicationStatus.
+#
+# One call does two jobs: it checks the OTP and answers with the applications.
+# There is no separate verify action because KCC has no separate verify
+# endpoint, which also means a wrong OTP is refused HERE, not on init.
+#
+# Both halves are PLAINTEXT. The adapter seals the request and opens the
+# reply, so what this file produces and what it reads are the inner JSON,
+# never the hex under data.
+#
+# Retried twice: this call spends the OTP, but KCC checks it against the
+# requestID rather than burning it, so a retry after a timeout asks the same
+# question again rather than a different one.
+
+required:
+  - check: |
+      (
+        $attributes := beckn.message.contract.commitments[0].commitmentAttributes;
+        $exists($attributes.applicant.mobile) and
+        $exists($attributes.requestId) and
+        $exists($attributes.challenge.response.value)
+      )
+    message: "this capability needs applicant.mobile, requestId and challenge.response.value in commitmentAttributes"
+
+# The OTP as a NUMBER: KCC's contract says integer and refuses the quoted
+# form. requestId is the one init handed back. The mobile is not sent -- KCC
+# reads the farmer from the requestID -- but it is still required above,
+# because the adapter checks it against the mobile the session was bought
+# for, so a transaction id alone is not enough to read another farmer's
+# applications.
+request: |
+  (
+    $attributes := beckn.message.contract.commitments[0].commitmentAttributes;
+    {
+      "requestID": $string($attributes.requestId),
+      "otp": $number($attributes.challenge.response.value)
+    }
+  )
+
+# One mobile can carry several applications, and none at all is a valid
+# answer. Every row is returned flat, with the fields a farmer would
+# recognise; anything else KCC sends is dropped.
+response: |
+  (
+    /* Constants */
+    $SCHEME := { "code": "KCC", "name": "Kisan Credit Card" };
+    $INFORMATION_MODE := "OnDemand";
+    $COMMITMENT_STATUS_ACTIVE := "ACTIVE";
+    $ATTRIBUTES_PATH := "$.message.contract.commitments[0].commitmentAttributes.";
+
+    $DIGITS_PATTERN := /^[0-9]+$/;
+
+    $MSG_OTP_REFUSED := "KCC did not accept that OTP. It may have been mistyped, or the five minutes it is valid for may have passed.";
+    $MSG_UNAVAILABLE := "KCC could not return the application list right now. Please try again later.";
+
+    $ERROR_OTP_REFUSED := { "status": 400, "code": "BIZ_GENERIC_ERROR" };
+    $ERROR_UNAVAILABLE := { "status": 502, "code": "NET_DOWNSTREAM_UNAVAILABLE" };
+    /* A wrong OTP and an expired session are the two refusals a caller can do
+       anything about; everything else is KCC's own fault and says so. */
+    $KNOWN_REFUSALS := /otp|expired|session|requestid/;
+
+    /* Helpers */
+    /* KCC sends null for missing values. */
+    $isText := function($value) { $type($value) = "string" and $trim($value) != "" };
+    $asText := function($value) { $isText($value) ? $trim($value) };
+    /* Amounts come as numbers, as digit strings, and as null. */
+    $asAmount := function($value) {
+      $type($value) = "number" ? $value
+        : $isText($value) and $contains($trim($value), $DIGITS_PATTERN) ? $number($trim($value))
+    };
+    $omitIfEmpty := function($object) { $exists($keys($object)[0]) ? $object };
+    $error := function($kind, $message, $path, $cause) {
+      { "_error": $merge([$kind, {
+          "message": $message, "path": $path, "cause": $cause }]) }
+    };
+
+    /* Inputs */
+    $commitment := beckn.message.contract.commitments[0];
+    $attributes := $commitment.commitmentAttributes;
+    $mobile := $string($attributes.applicant.mobile);
+    $kccMessage := $isText(response.message) ? $trim(response.message);
+    /* A sealed reply opens to the applications and carries no flag. A refusal
+       arrives unsealed, with the status false KCC wrote. The KEY is what says
+       which one this is: a farmer with nothing filed gets applications set to
+       an empty list, and an empty list does not exist as a value. */
+    $isAnswered := "applications" in $keys(response);
+    $isCallerFault := $exists($kccMessage) and $contains($lowercase($kccMessage), $KNOWN_REFUSALS);
+
+    /* [] wraps a lone object so one application reads the same way as several;
+       the guard is there because [] around an empty list yields a list holding
+       an empty list, which a caller reads as one application. */
+    $applications := $exists(response.applications[0]) ? [[response.applications].(
+      $application := $;
+      /* A REJECTED application is put back to DRAFT by the portal, so the
+         status alone hides the rejection. A rejection reason is what tells
+         the two apart, and callers are told plainly rather than left to
+         infer it from a draft. */
+      $rejectedBecause := $asText($application.rejectionReason);
+      $state := $asText($application.applicationCurrentStatus);
+      {
+        "applicationNo": $asText($string($application.applicationNo)),
+        "status": $omitIfEmpty({
+          "code": $exists($rejectedBecause) ? "REJECTED" : $state,
+          "name": $state
+        }),
+        "rejectionReason": $rejectedBecause,
+        "requestedAmount": $asAmount($application.requiredLoanAmount),
+        "sanctionedAmount": $asAmount($application.sanctionedAmount),
+        "bank": $omitIfEmpty({
+          "name": $asText($application.bankName),
+          "branch": $asText($application.branchName)
+        }),
+        "updatedOn": $asText($application.updatedAt),
+        /* Wrapped twice on purpose: the inner [] makes one history row read
+           like several, and the outer [] keeps the answer a list after the
+           filter, which would otherwise hand back a lone row as an object.
+           The guard is the same one the application list needs, for the same
+           reason: [] around an empty list yields a list holding one. */
+        "history": $exists($application.applicationStatusHistory[0])
+          ? [[$application.applicationStatusHistory].{
+              "status": $asText($.applicationStatus),
+              "on": $asText($.createdAt)
+            }[$exists(status) or $exists(on)]]
+          : []
+      }
+    )] : [];
+
+    /* Output */
+    /* An empty list is an ANSWER, not a refusal: a farmer whose application
+       was never filed from this mobile is told so, and is not shown a failure
+       they cannot act on. */
+    $isAnswered
+    ? {
+      "context": $merge([beckn.context, { "action": "on_status", "timestamp": $now() }]),
+      "message": {
+        "contract": $merge([beckn.message.contract, {
+          "commitments": [$merge([$commitment, {
+            "status": { "descriptor": { "code": $COMMITMENT_STATUS_ACTIVE } },
+            "commitmentAttributes": {
+              "@context": $attributes.`@context`,
+              "@type": $attributes.`@type`,
+              "informationMode": $INFORMATION_MODE,
+              "scheme": $SCHEME,
+              "applicant": { "mobile": $mobile },
+              "requestId": $string($attributes.requestId),
+              "applications": $applications
+            }
+          }])]
+        }])
+      }
+    }
+    : $isCallerFault
+      ? $error($ERROR_OTP_REFUSED, $MSG_OTP_REFUSED,
+               $ATTRIBUTES_PATH & "challenge.response.value", $kccMessage)
+      : $error($ERROR_UNAVAILABLE, $MSG_UNAVAILABLE, undefined, $kccMessage)
+  )

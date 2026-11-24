@@ -229,6 +229,25 @@ PROVIDERS = {
                 ("status", "/support-tickets", "tickets.status.yaml", 30000, 2, "GET"),)),
         ),
     },
+    # One capability, one host, a form login for the token, and every body
+    # sealed. Two actions rather than three: KCC has no verify endpoint, so
+    # the OTP is answered on the SAME call that reads the applications, and a
+    # wrong OTP is refused there.
+    "kcc": {
+        "prefix": "KCC", "name": "Kisan Credit Card",
+        "needs": ["KCC_BASE_URL", "KCC_TOKEN_URL", "KCC_ENTITY_TYPE",
+                  "KCC_USER_ID", "KCC_PASSWORD", "KCC_ENCRYPTION_KEY"],
+        "capabilities": (
+            ("openagrinet:SchemeApplication", "Scheme Application", "v0.2", None, (
+                # Never retried: a retry sends the farmer a second SMS.
+                ("init", "/auth/requestOtp", "loan.init.yaml", 20000, 0),
+                # Retried twice: KCC checks the OTP against the requestID
+                # rather than spending it, so asking again asks the same
+                # question rather than a different one.
+                ("status", "/bharatVistaar/krishika/applicationStatus",
+                 "loan.status.yaml", 30000, 2))),
+        ),
+    },
 }
 
 
@@ -811,6 +830,13 @@ def token_url(provider, variable, serving):
     return env(variable, "") if provider in serving else ""
 
 
+def provider_setting(provider, variable, serving, default=""):
+    """A provider's own deployment constant, under the same rule as token_url:
+    read only when that provider is served, so an unused one is never asked
+    for. For values that are settings rather than endpoints."""
+    return env(variable, default) if provider in serving else ""
+
+
 def extra_schema_domains():
     """A leading comma and the hosts, or nothing at all."""
     extra = ",".join(h.strip() for h in env("EXTRA_SCHEMA_DOMAINS", "").split(",")
@@ -862,6 +888,11 @@ def configure_adapter(identity):
                 ("__VISTAAR_TOKEN_URL__", token_url("vistaar", "VISTAAR_TOKEN_URL", serving)),
                 ("__PMFBY_TOKEN_URL__", token_url("pmfby", "PMFBY_TOKEN_URL", serving)),
                 ("__SHC_TOKEN_URL__", token_url("shc", "SHC_TOKEN_URL", serving)),
+                ("__KCC_TOKEN_URL__", token_url("kcc", "KCC_TOKEN_URL", serving)),
+                # Which KIND of caller KCC's login is told this is. A constant
+                # its issuer asks for beside the credential, not a secret.
+                ("__KCC_ENTITY_TYPE__",
+                 provider_setting("kcc", "KCC_ENTITY_TYPE", serving, "KRISHIKA")),
                 # The crawler hands a crawled catalog to /publish, which signs it
                 # and forwards it on. /network/publish expects a signature the
                 # crawl does not carry, and in multi mode /publish is elsewhere.

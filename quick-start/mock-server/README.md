@@ -1,12 +1,14 @@
 # Mock providers
 
-Five stand-in upstreams, so the stack can be exercised end to end without
+Six stand-in upstreams, so the stack can be exercised end to end without
 credentials for the real services.
 
 Three are a convenience: the real service can be called, and in a normal
-deployment is. `mockaif` and `mockpmfby` are not. Both verify a farmer with an
-OTP to their registered mobile number, so nobody who is not that farmer can
-exercise the session path against the real service at all.
+deployment is. `mockaif`, `mockpmfby` and `mockkcc` are not. All three verify a
+farmer with an OTP to their registered mobile number, so nobody who is not that
+farmer can exercise the session path against the real service at all. KCC goes
+further: the host it publishes is PRODUCTION, so an OTP sent there is a real SMS
+to a real farmer's phone.
 
 | mock | stands in for | port | auth |
 |---|---|---|---|
@@ -15,6 +17,7 @@ exercise the session path against the real service at all.
 | `mockpmkisan` | PM-KISAN chatbot + grievance APIs | 9102 | a token in the body, one per service |
 | `mockaif` | Agriculture Infrastructure Fund | 9103 | an `apiKey` header **and** a per-farmer bearer |
 | `mockpmfby` | PMFBY insurance (NIC) + grievance (FGMS) | 9104 | a `token` header on NIC, a login-issued `Token` on FGMS |
+| `mockkcc` | KCC loan application status | 9105 | a form login, then its `token` header, over sealed bodies |
 
 ## Why the sources are here
 
@@ -27,19 +30,21 @@ pulled like everything else:
     docker build -t ghcr.io/<org>/oan-mockpmkisan:latest    mock-server/mockpmkisan
     docker build -t ghcr.io/<org>/oan-mockaif:latest        mock-server/mockaif
     docker build -t ghcr.io/<org>/oan-mockpmfby:latest      mock-server/mockpmfby
+    docker build -t ghcr.io/<org>/oan-mockkcc:latest        mock-server/mockkcc
     docker push ghcr.io/<org>/oan-mockimd:latest
     docker push ghcr.io/<org>/oan-mockagmarknet:latest
     docker push ghcr.io/<org>/oan-mockpmkisan:latest
     docker push ghcr.io/<org>/oan-mockaif:latest
     docker push ghcr.io/<org>/oan-mockpmfby:latest
+    docker push ghcr.io/<org>/oan-mockkcc:latest
 
 Then set `MOCKIMD_IMAGE`, `MOCKAGMARKNET_IMAGE`, `MOCKPMKISAN_IMAGE`,
-`MOCKAIF_IMAGE` and `MOCKPMFBY_IMAGE` in `.env`.
+`MOCKAIF_IMAGE`, `MOCKPMFBY_IMAGE` and `MOCKKCC_IMAGE` in `.env`.
 
 ## What they deliberately get wrong
 
 A mock that answered tidily would let a mapping pass here and fail against the
-real service, so all five reproduce the awkward parts on purpose.
+real service, so all six reproduce the awkward parts on purpose.
 
 `mockimd` answers `fcstday1..N` with the count coming from `-days`, so a mapping
 that hardcodes five days is caught. Forecasts derive from the requested point,
@@ -114,3 +119,20 @@ something to test against.
 None of the five reproduces the real services' rate limits, downtime pages or
 error bodies. What the real ones do on no-data, throttling or auth failure is
 still unobserved.
+
+`mockkcc` seals **only its successes**. A request body and a successful reply
+are AES-256-CBC under a fixed key, written as hex under `data`; a refusal comes
+back in clear as `{"status": false, "message": "..."}`. That asymmetry is the
+only thing telling an answer from a refusal, because opening the envelope
+replaces the whole body -- so a mapping reading the two the same way is caught
+here. Its login is form-urlencoded and wants `entityType` beside the
+credential, which the mock checks, so a config that drops the constant fails
+now rather than later. `applicationStatus` answers the OTP and reads the
+applications in ONE call, as KCC has it -- there is no verify endpoint, so a
+wrong OTP is refused there. The OTP is checked against the `requestID` rather
+than spent, so a retry asks the same question again. Which applications come
+back is keyed off the mobile's last digit: `0` answers an EMPTY list (an
+answer, not a refusal), `1` answers one, anything else answers three -- one of
+which is REJECTED behind a `DRAFT` status, with only `rejectionReason` saying
+so. `applicationNo` is a number on one row and a string on another, and amounts
+arrive as numbers, as digit strings, and as null.

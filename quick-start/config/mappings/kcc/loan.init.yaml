@@ -1,0 +1,113 @@
+# KCC scheme application, init -> POST /auth/requestOtp.
+#
+# Sends the OTP. What comes back with it is the requestID the status call has
+# to quote: the adapter holds it against this transaction (see
+# sessionCaptureOn on this binding) and refuses a later read that arrives
+# without one, or with one bought for a different mobile number.
+#
+# The requestID IS returned to the caller, the same way PMFBY returns its
+# farmerID. It has to be -- it belongs inside the encrypted body, and the
+# adapter cannot put a held value into a body it has already sealed. It is
+# not a credential: holding it does not let anyone read the applications,
+# because the session check runs first and the OTP is the secret.
+#
+# Both halves are written as PLAINTEXT. The adapter seals the request and
+# opens the reply, so what this file produces and what it reads are the inner
+# JSON, never the hex under data.
+#
+# Never retried: a retry sends a second OTP and invalidates the first, so the
+# farmer reads one code and types another.
+
+required:
+  - check: |
+      $exists(beckn.message.contract.commitments[0].commitmentAttributes.applicant.mobile)
+    message: "this capability needs applicant.mobile in commitmentAttributes"
+
+# otpFor names which KCC product the code is for; krishika is the loan journey.
+request: |
+  {
+    "mobileNumber": $string(
+      beckn.message.contract.commitments[0].commitmentAttributes.applicant.mobile),
+    "otpFor": "krishika"
+  }
+
+# A sealed reply opens to requestID, message and expiresIn and carries no flag
+# -- the requestID IS the success. A refusal arrives unsealed, so it still has
+# the status false and message KCC wrote, and that is how the two are told
+# apart.
+response: |
+  (
+    /* Constants */
+    $SCHEME := { "code": "KCC", "name": "Kisan Credit Card" };
+    $INFORMATION_MODE := "OnDemand";
+    $COMMITMENT_STATUS_DRAFT := "DRAFT";
+    $OTP_LENGTH := 6;
+    $OTP_WINDOW_SECONDS := 300;
+    $ATTRIBUTES_PATH := "$.message.contract.commitments[0].commitmentAttributes.";
+
+    $MSG_REFUSED := "KCC has no loan application filed from that mobile number, so it could not send an OTP. Check that it is the number used on the application.";
+    $MSG_UNAVAILABLE := "KCC could not send an OTP right now. Please try again later.";
+
+    $ERROR_REFUSED := { "status": 400, "code": "BIZ_GENERIC_ERROR" };
+    $ERROR_UNAVAILABLE := { "status": 502, "code": "NET_DOWNSTREAM_UNAVAILABLE" };
+    /* KCC refuses everything with status false, so its wording is the only way
+       to tell a caller mistake from a KCC fault. */
+    $KNOWN_REFUSALS := /no .*application|no record|not found|not registered|invalid mobile|mobile number is required/;
+
+    /* Helpers */
+    $isText := function($value) { $type($value) = "string" and $trim($value) != "" };
+    $error := function($kind, $message, $path, $cause) {
+      { "_error": $merge([$kind, {
+          "message": $message, "path": $path, "cause": $cause }]) }
+    };
+
+    /* Inputs */
+    $commitment := beckn.message.contract.commitments[0];
+    $attributes := $commitment.commitmentAttributes;
+    $mobile := $string($attributes.applicant.mobile);
+    $kccMessage := $isText(response.message) ? $trim(response.message);
+    $requestId := $isText($string(response.requestID)) ? $trim($string(response.requestID));
+    $isSent := $exists($requestId);
+    $isCallerFault := $exists($kccMessage) and $contains($lowercase($kccMessage), $KNOWN_REFUSALS);
+    /* KCC states the window in seconds, as a string, and omits it often
+       enough that the five minutes it documents is the fallback. */
+    $windowSeconds := $isText($string(response.expiresIn))
+      ? $number($trim($string(response.expiresIn))) : $OTP_WINDOW_SECONDS;
+    /* Masked here rather than echoed: the caller already knows the number it
+       sent, and an unmasked one in a signed callback outlives the exchange. */
+    $sentTo := "XXXXXX" & $substring($mobile, -4);
+
+    /* Output */
+    $isSent
+    ? {
+      "context": $merge([beckn.context, { "action": "on_init", "timestamp": $now() }]),
+      "message": {
+        "contract": $merge([beckn.message.contract, {
+          "commitments": [$merge([$commitment, {
+            "status": { "descriptor": { "code": $COMMITMENT_STATUS_DRAFT } },
+            "commitmentAttributes": {
+              "@context": $attributes.`@context`,
+              "@type": $attributes.`@type`,
+              "informationMode": $INFORMATION_MODE,
+              "scheme": $SCHEME,
+              "applicant": { "mobile": $mobile },
+              "requestId": $requestId,
+              "challenge": {
+                "issued": {
+                  "method": "OTP",
+                  "channel": "SMS",
+                  "length": $OTP_LENGTH,
+                  "valueType": "NUMERIC",
+                  "sentTo": $sentTo,
+                  "expiresAt": $fromMillis($millis() + $windowSeconds * 1000)
+                }
+              }
+            }
+          }])]
+        }])
+      }
+    }
+    : $isCallerFault
+      ? $error($ERROR_REFUSED, $MSG_REFUSED, $ATTRIBUTES_PATH & "applicant.mobile", $kccMessage)
+      : $error($ERROR_UNAVAILABLE, $MSG_UNAVAILABLE, undefined, $kccMessage)
+  )
