@@ -36,6 +36,7 @@ when you register the provider that needs it:
 | `pocra` | Agriculture Facility | nothing |
 | `mausamgram` | Weather Observation | `MAUSAMGRAM_AUTH` |
 | `sathi` | Agriculture Resource (seed stock) | `SATHI_API_KEY` |
+| `shc` | Agriculture Resource (Soil Health Card reports) | `SHC_TOKEN_URL`, `SHC_REFRESH_TOKEN` |
 | `agmarknet` | Mandi Price | base URL, token URL, access name, password |
 | `vistaar` | Knowledge Advisory | base URL, token URL, client id, secret |
 | `pmkisan` | Grievance and Scheme Application | two hosts, an AES key and nonce, two service tokens |
@@ -57,7 +58,7 @@ make ps
 curl -s localhost:9201/health
 ```
 
-Then the Postman collection — 38 requests:
+Then the Postman collection — 52 requests:
 
 ```sh
 newman run ../api-collection/OpenAgriNet.api-collection.json \
@@ -76,6 +77,19 @@ newman run ../api-collection/OpenAgriNet.api-collection.json \
 
 Green means the registry is seeded, signatures verify, the mappings work and
 discovery is indexing.
+
+The AIF folder needs one more variable until the v0.2 packs are published,
+naming the host that serves them inside the compose network:
+
+```sh
+newman run ../api-collection/OpenAgriNet.api-collection.json \
+  -e ../api-collection/environments/OpenAgriNet.api.local-environment.json \
+  --folder "AIF - loan and grievance status" \
+  --env-var aif-schema-base=http://spec-files/schema
+```
+
+Run that folder top to bottom: its four journey requests share one
+transactionId, which is what the adapter keys the farmer's session on.
 
 POCRA and Knowledge can go red for reasons that are not your setup: POCRA
 rate-limits with an empty 200, and Knowledge needs a credential only the

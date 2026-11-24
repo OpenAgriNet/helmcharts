@@ -1,0 +1,137 @@
+# PMFBY scheme application, status -> GET /api/v1/policy/policy/farmerpolicylist.
+#
+# Reads the farmer's POLICIES. Claims are the select action against a
+# different endpoint: both are openagrinet:SchemeApplication, so the
+# capability code cannot tell them apart and the action has to.
+#
+# GET, so what the request half produces becomes the query string. Two
+# credentials ride with it and neither is named here: the service's own login
+# token in Authorization, and the farmer's session in X-PMFBY-Farmer-Session.
+# Both are the adapter's.
+
+required:
+  - check: |
+      (
+        $attributes := beckn.message.contract.commitments[0].commitmentAttributes;
+        $exists($attributes.farmerId) and $exists($attributes.applicant.mobile)
+      )
+    message: "this capability needs farmerId and applicant.mobile in commitmentAttributes"
+
+# applicant.mobile is not sent: PMFBY reads the farmer from farmerID. It is
+# still required above, because the adapter checks it against the mobile the
+# session was bought for -- a transaction id alone must not be enough to read
+# another farmer's policies.
+#
+# sssyID names the scheme-season-year series the portal keys its policy list
+# by. PMFBY publishes no way to derive it, so a caller that knows its own
+# series sends one and everything else falls back to the current series.
+request: |
+  (
+    $attributes := beckn.message.contract.commitments[0].commitmentAttributes;
+    {
+      "farmerID": $string($attributes.farmerId),
+      "listType": "POLICY_LIST",
+      "sssyID": $exists($attributes.sssyId) ? $string($attributes.sssyId) : "04020023"
+    }
+  )
+
+# One policy holds many applications, one per crop, and the application is the
+# unit a farmer recognises -- so the answer is flat and every row names the
+# policy it came from.
+#
+# Only listed fields are returned. PMFBY sends the farmer's bank account number
+# on every row and it is dropped here, along with everything else the caller
+# did not ask for.
+response: |
+  (
+    /* Constants */
+    $SCHEME := { "code": "PMFBY", "name": "Pradhan Mantri Fasal Bima Yojana" };
+    $INFORMATION_MODE := "OnDemand";
+    $COMMITMENT_STATUS_ACTIVE := "ACTIVE";
+
+    $DIGITS_PATTERN := /^[0-9]+$/;
+
+    $MSG_REFUSED := "PMFBY could not return the policy list for this farmer.";
+    $MSG_UNAVAILABLE := "PMFBY could not return the policy list right now. Please try again later.";
+
+    $ERROR_REFUSED := { "status": 400, "code": "BIZ_GENERIC_ERROR" };
+    $ERROR_UNAVAILABLE := { "status": 502, "code": "NET_DOWNSTREAM_UNAVAILABLE" };
+    $KNOWN_REFUSALS := /farmerid is required|no record found|invalid farmer/;
+
+    /* Helpers */
+    /* PMFBY sends null or "" for missing values. */
+    $isText := function($value) { $type($value) = "string" and $trim($value) != "" };
+    $asText := function($value) { $isText($value) ? $trim($value) };
+    /* Amounts come as numbers, as digit strings, and as null. */
+    $asAmount := function($value) {
+      $type($value) = "number" ? $value
+        : $isText($value) and $contains($trim($value), $DIGITS_PATTERN) ? $number($trim($value))
+    };
+    $omitIfEmpty := function($object) { $exists($keys($object)[0]) ? $object };
+    $error := function($kind, $message, $cause) {
+      { "_error": $merge([$kind, { "message": $message, "cause": $cause }]) }
+    };
+
+    /* Inputs */
+    $commitment := beckn.message.contract.commitments[0];
+    $attributes := $commitment.commitmentAttributes;
+    $pmfbyMessage := $isText(response.error) ? $trim(response.error);
+    $isAccepted := response.status = true;
+    $isCallerFault := $exists($pmfbyMessage) and $contains($lowercase($pmfbyMessage), $KNOWN_REFUSALS);
+
+    /* One row per application, carrying the policy it belongs to. [] wraps a
+       lone object so a single policy reads the same way as several; the guard
+       is there because [] around an empty list yields a list holding an empty
+       list, which a caller reads as one policy. */
+    $policies := $exists(response.data[0]) ? [[response.data].(
+      $policy := $;
+      [$policy.applicationList].(
+        $application := $;
+        {
+          "policyId": $asText($string($policy.policyID)),
+          "applicationNo": $asText($string($application.applicationNo)),
+          "state": $asText($policy.stateName),
+          "district": $asText($policy.districtName),
+          "crop": $asText($application.cropName),
+          "season": $asText($application.seasonName),
+          "cropYear": $asText($string($application.seasonYear)),
+          "insurer": $asText($application.insuranceCompanyName),
+          "sumInsured": $asAmount($application.sumInsured),
+          "premiumTotal": $asAmount($application.totalPremium),
+          "premiumFarmerShare": $asAmount($application.farmerShare),
+          "enrolledOn": $asText($application.createdAt),
+          "status": $omitIfEmpty({ "code": $asText($application.policyStatus) }),
+          "claim": $omitIfEmpty({
+            "type": $asText($application.claimType),
+            "status": $asText($application.claimStatus),
+            "amount": $asAmount($application.claimAmount)
+          })
+        }
+      )
+    )] : [];
+
+    /* Output */
+    /* An empty list is an ANSWER, not a refusal: a farmer with no policy this
+       season gets told so, and is not shown a failure they cannot act on. */
+    $isAccepted
+    ? {
+      "context": $merge([beckn.context, { "action": "on_status", "timestamp": $now() }]),
+      "message": {
+        "contract": $merge([beckn.message.contract, {
+          "commitments": [$merge([$commitment, {
+            "status": { "descriptor": { "code": $COMMITMENT_STATUS_ACTIVE } },
+            "commitmentAttributes": {
+              "@context": $attributes.`@context`,
+              "@type": $attributes.`@type`,
+              "informationMode": $INFORMATION_MODE,
+              "scheme": $SCHEME,
+              "farmerId": $string($attributes.farmerId),
+              "policies": $policies
+            }
+          }])]
+        }])
+      }
+    }
+    : $isCallerFault ? $error($ERROR_REFUSED, $MSG_REFUSED, $pmfbyMessage)
+    : $error($ERROR_UNAVAILABLE, $MSG_UNAVAILABLE, $pmfbyMessage)
+  )

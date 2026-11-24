@@ -146,6 +146,14 @@ PROVIDERS = {
         "method": "POST", "default_path": "/inv-apis2/stock/getSeedAvailability",
         "needs": ["SATHI_API_KEY"],
     },
+    "shc": {
+        "prefix": "SHC", "name": "Soil Health Card reports",
+        "capability_name": "Agriculture Resource", "version": "v0.2",
+        "method": "POST", "default_path": "/",
+        "needs": ["SHC_TOKEN_URL", "SHC_REFRESH_TOKEN"],
+        # SHC takes 15-26s per report query. A retry would only double the wait.
+        "timeout_ms": 60000, "retries": 0,
+    },
     "pocra": {
         "prefix": "POCRA", "name": "POCRA agriculture facilities",
         "capability_name": "Agriculture Facility", "version": "v0.1",
@@ -169,10 +177,17 @@ PROVIDERS = {
                 ("status", "/ChatbotUserDetails", "application-status.status.yaml", 30000, 0))),
         ),
     },
-    # One capability, two actions, and a login to get a token first. Shares the
-    # Grievance step with PM-KISAN.
+    # Two capabilities on one host and a login to get a token first. Shares
+    # the Grievance step with PM-KISAN.
+    #
+    # The insurance capability answers FOUR actions on ONE binding, which is
+    # why the actions are the ones they are. Policy status and claim status
+    # are both openagrinet:SchemeApplication, so the capability code cannot
+    # tell them apart and the ACTION has to: status reads policies, select
+    # reads claims. init sends the OTP and confirm answers it, for the same
+    # reason -- one binding, one entry per action name.
     "pmfby": {
-        "prefix": "PMFBY", "name": "PMFBY grievance",
+        "prefix": "PMFBY", "name": "PMFBY",
         "needs": ["PMFBY_BASE_URL", "PMFBY_TOKEN_URL",
                   "PMFBY_ACCESS_UID", "PMFBY_ACCESS_PWD"],
         "capabilities": (
@@ -182,6 +197,36 @@ PROVIDERS = {
                  "grievance.support.yaml", 30000, 0),
                 ("status", "/krphapi/FGMS/GetGrievenceTicketsStatus",
                  "grievance.status.yaml", 30000, 2))),
+            ("openagrinet:SchemeApplication", "Scheme Application", "v0.2", None, (
+                # Never retried: a retry would send a second OTP.
+                ("init", "/api/v1/services/nic/getOtp",
+                 "insurance.init.yaml", 20000, 0),
+                # Never retried either: the OTP is single-use, so a retry
+                # spends it and the farmer's own answer is then refused.
+                ("confirm", "/api/v1/services/nic/verifyMobile",
+                 "insurance.confirm.yaml", 20000, 0),
+                ("status", "/api/v1/policy/policy/farmerpolicylist",
+                 "insurance.status.yaml", 30000, 2, "GET"),
+                ("select", "/api/v1/claims/claims/claimSearchReport",
+                 "insurance.select.yaml", 30000, 2, "GET"))),
+        ),
+    },
+    # Two capabilities on one host, sharing one verification. init sends the
+    # OTP and, called again with the farmer's answer, buys the session both
+    # capabilities then spend -- so both are in the Grievance step, where a
+    # binding can name another. The two reads are GETs.
+    "aif": {
+        "prefix": "AIF", "name": "Agriculture Infrastructure Fund",
+        "needs": ["AIF_BASE_URL", "AIF_API_KEY"],
+        "capabilities": (
+            ("openagrinet:SchemeApplication", "Scheme Application", "v0.2", None, (
+                # One endpoint for both halves of the OTP exchange, as AIF has
+                # it. Never retried: a retry would send a second OTP.
+                ("init", "/validate_beneficiaries/", "loan.init.yaml", 20000, 0),
+                ("status", "/Status", "loan.status.yaml", 30000, 2, "GET"))),
+            # Reading only: AIF publishes no call that files a ticket.
+            ("openagrinet:Grievance", "Grievance", "v0.2", None, (
+                ("status", "/support-tickets", "tickets.status.yaml", 30000, 2, "GET"),)),
         ),
     },
 }
@@ -456,7 +501,7 @@ def ensure_row(entity, filters, row, what):
 
 
 def ensure_binding(participant_id, capability, path, mapping_url,
-                   method="GET"):
+                   method="GET", timeout_ms=15000, retries=2):
     """A capability binding answering select only. The shape of actions,
     mappings and method is docs/adr/0005-filling-the-registry.md."""
     binding = f"{participant_id}|{capability}"
@@ -465,20 +510,25 @@ def ensure_binding(participant_id, capability, path, mapping_url,
         "capabilityCode": capability, "status": "active",
         "actions": [{"action": "select", "method": method, "path": path,
                      "mappings": mapping_url,
-                     "timeoutMs": 15000, "retryMax": 2,
+                     "timeoutMs": timeout_ms, "retryMax": retries,
                      "status": "active"}]}, binding)
 
 
 def ensure_actions_binding(participant_id, capability, actions, base_url=None):
     """A binding that answers more than select. base_url overrides the
-    participant's, for a capability served on another host."""
+    participant's, for a capability served on another host.
+
+    An action is (action, path, mappings, timeoutMs, retryMax) and may carry a
+    sixth element naming its HTTP method. POST is the default because every
+    upstream behind this call but AIF's two read endpoints takes one."""
     binding = f"{participant_id}|{capability}"
     row = {"bindingKey": binding, "participantId": participant_id,
            "capabilityCode": capability, "status": "active",
-           "actions": [{"action": action, "method": "POST", "path": path,
+           "actions": [{"action": action, "method": method[0] if method else "POST",
+                        "path": path,
                         "mappings": mappings, "timeoutMs": timeout,
                         "retryMax": retries, "status": "active"}
-                       for action, path, mappings, timeout, retries in actions]}
+                       for action, path, mappings, timeout, retries, *method in actions]}
     if base_url:
         row["baseUrl"] = base_url
     ensure_row("ProviderSchema", {"bindingKey": {"eq": binding}}, row, binding)
@@ -494,7 +544,25 @@ def schema_url(capability, version):
 
 def ensure_capability_schema(capability, name, version):
     """What a capability code MEANS. One row per code, shared by every provider
-    of it -- see docs/adr/0005-filling-the-registry.md."""
+    of it -- see docs/adr/0005-filling-the-registry.md.
+
+    ONE row, not one per version: SchemaRegistry.json makes capabilityCode a
+    unique index, so a deployment advertises a single pack per capability and
+    oanfed's schema_packs() publishes exactly that set. Two providers of one
+    code on different pack versions is therefore a thing the registry cannot
+    hold, and the second one to register is told so rather than quietly
+    leaving the first's version in place -- which is what AIF at v0.2 beside
+    PM-KISAN at v0.1 would otherwise look like."""
+    held = search("SchemaRegistry", {"capabilityCode": {"eq": capability}})
+    if held and held[0].get("version") not in (None, version):
+        # Left as it stands on purpose: overwriting would move a capability
+        # the other providers already answer on to a pack they do not speak.
+        print(f"  {capability}: registered at {held[0]['version']}, "
+              f"and this provider speaks {version}.\n"
+              f"    The registry holds one pack version per capability, so the\n"
+              f"    deployment still advertises {held[0]['version']}. Move every\n"
+              f"    provider of {capability} to one version before relying on it.")
+        return
     ensure_row("SchemaRegistry", {"capabilityCode": {"eq": capability}}, {
         "capabilityCode": capability, "name": name, "version": version,
         "schemaUrl": schema_url(capability, version),
@@ -545,7 +613,9 @@ def register_provider(name):
     ensure_binding(participant, capability,
                    env(f"{provider['prefix']}_PATH", provider["default_path"]),
                    env(f"{provider['prefix']}_MAPPING_URL"),
-                   method=provider["method"])
+                   method=provider["method"],
+                   timeout_ms=provider.get("timeout_ms", 15000),
+                   retries=provider.get("retries", 2))
     ensure_capability_schema(capability, provider["capability_name"], provider["version"])
     print(f"  binding key {participant}|{capability}")
 
@@ -557,8 +627,8 @@ def register_capabilities(provider, participant):
     for capability, name, version, host_var, actions in provider["capabilities"]:
         ensure_actions_binding(
             participant, capability,
-            [(action, path, f"{mappings}/{mapping}", timeout, retries)
-             for action, path, mapping, timeout, retries in actions],
+            [(action, path, f"{mappings}/{mapping}", timeout, retries, *method)
+             for action, path, mapping, timeout, retries, *method in actions],
             base_url=env(host_var) if host_var else None)
         ensure_capability_schema(capability, name, version)
         print(f"  binding key {participant}|{capability}")
@@ -638,18 +708,53 @@ def fragment(name):
     return joins, "", body
 
 
+def step_head(step):
+    """A shared step's header, from config/adapters/steps/<Step>.yaml.tmpl.
+
+    A step several providers join has its header here and not in any one of
+    their fragments, so each of them can be served without the others. A step
+    with one provider keeps its header inline and has no file here."""
+    shared = ADAPTERS / "steps" / f"{step}.yaml.tmpl"
+    return shared.read_text() if shared.exists() else ""
+
+
+def provider_cache(providers):
+    """The handler's cache plugin block, rendered only where a session lives.
+
+    Conditional because the plugin DIALS Redis as it loads: rendering it
+    always would make Redis a hard dependency of every deployment, including
+    the ones that have never held a session. Rendered when it is needed
+    because the provider step refuses a session binding with nowhere to keep
+    it -- at startup, not on the first farmer's request.
+
+    Which providers need it is read off their fragments rather than listed
+    here, so adding a session to one is a single edit."""
+    holders = sorted({name for name, _, _ in providers
+                      if "session" in fragment(name)[2]})
+    if not holders:
+        return ""
+    return ("        # Where a session lives between the call that buys it and\n"
+            f"        # the calls that spend it. Here because {', '.join(holders)} holds one.\n"
+            "        cache:\n"
+            "          id: cache\n"
+            "          config:\n"
+            f"            addr: {env('REDIS_ADDR', 'redis:6379')}\n"
+            f"            use_tls: \"{env('REDIS_USE_TLS', 'false')}\"")
+
+
 def provider_steps(providers):
     """The providerSteps entries and their names, one entry per STEP."""
     blocks, ids = [], []
     for step, members in grouped(providers):
-        bindings, head, bodies = [], "", []
+        bindings, head, bodies = [], step_head(step), []
         for name, participant, member_bindings in members:
             _, member_head, body = fragment(name)
             bindings += member_bindings
             if member_head:
                 if head:
-                    sys.exit(f"setup: two provider templates carry the {step} "
-                             f"step header; only one may")
+                    sys.exit(f"setup: the {step} step header is declared twice "
+                             f"-- in {name}.yaml.tmpl and elsewhere; only one "
+                             f"place may")
                 head = member_head.replace("__PARTICIPANT_ID__", participant)
             bodies.append(body.replace("__PARTICIPANT_ID__", participant))
         if not head:
@@ -706,6 +811,13 @@ def token_url(provider, variable, serving):
     return env(variable, "") if provider in serving else ""
 
 
+def extra_schema_domains():
+    """A leading comma and the hosts, or nothing at all."""
+    extra = ",".join(h.strip() for h in env("EXTRA_SCHEMA_DOMAINS", "").split(",")
+                     if h.strip())
+    return f",{extra}" if extra else ""
+
+
 def configure_adapter(identity):
     wait_for_registry()
     providers = registered_providers()
@@ -717,6 +829,7 @@ def configure_adapter(identity):
     serving = {name for name, _, _ in providers}
     print("configs: serving " + ", ".join(sorted(serving)))
     steps, step_ids = provider_steps(providers)
+    cache_block = provider_cache(providers)
 
     # The three tier configs (multi-adapter/), then single-adapter/network-adapter,
     # which carries all three tiers' placeholders.
@@ -727,7 +840,8 @@ def configure_adapter(identity):
         # The provider blocks go in first: they carry placeholders of their own
         # that the shared pass below resolves.
         template = (template.replace("__PROVIDER_STEPS__", steps)
-                            .replace("__PROVIDER_STEP_IDS__", step_ids))
+                            .replace("__PROVIDER_STEP_IDS__", step_ids)
+                            .replace("__PROVIDER_CACHE__", cache_block))
         # All three adapters share the network's id and key.
         for role in (ROLES if name == "network-adapter" else (name,)):
             prefix = role.upper()
@@ -747,6 +861,7 @@ def configure_adapter(identity):
                 ("__AGMARKNET_TOKEN_URL__", token_url("agmarknet", "AGMARKNET_TOKEN_URL", serving)),
                 ("__VISTAAR_TOKEN_URL__", token_url("vistaar", "VISTAAR_TOKEN_URL", serving)),
                 ("__PMFBY_TOKEN_URL__", token_url("pmfby", "PMFBY_TOKEN_URL", serving)),
+                ("__SHC_TOKEN_URL__", token_url("shc", "SHC_TOKEN_URL", serving)),
                 # The crawler hands a crawled catalog to /publish, which signs it
                 # and forwards it on. /network/publish expects a signature the
                 # crawl does not carry, and in multi mode /publish is elsewhere.
@@ -758,6 +873,11 @@ def configure_adapter(identity):
                 # dies at $.context -- which reads as an adapter bug and is
                 # not. That is what the array networkId 400 was.
                 ("__BECKN_SPEC_URL__", env("BECKN_SPEC_URL")),
+                # Hosts added to the extended-schema allowlist on top of the
+                # fixed four. Empty in every real deployment; it exists so a
+                # pack that is not published yet can be served from a host on
+                # the compose network and still survive a regenerate.
+                ("__EXTRA_SCHEMA_DOMAINS__", extra_schema_domains()),
                 # on/off in .env, true/false in the config.
                 ("__FEDERATION_ENABLED__",
                  "false" if env("FEDERATION_CRAWL_PEERS", "off").lower() == "off"

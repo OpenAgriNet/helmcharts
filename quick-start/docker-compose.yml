@@ -594,6 +594,84 @@ services:
     ports:
       - "127.0.0.1:${MOCKPMKISAN_PORT}:9102"
 
+  # AIF verifies a farmer by sending an OTP to their registered mobile number,
+  # so the session path cannot be exercised against the real service by
+  # anybody who is not that farmer. This stands in for it.
+  #
+  # Two credentials on every read, as the real one wants: the service apiKey
+  # and the farmer's bearer. A call carrying one and not the other is a 401,
+  # which is what proves the adapter sent both.
+  mock-aif:
+    image: ${MOCKAIF_IMAGE}
+    pull_policy: missing
+    container_name: ${STACK_PREFIX:-}mock-aif
+    restart: unless-stopped
+    logging: *logging
+    networks: [oan-internal]
+    command:
+      - "-addr=:9103"
+      # The same variable the adapter reads, so a drift between the two sides
+      # cannot look like a mapping fault.
+      - "-api-key=${AIF_API_KEY:-local-aif-key}"
+      - "-otp=${MOCKAIF_OTP:-123456}"
+      # The one beneficiary id AIF does not know, for reaching the refusal
+      # path on purpose rather than by holding a single valid id.
+      - "-unknown-beneficiary=${MOCKAIF_UNKNOWN_BENEFICIARY:-999999}"
+      - "-expires-in=${MOCKAIF_EXPIRES_IN:-3600}"
+    ports:
+      - "127.0.0.1:${MOCKAIF_PORT}:9103"
+
+  # PMFBY gates its policy and claim reads behind an OTP to the farmer's
+  # registered mobile, for the same reason AIF does, so the same argument
+  # applies: a mock is the only way the session path gets run locally.
+  #
+  # It serves both halves of PMFBY -- the NIC insurance endpoints and the FGMS
+  # grievance ones behind their own login -- because they are one host with
+  # two envelopes, and an adapter that gets the envelopes crossed should fail
+  # here rather than in production.
+  mock-pmfby:
+    image: ${MOCKPMFBY_IMAGE:-oan-mockpmfby:local}
+    pull_policy: missing
+    container_name: ${STACK_PREFIX:-}mock-pmfby
+    restart: unless-stopped
+    logging: *logging
+    networks: [oan-internal]
+    command:
+      - "-addr=:9104"
+      # The same variables the adapter's pmfby auth reads, so a drift between
+      # the two sides cannot look like a mapping fault.
+      - "-access-uid=${PMFBY_ACCESS_UID:-local-pmfby-uid}"
+      - "-access-pwd=${PMFBY_ACCESS_PWD:-local-pmfby-pwd}"
+      - "-otp=${MOCKPMFBY_OTP:-123456}"
+      # The one mobile PMFBY does not know, for reaching the refusal path on
+      # purpose rather than by holding a single valid number.
+      - "-unknown-mobile=${MOCKPMFBY_UNKNOWN_MOBILE:-9999999999}"
+      - "-expires-in=${MOCKPMFBY_EXPIRES_IN:-3600}"
+    ports:
+      - "127.0.0.1:${MOCKPMFBY_PORT:-9104}:9104"
+
+  # Where a farmer's session lives between the call that buys it and the calls
+  # that spend it. Only a provider that holds one needs this -- AIF today --
+  # and the adapter dials it only when setup.py renders the cache plugin, so
+  # for every other deployment this container sits idle.
+  #
+  # No volume and no persistence: a session outliving a restart is not worth
+  # the disk, and an expired or missing one is already an answer the adapter
+  # knows how to give ("verify again").
+  redis:
+    image: redis:8.2-alpine
+    pull_policy: missing
+    container_name: ${STACK_PREFIX:-}redis
+    restart: unless-stopped
+    logging: *logging
+    networks: [oan-internal]
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   # Verifies the caller, calls the upstream provider, answers synchronously.
   # It has no provider address of its own: it reads the ProviderSchema row,
   # so repointing it at a different upstream is a registry write, not a
@@ -610,6 +688,9 @@ services:
     depends_on:
       sunbird-registry-service:
         condition: service_healthy
+      # Same reason as network-adapter: the cache plugin dials Redis at load.
+      redis:
+        condition: service_healthy
     environment:
       <<: *adapter-env
       OTEL_SERVICE_NAME: provider-adapter
@@ -622,6 +703,8 @@ services:
       MAUSAMGRAM_AUTH: ${MAUSAMGRAM_AUTH}
       # SATHI's key goes in the JSON body (authScheme body), read at call time.
       SATHI_API_KEY: ${SATHI_API_KEY}
+      # SHC's refresh token, traded for an access token at call time.
+      SHC_REFRESH_TOKEN: ${SHC_REFRESH_TOKEN}
       # The mandi upstream's credentials. Agmarknet issues its own token, so
       # these two are exchanged for one at call time. Named here and read then,
       # so neither is in a config file or in the registry.
@@ -649,6 +732,10 @@ services:
       # URL is rendered into the config; only these two stay variables.
       PMFBY_ACCESS_UID: ${PMFBY_ACCESS_UID:-}
       PMFBY_ACCESS_PWD: ${PMFBY_ACCESS_PWD:-}
+      # AIF's service key, sent in the apiKey header beside the farmer's
+      # bearer. The bearer is not here: it is bought per farmer at call time
+      # and held in Redis, never configured.
+      AIF_API_KEY: ${AIF_API_KEY:-}
     volumes:
       - ./config/adapters/multi-adapter/provider-adapter.yaml:/app/config/adapter.yaml:ro
       - ./config/adapters/multi-adapter/routing-provider.yaml:/app/config/routing-provider.yaml:ro
@@ -668,6 +755,11 @@ services:
         condition: service_healthy
       discovery-service:
         condition: service_started
+      # The cache plugin dials Redis as it loads, so a deployment holding a
+      # session fails to boot if Redis is not up yet. Unconditional because a
+      # deployment holding none renders no cache plugin and never dials.
+      redis:
+        condition: service_healthy
     environment:
       <<: *adapter-env
       OTEL_SERVICE_NAME: network-adapter
@@ -675,6 +767,7 @@ services:
       # time -- the same variables and reasons as provider-adapter.
       MAUSAMGRAM_AUTH: ${MAUSAMGRAM_AUTH}
       SATHI_API_KEY: ${SATHI_API_KEY}
+      SHC_REFRESH_TOKEN: ${SHC_REFRESH_TOKEN}
       AGMARKNET_ACCESS_NAME: ${AGMARKNET_ACCESS_NAME}
       AGMARKNET_PASSWORD: ${AGMARKNET_PASSWORD}
       MOCKAGMARKNET_TOKEN: ${MOCKAGMARKNET_TOKEN:-local-mandi-token}
@@ -690,6 +783,10 @@ services:
       # URL is rendered into the config; only these two stay variables.
       PMFBY_ACCESS_UID: ${PMFBY_ACCESS_UID:-}
       PMFBY_ACCESS_PWD: ${PMFBY_ACCESS_PWD:-}
+      # AIF's service key, sent in the apiKey header beside the farmer's
+      # bearer. The bearer is not here: it is bought per farmer at call time
+      # and held in Redis, never configured.
+      AIF_API_KEY: ${AIF_API_KEY:-}
     volumes:
       - ./config/adapters/${NETWORK_ADAPTER_DEPLOYMENT_MODE:-single-adapter}/network-adapter.yaml:/app/config/adapter.yaml:ro
       - ./tls/ca.crt:/etc/oan/ca.crt:ro

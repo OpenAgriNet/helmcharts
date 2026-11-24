@@ -42,3 +42,18 @@ twenty grievance types use `G011`-`G030` and are a different taxonomy — see
 `bharat-oan-api/migration-plan/pmkisan/plan.md`.
 
 Verified 2026-11-20 against `mockpmkisan`, not against the real service.
+
+## The `-aif` fixtures
+
+The files ending `-aif` are Agriculture Infrastructure Fund, not PM-KISAN:
+different provider, different pack version, different fields. They name
+`v0.2`, which is **not published yet** — serve `network-specs` on the compose
+network and rewrite the `@context` host before sending, as
+`bharat-oan-api/migration-plan/aif/quick-try.md` describes.
+
+AIF keys its session on the `transactionId`, so all of them must be sent in
+order under one id: `init` (sends the OTP), `init` again carrying
+`challenge.response.value`, then the two `status` calls. Out of order they are
+refused for having no verified session.
+
+Verified 2026-11-23 against `mock-aif`, not against the real service.

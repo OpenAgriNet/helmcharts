@@ -1,0 +1,108 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "catalog/publish",
+    "version": "2.0.0",
+    "transactionId": "fb400000-0000-4000-8000-000000000001",
+    "messageId": "fb400000-0000-4000-8000-000000000002",
+    "timestamp": "2026-11-24T09:30:00Z",
+    "networkId": "oan.dev",
+    "senderId": "oan.dev",
+    "receiverId": "oan.dev"
+  },
+  "message": {
+    "publishDirectives": [
+      {
+        "catalogId": "cat-pmfby-insurance",
+        "catalogType": "REGULAR",
+        "updateMode": "MERGE",
+        "visibleTo": [
+          "oan.dev",
+          "net-b.oan.dev"
+        ]
+      }
+    ],
+    "catalogs": [
+      {
+        "id": "cat-pmfby-insurance",
+        "bppId": "oan.dev",
+        "bppUri": "https://oan.dev",
+        "descriptor": {
+          "code": "PMFBY-INSURANCE",
+          "name": "PMFBY policy and claim status"
+        },
+        "provider": {
+          "id": "pmfby",
+          "descriptor": {
+            "code": "PMFBY",
+            "name": "Pradhan Mantri Fasal Bima Yojana"
+          }
+        },
+        "isActive": true,
+        "resources": [
+          {
+            "id": "res:pmfby:insurance",
+            "descriptor": {
+              "code": "pmfby-insurance",
+              "name": "PMFBY policy and claim lookup",
+              "shortDesc": "Verify a farmer by OTP, then read insurance policies or crop-loss claims for one season and crop year."
+            },
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.2/context.jsonld",
+              "@type": "openagrinet:SchemeApplication",
+              "informationMode": "OnDemand",
+              "scheme": {
+                "code": "PMFBY",
+                "name": "Pradhan Mantri Fasal Bima Yojana"
+              },
+              "challenge": {
+                "methods": [
+                  {
+                    "method": "OTP",
+                    "channel": "SMS",
+                    "length": 6,
+                    "valueType": "NUMERIC"
+                  }
+                ]
+              },
+              "actions": [
+                {
+                  "action": "init",
+                  "description": "Ask PMFBY to send a six-digit OTP to the farmer's registered mobile number. Call this before confirm.",
+                  "operationRef": "https://openagrinet.github.io/network-specs/api/external/pmfby/insurance/v0.2/openapi.yaml#/paths/~1api~1v1~1services~1nic~1getOtp/post",
+                  "attributesAt": "$.message.contract.commitments[0].commitmentAttributes"
+                },
+                {
+                  "action": "confirm",
+                  "description": "Answer the OTP sent by init. A correct answer opens the verified session that status and select spend; nothing else identifies the farmer.",
+                  "operationRef": "https://openagrinet.github.io/network-specs/api/external/pmfby/insurance/v0.2/openapi.yaml#/paths/~1api~1v1~1services~1nic~1verifyMobile/post",
+                  "attributesAt": "$.message.contract.commitments[0].commitmentAttributes"
+                },
+                {
+                  "action": "status",
+                  "description": "List the farmer's insurance policies and the applications under them for one season and crop year. Needs the session confirm opened.",
+                  "operationRef": "https://openagrinet.github.io/network-specs/api/external/pmfby/insurance/v0.2/openapi.yaml#/paths/~1api~1v1~1policy~1policy~1farmerpolicylist/get",
+                  "attributesAt": "$.message.contract.commitments[0].commitmentAttributes"
+                },
+                {
+                  "action": "select",
+                  "description": "Read the farmer's crop-loss claims for one season and crop year. Needs the session confirm opened.",
+                  "operationRef": "https://openagrinet.github.io/network-specs/api/external/pmfby/insurance/v0.2/openapi.yaml#/paths/~1api~1v1~1claims~1claims~1claimSearchReport/get",
+                  "attributesAt": "$.message.contract.commitments[0].commitmentAttributes"
+                }
+              ]
+            }
+          }
+        ],
+        "offers": [
+          {
+            "id": "off:pmfby:insurance",
+            "resourceIds": [
+              "res:pmfby:insurance"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

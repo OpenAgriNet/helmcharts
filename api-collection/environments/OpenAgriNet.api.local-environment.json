@@ -10,6 +10,13 @@
       "description": "Consumer entry point: discover, select, init, status, support and the health check. Single mode (default): http://127.0.0.1:9201/consumer, NETWORK_ADAPTER_PORT in .env. Multi mode: http://127.0.0.1:9202/consumer, CONSUMER_ADAPTER_PORT in .env."
     },
     {
+      "key": "network-adapter-base",
+      "value": "http://127.0.0.1:9201",
+      "enabled": true,
+      "type": "default",
+      "description": "Consumer entry point: discover, select, init, status, support and the health check. Single mode (default): http://127.0.0.1:9201/consumer, NETWORK_ADAPTER_PORT in .env. Multi mode: http://127.0.0.1:9202/consumer, CONSUMER_ADAPTER_PORT in .env."
+    },
+    {
       "key": "discovery-host",
       "value": "http://127.0.0.1:8090",
       "enabled": true,
@@ -25,7 +32,7 @@
     },
     {
       "key": "networkId",
-      "value": "net-a.oan.dev",
+      "value": "oan.dev",
       "type": "default",
       "enabled": true
     },
@@ -37,25 +44,25 @@
     },
     {
       "key": "senderId",
-      "value": "net-a.oan.dev",
+      "value": "oan.dev",
       "type": "default",
       "enabled": true
     },
     {
       "key": "receiverId",
-      "value": "net-a.oan.dev",
+      "value": "oan.dev",
       "type": "default",
       "enabled": true
     },
     {
       "key": "bppId",
-      "value": "net-a.oan.dev",
+      "value": "oan.dev",
       "type": "default",
       "enabled": true
     },
     {
       "key": "bppUri",
-      "value": "https://net-a.oan.dev",
+      "value": "https://oan.dev",
       "type": "default",
       "enabled": true
     },

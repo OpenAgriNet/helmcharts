@@ -1,0 +1,122 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "catalog/publish",
+    "version": "2.0.0",
+    "transactionId": "a1f00000-0000-4000-8000-000000000001",
+    "messageId": "a1f00000-0000-4000-8000-000000000002",
+    "timestamp": "2026-11-23T09:30:00Z",
+    "networkId": "oan.dev",
+    "senderId": "oan.dev",
+    "receiverId": "oan.dev"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "id": "cat-aif",
+        "bppId": "oan.dev",
+        "bppUri": "https://net-a.oan.dev",
+        "descriptor": {
+          "code": "AIF",
+          "name": "Agriculture Infrastructure Fund"
+        },
+        "provider": {
+          "id": "aif",
+          "descriptor": {
+            "code": "AIF",
+            "name": "Agriculture Infrastructure Fund"
+          }
+        },
+        "isActive": true,
+        "resources": [
+          {
+            "id": "res-aif-loan-status",
+            "descriptor": {
+              "code": "aif-loan-status",
+              "name": "AIF loan application status",
+              "shortDesc": "Verify an AIF beneficiary by OTP, then read one loan application's status."
+            },
+            "resourceAttributes": {
+              "@context": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/schema/AgricultureResource/v0.2/context.jsonld",
+              "@type": "openagrinet:AgricultureResource",
+              "informationMode": "OnDemand",
+              "subjectCategories": ["Scheme"],
+              "agricultureSubjects": [
+                {
+                  "descriptor": {
+                    "code": "AIF",
+                    "name": "Agriculture Infrastructure Fund"
+                  }
+                }
+              ],
+              "languages": ["en"],
+              "coverageAreas": [
+                {
+                  "codeScheme": "ISO-3166-1",
+                  "areaLevel": "Country",
+                  "areaCode": "IN",
+                  "areaName": "India"
+                }
+              ],
+              "actions": [
+                {
+                  "action": "init",
+                  "operationRef": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/api/external/aif/loan/v0.2/openapi.yaml#/paths/~1validate_beneficiaries~1/post"
+                },
+                {
+                  "action": "status",
+                  "operationRef": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/api/external/aif/loan/v0.2/openapi.yaml#/paths/~1Status/get"
+                }
+              ]
+            }
+          },
+          {
+            "id": "res-aif-tickets",
+            "descriptor": {
+              "code": "aif-support-tickets",
+              "name": "AIF support tickets",
+              "shortDesc": "Read the support tickets raised by a verified AIF beneficiary."
+            },
+            "resourceAttributes": {
+              "@context": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/schema/AgricultureResource/v0.2/context.jsonld",
+              "@type": "openagrinet:AgricultureResource",
+              "informationMode": "OnDemand",
+              "subjectCategories": ["Scheme"],
+              "agricultureSubjects": [
+                {
+                  "descriptor": {
+                    "code": "AIF",
+                    "name": "Agriculture Infrastructure Fund"
+                  }
+                }
+              ],
+              "languages": ["en"],
+              "coverageAreas": [
+                {
+                  "codeScheme": "ISO-3166-1",
+                  "areaLevel": "Country",
+                  "areaCode": "IN",
+                  "areaName": "India"
+                }
+              ],
+              "actions": [
+                {
+                  "action": "status",
+                  "operationRef": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/api/external/aif/tickets/v0.2/openapi.yaml#/paths/~1support-tickets/get"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "cat-aif",
+        "catalogType": "REGULAR",
+        "updateMode": "MERGE",
+        "visibleTo": ["*"]
+      }
+    ]
+  }
+}
