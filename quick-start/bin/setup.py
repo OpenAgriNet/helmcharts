@@ -237,10 +237,11 @@ PROVIDERS = {
         "prefix": "GFR", "name": "GFR fertilizer recommendation",
         "needs": ["GFR_BASE_URL", "GFR_TOKEN_URL", "GFR_REFRESH_TOKEN"],
         "capabilities": (
+            # The soil test takes SHC 15-26s; a retry would only double the wait.
             ("openagrinet:AgricultureResource", "Agriculture Resource", "v0.2", None, (
-                # The soil test takes SHC 15-26s; a retry would only double the wait.
-                ("init", "/", "soil-report.init.yaml", 60000, 0),
-                ("select", "/", "advice.select.yaml", 15000, 2))),
+                ("select", "/", "soil-report.select.yaml", 60000, 0),)),
+            ("openagrinet:AgricultureAdvisory", "Agriculture Advisory", "v0.2", None, (
+                ("select", "/", "advice.select.yaml", 15000, 2),)),
         ),
     },
     "kcc": {
