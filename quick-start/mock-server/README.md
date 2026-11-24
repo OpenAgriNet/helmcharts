@@ -1,14 +1,17 @@
 # Mock providers
 
-Six stand-in upstreams, so the stack can be exercised end to end without
+Seven stand-in upstreams, so the stack can be exercised end to end without
 credentials for the real services.
 
 Three are a convenience: the real service can be called, and in a normal
-deployment is. `mockaif`, `mockpmfby` and `mockkcc` are not. All three verify a
-farmer with an OTP to their registered mobile number, so nobody who is not that
-farmer can exercise the session path against the real service at all. KCC goes
-further: the host it publishes is PRODUCTION, so an OTP sent there is a real SMS
-to a real farmer's phone.
+deployment is. `mockaif`, `mockpmfby`, `mockkcc` and `mockkhc` are not. The
+first three verify a farmer with an OTP to their registered mobile number, so
+nobody who is not that farmer can exercise the session path against the real
+service at all. KCC goes further: the host it publishes is PRODUCTION, so an OTP
+sent there is a real SMS to a real farmer's phone. KHC goes further in the other
+direction: its filing WRITES a grievance to a real help desk, which no amount of
+care makes repeatable, so the live host is for one deliberate test with the desk
+owner and every other run comes here.
 
 | mock | stands in for | port | auth |
 |---|---|---|---|
@@ -18,6 +21,7 @@ to a real farmer's phone.
 | `mockaif` | Agriculture Infrastructure Fund | 9103 | an `apiKey` header **and** a per-farmer bearer |
 | `mockpmfby` | PMFBY insurance (NIC) + grievance (FGMS) | 9104 | a `token` header on NIC, a login-issued `Token` on FGMS |
 | `mockkcc` | KCC loan application status | 9105 | a form login, then its `token` header, over sealed bodies |
+| `mockkhc` | Kisan Help Center grievances + reference lists | 9106 | an `ApiKey` header **and**, on the filing, a per-farmer token |
 
 ## Why the sources are here
 
@@ -31,15 +35,18 @@ pulled like everything else:
     docker build -t ghcr.io/<org>/oan-mockaif:latest        mock-server/mockaif
     docker build -t ghcr.io/<org>/oan-mockpmfby:latest      mock-server/mockpmfby
     docker build -t ghcr.io/<org>/oan-mockkcc:latest        mock-server/mockkcc
+    docker build -t ghcr.io/<org>/oan-mockkhc:latest        mock-server/mockkhc
     docker push ghcr.io/<org>/oan-mockimd:latest
     docker push ghcr.io/<org>/oan-mockagmarknet:latest
     docker push ghcr.io/<org>/oan-mockpmkisan:latest
     docker push ghcr.io/<org>/oan-mockaif:latest
     docker push ghcr.io/<org>/oan-mockpmfby:latest
     docker push ghcr.io/<org>/oan-mockkcc:latest
+    docker push ghcr.io/<org>/oan-mockkhc:latest
 
 Then set `MOCKIMD_IMAGE`, `MOCKAGMARKNET_IMAGE`, `MOCKPMKISAN_IMAGE`,
-`MOCKAIF_IMAGE`, `MOCKPMFBY_IMAGE` and `MOCKKCC_IMAGE` in `.env`.
+`MOCKAIF_IMAGE`, `MOCKPMFBY_IMAGE`, `MOCKKCC_IMAGE` and `MOCKKHC_IMAGE` in
+`.env`.
 
 ## What they deliberately get wrong
 
@@ -116,7 +123,7 @@ passes here will **not** pass against real PMFBY unmodified. `farmerMobileExists
 is served here too, with the real shape, so whichever way that gets closed has
 something to test against.
 
-None of the five reproduces the real services' rate limits, downtime pages or
+None of the six reproduces the real services' rate limits, downtime pages or
 error bodies. What the real ones do on no-data, throttling or auth failure is
 still unobserved.
 
@@ -136,3 +143,39 @@ answer, not a refusal), `1` answers one, anything else answers three -- one of
 which is REJECTED behind a `DRAFT` status, with only `rejectionReason` saying
 so. `applicationNo` is a number on one row and a string on another, and amounts
 arrive as numbers, as digit strings, and as null.
+
+`mockkhc` answers with a status **string**, not a number: `"200 OK"` inside a
+200 response, `"404 NOT_FOUND"` inside a 404. A caller that reads `status` as an
+integer, or trusts the HTTP code alone, is caught here -- that is what the real
+service does. Its reference lists come back **whole**: 36 states, 38 districts,
+9 sub-districts, 86 villages, 37 schemes, 10 categories, 6 sub-categories, with
+no paging to ask for, which is why paging is the tool's job and not a query
+parameter. The parent goes out camelCase (`stateId`) and comes back lowercase
+and unseparated (`stateid`), and the mock keeps that mismatch rather than
+tidying it.
+
+Village names **repeat across sub-districts**, so a caller that assumes one name
+resolves to one village gets several and has to ask. Sub-category rows carry no
+parent field, as the real ones do not, so the mock names the parent inside each
+generic sub-category's own name -- the gap left visible rather than papered
+over. Identifiers are derived (`district = state*100 + n` and so on down), which
+is what lets the filing check that a `villageId` really sits under the `stateId`
+sent; whether the real service makes that check is unobserved.
+
+Two things about the status journey are reproduced because they are what blocks
+it from being bound at all (open-issues item 20): `GET .../grievances/status`
+opens a record on the grievance number alone, with **no OTP**, while
+`POST .../check-status` reads its `grievanceNo` from the **query string** and
+refuses it in the body -- and `POST .../verify-otp` is the other way round, body
+only. A POST whose only input is a query parameter cannot be expressed by a
+registry row.
+
+The farmer's token on the filing goes on `X-KHC-Token`, which is **ours, not
+KHC's** -- no operation declares a second security scheme and open item 1 in
+`migration-plan/khc/plan.md` carries the question. The mock checks it so the
+adapter is forced to send the token somewhere rather than drop it silently; the
+day KHC answers, the name changes in one place. A mobile other than
+`-registered-mobile` answers `isRegistered: false` and must then send a name and
+a gender, so both branches of the filing are reachable without a second service.
+Every place name outside scheme 38 and its ten categories is filler and must not
+be read as KHC's master data.

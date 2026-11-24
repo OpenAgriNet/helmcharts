@@ -1,0 +1,36 @@
+{
+  "context": {
+    "domain": "agriculture",
+    "action": "support",
+    "version": "2.0.0",
+    "networkId": "oan.dev",
+    "senderId": "oan.dev",
+    "receiverId": "oan.dev",
+    "transactionId": "11111111-0000-4000-8000-00000000khc1",
+    "messageId": "11111111-0000-4000-8000-00000000khc3",
+    "timestamp": "2026-11-24T06:32:00.000Z"
+  },
+  "message": {
+    "support": {
+      "channels": [
+        {
+          "@context": "https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/context.jsonld",
+          "@type": "openagrinet:Grievance",
+          "informationMode": "OnDemand",
+          "provider": { "id": "khc", "descriptor": { "name": "Kisan Help Center" } },
+          "scheme": { "code": "38", "name": "Agriculture Infrastructure Fund (AIF)" },
+          "referenceNo": "BV-example-0001",
+          "farmerMobileNumber": "9000000001",
+          "grievance": {
+            "description": "The bank has not sanctioned my AIF loan even though the project was approved four months ago.",
+            "language": "en",
+            "division": "31",
+            "category": { "code": "39" },
+            "subCategory": { "code": "1726" }
+          },
+          "location": { "stateId": "5", "villageId": "5010101" }
+        }
+      ]
+    }
+  }
+}

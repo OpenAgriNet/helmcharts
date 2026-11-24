@@ -1,0 +1,80 @@
+# KHC grievance, confirm -> POST /auth/verify-otp.
+#
+# The farmer's answer to the OTP. The reply holds data.token, and that token is
+# their consent to file: the adapter keeps it against this transaction
+# (sessionCaptureOn on this binding) and sends it on support. It is NEVER
+# returned to the caller -- Authorization already carries the service key, and a
+# token on the wire outlives the exchange.
+#
+# data.isRegistered is the one thing that does come back. It is a branch in the
+# journey, not a failure: a farmer KHC has not seen before must also send a name
+# and a gender when the grievance is filed.
+#
+# Never retried. The OTP is single-use, so a retry spends it and the farmer's
+# own answer is then refused.
+
+required:
+  - check: |
+      $exists(beckn.message.contract.commitments[0].commitmentAttributes.farmerMobileNumber)
+    message: "this capability needs farmerMobileNumber in commitmentAttributes"
+  - check: |
+      $exists(beckn.message.contract.commitments[0].commitmentAttributes.challenge.response.value)
+    message: "this capability needs challenge.response.value -- the code the farmer read out"
+
+request: |
+  (
+    $ca := beckn.message.contract.commitments[0].commitmentAttributes;
+    {
+      "mobile": $string($ca.farmerMobileNumber),
+      "otp": $string($ca.challenge.response.value)
+    }
+  )
+
+# A wrong or expired code comes back 401 with KHC's own wording, which the
+# provider block admits as an answer so the farmer is told their code was wrong
+# rather than that the service is down.
+response: |
+  (
+    $c := beckn.message.contract.commitments[0];
+    $ca := $c.commitmentAttributes;
+    $said := $string(response.status);
+    $at := "$.message.contract.commitments[0].commitmentAttributes.";
+
+    $contains($said, "200") != true
+    ? { "_error": {
+          "status": 400,
+          "code": "BIZ_GENERIC_ERROR",
+          "message": "KHC did not accept that OTP.",
+          "path": $at & "challenge.response.value",
+          "cause": $exists(response.message) ? response.message : $said } }
+    /* A 200 that carries no isRegistered is not a verification. Saying the
+       farmer is verified on a reply that does not say so would send the
+       filing on with no token held. */
+    : $exists(response.data.isRegistered) != true
+    ? { "_error": {
+          "status": 400,
+          "code": "BIZ_GENERIC_ERROR",
+          "message": "KHC did not confirm the verification.",
+          "path": $at & "challenge.response.value",
+          "cause": $said } }
+    : {
+      "context": $merge([beckn.context, { "action": "on_confirm", "timestamp": $now() }]),
+      "message": {
+        "contract": $merge([beckn.message.contract, {
+          "commitments": [$merge([$c, {
+            "status": { "descriptor": { "code": "ACTIVE" } },
+            "commitmentAttributes": {
+              "@context":        $ca.`@context`,
+              "@type":           $ca.`@type`,
+              "informationMode": "OnDemand",
+              "scheme":          $ca.scheme,
+              /* Registered or not, nothing else about the farmer. KHC returns
+                 the mobile back as well and it is not echoed: the caller sent
+                 it and does not need telling. */
+              "applicant": { "registered": response.data.isRegistered }
+            }
+          }])]
+        }])
+      }
+    }
+  )
