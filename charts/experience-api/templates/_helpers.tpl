@@ -59,3 +59,22 @@ render here rather than as a crash-looping pod.
 {{ . }}
 {{- end }}
 {{- end }}
+
+{{/*
+Name of the rate-limiting KongPlugin, and the Ingress's annotations with that
+plugin added to konghq.com/plugins -- appended, so a plugin already named in
+ingress.annotations stays.
+*/}}
+{{- define "experience-api.rateLimitPluginName" -}}
+{{- printf "%s-rate-limit" (include "experience-api.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- end }}
+
+{{- define "experience-api.ingressAnnotations" -}}
+{{- $annotations := merge (dict) .Values.ingress.annotations (.Values.commonAnnotations | default dict) -}}
+{{- if .Values.rateLimit.enabled -}}
+{{- $plugin := include "experience-api.rateLimitPluginName" . -}}
+{{- $existing := get $annotations "konghq.com/plugins" -}}
+{{- $_ := set $annotations "konghq.com/plugins" (ternary (printf "%s,%s" $existing $plugin) $plugin (ne $existing "")) -}}
+{{- end -}}
+{{- with $annotations }}{{ toYaml . }}{{ end -}}
+{{- end }}

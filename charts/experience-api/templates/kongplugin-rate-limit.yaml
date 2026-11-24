@@ -1,0 +1,29 @@
+{{- /*
+Kong's rate-limiting plugin on this chart's Ingress. `rateLimit.config` is the
+plugin's own config, passed through unchanged, so every option Kong documents
+works here. The Ingress template names this plugin in konghq.com/plugins.
+*/ -}}
+{{- if .Values.rateLimit.enabled }}
+{{- if not .Values.ingress.enabled }}
+{{- fail "experience-api: rateLimit.enabled needs ingress.enabled -- the plugin is attached to this chart's Ingress" }}
+{{- end }}
+{{- $windows := list "second" "minute" "hour" "day" "month" "year" }}
+{{- $set := false }}
+{{- range $windows }}{{ if hasKey $.Values.rateLimit.config . }}{{ $set = true }}{{ end }}{{ end }}
+{{- if not $set }}
+{{- fail "experience-api: rateLimit.config sets no limit. Set at least one of second, minute, hour, day, month, year; Kong refuses the plugin otherwise" }}
+{{- end }}
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: {{ include "experience-api.rateLimitPluginName" . }}
+  labels:
+    {{- include "experience-api.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+plugin: rate-limiting
+config:
+  {{- toYaml .Values.rateLimit.config | nindent 2 }}
+{{- end }}

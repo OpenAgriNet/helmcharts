@@ -64,6 +64,31 @@ ingress:
           pathType: Prefix
   tls: []
 
+# Kong's rate-limiting plugin on this chart's Ingress. Off by default. When on,
+# the chart renders a KongPlugin `<fullname>-rate-limit` and adds it to the
+# Ingress's konghq.com/plugins annotation (after any plugin already named
+# there). Needs ingress.enabled, on Kong.
+#
+# `config` is the plugin's own config, passed through as is; it must set at
+# least one window (second, minute, hour, day, month, year). Notes for picking
+# values:
+#   limit_by: ip   counts per client address. Many users can share one (mobile
+#                  carriers' CGNAT, an office, a training venue), so a per-IP
+#                  limit stops floods, not individual users.
+#   policy: local  counts in each Kong pod's memory -- the only choice in
+#                  DB-less mode short of Redis. With N Kong pods a client can
+#                  get up to N times the limit.
+#   fault_tolerant keeps serving if counting fails.
+# https://developer.konghq.com/plugins/rate-limiting/
+rateLimit:
+  enabled: false
+  config: {}
+  #   minute: 60
+  #   hour: 1000
+  #   limit_by: ip
+  #   policy: local
+  #   fault_tolerant: true
+
 resources:
   requests:
     cpu: 100m

@@ -5,9 +5,9 @@ metadata:
   name: {{ include "experience-api.fullname" . }}
   labels:
     {{- include "experience-api.labels" . | nindent 4 }}
-  {{- with (merge (dict) .Values.ingress.annotations (.Values.commonAnnotations | default dict)) }}
+  {{- with (include "experience-api.ingressAnnotations" . | trim) }}
   annotations:
-    {{- toYaml . | nindent 4 }}
+    {{- . | nindent 4 }}
   {{- end }}
 spec:
   {{- with .Values.ingress.className }}

@@ -5,6 +5,15 @@ All notable changes to the `experience-api` chart are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-11-24
+
+### Added
+- `rateLimit`: optional Kong rate-limiting on the Ingress. Renders a
+  `KongPlugin` `<fullname>-rate-limit` from `rateLimit.config` and adds it to
+  the Ingress's `konghq.com/plugins` annotation, after any plugin already
+  named there. Off by default; the render fails if it is on without
+  `ingress.enabled` or without a limit window.
+
 ## [0.1.0] - 2026-11-04
 
 ### Added

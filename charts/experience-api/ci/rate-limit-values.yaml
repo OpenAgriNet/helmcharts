@@ -1,0 +1,17 @@
+# Renders the rate-limiting KongPlugin and the Ingress annotation, with a
+# plugin already named so the append is covered too.
+senderId: consumer.oan.dev
+dssBaseUrl: http://decision-support-system.dss.svc.cluster.local:8077
+ingress:
+  enabled: true
+  className: kong
+  annotations:
+    konghq.com/plugins: some-other-plugin
+rateLimit:
+  enabled: true
+  config:
+    minute: 60
+    hour: 1000
+    limit_by: ip
+    policy: local
+    fault_tolerant: true
