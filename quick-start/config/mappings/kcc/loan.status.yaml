@@ -16,24 +16,27 @@ required:
   - check: |
       (
         $attributes := beckn.message.contract.commitments[0].commitmentAttributes;
-        $exists($attributes.applicant.mobile) and
-        $exists($attributes.requestId) and
-        $exists($attributes.challenge.response.value)
+        $exists($attributes.mobileNumber) and
+        $exists($attributes.requestID) and
+        $exists($attributes.otp)
       )
-    message: "this capability needs applicant.mobile, requestId and challenge.response.value in commitmentAttributes"
+    message: "this capability needs mobileNumber, requestID and otp in commitmentAttributes"
 
-# The OTP as a NUMBER: KCC's contract says integer and refuses the quoted
-# form. requestId is the one init handed back. The mobile is not sent -- KCC
-# reads the farmer from the requestID -- but it is still required above,
-# because the adapter checks it against the mobile the session was bought
-# for, so a transaction id alone is not enough to read another farmer's
-# applications.
+# Pass-through, against the status operationRef the catalog publishes. Two of
+# the three fields go to KCC as they arrive; the mobile does not, because KCC
+# reads the farmer from the requestID. It is still required above: the adapter
+# checks it against the mobile the session was bought for, so a transaction id
+# alone is not enough to read another farmer's applications.
+#
+# The OTP is cast rather than trusted. KCC's contract declares it an integer
+# and refuses the quoted form, and a caller that read the code off a farmer's
+# screen has it as text.
 request: |
   (
     $attributes := beckn.message.contract.commitments[0].commitmentAttributes;
     {
-      "requestID": $string($attributes.requestId),
-      "otp": $number($attributes.challenge.response.value)
+      "requestID": $string($attributes.requestID),
+      "otp": $number($attributes.otp)
     }
   )
 
@@ -43,8 +46,6 @@ request: |
 response: |
   (
     /* Constants */
-    $SCHEME := { "code": "KCC", "name": "Kisan Credit Card" };
-    $INFORMATION_MODE := "OnDemand";
     $COMMITMENT_STATUS_ACTIVE := "ACTIVE";
     $ATTRIBUTES_PATH := "$.message.contract.commitments[0].commitmentAttributes.";
 
@@ -77,7 +78,7 @@ response: |
     /* Inputs */
     $commitment := beckn.message.contract.commitments[0];
     $attributes := $commitment.commitmentAttributes;
-    $mobile := $string($attributes.applicant.mobile);
+    $mobile := $string($attributes.mobileNumber);
     $kccMessage := $isText(response.message) ? $trim(response.message);
     /* A sealed reply opens to the applications and carries no flag. A refusal
        arrives unsealed, with the status false KCC wrote. The KEY is what says
@@ -129,6 +130,8 @@ response: |
     /* An empty list is an ANSWER, not a refusal: a farmer whose application
        was never filed from this mobile is told so, and is not shown a failure
        they cannot act on. */
+    /* The OTP is never echoed. scheme and informationMode are echoed from what
+       was sent, which is what the catalog published. */
     $isAnswered
     ? {
       "context": $merge([beckn.context, { "action": "on_status", "timestamp": $now() }]),
@@ -139,10 +142,10 @@ response: |
             "commitmentAttributes": {
               "@context": $attributes.`@context`,
               "@type": $attributes.`@type`,
-              "informationMode": $INFORMATION_MODE,
-              "scheme": $SCHEME,
-              "applicant": { "mobile": $mobile },
-              "requestId": $string($attributes.requestId),
+              "informationMode": $attributes.informationMode,
+              "scheme": $attributes.scheme,
+              "mobileNumber": $mobile,
+              "requestID": $string($attributes.requestID),
               "applications": $applications
             }
           }])]
@@ -151,6 +154,6 @@ response: |
     }
     : $isCallerFault
       ? $error($ERROR_OTP_REFUSED, $MSG_OTP_REFUSED,
-               $ATTRIBUTES_PATH & "challenge.response.value", $kccMessage)
+               $ATTRIBUTES_PATH & "otp", $kccMessage)
       : $error($ERROR_UNAVAILABLE, $MSG_UNAVAILABLE, undefined, $kccMessage)
   )
