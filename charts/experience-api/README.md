@@ -31,6 +31,37 @@ service:
     konghq.com/read-timeout: "120000"
 ```
 
+## Rate limiting
+
+`rateLimit` puts Kong's rate-limiting plugin on the Ingress. It is off by
+default. When on, the chart renders a `KongPlugin` named
+`<fullname>-rate-limit` and adds it to `konghq.com/plugins`. `config` goes to
+the plugin unchanged:
+
+```yaml
+rateLimit:
+  enabled: true
+  config:
+    minute: 60
+    hour: 1000
+    limit_by: ip
+    policy: local
+    fault_tolerant: true
+```
+
+Over the limit Kong answers `429` with `Retry-After` and `RateLimit-*` headers,
+and the request never reaches the app. Every chat turn is one request that
+costs model calls, so this is the route to limit.
+
+Two things decide what the numbers mean:
+
+- `limit_by: ip` counts per client address, and many users can share one:
+  mobile carriers' CGNAT, an office, a training venue. Set it to stop floods,
+  not to ration a single user.
+- `policy: local` counts in each Kong pod's memory, the only choice in DB-less
+  mode short of Redis. With two Kong pods a client can get up to twice the
+  limit.
+
 ## Image
 
 `ghcr.io/openagrinet/experience-api`, public, linux/amd64 only. No release has
