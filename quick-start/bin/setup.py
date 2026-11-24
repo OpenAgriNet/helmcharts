@@ -233,6 +233,16 @@ PROVIDERS = {
     # sealed. Two actions rather than three: KCC has no verify endpoint, so
     # the OTP is answered on the SAME call that reads the applications, and a
     # wrong OTP is refused there.
+    "gfr": {
+        "prefix": "GFR", "name": "GFR fertilizer recommendation",
+        "needs": ["GFR_BASE_URL", "GFR_TOKEN_URL", "GFR_REFRESH_TOKEN"],
+        "capabilities": (
+            ("openagrinet:AgricultureResource", "Agriculture Resource", "v0.2", None, (
+                # The soil test takes SHC 15-26s; a retry would only double the wait.
+                ("init", "/", "soil-report.init.yaml", 60000, 0),
+                ("select", "/", "advice.select.yaml", 15000, 2))),
+        ),
+    },
     "kcc": {
         "prefix": "KCC", "name": "Kisan Credit Card",
         "needs": ["KCC_BASE_URL", "KCC_TOKEN_URL", "KCC_ENTITY_TYPE",
@@ -917,6 +927,7 @@ def configure_adapter(identity):
                 ("__PMFBY_TOKEN_URL__", token_url("pmfby", "PMFBY_TOKEN_URL", serving)),
                 ("__SHC_TOKEN_URL__", token_url("shc", "SHC_TOKEN_URL", serving)),
                 ("__KCC_TOKEN_URL__", token_url("kcc", "KCC_TOKEN_URL", serving)),
+                ("__GFR_TOKEN_URL__", token_url("gfr", "GFR_TOKEN_URL", serving)),
                 # Which KIND of caller KCC's login is told this is. A constant
                 # its issuer asks for beside the credential, not a secret.
                 ("__KCC_ENTITY_TYPE__",
