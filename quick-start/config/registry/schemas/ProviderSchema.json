@@ -64,10 +64,10 @@
     },
 
     "MappingPath": {
-      "description": "Fully-qualified URL of one published mapping file, holding request: and response: as YAML block scalars. The action segment must equal the action it sits under — verify/records.py.",
+      "description": "Fully-qualified URL of one published mapping file, holding request: and response: as YAML block scalars. The filename ends with the action it sits under, either as <action>.yaml under a mappings/ folder or as the older <usecase>.<action>.yaml.",
       "type": "string",
       "maxLength": 2000,
-      "pattern": "^https?://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*/[A-Za-z0-9._~%-]*\\.(discover|select|init|confirm|status|track|cancel|update|rate|support)\\.ya?ml$"
+      "pattern": "^https?://(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9.:-]*(/[A-Za-z0-9._~%-]+)*/([A-Za-z0-9._~%-]*\\.)?(discover|select|init|confirm|status|track|cancel|update|rate|support)\\.ya?ml$"
     },
 
     "ParticipantId": { "type": "string", "maxLength": 253, "pattern": "^[a-z0-9][a-z0-9._:-]{2,252}$" },
