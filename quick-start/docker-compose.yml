@@ -766,6 +766,8 @@ services:
       SHC_REFRESH_TOKEN: ${SHC_REFRESH_TOKEN}
       # GFR's refresh token, for its soil-test call.
       GFR_REFRESH_TOKEN: ${GFR_REFRESH_TOKEN:-}
+      # SMAM's service token, sent in its Token header at call time.
+      SMAM_TOKEN: ${SMAM_TOKEN:-}
       # The mandi upstream's credentials. Agmarknet issues its own token, so
       # these two are exchanged for one at call time. Named here and read then,
       # so neither is in a config file or in the registry.
@@ -841,6 +843,7 @@ services:
       SATHI_API_KEY: ${SATHI_API_KEY}
       SHC_REFRESH_TOKEN: ${SHC_REFRESH_TOKEN}
       GFR_REFRESH_TOKEN: ${GFR_REFRESH_TOKEN:-}
+      SMAM_TOKEN: ${SMAM_TOKEN:-}
       AGMARKNET_ACCESS_NAME: ${AGMARKNET_ACCESS_NAME}
       AGMARKNET_PASSWORD: ${AGMARKNET_PASSWORD}
       MOCKAGMARKNET_TOKEN: ${MOCKAGMARKNET_TOKEN:-local-mandi-token}

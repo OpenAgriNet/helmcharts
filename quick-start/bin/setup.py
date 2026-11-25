@@ -256,6 +256,15 @@ PROVIDERS = {
                 ("select", "/", "advice.select.yaml", 15000, 2),)),
         ),
     },
+    "smam": {
+        "prefix": "SMAM", "name": "SMAM benefit status",
+        "needs": ["SMAM_BASE_URL", "SMAM_TOKEN"],
+        "capabilities": (
+            # A read, so it is safe to retry.
+            ("openagrinet:SchemeApplication", "Scheme Application", "v0.2", None, (
+                ("status", "/api/BeneficiaryService/GetApplicationStatusByAI", "benefit.status.yaml", 30000, 2),)),
+        ),
+    },
     "kcc": {
         "prefix": "KCC", "name": "Kisan Credit Card",
         "needs": ["KCC_BASE_URL", "KCC_TOKEN_URL", "KCC_ENTITY_TYPE",
