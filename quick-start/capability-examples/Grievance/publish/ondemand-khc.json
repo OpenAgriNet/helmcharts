@@ -143,7 +143,8 @@
         "catalogType": "REGULAR",
         "updateMode": "MERGE",
         "visibleTo": [
-          "*"
+          "oan.dev",
+          "net-b.oan.dev"
         ]
       }
     ]

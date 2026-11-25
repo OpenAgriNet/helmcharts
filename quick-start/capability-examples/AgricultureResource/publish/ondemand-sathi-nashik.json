@@ -116,7 +116,11 @@
     "publishDirectives": [
       {
         "catalogId": "cat-sathi",
-        "catalogType": "REGULAR"
+        "catalogType": "REGULAR",
+        "visibleTo": [
+          "oan.dev",
+          "net-b.oan.dev"
+        ]
       }
     ]
   }
