@@ -7,11 +7,11 @@
     "messageId": "b3000000-0000-4000-8000-000000000002",
     "timestamp": "2026-11-23T09:30:00Z",
     "schemaContext": [
-      "https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-features/schema/AgricultureResource/v0.2/context.jsonld#openagrinet:AgricultureResource"
+      "https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-migration/schema/AgricultureResource/v0.2/context.jsonld#openagrinet:AgricultureResource"
     ],
     "networkId": "*",
-    "senderId": "net-a.oan.dev",
-    "receiverId": "net-a.oan.dev"
+    "senderId": "oan.dev",
+    "receiverId": "oan.dev"
   },
   "message": {
     "intent": {

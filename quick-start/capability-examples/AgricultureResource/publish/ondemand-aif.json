@@ -15,7 +15,7 @@
       {
         "id": "cat-aif",
         "bppId": "oan.dev",
-        "bppUri": "https://net-a.oan.dev",
+        "bppUri": "https://oan.dev",
         "descriptor": {
           "code": "AIF",
           "name": "Agriculture Infrastructure Fund"

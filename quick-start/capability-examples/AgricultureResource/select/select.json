@@ -6,13 +6,13 @@
     "transactionId": "a3000000-0000-4000-8000-000000000001",
     "messageId": "b3000000-0000-4000-8000-000000000003",
     "timestamp": "2026-11-23T09:30:00Z",
-    "bppUri": "https://net-a.oan.dev",
+    "bppUri": "https://oan.dev",
     "schemaContext": [
-      "https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-features/schema/AgricultureResource/v0.2/context.jsonld#openagrinet:AgricultureResource"
+      "https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-migration/schema/AgricultureResource/v0.2/context.jsonld#openagrinet:AgricultureResource"
     ],
-    "networkId": "net-a.oan.dev",
-    "senderId": "net-a.oan.dev",
-    "receiverId": "net-a.oan.dev"
+    "networkId": "oan.dev",
+    "senderId": "oan.dev",
+    "receiverId": "oan.dev"
   },
   "message": {
     "contract": {
@@ -35,7 +35,7 @@
                 "count": 1
               },
               "resourceAttributes": {
-                "@context": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-features/schema/AgricultureResource/v0.2/context.jsonld",
+                "@context": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-migration/schema/AgricultureResource/v0.2/context.jsonld",
                 "@type": "openagrinet:AgricultureResource",
                 "cropCode": "A0102",
                 "seedClass": "CERTIFIED I",
