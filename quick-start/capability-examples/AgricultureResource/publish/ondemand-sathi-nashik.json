@@ -5,16 +5,16 @@
     "transactionId": "a3000000-0000-4000-8000-000000000001",
     "messageId": "b3000000-0000-4000-8000-000000000001",
     "timestamp": "2026-11-23T09:30:00Z",
-    "networkId": "net-a.oan.dev",
-    "senderId": "net-a.oan.dev",
-    "receiverId": "net-a.oan.dev"
+    "networkId": "oan.dev",
+    "senderId": "oan.dev",
+    "receiverId": "oan.dev"
   },
   "message": {
     "catalogs": [
       {
         "id": "cat-sathi",
-        "bppId": "net-a.oan.dev",
-        "bppUri": "https://net-a.oan.dev",
+        "bppId": "oan.dev",
+        "bppUri": "https://oan.dev",
         "descriptor": {
           "code": "SATHI_SEED_STOCK",
           "name": "SATHI certified seed availability"
@@ -35,7 +35,7 @@
               "name": "SATHI certified seed stock - Nashik, Maharashtra"
             },
             "resourceAttributes": {
-              "@context": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-features/schema/AgricultureResource/v0.2/context.jsonld",
+              "@context": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-migration/schema/AgricultureResource/v0.2/context.jsonld",
               "@type": "openagrinet:AgricultureResource",
               "informationMode": "OnDemand",
               "subjectCategories": [
@@ -105,7 +105,7 @@
               "actions": [
                 {
                   "action": "select",
-                  "operationRef": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-features/api/external/sathi/stock/v0.2/openapi.yaml#/paths/~1inv-apis~1stock~1getSeedAvailability/post"
+                  "operationRef": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-migration/api/external/sathi/stock/v0.2/openapi.yaml#/paths/~1inv-apis2~1stock~1getSeedAvailability/post"
                 }
               ]
             }

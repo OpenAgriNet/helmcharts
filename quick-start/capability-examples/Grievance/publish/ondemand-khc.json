@@ -15,7 +15,7 @@
       {
         "id": "cat-khc",
         "bppId": "oan.dev",
-        "bppUri": "https://net-a.oan.dev",
+        "bppUri": "https://oan.dev",
         "descriptor": {
           "code": "KHC",
           "name": "Kisan Help Center"
