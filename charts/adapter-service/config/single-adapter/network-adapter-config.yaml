@@ -342,7 +342,7 @@ modules:
           # and PMKISAN_OTP_TOKEN.
           - id: Grievance
             config:
-              bindingKeys: "pmfby|openagrinet:Grievance,pmfby|openagrinet:SchemeApplication,pmkisan|openagrinet:Grievance,pmkisan|openagrinet:SchemeApplication,kcc|openagrinet:SchemeApplication,aif|openagrinet:SchemeApplication,aif|openagrinet:Grievance,khc|openagrinet:Grievance"
+              bindingKeys: "pmfby|openagrinet:Grievance,pmfby|openagrinet:SchemeApplication,pmkisan|openagrinet:Grievance,pmkisan|openagrinet:SchemeApplication,kcc|openagrinet:SchemeApplication,aif|openagrinet:SchemeApplication,aif|openagrinet:Grievance,khc|openagrinet:Grievance,smam|openagrinet:SchemeApplication"
               # Paired by position, tried in order: status names the binding on
               # its contract, support on its channel.
               providerIdAt: "message.contract.commitments[].offer.provider.id, message.support.channels[].provider.id"
@@ -370,6 +370,18 @@ modules:
                 sessionTtl: 15m
                 sessionTtlMargin: 60s
                 sessionBindAt: "message.contract.commitments[].commitmentAttributes.applicant.mobile"
+                sessionHeader: X-PMFBY-Farmer-Session
+                sessionPrefix: ""
+              # PMFBY grievance (v0.2) is OTP-gated too: the farmerID bought on confirm is spent on the filing,
+              # bound to the mobile it was bought for (on a contract at confirm, on a channel at support).
+              "pmfby|openagrinet:Grievance":
+                sessionKeyAt: "context.transactionId,context.transaction_id"
+                sessionCaptureOn: confirm
+                sessionSendOn: support
+                sessionTokenField: data.farmerID
+                sessionTtl: 1h
+                sessionTtlMargin: 60s
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.applicantMobile,message.support.channels[].applicantMobile"
                 sessionHeader: X-PMFBY-Farmer-Session
                 sessionPrefix: ""
               pmkisan:
@@ -477,6 +489,11 @@ modules:
                 sessionBindAt: "message.contract.commitments[].commitmentAttributes.farmerMobileNumber,message.support.channels[].farmerMobileNumber"
                 sessionHeader: X-KHC-Token
                 sessionPrefix: ""
+              # SMAM benefit status: a fixed service token in a header named Token.
+              smam:
+                authScheme: header
+                headerName: Token
+                headerValueEnv: SMAM_TOKEN
           - id: AgricultureResource
             config:
               bindingKeys: "sathi|openagrinet:AgricultureResource,shc|openagrinet:AgricultureResource,gfr|openagrinet:AgricultureResource,gfr|openagrinet:AgricultureAdvisory"
