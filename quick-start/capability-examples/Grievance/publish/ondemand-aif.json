@@ -76,35 +76,18 @@
               "shortDesc": "Read the support tickets raised by a verified AIF beneficiary."
             },
             "resourceAttributes": {
-              "@context": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/schema/AgricultureResource/v0.2/context.jsonld",
-              "@type": "openagrinet:AgricultureResource",
+              "@context": "https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/context.jsonld",
+              "@type": "openagrinet:Grievance",
               "informationMode": "OnDemand",
-              "subjectCategories": [
-                "Scheme"
-              ],
-              "agricultureSubjects": [
-                {
-                  "descriptor": {
-                    "code": "AIF",
-                    "name": "Agriculture Infrastructure Fund"
-                  }
-                }
-              ],
-              "languages": [
-                "en"
-              ],
-              "coverageAreas": [
-                {
-                  "codeScheme": "ISO-3166-1",
-                  "areaLevel": "Country",
-                  "areaCode": "IN",
-                  "areaName": "India"
-                }
-              ],
+              "scheme": {
+                "code": "AIF",
+                "name": "Agriculture Infrastructure Fund"
+              },
               "actions": [
                 {
                   "action": "status",
-                  "operationRef": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/api/external/aif/tickets/v0.2/openapi.yaml#/paths/~1support-tickets/get"
+                  "description": "Read the beneficiary's support tickets. Requires the session a verified beneficiary holds. AIF has no filing call, so this capability answers status and nothing else.",
+                  "operationRef": "https://openagrinet.github.io/network-specs/api/external/aif/tickets/v0.2/openapi.yaml#/paths/~1support-tickets/get"
                 }
               ]
             }

@@ -47,13 +47,29 @@ Verified 2026-11-20 against `mockpmkisan`, not against the real service.
 
 The files ending `-aif` are Agriculture Infrastructure Fund, not PM-KISAN:
 different provider, different pack version, different fields. They name
-`v0.2`, which is **not published yet** — serve `network-specs` on the compose
-network and rewrite the `@context` host before sending, as
-`bharat-oan-api/migration-plan/aif/quick-try.md` describes.
+`v0.2`, and the adapter resolves it: `extendedSchema_contextRewrite` maps the
+pinned `openagrinet.github.io` Grievance URL onto the `bv-migration` branch, so
+these send as they stand. Nothing has to be served locally.
+
+`publish/ondemand-aif.json` publishes the whole AIF catalog, both resources —
+the loan resource as `SchemeApplication/v0.2` and the support tickets as
+`Grievance/v0.2`. They are told apart by `descriptor.code`, so publishing one
+without the other leaves a capability unreachable.
+
+AIF accepts no filings, so its grievance resource publishes no
+`grievanceOptions` and advertises `status` alone. The pack asks for categories
+only of a resource advertising `support`, which is the action that needs them.
 
 AIF keys its session on the `transactionId`, so all of them must be sent in
 order under one id: `init` (sends the OTP), `init` again carrying
-`challenge.response.value`, then the two `status` calls. Out of order they are
+`commitmentAttributes.otp`, then the two `status` calls. Out of order they are
 refused for having no verified session.
+
+The OTP goes in `otp`, not in `challenge.response.value`. AIF's mapping reads
+the provider's own field name, and a payload carrying the Beckn-shaped
+`challenge` instead is not rejected — it is read as a *first* `init`, so it
+sends a new OTP, stays `DRAFT`, and the status calls that follow are refused
+for having no session. PM-KISAN and PMFBY still use the `challenge` shape; see
+`bharat-oan-api/migration-plan/open-issues.md` item 42.
 
 Verified 2026-11-23 against `mock-aif`, not against the real service.
