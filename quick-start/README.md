@@ -81,13 +81,13 @@ Green means the registry is seeded, signatures verify, the mappings work and
 discovery is indexing.
 
 The AIF folder needs one more variable until the v0.2 packs are published,
-naming the host that serves them inside the compose network:
+naming the branch that serves them:
 
 ```sh
 newman run ../api-collection/OpenAgriNet.api-collection.json \
   -e ../api-collection/environments/OpenAgriNet.api.local-environment.json \
   --folder "AIF - loan and grievance status" \
-  --env-var aif-schema-base=http://spec-files/schema
+  --env-var aif-schema-base=https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/schema
 ```
 
 Run that folder top to bottom: its four journey requests share one
