@@ -272,7 +272,7 @@ modules:
             cacheTTL: 1m
             negativeTTL: 1m
             maxCacheEntries: 200
-        # Where a farmer's session lives between the OTP call and the calls that spend it (KCC, PMFBY, AIF).
+        # Where a farmer's session lives between the OTP call and the calls that spend it (KCC, PMFBY, AIF, KHC).
         cache:
           id: cache
           config:
@@ -342,7 +342,7 @@ modules:
           # and PMKISAN_OTP_TOKEN.
           - id: Grievance
             config:
-              bindingKeys: "pmfby|openagrinet:Grievance,pmfby|openagrinet:SchemeApplication,pmkisan|openagrinet:Grievance,pmkisan|openagrinet:SchemeApplication,kcc|openagrinet:SchemeApplication,aif|openagrinet:SchemeApplication,aif|openagrinet:Grievance"
+              bindingKeys: "pmfby|openagrinet:Grievance,pmfby|openagrinet:SchemeApplication,pmkisan|openagrinet:Grievance,pmkisan|openagrinet:SchemeApplication,kcc|openagrinet:SchemeApplication,aif|openagrinet:SchemeApplication,aif|openagrinet:Grievance,khc|openagrinet:Grievance"
               # Paired by position, tried in order: status names the binding on
               # its contract, support on its channel.
               providerIdAt: "message.contract.commitments[].offer.provider.id, message.support.channels[].provider.id"
@@ -459,9 +459,27 @@ modules:
                 sessionBindingKey: "aif|openagrinet:SchemeApplication"
                 sessionSendOn: status
                 sessionBindAt: "message.contract.commitments[].commitmentAttributes.beneficiaryId"
+              # KHC (bv-dev: the mock-khc manifest). Authorization carries the whole "ApiKey <key>" value; the
+              # farmer's token, bought on confirm by the OTP, is spent on the filing. 400/401/404 are the
+              # farmer's answer (unknown mobile, wrong OTP, unknown grievance), not an outage.
+              khc:
+                authScheme: header
+                headerName: Authorization
+                headerValueEnv: KHC_AUTH_HEADER
+                answerStatuses: "400,401,404"
+              "khc|openagrinet:Grievance":
+                sessionKeyAt: "context.transactionId,context.transaction_id"
+                sessionCaptureOn: confirm
+                sessionSendOn: support
+                sessionTokenField: data.token
+                sessionTtl: 1h
+                sessionTtlMargin: 60s
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.farmerMobileNumber,message.support.channels[].farmerMobileNumber"
+                sessionHeader: X-KHC-Token
+                sessionPrefix: ""
           - id: AgricultureResource
             config:
-              bindingKeys: "sathi|openagrinet:AgricultureResource,shc|openagrinet:AgricultureResource"
+              bindingKeys: "sathi|openagrinet:AgricultureResource,shc|openagrinet:AgricultureResource,gfr|openagrinet:AgricultureResource,gfr|openagrinet:AgricultureAdvisory"
               # SATHI takes its key only in the JSON body; 409 is its "no stock" answer, mapped rather than failed.
               sathi:
                 authScheme: body
@@ -470,6 +488,18 @@ modules:
                 answerStatuses: "409"
               # SHC is GraphQL: a login query trades the refresh token for a 7-day access token, renewed after 6 days.
               shc:
+                authScheme: tokenHeader
+                tokenUrl: "https://soilhealth4.dac.gov.in"
+                tokenRequestBody: '{"query":"query Query($refreshToken: String!) { generateAccessToken(refreshToken: $refreshToken) }"}'
+                tokenSecretField: variables.refreshToken
+                tokenSecretEnv: SHC_REFRESH_TOKEN
+                tokenResponseField: data.generateAccessToken.token
+                tokenTtl: 144h
+                headerName: Authorization
+                tokenHeaderPrefix: Bearer
+              # GFR (fertilizer recommendation) runs on the same Soil Health host and login as SHC, so it reuses
+              # SHC's refresh token. The soil test needs the token; the recommendation ignores it.
+              gfr:
                 authScheme: tokenHeader
                 tokenUrl: "https://soilhealth4.dac.gov.in"
                 tokenRequestBody: '{"query":"query Query($refreshToken: String!) { generateAccessToken(refreshToken: $refreshToken) }"}'
