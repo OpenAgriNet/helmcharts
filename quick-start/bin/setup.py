@@ -171,7 +171,7 @@ PROVIDERS = {
                 ("init", "/ChatbotOTP", "grievance.init.yaml", 20000, 0),
                 ("support", "/LodgeGrievance", "grievance.support.yaml", 30000, 0),
                 ("status", "/GrievanceStatusCheck", "grievance.status.yaml", 30000, 2))),
-            ("openagrinet:SchemeApplication", "Scheme Application", "v0.1",
+            ("openagrinet:SchemeApplication", "Scheme Application", "v0.2",
              "PMKISAN_CHATBOT_BASE_URL", (
                 ("init", "/ChatbotOTP", "application-status.init.yaml", 20000, 0),
                 ("status", "/ChatbotUserDetails", "application-status.status.yaml", 30000, 0))),
@@ -630,8 +630,9 @@ def ensure_capability_schema(capability, name, version):
     oanfed's schema_packs() publishes exactly that set. Two providers of one
     code on different pack versions is therefore a thing the registry cannot
     hold, and the second one to register is told so rather than quietly
-    leaving the first's version in place -- which is what AIF at v0.2 beside
-    PM-KISAN at v0.1 would otherwise look like."""
+    leaving the first's version in place. Every SchemeApplication provider --
+    AIF, KCC, PMFBY and PM-KISAN -- is on v0.2, so the row is uncontested; it
+    was AIF at v0.2 beside PM-KISAN at v0.1 that this guard was written for."""
     held = search("SchemaRegistry", {"capabilityCode": {"eq": capability}})
     if held and held[0].get("version") not in (None, version):
         # Left as it stands on purpose: overwriting would move a capability

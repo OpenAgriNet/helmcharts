@@ -23,7 +23,7 @@
           },
           "resources": [{ "id": "res:pmkisan:application-status", "quantity": { "count": 1 } }],
           "commitmentAttributes": {
-            "@context": "https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.1/context.jsonld",
+            "@context": "https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.2/context.jsonld",
             "@type": "openagrinet:SchemeApplication",
             "informationMode": "OnDemand",
             "scheme": { "code": "PM-KISAN" },
