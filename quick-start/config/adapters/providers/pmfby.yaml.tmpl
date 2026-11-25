@@ -37,7 +37,7 @@ __PROVIDER_CONFIG__ Grievance
                 sessionTtlMargin: 60s
                 # The session was bought for one mobile number. Without this a
                 # transaction id is enough to read another farmer's policies.
-                sessionBindAt: "message.contract.commitments[].commitmentAttributes.applicant.mobile"
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.mobile"
                 sessionHeader: X-PMFBY-Farmer-Session
                 sessionPrefix: ""
               # The grievance filing is the farmer's too. The OTP answered on
@@ -63,9 +63,10 @@ __PROVIDER_CONFIG__ Grievance
                 sessionTtl: 1h
                 sessionTtlMargin: 60s
                 # The session was bought for one mobile number. Two paths
-                # because confirm carries it on a contract and support on a
-                # channel -- support admits no contract at all -- and a bind
-                # that names only one shape is skipped on the other.
-                sessionBindAt: "message.contract.commitments[].commitmentAttributes.applicantMobile,message.support.channels[].applicantMobile"
+                # because the two calls are two of PMFBY's own endpoints and it
+                # names the field differently on each: mobile on the
+                # verifyMobile a contract carries, and requestorMobileNo on the
+                # filing a channel carries.
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.mobile,message.support.channels[].requestorMobileNo"
                 sessionHeader: X-PMFBY-Farmer-Session
                 sessionPrefix: ""
