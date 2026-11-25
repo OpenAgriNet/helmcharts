@@ -1,0 +1,45 @@
+# SMAM application status, openagrinet:SchemeApplication, status. The lookup value is SMAM's
+# own request field; SMAM works out whether it is a mobile or an application number.
+
+required:
+  - check: |
+      (
+        $v := beckn.message.contract.commitments[0].commitmentAttributes.searchValue;
+        $type($v) = "string" and $length($trim($v)) > 0
+      )
+    message: "this capability needs a non-empty searchValue in commitmentAttributes"
+
+request: |
+  { "SearchValue": $trim(beckn.message.contract.commitments[0].commitmentAttributes.searchValue) }
+
+# SMAM's answer goes back unchanged beside the pack fields: every application, machine and
+# status history, as v1 showed them. "No application found" is an answer, not an error.
+response: |
+  $exists(_status)
+  ? {}
+  : (
+    $c := beckn.message.contract.commitments[0];
+    $ca := $c.commitmentAttributes;
+    {
+      "context": $merge([beckn.context, { "action": "on_status", "timestamp": $now() }]),
+      "message": {
+        "contract": {
+          "id": beckn.message.contract.id,
+          "commitments": [{
+            "status": { "descriptor": { "code": "CLOSED" } },
+            "offer": $c.offer,
+            "resources": $c.resources,
+            "commitmentAttributes": $merge([
+              {
+                "@context": $ca.`@context`,
+                "@type": $ca.`@type`,
+                "informationMode": "OnDemand",
+                "scheme": $ca.scheme
+              },
+              response
+            ])
+          }]
+        }
+      }
+    }
+  )
