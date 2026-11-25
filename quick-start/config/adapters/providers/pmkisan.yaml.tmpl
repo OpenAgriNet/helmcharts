@@ -19,6 +19,14 @@ __PROVIDER_CONFIG__ Grievance
                 otpVerifyPath: /ChatbotOTPVerified
                 otpVerifyActions: "support,status"
                 otpVerifyTimeoutMs: "10000"
+                # PM-KISAN's own verify body: /ChatbotOTPVerified takes Types,
+                # Values and OTP, and calls a registration number a Ben_id. The
+                # adapter holds none of these names; they are declared here so a
+                # provider's field names never sit in shared Go code.
+                otpVerifyBodyFields: "Types, Values, OTP"
+                otpVerifyIdentityFrom: "enrolmentId=Ben_id, applicant.mobile=Mobile"
+                otpVerifyOtpFrom: challenge.response.value
+                otpVerifyMethodFrom: "challenge.response.method=OTP"
               "__PARTICIPANT_ID__|openagrinet:SchemeApplication":
                 envelope: aesCbcKeyInBand
                 envelopeTokenEnv: PMKISAN_OTP_TOKEN
@@ -28,6 +36,14 @@ __PROVIDER_CONFIG__ Grievance
                 otpVerifyPath: /ChatbotOTPVerified
                 otpVerifyActions: status
                 otpVerifyTimeoutMs: "10000"
+                # PM-KISAN's own verify body: /ChatbotOTPVerified takes Types,
+                # Values and OTP, and calls a registration number a Ben_id. The
+                # adapter holds none of these names; they are declared here so a
+                # provider's field names never sit in shared Go code.
+                otpVerifyBodyFields: "Types, Values, OTP"
+                otpVerifyIdentityFrom: "enrolmentId=Ben_id, applicant.mobile=Mobile"
+                otpVerifyOtpFrom: challenge.response.value
+                otpVerifyMethodFrom: "challenge.response.method=OTP"
                 followUpPath: /ChatbotBeneficiaryStatus
                 followUpField: _beneficiaryStatus
                 followUpActions: status
