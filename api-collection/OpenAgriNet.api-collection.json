@@ -229,6 +229,18 @@
       "key": "khc-status-transactionId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "pmfby-grievance-txn",
+      "value": "",
+      "description": "One transaction for the filing journey. Init sets it; confirm and support reuse it, because the adapter keys the farmer's session on it.",
+      "type": "string"
+    },
+    {
+      "key": "pmfby-grievance-ticket",
+      "value": "",
+      "description": "The ticket number the filing returned. The status read uses it.",
+      "type": "string"
     }
   ],
   "item": [
@@ -1183,7 +1195,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"context\": {\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"publishDirectives\": [\n      {\n        \"catalogId\": \"catalog:grievance:pmkisan\",\n        \"catalogType\": \"REGULAR\",\n        \"updateMode\": \"MERGE\",\n        \"visibleTo\": [\n          \"{{networkId}}\",\n          \"{{otherNetworkId}}\"\n        ]\n      }\n    ],\n    \"catalogs\": [\n      {\n        \"id\": \"catalog:grievance:pmkisan\",\n        \"bppId\": \"{{bppId}}\",\n        \"bppUri\": \"{{bppUri}}\",\n        \"descriptor\": {\n          \"name\": \"PM-KISAN grievance desk\"\n        },\n        \"provider\": {\n          \"id\": \"pmkisan\",\n          \"descriptor\": {\n            \"name\": \"PM-KISAN\"\n          }\n        },\n        \"resources\": [\n          {\n            \"id\": \"res:pmkisan:grievance\",\n            \"resourceAttributes\": {\n              \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n              \"@type\": \"openagrinet:Grievance\",\n              \"informationMode\": \"OnDemand\",\n              \"scheme\": {\n                \"code\": \"PM-KISAN\",\n                \"name\": \"Pradhan Mantri Kisan Samman Nidhi\"\n              },\n              \"challenge\": {\n                \"methods\": [\n                  {\n                    \"method\": \"OTP\",\n                    \"channel\": \"SMS\",\n                    \"length\": 4,\n                    \"valueType\": \"NUMERIC\"\n                  }\n                ]\n              },\n              \"grievanceOptions\": {\n                \"categories\": [\n                  {\n                    \"code\": \"G001\",\n                    \"name\": \"Account number not correct\",\n                    \"help\": \"The bank account held against your registration is wrong, so money cannot reach you.\"\n                  },\n                  {\n                    \"code\": \"G002\",\n                    \"name\": \"Online application pending for approval\",\n                    \"help\": \"You applied online and the application has not yet been approved.\"\n                  },\n                  {\n                    \"code\": \"G003\",\n                    \"name\": \"Installment not received\",\n                    \"help\": \"Your registration is approved but an instalment has not reached your account.\"\n                  },\n                  {\n                    \"code\": \"G004\",\n                    \"name\": \"Transaction failed\",\n                    \"help\": \"A payment was attempted and the transfer did not go through.\"\n                  },\n                  {\n                    \"code\": \"G005\",\n                    \"name\": \"Problem in Aadhaar correction\",\n                    \"help\": \"A correction to your Aadhaar details has not gone through.\"\n                  },\n                  {\n                    \"code\": \"G006\",\n                    \"name\": \"Gender not correct\",\n                    \"help\": \"The gender recorded against your registration is wrong.\"\n                  },\n                  {\n                    \"code\": \"G007\",\n                    \"name\": \"Payment related\",\n                    \"help\": \"Any other problem with a payment that the options above do not cover.\"\n                  },\n                  {\n                    \"code\": \"G008\",\n                    \"name\": \"Problem in OTP-based eKYC\",\n                    \"help\": \"eKYC by OTP is failing.\"\n                  },\n                  {\n                    \"code\": \"G009\",\n                    \"name\": \"Problem in biometric-based eKYC\",\n                    \"help\": \"eKYC by fingerprint or iris is failing.\"\n                  },\n                  {\n                    \"code\": \"G010\",\n                    \"name\": \"Problem in facial-based eKYC\",\n                    \"help\": \"eKYC by face scan is failing.\"\n                  }\n                ]\n              },\n              \"actions\": [\n                {\n                  \"action\": \"init\",\n                  \"description\": \"Ask PM-KISAN to send a four-digit OTP to the mobile registered against this enrolment number. Needs only the enrolment number. Call before status or support: both require challenge.response carrying this OTP.\",\n                  \"schema\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/attributes.yaml#/components/schemas/PMKISANInit\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                },\n                {\n                  \"action\": \"status\",\n                  \"description\": \"Read a grievance already filed against this enrolment number: its status code, the officer's reply and when it was given. Needs the OTP from init and case.filedOn, the filing date support returned, which picks one case out of all those on the registration.\",\n                  \"schema\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/attributes.yaml#/components/schemas/PMKISANStatus\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                },\n                {\n                  \"action\": \"support\",\n                  \"description\": \"File a new grievance against this enrolment number, under one of the categories published above. Needs the OTP from init. Returns case.ticketNo and case.filedOn; keep filedOn, because status selects a case by it.\",\n                  \"schema\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/attributes.yaml#/components/schemas/PMKISANSupport\",\n                  \"attributesAt\": \"$.message.support.channels[0]\"\n                }\n              ]\n            }\n          }\n        ]\n      }\n    ]\n  }\n}",
+                      "raw": "{\n  \"context\": {\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"publishDirectives\": [\n      {\n        \"catalogId\": \"catalog:grievance:pmkisan\",\n        \"catalogType\": \"REGULAR\",\n        \"updateMode\": \"MERGE\",\n        \"visibleTo\": [\n          \"{{networkId}}\",\n          \"{{otherNetworkId}}\"\n        ]\n      }\n    ],\n    \"catalogs\": [\n      {\n        \"id\": \"catalog:grievance:pmkisan\",\n        \"bppId\": \"{{bppId}}\",\n        \"bppUri\": \"{{bppUri}}\",\n        \"descriptor\": {\n          \"name\": \"PM-KISAN grievance desk\"\n        },\n        \"provider\": {\n          \"id\": \"pmkisan\",\n          \"descriptor\": {\n            \"name\": \"PM-KISAN\"\n          }\n        },\n        \"resources\": [\n          {\n            \"id\": \"res:pmkisan:grievance\",\n            \"descriptor\": {\n              \"code\": \"pm-kisan-grievances\",\n              \"name\": \"PM-KISAN grievance desk\",\n              \"shortDesc\": \"File a PM-KISAN grievance against a registration number, or read one already filed, after a four-digit OTP confirms the registered mobile.\",\n              \"docs\": [\n                {\n                  \"label\": \"Provider HTTP contract\",\n                  \"url\": \"https://openagrinet.github.io/network-specs/api/external/pm-kisan/grievance/v0.2/openapi.yaml\",\n                  \"mimeType\": \"application/vnd.oai.openapi\"\n                }\n              ]\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/context.jsonld\",\n              \"@type\": \"openagrinet:Grievance\",\n              \"informationMode\": \"OnDemand\",\n              \"scheme\": {\n                \"code\": \"PM-KISAN\",\n                \"name\": \"Pradhan Mantri Kisan Samman Nidhi\"\n              },\n              \"challenge\": {\n                \"methods\": [\n                  {\n                    \"method\": \"OTP\",\n                    \"channel\": \"SMS\",\n                    \"length\": 4,\n                    \"valueType\": \"NUMERIC\"\n                  }\n                ]\n              },\n              \"grievanceOptions\": {\n                \"categories\": [\n                  {\n                    \"code\": \"G011\",\n                    \"name\": \"Latest instalment not received\"\n                  },\n                  {\n                    \"code\": \"G012\",\n                    \"name\": \"Transaction failed\"\n                  },\n                  {\n                    \"code\": \"G013\",\n                    \"name\": \"Previous instalments not received\"\n                  },\n                  {\n                    \"code\": \"G014\",\n                    \"name\": \"Incorrectly marked as deceased\"\n                  },\n                  {\n                    \"code\": \"G015\",\n                    \"name\": \"Previous landowner incorrectly marked as deceased\"\n                  },\n                  {\n                    \"code\": \"G016\",\n                    \"name\": \"Incorrectly marked as ineligible\"\n                  },\n                  {\n                    \"code\": \"G017\",\n                    \"name\": \"Voluntary surrender made by mistake\"\n                  },\n                  {\n                    \"code\": \"G018\",\n                    \"name\": \"Incorrectly marked under suspected cases\"\n                  },\n                  {\n                    \"code\": \"G019\",\n                    \"name\": \"Problem updating land details\"\n                  },\n                  {\n                    \"code\": \"G020\",\n                    \"name\": \"Problem seeding Aadhaar in the bank account\"\n                  },\n                  {\n                    \"code\": \"G021\",\n                    \"name\": \"Problem with biometric eKYC\"\n                  },\n                  {\n                    \"code\": \"G022\",\n                    \"name\": \"Problem with facial eKYC\"\n                  },\n                  {\n                    \"code\": \"G023\",\n                    \"name\": \"Self-registration pending approval\"\n                  },\n                  {\n                    \"code\": \"G024\",\n                    \"name\": \"Revocation of ineligibility pending approval\"\n                  },\n                  {\n                    \"code\": \"G025\",\n                    \"name\": \"Revocation of surrender pending approval\"\n                  },\n                  {\n                    \"code\": \"G026\",\n                    \"name\": \"Update of missing information pending approval\"\n                  },\n                  {\n                    \"code\": \"G027\",\n                    \"name\": \"Pending action on a suspected spouse or minor case\"\n                  },\n                  {\n                    \"code\": \"G028\",\n                    \"name\": \"Pending action on suspected incorrect land or previous-owner details\"\n                  },\n                  {\n                    \"code\": \"G029\",\n                    \"name\": \"Corruption\"\n                  },\n                  {\n                    \"code\": \"G030\",\n                    \"name\": \"Urgent\"\n                  }\n                ]\n              },\n              \"actions\": [\n                {\n                  \"action\": \"init\",\n                  \"description\": \"Ask PM-KISAN to send a four-digit OTP to the mobile registered against this enrolment number. Needs only the enrolment number. Call before status or support: both require challenge.response carrying this OTP.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/pm-kisan/grievance/v0.2/openapi.yaml#/paths/~1ChatbotOTP/post\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                },\n                {\n                  \"action\": \"status\",\n                  \"description\": \"Read a grievance already filed against this enrolment number: its status code, the officer's reply and when it was given. Needs the OTP from init and case.filedOn, the filing date support returned, which picks one case out of all those on the registration.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/pm-kisan/grievance/v0.2/openapi.yaml#/paths/~1GrievanceStatusCheck/post\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                },\n                {\n                  \"action\": \"support\",\n                  \"description\": \"File a new grievance against this enrolment number, under one of the categories published above. Needs the OTP from init. Returns case.ticketNo and case.filedOn; keep filedOn, because status selects a case by it.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/pm-kisan/grievance/v0.2/openapi.yaml#/paths/~1LodgeGrievance/post\",\n                  \"attributesAt\": \"$.message.support.channels[0]\"\n                }\n              ]\n            }\n          }\n        ]\n      }\n    ]\n  }\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1196,7 +1208,7 @@
                         "{{network-adapter-publish}}"
                       ]
                     },
-                    "description": "PM-KISAN publishes its Grievance resource."
+                    "description": "PM-KISAN publishes its Grievance resource.\n\nThe categories are PM-KISAN's own codes, G011 to G030, one per label in the agent's assets/grievance_types.json. v0.1 published G001-G010 instead, which /LodgeGrievance does not accept -- grievance.support.yaml passes category.code through unchanged as GrievanceType. v0.2 makes the code a free string rather than a fixed enumeration, so the provider's real list can be published whole and the tool no longer has to refuse thirteen of the twenty complaints a farmer can make."
                   },
                   "response": []
                 }
@@ -1303,7 +1315,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"context\": {\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"5e2704c8-9d31-4f6a-b8c0-1a73e6d2f094\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:grievance\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"enrolmentId\": \"UP12345678A\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "raw": "{\n  \"context\": {\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"5e2704c8-9d31-4f6a-b8c0-1a73e6d2f094\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:grievance\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"enrolmentId\": \"UP12345678A\"\n          }\n        }\n      ]\n    }\n  }\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1335,7 +1347,7 @@
                           "const j = pm.response.json();",
                           "pm.test(\"enrolmentId echoed on the channel, no orderId\", () => { pm.expect(j.message.support).to.not.have.property(\"orderId\"); pm.expect(j.message.support.channels[0].enrolmentId).to.eql(\"UP12345678A\"); });",
                           "pm.test(\"case\", () => { const c = j.message.support.channels[0].case; pm.expect(c.ticketNo).to.be.a(\"string\").and.not.empty; pm.expect(c.status.code).to.eql(\"Registered\"); pm.expect(c.filedOn).to.match(/^\\d{4}-\\d{2}-\\d{2}$/); });",
-                          "pm.test(\"grievance echoed\", () => pm.expect(j.message.support.channels[0].grievance).to.eql({\"category\": {\"code\": \"G003\"}, \"description\": \"Third instalment for 2026 has not been credited.\"}));",
+                          "pm.test(\"grievance echoed\", () => pm.expect(j.message.support.channels[0].grievance).to.eql({\"category\": {\"code\": \"G011\"}, \"description\": \"Third instalment for 2026 has not been credited.\"}));",
                           "pm.test(\"OnDemand\", () => pm.expect(j.message.support.channels[0].informationMode).to.eql(\"OnDemand\"));",
                           "pm.test('challenge not echoed', () => pm.expect(j.message.support.channels[0]).to.not.have.property('challenge'));"
                         ]
@@ -1352,7 +1364,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"context\": {\n    \"action\": \"support\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"support\": {\n      \"channels\": [\n        {\n          \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n          \"@type\": \"openagrinet:Grievance\",\n          \"informationMode\": \"OnDemand\",\n          \"provider\": {\n            \"id\": \"pmkisan\",\n            \"descriptor\": {\n              \"name\": \"PM-KISAN\"\n            }\n          },\n          \"scheme\": {\n            \"code\": \"PM-KISAN\"\n          },\n          \"enrolmentId\": \"UP12345678A\",\n          \"grievance\": {\n            \"category\": {\n              \"code\": \"G003\"\n            },\n            \"description\": \"Third instalment for 2026 has not been credited.\"\n          },\n          \"challenge\": {\n            \"response\": {\n              \"method\": \"OTP\",\n              \"value\": \"{{pmkisan-otp}}\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "raw": "{\n  \"context\": {\n    \"action\": \"support\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"support\": {\n      \"channels\": [\n        {\n          \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/context.jsonld\",\n          \"@type\": \"openagrinet:Grievance\",\n          \"informationMode\": \"OnDemand\",\n          \"provider\": {\n            \"id\": \"pmkisan\",\n            \"descriptor\": {\n              \"name\": \"PM-KISAN\"\n            }\n          },\n          \"scheme\": {\n            \"code\": \"PM-KISAN\"\n          },\n          \"enrolmentId\": \"UP12345678A\",\n          \"grievance\": {\n            \"category\": {\n              \"code\": \"G011\"\n            },\n            \"description\": \"Third instalment for 2026 has not been credited.\"\n          },\n          \"challenge\": {\n            \"response\": {\n              \"method\": \"OTP\",\n              \"value\": \"{{pmkisan-otp}}\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1368,7 +1380,7 @@
                         "support"
                       ]
                     },
-                    "description": "Lodges the grievance. The chatbot mock logs /ChatbotOTPVerified (OTP present) before the lodge."
+                    "description": "Lodges the grievance. The chatbot mock logs /ChatbotOTPVerified (OTP present) before the lodge.\n\nThe category is G011, 'Latest instalment not received'. v0.1 published G001-G010 and this sent G003; /LodgeGrievance routes on the code it is given, and G003 is not one PM-KISAN issues. The published list is now the desk's own, G011-G030, the same twenty in the agent's assets/grievance_types.json."
                   },
                   "response": []
                 }
@@ -1403,7 +1415,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"context\": {\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"c9b31a45-0f78-4e2d-9a60-84b7d3e15c02\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:grievance\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"enrolmentId\": \"UP12345678A\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "raw": "{\n  \"context\": {\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"c9b31a45-0f78-4e2d-9a60-84b7d3e15c02\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:grievance\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"enrolmentId\": \"UP12345678A\"\n          }\n        }\n      ]\n    }\n  }\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1463,7 +1475,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"context\": {\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"c9b31a45-0f78-4e2d-9a60-84b7d3e15c02\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:grievance\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"enrolmentId\": \"UP12345678A\",\n            \"case\": {\n              \"filedOn\": \"{{grievance-filed-on}}\"\n            },\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"{{pmkisan-otp}}\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "raw": "{\n  \"context\": {\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"c9b31a45-0f78-4e2d-9a60-84b7d3e15c02\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:grievance\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"enrolmentId\": \"UP12345678A\",\n            \"case\": {\n              \"filedOn\": \"{{grievance-filed-on}}\"\n            },\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"{{pmkisan-otp}}\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1480,6 +1492,65 @@
                       ]
                     },
                     "description": "Reads the grievance back. OTP from {{pmkisan-otp}}."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Status - read the newest grievance, no filing date",
+                  "event": [
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "// Today's date is the newest of the mock's two records, so it is what",
+                          "// the response must carry back. Nothing is sent in the request.",
+                          "pm.collectionVariables.set('grievance-filed-on', new Date().toISOString().slice(0, 10));"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                          "const a = pm.response.json().message.contract.commitments[0].commitmentAttributes;",
+                          "pm.test('the newest record, not the 2024 one', () => pm.expect(a.case.filedOn).to.eql(pm.collectionVariables.get('grievance-filed-on')));",
+                          "pm.test('UnderReview', () => pm.expect(a.case.status.code).to.eql('UnderReview'));",
+                          "pm.test('no reply on the open grievance', () => pm.expect(a.case).to.not.have.property('reply'));",
+                          "pm.test('no ticketNo, no enrolmentId, no personal data', () => { pm.expect(a.case).to.not.have.property('ticketNo'); pm.expect(a).to.not.have.property('enrolmentId'); ['SURESH','9999999999','Barhan'].forEach(s => pm.expect(pm.response.text()).to.not.include(s)); });"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"context\": {\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"c9b31a45-0f78-4e2d-9a60-84b7d3e15c02\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmkisan:grievance\",\n            \"provider\": {\n              \"id\": \"pmkisan\",\n              \"descriptor\": {\n                \"name\": \"PM-KISAN\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmkisan:grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmkisan:grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PM-KISAN\"\n            },\n            \"enrolmentId\": \"UP12345678A\",\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"{{pmkisan-otp}}\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{network-adapter-host}}/status",
+                      "host": [
+                        "{{network-adapter-host}}"
+                      ],
+                      "path": [
+                        "status"
+                      ]
+                    },
+                    "description": "The same read with no case.filedOn. PM-KISAN returns every record held against the registration and the mapping picks the newest, so a farmer who cannot remember the date still gets an answer rather than a 400. The mock holds a second record dated 14/03/2024; if the sort is wrong, that one comes back and these assertions fail. OTP from {{pmkisan-otp}}."
                   },
                   "response": []
                 }
@@ -1506,7 +1577,8 @@
                           "const r = pm.response.json().data[0];",
                           "// The host the packs are served from is deployment config, so only the",
                           "// pack and its version are asserted here.",
-                          "pm.test('the Grievance pack', () => pm.expect(r.schemaUrl).to.include('/Grievance/v0.1/attributes.yaml'));"
+                          "pm.test('the Grievance pack', () => pm.expect(r.schemaUrl).to.include('/Grievance/v0.2/attributes.yaml'));",
+                          "pm.test('at v0.2', () => pm.expect(r.version).to.eql('v0.2'));"
                         ]
                       }
                     }
@@ -1605,7 +1677,13 @@
                           "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
                           "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
                           "const r = pm.response.json().data[0];",
-                          "pm.test('support and status', () => pm.expect(r.actions.map(a => a.action).sort()).to.eql(['status', 'support']));",
+                          "pm.test('init, confirm, support and status', () => pm.expect(r.actions.map(a => a.action).sort()).to.eql(['confirm', 'init', 'status', 'support']));",
+                          "// A retried OTP call sends a second code and invalidates the first, so",
+                          "// the farmer reads one and types another.",
+                          "pm.test('neither OTP call is retried', () => {",
+                          "  pm.expect(r.actions.find(a => a.action === 'init').retryMax).to.eql(0);",
+                          "  pm.expect(r.actions.find(a => a.action === 'confirm').retryMax).to.eql(0);",
+                          "});",
                           "pm.test('support is never retried', () => pm.expect(r.actions.find(a => a.action === 'support').retryMax).to.eql(0));"
                         ]
                       }
@@ -1672,7 +1750,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"context\": {\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"publishDirectives\": [\n      {\n        \"catalogId\": \"cat-pmfby-grievance\",\n        \"catalogType\": \"REGULAR\",\n        \"updateMode\": \"MERGE\",\n        \"visibleTo\": [\n          \"{{networkId}}\",\n          \"{{otherNetworkId}}\"\n        ]\n      }\n    ],\n    \"catalogs\": [\n      {\n        \"id\": \"cat-pmfby-grievance\",\n        \"bppId\": \"{{bppId}}\",\n        \"bppUri\": \"{{bppUri}}\",\n        \"descriptor\": {\n          \"code\": \"PMFBY-GRIEVANCE\",\n          \"name\": \"PMFBY Grievance Desk\"\n        },\n        \"provider\": {\n          \"id\": \"pmfby\",\n          \"descriptor\": {\n            \"code\": \"PMFBY\",\n            \"name\": \"PMFBY Grievance Portal\"\n          }\n        },\n        \"resources\": [\n          {\n            \"id\": \"res:pmfby:grievance\",\n            \"resourceAttributes\": {\n              \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n              \"@type\": \"openagrinet:Grievance\",\n              \"informationMode\": \"OnDemand\",\n              \"scheme\": {\n                \"code\": \"PMFBY\",\n                \"name\": \"Pradhan Mantri Fasal Bima Yojana\"\n              },\n              \"grievanceOptions\": {\n                \"categories\": [\n                  {\n                    \"code\": \"3\",\n                    \"name\": \"Enrollment / Portal Issues\",\n                    \"help\": \"The only category this desk sends. PMFBY publishes no category list, so every grievance is filed under this one.\"\n                  }\n                ],\n                \"subCategories\": [\n                  {\n                    \"code\": \"10\",\n                    \"name\": \"Login\",\n                    \"help\": \"The only sub-category this desk sends, paired with category 3.\"\n                  }\n                ]\n              },\n              \"actions\": [\n                {\n                  \"action\": \"support\",\n                  \"description\": \"File a new grievance. Needs the enrolment number, the applicant's mobile, the crop year, the season and a description of the problem. Returns case.ticketNo, which status requires. Needs no OTP, so it can be called without init.\",\n                  \"schema\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/attributes.yaml#/components/schemas/PMFBYSupport\",\n                  \"attributesAt\": \"$.message.support.channels[0]\"\n                },\n                {\n                  \"action\": \"status\",\n                  \"description\": \"Read where a filed grievance stands: its status code, the portal's reply and the crop it concerns. Needs case.ticketNo from an earlier support call, plus the applicant's mobile. Cases cannot be listed by enrolment number, so support must come first.\",\n                  \"schema\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/attributes.yaml#/components/schemas/PMFBYStatus\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                }\n              ]\n            }\n          }\n        ],\n        \"offers\": [\n          {\n            \"id\": \"off:pmfby:grievance\",\n            \"resourceIds\": [\n              \"res:pmfby:grievance\"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}",
+                      "raw": "{\n  \"context\": {\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"publishDirectives\": [\n      {\n        \"catalogId\": \"cat-pmfby-grievance\",\n        \"catalogType\": \"REGULAR\",\n        \"updateMode\": \"MERGE\",\n        \"visibleTo\": [\n          \"{{networkId}}\",\n          \"{{otherNetworkId}}\"\n        ]\n      }\n    ],\n    \"catalogs\": [\n      {\n        \"id\": \"cat-pmfby-grievance\",\n        \"bppId\": \"{{bppId}}\",\n        \"bppUri\": \"{{bppUri}}\",\n        \"descriptor\": {\n          \"code\": \"PMFBY-GRIEVANCE\",\n          \"name\": \"PMFBY Grievance Desk\"\n        },\n        \"provider\": {\n          \"id\": \"pmfby\",\n          \"descriptor\": {\n            \"code\": \"PMFBY\",\n            \"name\": \"PMFBY Grievance Portal\"\n          }\n        },\n        \"resources\": [\n          {\n            \"id\": \"res:pmfby:grievance\",\n            \"resourceAttributes\": {\n              \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/context.jsonld\",\n              \"@type\": \"openagrinet:Grievance\",\n              \"informationMode\": \"OnDemand\",\n              \"scheme\": {\n                \"code\": \"PMFBY\",\n                \"name\": \"Pradhan Mantri Fasal Bima Yojana\"\n              },\n              \"grievanceOptions\": {\n                \"categories\": [\n                  {\n                    \"code\": \"3\",\n                    \"name\": \"Enrollment / Portal Issues\",\n                    \"help\": \"The only category this desk sends. PMFBY publishes no category list, so every grievance is filed under this one.\"\n                  }\n                ],\n                \"subCategories\": [\n                  {\n                    \"code\": \"10\",\n                    \"name\": \"Login\",\n                    \"help\": \"The only sub-category this desk sends, paired with category 3.\"\n                  }\n                ]\n              },\n              \"actions\": [\n                {\n                  \"action\": \"init\",\n                  \"description\": \"Ask PMFBY to send a six-digit OTP to this mobile number by SMS. Needs only applicantMobile. Call before support: the filing is refused without the session confirm buys.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/pmfby/insurance/v0.2/openapi.yaml#/paths/~1api~1v1~1services~1nic~1getOtp/post\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                },\n                {\n                  \"action\": \"confirm\",\n                  \"description\": \"Answer the OTP init sent, in challenge.response.value. Verifies the mobile number at PMFBY and opens the session the filing spends. Returns nothing beyond the number it verified.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/pmfby/insurance/v0.2/openapi.yaml#/paths/~1api~1v1~1services~1nic~1verifyMobile/post\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                },\n                {\n                  \"action\": \"support\",\n                  \"description\": \"File a new grievance. Needs the enrolment number, the applicant's mobile, the crop year, the season and a description of the problem. Returns case.ticketNo, which status requires. Needs the session confirm opened, for the same mobile number.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/pmfby/grievance/v0.2/openapi.yaml#/paths/~1krphapi~1FGMS~1AddKRPHNCIPGrievenceSupportTicket/post\",\n                  \"attributesAt\": \"$.message.support.channels[0]\"\n                },\n                {\n                  \"action\": \"status\",\n                  \"description\": \"Read where a filed grievance stands: its status code, the portal's reply and the crop it concerns. Needs case.ticketNo from an earlier support call, plus the applicant's mobile. Cases cannot be listed by enrolment number, so support must come first. Needs no OTP.\",\n                  \"operationRef\": \"https://openagrinet.github.io/network-specs/api/external/pmfby/grievance/v0.2/openapi.yaml#/paths/~1krphapi~1FGMS~1GetGrievenceTicketsStatus/post\",\n                  \"attributesAt\": \"$.message.contract.commitments[0].commitmentAttributes\"\n                }\n              ],\n              \"challenge\": {\n                \"methods\": [\n                  {\n                    \"method\": \"OTP\",\n                    \"channel\": \"SMS\",\n                    \"length\": 6,\n                    \"valueType\": \"NUMERIC\"\n                  }\n                ]\n              }\n            },\n            \"descriptor\": {\n              \"code\": \"pmfby-grievances\",\n              \"name\": \"PMFBY grievance desk\",\n              \"shortDesc\": \"File a PMFBY grievance against an application number, or read one already filed, after a six-digit OTP confirms the registered mobile.\",\n              \"docs\": [\n                {\n                  \"label\": \"Provider HTTP contract\",\n                  \"url\": \"https://openagrinet.github.io/network-specs/api/external/pmfby/grievance/v0.2/openapi.yaml\",\n                  \"mimeType\": \"application/vnd.oai.openapi\"\n                },\n                {\n                  \"label\": \"Verification contract, shared with the insurance capability\",\n                  \"url\": \"https://openagrinet.github.io/network-specs/api/external/pmfby/insurance/v0.2/openapi.yaml\",\n                  \"mimeType\": \"application/vnd.oai.openapi\"\n                }\n              ]\n            }\n          }\n        ],\n        \"offers\": [\n          {\n            \"id\": \"off:pmfby:grievance\",\n            \"resourceIds\": [\n              \"res:pmfby:grievance\"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1759,30 +1837,44 @@
               ]
             },
             {
-              "name": "Support",
+              "name": "Journey - file a grievance",
               "item": [
                 {
-                  "name": "Support - lodge a grievance",
+                  "name": "1. Init - send the OTP",
                   "event": [
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "// One transaction for the filing journey. Requests 2 and 3 reuse it,",
+                          "// because that is what the adapter keys the farmer's session on.",
+                          "pm.collectionVariables.set('pmfby-grievance-txn',",
+                          "    pm.variables.replaceIn('{{$guid}}'));"
+                        ]
+                      }
+                    },
                     {
                       "listen": "test",
                       "script": {
                         "type": "text/javascript",
                         "exec": [
                           "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-                          "const ch = pm.response.json().message.support.channels[0];",
-                          "pm.test('OnDemand, with the enrolment echoed', () => {",
-                          "    pm.expect(ch.informationMode).to.eql('OnDemand');",
-                          "    pm.expect(ch.enrolmentId).to.eql('040108251010160770608');",
-                          "pm.test('category 3 and sub-category 10 echoed', () => { pm.expect(ch.grievance.category.code).to.eql('3'); pm.expect(ch.grievance.subCategory.code).to.eql('10'); });",
+                          "const c = pm.response.json().message.contract.commitments[0];",
+                          "pm.test('DRAFT -- nothing is filed yet', () =>",
+                          "    pm.expect(c.status.descriptor.code).to.eql('DRAFT'));",
+                          "pm.test('OTP shape: length 6, NUMERIC, by SMS', () => {",
+                          "  const i = c.commitmentAttributes.challenge.issued;",
+                          "  pm.expect(i.method).to.eql('OTP');",
+                          "  pm.expect(i.channel).to.eql('SMS');",
+                          "  pm.expect(i.length).to.eql(6);",
+                          "  pm.expect(i.valueType).to.eql('NUMERIC');",
                           "});",
-                          "pm.test('a ticket, Registered, filedOn is the IST date', () => {",
-                          "    pm.expect(ch.case.ticketNo).to.be.a('string').and.not.empty;",
-                          "    pm.expect(ch.case.status.code).to.eql('Registered');",
-                          "    pm.expect(ch.case.filedOn).to.match(/^\\d{4}-\\d{2}-\\d{2}$/);",
-                          "});",
-                          "pm.test('the mobile number is not echoed', () => pm.expect(ch.applicantMobile).to.be.undefined);",
-                          "pm.collectionVariables.set('ticket-no', ch.case.ticketNo);"
+                          "// Masked, not echoed: an unmasked number in a signed callback outlives",
+                          "// the exchange, and the caller already knows what it sent.",
+                          "pm.test('the number comes back masked', () =>",
+                          "    pm.expect(c.commitmentAttributes.challenge.issued.sentTo)",
+                          "      .to.match(/^XXXXXX\\d{4}$/));"
                         ]
                       }
                     }
@@ -1797,7 +1889,114 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"context\": {\n    \"action\": \"support\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"support\": {\n      \"channels\": [\n        {\n          \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n          \"@type\": \"openagrinet:Grievance\",\n          \"informationMode\": \"OnDemand\",\n          \"provider\": {\n            \"id\": \"pmfby\",\n            \"descriptor\": {\n              \"name\": \"PMFBY Grievance Portal\"\n            }\n          },\n          \"scheme\": {\n            \"code\": \"PMFBY\"\n          },\n          \"enrolmentId\": \"040108251010160770608\",\n          \"applicantMobile\": \"9001361774\",\n          \"cropYear\": \"2025\",\n          \"season\": \"Kharif\",\n          \"grievance\": {\n            \"category\": {\n              \"code\": \"3\"\n            },\n            \"subCategory\": {\n              \"code\": \"10\"\n            },\n            \"description\": \"Crop loss claim not updated on the portal.\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "raw": "{\n  \"context\": {\n    \"action\": \"init\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{pmfby-grievance-txn}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"DRAFT\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmfby:grievance\",\n            \"provider\": {\n              \"id\": \"pmfby\",\n              \"descriptor\": {\n                \"name\": \"PMFBY Grievance Portal\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmfby:grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmfby:grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PMFBY\"\n            },\n            \"applicantMobile\": \"{{pmfby-mobile}}\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{network-adapter-host}}/init",
+                      "host": [
+                        "{{network-adapter-host}}"
+                      ],
+                      "path": [
+                        "init"
+                      ]
+                    },
+                    "description": "Sends the OTP through PMFBY's own NIC endpoint. On v0.1 this was a BAP round-trip made inside the tool -- a check the tool could simply not make. Here it is a published action, so what gates the filing is something the network can see."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "2. Confirm - answer the OTP",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                          "const c = pm.response.json().message.contract.commitments[0];",
+                          "pm.test('ACTIVE -- the number is verified', () =>",
+                          "    pm.expect(c.status.descriptor.code).to.eql('ACTIVE'));",
+                          "// The farmerID PMFBY returned is the session token. The insurance",
+                          "// capability has to hand it back -- it is a query parameter on a GET.",
+                          "// Grievance does not, so it stays in the adapter's cache.",
+                          "pm.test('the farmer id is not handed back', () => {",
+                          "  const text = JSON.stringify(c.commitmentAttributes);",
+                          "  pm.expect(text).not.to.include('farmerId');",
+                          "  pm.expect(text).not.to.include('farmerID');",
+                          "});",
+                          "pm.test('the OTP is not read back', () =>",
+                          "    pm.expect(JSON.stringify(c.commitmentAttributes))",
+                          "      .not.to.include(pm.variables.get('pmfby-otp')));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"context\": {\n    \"action\": \"confirm\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{pmfby-grievance-txn}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmfby:grievance\",\n            \"provider\": {\n              \"id\": \"pmfby\",\n              \"descriptor\": {\n                \"name\": \"PMFBY Grievance Portal\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmfby:grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmfby:grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PMFBY\"\n            },\n            \"applicantMobile\": \"{{pmfby-mobile}}\",\n            \"challenge\": {\n              \"response\": {\n                \"method\": \"OTP\",\n                \"value\": \"{{pmfby-otp}}\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{network-adapter-host}}/confirm",
+                      "host": [
+                        "{{network-adapter-host}}"
+                      ],
+                      "path": [
+                        "confirm"
+                      ]
+                    },
+                    "description": "Answers the OTP at PMFBY. Succeeding buys a session the adapter holds against this transaction id and binds to this mobile number; request 3 cannot be made without it."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "3. Support - file the grievance",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                          "const ch = pm.response.json().message.support.channels[0];",
+                          "pm.test('PMFBY gave the grievance a ticket number', () =>",
+                          "    pm.expect(ch.case.ticketNo).to.be.a('string').and.not.empty);",
+                          "// The status read below asks for this one.",
+                          "pm.collectionVariables.set('pmfby-grievance-ticket', ch.case.ticketNo);",
+                          "pm.test('filed today', () =>",
+                          "    pm.expect(ch.case.filedOn).to.be.a('string').and.not.empty);"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"context\": {\n    \"action\": \"support\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{pmfby-grievance-txn}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"support\": {\n      \"channels\": [\n        {\n          \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/context.jsonld\",\n          \"@type\": \"openagrinet:Grievance\",\n          \"informationMode\": \"OnDemand\",\n          \"provider\": {\n            \"id\": \"pmfby\",\n            \"descriptor\": {\n              \"name\": \"PMFBY Grievance Portal\"\n            }\n          },\n          \"scheme\": {\n            \"code\": \"PMFBY\"\n          },\n          \"enrolmentId\": \"040108251010160770608\",\n          \"applicantMobile\": \"{{pmfby-mobile}}\",\n          \"cropYear\": \"{{pmfby-year}}\",\n          \"season\": \"{{pmfby-season}}\",\n          \"grievance\": {\n            \"category\": {\n              \"code\": \"3\"\n            },\n            \"subCategory\": {\n              \"code\": \"10\"\n            },\n            \"description\": \"Crop loss claim not updated on the portal.\"\n          }\n        }\n      ]\n    }\n  }\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1813,11 +2012,59 @@
                         "support"
                       ]
                     },
-                    "description": "On an application that already has a ticket, PMFBY answers \"Ticket Already Raised\" and returns that ticket; the adapter reports it like a new one (known gap)."
+                    "description": "Files the grievance. Reaches PMFBY only if requests 1 and 2 ran on this transaction id and for this mobile number -- the session is what the adapter requires here, and the refusal below is what happens without it."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "4. Refusal - file with no OTP answered",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "// A fresh transaction id, so no session was ever bought for it.",
+                          "pm.test('refused -- not HTTP 200', () =>",
+                          "    pm.expect(pm.response.code).to.not.eql(200));",
+                          "pm.test('nothing was filed', () =>",
+                          "    pm.expect(pm.response.text()).not.to.match(/ticketNo/));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"context\": {\n    \"action\": \"support\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"support\": {\n      \"channels\": [\n        {\n          \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/context.jsonld\",\n          \"@type\": \"openagrinet:Grievance\",\n          \"informationMode\": \"OnDemand\",\n          \"provider\": {\n            \"id\": \"pmfby\",\n            \"descriptor\": {\n              \"name\": \"PMFBY Grievance Portal\"\n            }\n          },\n          \"scheme\": {\n            \"code\": \"PMFBY\"\n          },\n          \"enrolmentId\": \"040108251010160770608\",\n          \"applicantMobile\": \"{{pmfby-mobile}}\",\n          \"cropYear\": \"{{pmfby-year}}\",\n          \"season\": \"{{pmfby-season}}\",\n          \"grievance\": {\n            \"category\": {\n              \"code\": \"3\"\n            },\n            \"subCategory\": {\n              \"code\": \"10\"\n            },\n            \"description\": \"Crop loss claim not updated on the portal.\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{network-adapter-host}}/support",
+                      "host": [
+                        "{{network-adapter-host}}"
+                      ],
+                      "path": [
+                        "support"
+                      ]
+                    },
+                    "description": "The whole reason the OTP moved onto the network. On v0.1 the gate was a function call inside the tool; here the filing is refused by the adapter, so a caller that skips the OTP cannot open a grievance in a farmer's name."
                   },
                   "response": []
                 }
-              ]
+              ],
+              "description": "Run these in order. Request 1 sets pmfby-grievance-txn and 2 and 3 reuse it, because that is what the adapter keys the farmer's session on.\n\nRequest 3 writes to the grievance desk. Against mock-pmfby that is a line in a log; against the real desk it is a ticket a person has to answer."
             },
             {
               "name": "Status",
@@ -1833,7 +2080,7 @@
                           "const a = pm.response.json().message.contract.commitments[0].commitmentAttributes;",
                           "pm.test('OnDemand, with the case', () => {",
                           "    pm.expect(a.informationMode).to.eql('OnDemand');",
-                          "    pm.expect(a.case.ticketNo).to.eql(pm.variables.get('ticket-no'));",
+                          "    pm.expect(a.case.ticketNo).to.eql(pm.collectionVariables.get('pmfby-grievance-ticket'));",
                           "    pm.expect(['Registered', 'UnderReview', 'AwaitingApplicant', 'Replied', 'Resolved', 'Rejected', 'Closed']).to.include(a.case.status.code);",
                           "    pm.expect(a.case.filedOn).to.match(/^\\d{4}-\\d{2}-\\d{2}$/);",
                           "});",
@@ -1867,7 +2114,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"context\": {\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmfby:grievance\",\n            \"provider\": {\n              \"id\": \"pmfby\",\n              \"descriptor\": {\n                \"name\": \"PMFBY Grievance Portal\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmfby:grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmfby:grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.1/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PMFBY\"\n            },\n            \"case\": {\n              \"ticketNo\": \"{{ticket-no}}\"\n            },\n            \"applicantMobile\": \"9001361774\"\n          }\n        }\n      ]\n    }\n  }\n}",
+                      "raw": "{\n  \"context\": {\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"networkId\": \"{{networkId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:pmfby:grievance\",\n            \"provider\": {\n              \"id\": \"pmfby\",\n              \"descriptor\": {\n                \"name\": \"PMFBY Grievance Portal\"\n              }\n            },\n            \"resourceIds\": [\n              \"res:pmfby:grievance\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res:pmfby:grievance\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:Grievance\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"PMFBY\"\n            },\n            \"case\": {\n              \"ticketNo\": \"{{pmfby-grievance-ticket}}\"\n            },\n            \"applicantMobile\": \"{{pmfby-mobile}}\"\n          }\n        }\n      ]\n    }\n  }\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -1882,7 +2129,8 @@
                       "path": [
                         "status"
                       ]
-                    }
+                    },
+                    "description": "Reads the ticket request 3 filed. No OTP and no session: PMFBY answers a ticket number to the mobile it was filed under, and the catalog says so."
                   },
                   "response": []
                 }
@@ -3907,9 +4155,18 @@
                     "exec": [
                       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
                       "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
-                      "// The grievance binding is unchanged. Both PMFBY bindings sit in one",
-                      "// provider step, which is why neither needed a new one.",
-                      "pm.test('support and status', () => pm.expect(pm.response.json().data[0].actions.map(a => a.action)).to.have.members(['support', 'status']));"
+                      "// The grievance binding gained the OTP pair when the capability moved",
+                      "// to v0.2: the gate the tool used to run now lives in the network.",
+                      "pm.test('the OTP pair, the filing and the read', () =>",
+                      "    pm.expect(pm.response.json().data[0].actions.map(a => a.action).sort())",
+                      "      .to.eql(['confirm', 'init', 'status', 'support']));",
+                      "// A retried init sends a second OTP and invalidates the first; a",
+                      "// retried confirm spends the single-use code the farmer still holds.",
+                      "pm.test('neither OTP call is ever retried', () => {",
+                      "    const by = Object.fromEntries(pm.response.json().data[0].actions.map(a => [a.action, a]));",
+                      "    pm.expect(by.init.retryMax).to.eql(0);",
+                      "    pm.expect(by.confirm.retryMax).to.eql(0);",
+                      "});"
                     ]
                   }
                 }

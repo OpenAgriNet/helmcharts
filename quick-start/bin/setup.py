@@ -167,7 +167,7 @@ PROVIDERS = {
         "prefix": "PMKISAN", "name": "PM-KISAN",
         "needs": ["PMKISAN_BASE_URL", "PMKISAN_CHATBOT_BASE_URL"],
         "capabilities": (
-            ("openagrinet:Grievance", "Grievance", "v0.1", None, (
+            ("openagrinet:Grievance", "Grievance", "v0.2", None, (
                 ("init", "/ChatbotOTP", "grievance.init.yaml", 20000, 0),
                 ("support", "/LodgeGrievance", "grievance.support.yaml", 30000, 0),
                 ("status", "/GrievanceStatusCheck", "grievance.status.yaml", 30000, 2))),
@@ -191,7 +191,19 @@ PROVIDERS = {
         "needs": ["PMFBY_BASE_URL", "PMFBY_TOKEN_URL",
                   "PMFBY_ACCESS_UID", "PMFBY_ACCESS_PWD"],
         "capabilities": (
-            ("openagrinet:Grievance", "Grievance", "v0.1", None, (
+            ("openagrinet:Grievance", "Grievance", "v0.2", None, (
+                # The OTP exchange the grievance flow used to run against the v1
+                # BAP. Same two NIC endpoints the insurance capability calls --
+                # one host, one verification -- reached here under Grievance so
+                # the gate lives in the network rather than in the tool.
+                # Never retried: a retry sends a second OTP and invalidates the
+                # first, so the farmer reads one code and types another.
+                ("init", "/api/v1/services/nic/getOtp",
+                 "grievance.init.yaml", 20000, 0),
+                # Never retried either: the OTP is single-use, so a retry spends
+                # it and the farmer's own answer is then refused.
+                ("confirm", "/api/v1/services/nic/verifyMobile",
+                 "grievance.confirm.yaml", 20000, 0),
                 # A retried filing opens a second ticket, so support never retries.
                 ("support", "/krphapi/FGMS/AddKRPHNCIPGrievenceSupportTicket",
                  "grievance.support.yaml", 30000, 0),

@@ -40,3 +40,32 @@ __PROVIDER_CONFIG__ Grievance
                 sessionBindAt: "message.contract.commitments[].commitmentAttributes.applicant.mobile"
                 sessionHeader: X-PMFBY-Farmer-Session
                 sessionPrefix: ""
+              # The grievance filing is the farmer's too. The OTP answered on
+              # confirm buys a session; support spends it. Same NIC endpoints
+              # and the same farmerID as the insurance binding above, held in
+              # its own entry because a session belongs to one capability.
+              #
+              # Unlike insurance, nothing downstream wants the value --
+              # AddKRPHNCIPGrievenceSupportTicket takes no farmer id. It is
+              # sent anyway, in a header PMFBY ignores, because sending it is
+              # how the adapter is asked to REQUIRE it: a support call that
+              # answered no OTP, or answered one for another number, is then
+              # refused here rather than by a check in the tool.
+              "__PARTICIPANT_ID__|openagrinet:Grievance":
+                sessionKeyAt: "context.transactionId,context.transaction_id"
+                sessionCaptureOn: confirm
+                sessionSendOn: support
+                sessionTokenField: data.farmerID
+                # PMFBY states no lifetime on verifyMobile. An hour, as KHC
+                # has it: long enough for a farmer to describe a problem,
+                # short enough that an abandoned verification does not stay
+                # spendable all day.
+                sessionTtl: 1h
+                sessionTtlMargin: 60s
+                # The session was bought for one mobile number. Two paths
+                # because confirm carries it on a contract and support on a
+                # channel -- support admits no contract at all -- and a bind
+                # that names only one shape is skipped on the other.
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.applicantMobile,message.support.channels[].applicantMobile"
+                sessionHeader: X-PMFBY-Farmer-Session
+                sessionPrefix: ""
