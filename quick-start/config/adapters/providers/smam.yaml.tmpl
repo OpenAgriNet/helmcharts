@@ -1,0 +1,6 @@
+__PROVIDER_CONFIG__ Grievance
+              # SMAM's API takes a fixed service token in a header named Token, read at call time.
+              __PARTICIPANT_ID__:
+                authScheme: header
+                headerName: Token
+                headerValueEnv: SMAM_TOKEN
