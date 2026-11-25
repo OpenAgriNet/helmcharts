@@ -168,13 +168,13 @@ PROVIDERS = {
         "needs": ["PMKISAN_BASE_URL", "PMKISAN_CHATBOT_BASE_URL"],
         "capabilities": (
             ("openagrinet:Grievance", "Grievance", "v0.2", None, (
-                ("init", "/ChatbotOTP", "grievance.init.yaml", 20000, 0),
-                ("support", "/LodgeGrievance", "grievance.support.yaml", 30000, 0),
-                ("status", "/GrievanceStatusCheck", "grievance.status.yaml", 30000, 2))),
+                ("init", "/ChatbotOTP", "pm-kisan/grievance/v0.2/mappings/init.yaml", 20000, 0),
+                ("support", "/LodgeGrievance", "pm-kisan/grievance/v0.2/mappings/support.yaml", 30000, 0),
+                ("status", "/GrievanceStatusCheck", "pm-kisan/grievance/v0.2/mappings/status.yaml", 30000, 2))),
             ("openagrinet:SchemeApplication", "Scheme Application", "v0.2",
              "PMKISAN_CHATBOT_BASE_URL", (
-                ("init", "/ChatbotOTP", "application-status.init.yaml", 20000, 0),
-                ("status", "/ChatbotUserDetails", "application-status.status.yaml", 30000, 0))),
+                ("init", "/ChatbotOTP", "pm-kisan/application/v0.2/mappings/init.yaml", 20000, 0),
+                ("status", "/ChatbotUserDetails", "pm-kisan/application/v0.2/mappings/status.yaml", 30000, 0))),
         ),
     },
     # Two capabilities on one host and a login to get a token first. Shares
@@ -199,28 +199,28 @@ PROVIDERS = {
                 # Never retried: a retry sends a second OTP and invalidates the
                 # first, so the farmer reads one code and types another.
                 ("init", "/api/v1/services/nic/getOtp",
-                 "grievance.init.yaml", 20000, 0),
+                 "pmfby/grievance/v0.2/mappings/init.yaml", 20000, 0),
                 # Never retried either: the OTP is single-use, so a retry spends
                 # it and the farmer's own answer is then refused.
                 ("confirm", "/api/v1/services/nic/verifyMobile",
-                 "grievance.confirm.yaml", 20000, 0),
+                 "pmfby/grievance/v0.2/mappings/confirm.yaml", 20000, 0),
                 # A retried filing opens a second ticket, so support never retries.
                 ("support", "/krphapi/FGMS/AddKRPHNCIPGrievenceSupportTicket",
-                 "grievance.support.yaml", 30000, 0),
+                 "pmfby/grievance/v0.2/mappings/support.yaml", 30000, 0),
                 ("status", "/krphapi/FGMS/GetGrievenceTicketsStatus",
-                 "grievance.status.yaml", 30000, 2))),
+                 "pmfby/grievance/v0.2/mappings/status.yaml", 30000, 2))),
             ("openagrinet:SchemeApplication", "Scheme Application", "v0.2", None, (
                 # Never retried: a retry would send a second OTP.
                 ("init", "/api/v1/services/nic/getOtp",
-                 "insurance.init.yaml", 20000, 0),
+                 "pmfby/insurance/v0.2/mappings/init.yaml", 20000, 0),
                 # Never retried either: the OTP is single-use, so a retry
                 # spends it and the farmer's own answer is then refused.
                 ("confirm", "/api/v1/services/nic/verifyMobile",
-                 "insurance.confirm.yaml", 20000, 0),
+                 "pmfby/insurance/v0.2/mappings/confirm.yaml", 20000, 0),
                 ("status", "/api/v1/policy/policy/farmerpolicylist",
-                 "insurance.status.yaml", 30000, 2, "GET"),
+                 "pmfby/insurance/v0.2/mappings/status.yaml", 30000, 2, "GET"),
                 ("select", "/api/v1/claims/claims/claimSearchReport",
-                 "insurance.select.yaml", 30000, 2, "GET"))),
+                 "pmfby/insurance/v0.2/mappings/select.yaml", 30000, 2, "GET"))),
         ),
     },
     # Two capabilities on one host, sharing one verification. init sends the
@@ -234,11 +234,11 @@ PROVIDERS = {
             ("openagrinet:SchemeApplication", "Scheme Application", "v0.2", None, (
                 # One endpoint for both halves of the OTP exchange, as AIF has
                 # it. Never retried: a retry would send a second OTP.
-                ("init", "/validate_beneficiaries/", "loan.init.yaml", 20000, 0),
-                ("status", "/Status", "loan.status.yaml", 30000, 2, "GET"))),
+                ("init", "/validate_beneficiaries/", "aif/loan/v0.2/mappings/init.yaml", 20000, 0),
+                ("status", "/Status", "aif/loan/v0.2/mappings/status.yaml", 30000, 2, "GET"))),
             # Reading only: AIF publishes no call that files a ticket.
             ("openagrinet:Grievance", "Grievance", "v0.2", None, (
-                ("status", "/support-tickets", "tickets.status.yaml", 30000, 2, "GET"),)),
+                ("status", "/support-tickets", "aif/tickets/v0.2/mappings/status.yaml", 30000, 2, "GET"),)),
         ),
     },
     # One capability, one host, a form login for the token, and every body
@@ -251,9 +251,9 @@ PROVIDERS = {
         "capabilities": (
             # The soil test takes SHC 15-26s; a retry would only double the wait.
             ("openagrinet:AgricultureResource", "Agriculture Resource", "v0.2", None, (
-                ("select", "/", "soil-report.select.yaml", 60000, 0),)),
+                ("select", "/", "gfr/crop-registry/v0.2/mappings/select.yaml", 60000, 0),)),
             ("openagrinet:AgricultureAdvisory", "Agriculture Advisory", "v0.2", None, (
-                ("select", "/", "advice.select.yaml", 15000, 2),)),
+                ("select", "/", "gfr/advice/v0.2/mappings/select.yaml", 15000, 2),)),
         ),
     },
     "smam": {
@@ -262,7 +262,7 @@ PROVIDERS = {
         "capabilities": (
             # A read, so it is safe to retry.
             ("openagrinet:SchemeApplication", "Scheme Application", "v0.2", None, (
-                ("status", "/api/BeneficiaryService/GetApplicationStatusByAI", "benefit.status.yaml", 30000, 2),)),
+                ("status", "/api/BeneficiaryService/GetApplicationStatusByAI", "smam/benefit-status/v0.2/mappings/status.yaml", 30000, 2),)),
         ),
     },
     "kcc": {
@@ -272,12 +272,12 @@ PROVIDERS = {
         "capabilities": (
             ("openagrinet:SchemeApplication", "Scheme Application", "v0.2", None, (
                 # Never retried: a retry sends the farmer a second SMS.
-                ("init", "/auth/requestOtp", "loan.init.yaml", 20000, 0),
+                ("init", "/auth/requestOtp", "kcc/loan/v0.2/mappings/init.yaml", 20000, 0),
                 # Retried twice: KCC checks the OTP against the requestID
                 # rather than spending it, so asking again asks the same
                 # question rather than a different one.
                 ("status", "/bharatVistaar/krishika/applicationStatus",
-                 "loan.status.yaml", 30000, 2))),
+                 "kcc/loan/v0.2/mappings/status.yaml", 30000, 2))),
         ),
     },
     # One capability, five actions: KHC spends one endpoint per step -- send
@@ -290,22 +290,22 @@ PROVIDERS = {
             ("openagrinet:Grievance", "Grievance", "v0.2", None, (
                 # Never retried: a second send invalidates the first code, so
                 # the farmer reads one and types another.
-                ("init", "/auth/send-otp", "grievance.init.yaml", 20000, 0),
+                ("init", "/auth/send-otp", "khc/tickets/v0.2/mappings/init.yaml", 20000, 0),
                 # Never retried either: the OTP is single-use.
-                ("confirm", "/auth/verify-otp", "grievance.confirm.yaml", 20000, 0),
+                ("confirm", "/auth/verify-otp", "khc/tickets/v0.2/mappings/confirm.yaml", 20000, 0),
                 # Never retried: a retried filing opens a second grievance on a
                 # real desk, under a real farmer's name.
                 ("support", "/v1/state/grievances",
-                 "grievance.support.yaml", 30000, 0),
+                 "khc/tickets/v0.2/mappings/support.yaml", 30000, 0),
                 # select's grievance number rides the query string under the
                 # mapping's _query key; in the body it answers 400. Never
                 # retried -- a second send invalidates the first code.
                 # The ungated GET /v1/state/grievances/status is left unrouted
                 # on purpose: it reads a grievance on a number alone.
                 ("select", "/v1/state/grievances/check-status",
-                 "grievance.select.yaml", 20000, 0),
+                 "khc/tickets/v0.2/mappings/select.yaml", 20000, 0),
                 ("status", "/v1/state/grievances/verify-otp",
-                 "grievance.status.yaml", 20000, 0))),
+                 "khc/tickets/v0.2/mappings/status.yaml", 20000, 0))),
         ),
     },
 }
