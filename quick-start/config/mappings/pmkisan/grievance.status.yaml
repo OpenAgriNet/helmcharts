@@ -1,4 +1,5 @@
-# PM-KISAN grievance status -> /GrievanceStatusCheck, matched on case.filedOn.
+# PM-KISAN grievance status -> /GrievanceStatusCheck: the record filed on
+# case.filedOn, or the newest one when no date is given.
 
 request: |
   {
@@ -6,7 +7,8 @@ request: |
     "IdentityNo": beckn.message.contract.commitments[0].commitmentAttributes.enrolmentId
   }
 
-# "False": 502; no record on filedOn: 400. Only allow-listed fields are returned.
+# "False": 502; no record at all, or none on filedOn: 400. Only allow-listed
+# fields are returned.
 response: |
   $exists(_status)
   ? {}
@@ -50,7 +52,13 @@ response: |
       "resolved": "Resolved", "rejected": "Rejected", "closed": "Closed"
     };
 
-    $record := $filter($records, function($r) { $iso($r.GrievanceDate) = $ca.case.filedOn })[0];
+    /* Newest first, so [0] is the latest grievance when no date narrows it. */
+    $newest := $sort($records, function($l, $r) {
+      $iso($l.GrievanceDate) < $iso($r.GrievanceDate)
+    });
+    $record := $exists($ca.case.filedOn)
+      ? $filter($records, function($r) { $iso($r.GrievanceDate) = $ca.case.filedOn })[0]
+      : $newest[0];
     $phrase := $text($record.GrievanceStatus);
     $remark := $text($record.OfficerReply);
     $complaint := $text($record.GrievanceDescription);
@@ -60,8 +68,12 @@ response: |
                     "message": "PM-KISAN could not read the grievance" } }
     : $not($exists($record))
     ? { "_error": { "status": 400, "code": "BIZ_GENERIC_ERROR",
-                    "message": "No grievance matches this registration number and filing date.",
-                    "path": "$.message.contract.commitments[0].commitmentAttributes.case.filedOn" } }
+                    "message": $exists($ca.case.filedOn)
+                      ? "No grievance matches this registration number and filing date."
+                      : "No grievance is recorded against this registration number.",
+                    "path": $exists($ca.case.filedOn)
+                      ? "$.message.contract.commitments[0].commitmentAttributes.case.filedOn"
+                      : "$.message.contract.commitments[0].commitmentAttributes.enrolmentId" } }
     : {
       "context": $merge([beckn.context, { "action": "on_status", "timestamp": $now() }]),
       "message": {

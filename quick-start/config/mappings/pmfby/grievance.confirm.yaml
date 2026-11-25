@@ -1,0 +1,112 @@
+# PMFBY grievance, confirm -> POST /api/v1/services/nic/verifyMobile.
+#
+# Answers the OTP init sent. The same NIC endpoint insurance.confirm.yaml
+# calls, reached here under Grievance, and this is a copy of that file with two
+# changes: the farmerID is NOT returned to the caller, and the mobile number is
+# read from applicantMobile, which is what the rest of this capability calls it.
+#
+# Insurance has to return it -- it is a required query parameter on a GET and
+# the adapter cannot put a held value into a query string. Grievance does not:
+# the filing is a POST and AddKRPHNCIPGrievenceSupportTicket never asks for a
+# farmer id. So it is captured into the session and dropped from the answer,
+# the way KHC's token is.
+#
+# What the session buys is the gate. Held against the transaction and bound to
+# the mobile number, it is what the filing cannot be made without -- so a
+# support call that never answered an OTP, or answered one for a different
+# number, is refused by the adapter rather than by a check in the tool.
+#
+# Never retried: the OTP is single-use, so a retry spends it and the farmer's
+# own answer is then refused.
+
+required:
+  - check: |
+      (
+        $attributes := beckn.message.contract.commitments[0].commitmentAttributes;
+        $exists($attributes.applicantMobile)
+          and $exists($attributes.challenge.response.value)
+      )
+    message: "this capability needs applicantMobile and challenge.response.value in commitmentAttributes"
+
+# PMFBY's contract says the OTP is an integer and its validator refuses the
+# quoted form. It is a string in the Beckn payload because the pack types it
+# as one.
+request: |
+  (
+    $attributes := beckn.message.contract.commitments[0].commitmentAttributes;
+    {
+      "mobile": $string($attributes.applicantMobile),
+      "otp": $number($attributes.challenge.response.value)
+    }
+  )
+
+# status false here is almost always the farmer mistyping, so the refusal names
+# the field they typed into rather than the call.
+response: |
+  (
+    /* Constants */
+    $SCHEME := { "code": "PMFBY", "name": "Pradhan Mantri Fasal Bima Yojana" };
+    $INFORMATION_MODE := "OnDemand";
+    $COMMITMENT_STATUS_ACTIVE := "ACTIVE";
+    $ATTRIBUTES_PATH := "$.message.contract.commitments[0].commitmentAttributes.";
+
+    $MSG_WRONG_OTP := "PMFBY did not accept that OTP. Ask for a new one and try again.";
+    $MSG_NO_FARMER := "PMFBY verified the mobile number but returned no farmer id, so the grievance cannot be filed against it.";
+    $MSG_UNAVAILABLE := "PMFBY could not verify that OTP right now. Please try again later.";
+
+    $ERROR_REFUSED := { "status": 400, "code": "BIZ_GENERIC_ERROR" };
+    $ERROR_UNAVAILABLE := { "status": 502, "code": "NET_DOWNSTREAM_UNAVAILABLE" };
+    /* PMFBY fails everything with status false, so its wording is the only way
+       to tell a mistyped code from a PMFBY fault. */
+    $KNOWN_REFUSALS := /invalid otp|otp has already been used|otp expired|required/;
+
+    /* Helpers */
+    $isText := function($value) { $type($value) = "string" and $trim($value) != "" };
+    $asText := function($value) { $isText($value) ? $trim($value) };
+    $error := function($kind, $message, $path, $cause) {
+      { "_error": $merge([$kind, {
+          "message": $message, "path": $path, "cause": $cause }]) }
+    };
+
+    /* Inputs */
+    $commitment := beckn.message.contract.commitments[0];
+    $attributes := $commitment.commitmentAttributes;
+    $mobile := $string($attributes.applicantMobile);
+    $pmfbyMessage := $isText(response.error) ? $trim(response.error);
+    $isVerified := response.status = true and response.data.verified = true;
+    $isCallerFault := $exists($pmfbyMessage) and $contains($lowercase($pmfbyMessage), $KNOWN_REFUSALS);
+    /* Read only to tell "verified, and the session has something to hold" from
+       "verified, and it has not". The value itself does not leave here. */
+    $farmerId := $asText(
+      $type(response.data.farmerID) = "number"
+        ? $string(response.data.farmerID)
+        : response.data.farmerID);
+
+    /* Output */
+    $isVerified and $exists($farmerId)
+    ? {
+      "context": $merge([beckn.context, { "action": "on_confirm", "timestamp": $now() }]),
+      "message": {
+        "contract": $merge([beckn.message.contract, {
+          "commitments": [$merge([$commitment, {
+            "status": { "descriptor": { "code": $COMMITMENT_STATUS_ACTIVE } },
+            /* Replaced rather than merged, so neither the OTP the caller sent
+               in challenge.response nor the farmerID the session now holds
+               comes back in the answer. */
+            "commitmentAttributes": {
+              "@context": $attributes.`@context`,
+              "@type": $attributes.`@type`,
+              "informationMode": $INFORMATION_MODE,
+              "scheme": $SCHEME,
+              "applicantMobile": $mobile
+            }
+          }])]
+        }])
+      }
+    }
+    : $isVerified
+      ? $error($ERROR_UNAVAILABLE, $MSG_NO_FARMER, undefined, $pmfbyMessage)
+    : $isCallerFault or $not($exists($pmfbyMessage))
+      ? $error($ERROR_REFUSED, $MSG_WRONG_OTP, $ATTRIBUTES_PATH & "challenge.response.value", $pmfbyMessage)
+    : $error($ERROR_UNAVAILABLE, $MSG_UNAVAILABLE, undefined, $pmfbyMessage)
+  )
