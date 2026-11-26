@@ -901,7 +901,7 @@
     },
     {
       "name": "AgricultureResource Capability - SATHI",
-      "description": "SATHI certified seed stock. Publish sends a one-district sample (Nashik) of the catalog the sathi-seed catalog builder writes: the district's SATHI crop list, LGD codes and Survey of India boundary, visible to {{networkId}} and {{otherNetworkId}}. The full catalog, all 36 Maharashtra districts, is api-collection/catalogs/sathi-catalog-publish.json; paste it into Publish to load every district. Select sends SATHI's own request fields in resourceAttributes and fetches live stock, so it needs egress and SATHI_API_KEY. Extended (L2) validation must be off on the provider module for select.",
+      "description": "SATHI certified seed stock. Publish sends a one-district sample (Nashik) of the catalog the sathi-seed catalog builder writes: the district's SATHI crop list, LGD codes and Survey of India boundary, visible to {{networkId}} and {{otherNetworkId}}. The full catalog, all 36 Maharashtra districts, is api-collection/sathi-seed/sathi-catalog-publish.json; paste it into Publish to load every district. Select sends SATHI's own request fields in resourceAttributes and fetches live stock, so it needs egress and SATHI_API_KEY. Extended (L2) validation must be off on the provider module for select.",
       "item": [
         {
           "name": "Publish - On-demand",
@@ -3138,7 +3138,8 @@
             }
           ]
         }
-      ]
+      ],
+      "description": ""
     },
     {
       "name": "Application status",
@@ -3577,7 +3578,8 @@
             }
           ]
         }
-      ]
+      ],
+      "description": ""
     },
     {
       "name": "AIF - loan and grievance status",
@@ -6556,7 +6558,7 @@
     },
     {
       "name": "GFR - registry and recommendation",
-      "description": "GFR fertilizer recommendation on two packs: an India-wide AgricultureResource for the farmer's soil test, and one AgricultureAdvisory per state for the doses. Publish sends a sample of the catalog the gfr-registry-recommendation catalog builder writes: Madhya Pradesh's advice (its GFR crops, LGD code, SHC's own state id and Survey of India boundary) and the soil test. The full catalog, 31 states with GFR crops plus the soil test, is api-collection/catalogs/gfr-catalog-publish.json; paste it into Publish to load every state.\n\nRun Registry, Publish and Discover first, then the Select folders. Set gfr-mobile to a mobile registered with SHC; it is left empty here because it is a farmer's own number. The advice requests take the soil values in gfr-n, gfr-p, gfr-k and gfr-oc, which the soil test returns.",
+      "description": "GFR fertilizer recommendation on two packs: an India-wide AgricultureResource for the farmer's soil test, and one AgricultureAdvisory per state for the doses. Publish sends a sample of the catalog the gfr-registry-recommendation catalog builder writes: Madhya Pradesh's advice (its GFR crops, LGD code, SHC's own state id and Survey of India boundary) and the soil test. The full catalog, 31 states with GFR crops plus the soil test, is api-collection/gfr-registry-recommendation/gfr-catalog-publish.json; paste it into Publish to load every state.\n\nRun Registry, Publish and Discover first, then the Select folders. Set gfr-mobile to a mobile registered with SHC; it is left empty here because it is a farmer's own number. The advice requests take the soil values in gfr-n, gfr-p, gfr-k and gfr-oc, which the soil test returns.",
       "item": [
         {
           "name": "Registry",
