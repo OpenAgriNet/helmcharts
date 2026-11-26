@@ -251,7 +251,7 @@ PROVIDERS = {
         "capabilities": (
             # The soil test takes SHC 15-26s; a retry would only double the wait.
             ("openagrinet:AgricultureResource", "Agriculture Resource", "v0.2", None, (
-                ("select", "/", "gfr/crop-registry/v0.2/mappings/select.yaml", 60000, 0),)),
+                ("select", "/", "gfr/soil-report/v0.2/mappings/select.yaml", 60000, 0),)),
             ("openagrinet:AgricultureAdvisory", "Agriculture Advisory", "v0.2", None, (
                 ("select", "/", "gfr/advice/v0.2/mappings/select.yaml", 15000, 2),)),
         ),
