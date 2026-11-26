@@ -233,6 +233,30 @@
       "value": "",
       "description": "The ticket number the filing returned. The status read uses it.",
       "type": "string"
+    },
+    {
+      "key": "smam-schema-base",
+      "value": "https://openagrinet.github.io/network-specs/schema"
+    },
+    {
+      "key": "smam-search-value",
+      "value": ""
+    },
+    {
+      "key": "smam-search-value-none",
+      "value": ""
+    },
+    {
+      "key": "shc-schema-base",
+      "value": "https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-migration/schema"
+    },
+    {
+      "key": "shc-mobile",
+      "value": ""
+    },
+    {
+      "key": "shc-cycle",
+      "value": "2024-25"
     }
   ],
   "item": [
@@ -5908,6 +5932,590 @@
                 "description": "No requestID and no OTP. The mapping refuses this before the adapter dials KCC."
               },
               "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SMAM - benefit status",
+      "description": "SMAM benefit applications on SchemeApplication v0.2. One capability, ONE action: status takes the farmer's mobile or application number as SearchValue and returns SMAM's answer unchanged in commitmentAttributes -- every application, every implement and its full status history. SMAM works out for itself whether the value is a mobile or an application number, so no search type is sent.\n\nRun Registry, Publish and Discover first, then the two Status folders. Set smam-search-value to a value SMAM holds applications for and smam-search-value-none to one it does not; both are left empty here because they are a farmer's own numbers.\n\n@context is the official SchemeApplication address: the pack pins it, and the adapter's extendedSchema_contextRewrite reads it from network-specs bv-migration until v0.2 is on GitHub Pages.",
+      "item": [
+        {
+          "name": "Registry",
+          "item": [
+            {
+              "name": "Read - participant",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+                      "pm.test('an upstream', () => pm.expect(pm.response.json().data[0].type).to.eql('upstream'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"filters\": {\n    \"participantId\": {\n      \"eq\": \"smam\"\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{registry-host}}/api/v1/Participant/search",
+                  "host": [
+                    "{{registry-host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "Participant",
+                    "search"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Read - SchemeApplication binding",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+                      "pm.test('status only', () => pm.expect(pm.response.json().data[0].actions.map(a => a.action)).to.have.members([\"status\"]));",
+                      "// The mapping is served from network-specs, beside the contract its operationRef names.",
+                      "pm.test('the mapping comes from network-specs', () => {",
+                      "    pm.response.json().data[0].actions.forEach(a => {",
+                      "        pm.expect(a.mappings, a.action).to.match(/network-specs\\/.*smam/benefit\\-status/v0\\.2/mappings/status\\.yaml$/);",
+                      "        pm.expect(a.status, a.action).to.eql('active');",
+                      "    });",
+                      "});",
+                      "// A read, so it is safe to retry.",
+                      "pm.test('status is retried', () => pm.expect(pm.response.json().data[0].actions[0].retryMax).to.be.above(0));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"filters\": {\n    \"bindingKey\": {\n      \"eq\": \"smam|openagrinet:SchemeApplication\"\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{registry-host}}/api/v1/ProviderSchema/search",
+                  "host": [
+                    "{{registry-host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "ProviderSchema",
+                    "search"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publish",
+          "item": [
+            {
+              "name": "Publish - On-demand",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "pm.test('the resource is accepted', () => {",
+                      "    const r = pm.response.json().message.results[0];",
+                      "    pm.expect(r.status).to.eql('ACCEPTED');",
+                      "    pm.expect(r.stats.itemCount).to.eql(1);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\"\n  },\n  \"message\": {\n    \"catalogs\": [\n      {\n        \"id\": \"cat-smam\",\n        \"bppId\": \"{{bppId}}\",\n        \"bppUri\": \"{{bppUri}}\",\n        \"descriptor\": {\n          \"code\": \"SMAM\",\n          \"name\": \"SMAM benefit status\"\n        },\n        \"provider\": {\n          \"id\": \"smam\",\n          \"descriptor\": {\n            \"code\": \"SMAM\",\n            \"name\": \"SMAM benefit status\"\n          }\n        },\n        \"isActive\": true,\n        \"resources\": [\n          {\n            \"id\": \"res-smam-benefits\",\n            \"descriptor\": {\n              \"code\": \"smam-benefits\",\n              \"name\": \"SMAM application status\",\n              \"shortDesc\": \"Status of a farmer's SMAM machinery applications, by mobile or application number\"\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"{{smam-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n              \"@type\": \"openagrinet:SchemeApplication\",\n              \"informationMode\": \"OnDemand\",\n              \"scheme\": {\n                \"code\": \"SMAM\",\n                \"name\": \"Sub-Mission on Agricultural Mechanization\"\n              },\n              \"actions\": [\n                {\n                  \"action\": \"status\",\n                  \"operationRef\": \"https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-migration/api/external/smam/benefit-status/v0.2/openapi.yaml#/paths/~1api~1BeneficiaryService~1GetApplicationStatusByAI/post\"\n                }\n              ]\n            }\n          }\n        ],\n        \"offers\": [\n          {\n            \"id\": \"off:smam:benefits\",\n            \"resourceIds\": [\n              \"res-smam-benefits\"\n            ]\n          }\n        ]\n      }\n    ],\n    \"publishDirectives\": [\n      {\n        \"catalogId\": \"cat-smam\",\n        \"catalogType\": \"REGULAR\",\n        \"updateMode\": \"MERGE\",\n        \"visibleTo\": [\n          \"{{networkId}}\",\n          \"{{otherNetworkId}}\"\n        ]\n      }\n    ]\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{network-adapter-publish}}",
+                  "host": [
+                    "{{network-adapter-publish}}"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Discover",
+          "item": [
+            {
+              "name": "Discover - benefit status",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "const rs = pm.response.json().message.catalogs.flatMap(c => c.resources || []);",
+                      "pm.test('finds res-smam-benefits', () => pm.expect(rs.map(r => r.id)).to.include('res-smam-benefits'));",
+                      "pm.test('the catalog names the status contract', () => {",
+                      "    const a = rs.find(r => r.id === 'res-smam-benefits').resourceAttributes.actions;",
+                      "    pm.expect(a.map(x => x.action)).to.include('status');",
+                      "    a.forEach(x => pm.expect(x.operationRef, x.action).to.match(/openapi\\.yaml#\\/paths\\/~1/));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"schemaContext\": [\n      \"{{smam-schema-base}}/SchemeApplication/v0.2/context.jsonld#openagrinet:SchemeApplication\"\n    ]\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.descriptor.code == \\\"smam-benefits\\\")\"\n      }\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/discover",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "discover"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Status - check benefit status",
+          "item": [
+            {
+              "name": "Status - a value with applications",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "const a = pm.response.json().message.contract.commitments[0].commitmentAttributes;",
+                      "pm.test('SMAM answered success', () => pm.expect(a.success).to.eql(true));",
+                      "// SMAM sends data as JSON text as often as a list; read it either way.",
+                      "const apps = typeof a.data === 'string' ? JSON.parse(a.data) : a.data;",
+                      "pm.test('at least one application', () => pm.expect(apps).to.be.an('array').that.is.not.empty);",
+                      "pm.test('each application lists its implements', () => apps.forEach(x => pm.expect(x.Implements, x.ApplicationRefNo).to.be.an('array')));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"schemaContext\": [\n      \"{{smam-schema-base}}/SchemeApplication/v0.2/context.jsonld#openagrinet:SchemeApplication\"\n    ]\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:smam:benefits\",\n            \"provider\": {\n              \"id\": \"smam\",\n              \"descriptor\": {\n                \"code\": \"SMAM\",\n                \"name\": \"SMAM benefit status\"\n              }\n            },\n            \"resourceIds\": [\n              \"res-smam-benefits\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res-smam-benefits\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{smam-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"SMAM\"\n            },\n            \"SearchValue\": \"{{smam-search-value}}\"\n          }\n        }\n      ]\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/status",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Status - no application found",
+          "item": [
+            {
+              "name": "Status - a value with no application",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "// No application is an answer, not a refusal: it arrives as a normal status.",
+                      "const a = pm.response.json().message.contract.commitments[0].commitmentAttributes;",
+                      "pm.test('no data', () => pm.expect(a.data === null || (Array.isArray(a.data) && a.data.length === 0) || a.data === '[]').to.eql(true));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"status\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"schemaContext\": [\n      \"{{smam-schema-base}}/SchemeApplication/v0.2/context.jsonld#openagrinet:SchemeApplication\"\n    ]\n  },\n  \"message\": {\n    \"contract\": {\n      \"id\": \"{{$guid}}\",\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\"\n            }\n          },\n          \"offer\": {\n            \"id\": \"off:smam:benefits\",\n            \"provider\": {\n              \"id\": \"smam\",\n              \"descriptor\": {\n                \"code\": \"SMAM\",\n                \"name\": \"SMAM benefit status\"\n              }\n            },\n            \"resourceIds\": [\n              \"res-smam-benefits\"\n            ]\n          },\n          \"resources\": [\n            {\n              \"id\": \"res-smam-benefits\",\n              \"quantity\": {\n                \"count\": 1\n              }\n            }\n          ],\n          \"commitmentAttributes\": {\n            \"@context\": \"{{smam-schema-base}}/SchemeApplication/v0.2/context.jsonld\",\n            \"@type\": \"openagrinet:SchemeApplication\",\n            \"informationMode\": \"OnDemand\",\n            \"scheme\": {\n              \"code\": \"SMAM\"\n            },\n            \"SearchValue\": \"{{smam-search-value-none}}\"\n          }\n        }\n      ]\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/status",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SHC - soil health card reports",
+      "description": "Soil Health Card reports on AgricultureResource v0.2. One capability, ONE action: select takes the farmer's registered mobile and a cycle (e.g. 2024-25) and returns SHC's GraphQL answer unchanged in resourceAttributes. SHC takes 15-26 s per query, so the binding is not retried.\n\nRun Registry, Publish and Discover first, then Select. Set shc-mobile to a mobile registered with SHC; it is left empty here because it is a farmer's own number.\n\n@context is the raw network-specs bv-migration address: AgricultureResource v0.2 is not on GitHub Pages yet, and the pack does not pin the address.",
+      "item": [
+        {
+          "name": "Registry",
+          "item": [
+            {
+              "name": "Read - participant",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+                      "pm.test('an upstream', () => pm.expect(pm.response.json().data[0].type).to.eql('upstream'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"filters\": {\n    \"participantId\": {\n      \"eq\": \"shc\"\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{registry-host}}/api/v1/Participant/search",
+                  "host": [
+                    "{{registry-host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "Participant",
+                    "search"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Read - AgricultureResource binding",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "pm.test('one record', () => pm.expect(pm.response.json().totalCount).to.eql(1));",
+                      "pm.test('select only', () => pm.expect(pm.response.json().data[0].actions.map(a => a.action)).to.have.members([\"select\"]));",
+                      "// The mapping is served from network-specs, beside the contract its operationRef names.",
+                      "pm.test('the mapping comes from network-specs', () => {",
+                      "    pm.response.json().data[0].actions.forEach(a => {",
+                      "        pm.expect(a.mappings, a.action).to.match(/network-specs\\/.*shc/reports/v0\\.2/mappings/select\\.yaml$/);",
+                      "        pm.expect(a.status, a.action).to.eql('active');",
+                      "    });",
+                      "});",
+                      "// A retry would only double a 15-26 s wait.",
+                      "pm.test('select is not retried', () => pm.expect(pm.response.json().data[0].actions[0].retryMax).to.eql(0));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"filters\": {\n    \"bindingKey\": {\n      \"eq\": \"shc|openagrinet:AgricultureResource\"\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{registry-host}}/api/v1/ProviderSchema/search",
+                  "host": [
+                    "{{registry-host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "ProviderSchema",
+                    "search"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publish",
+          "item": [
+            {
+              "name": "Publish - On-demand",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "pm.test('the resource is accepted', () => {",
+                      "    const r = pm.response.json().message.results[0];",
+                      "    pm.expect(r.status).to.eql('ACCEPTED');",
+                      "    pm.expect(r.stats.itemCount).to.eql(1);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"action\": \"catalog/publish\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\"\n  },\n  \"message\": {\n    \"catalogs\": [\n      {\n        \"id\": \"cat-shc\",\n        \"bppId\": \"{{bppId}}\",\n        \"bppUri\": \"{{bppUri}}\",\n        \"descriptor\": {\n          \"code\": \"SHC_REPORTS\",\n          \"name\": \"Soil Health Card reports\"\n        },\n        \"provider\": {\n          \"id\": \"shc\",\n          \"descriptor\": {\n            \"code\": \"SHC\",\n            \"name\": \"Soil Health Card\"\n          }\n        },\n        \"isActive\": true,\n        \"resources\": [\n          {\n            \"id\": \"res-shc-reports\",\n            \"descriptor\": {\n              \"code\": \"shc-reports\",\n              \"name\": \"Soil Health Card report lookup\",\n              \"shortDesc\": \"Soil test reports\"\n            },\n            \"resourceAttributes\": {\n              \"@context\": \"{{shc-schema-base}}/AgricultureResource/v0.2/context.jsonld\",\n              \"@type\": \"openagrinet:AgricultureResource\",\n              \"informationMode\": \"OnDemand\",\n              \"subjectCategories\": [\n                \"Practice\"\n              ],\n              \"languages\": [\n                \"en\",\n                \"hi\"\n              ],\n              \"actions\": [\n                {\n                  \"action\": \"select\",\n                  \"operationRef\": \"https://raw.githubusercontent.com/OpenAgriNet/network-specs/bv-migration/api/external/shc/reports/v0.2/openapi.yaml#/paths/~1/post\"\n                }\n              ]\n            }\n          }\n        ]\n      }\n    ],\n    \"publishDirectives\": [\n      {\n        \"catalogId\": \"cat-shc\",\n        \"catalogType\": \"REGULAR\",\n        \"updateMode\": \"MERGE\",\n        \"visibleTo\": [\n          \"{{networkId}}\",\n          \"{{otherNetworkId}}\"\n        ]\n      }\n    ]\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{network-adapter-publish}}",
+                  "host": [
+                    "{{network-adapter-publish}}"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Discover",
+          "item": [
+            {
+              "name": "Discover - soil health card reports",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "const rs = pm.response.json().message.catalogs.flatMap(c => c.resources || []);",
+                      "pm.test('finds res-shc-reports', () => pm.expect(rs.map(r => r.id)).to.include('res-shc-reports'));",
+                      "pm.test('the catalog names the select contract', () => {",
+                      "    const a = rs.find(r => r.id === 'res-shc-reports').resourceAttributes.actions;",
+                      "    pm.expect(a.map(x => x.action)).to.include('select');",
+                      "    a.forEach(x => pm.expect(x.operationRef, x.action).to.match(/openapi\\.yaml#\\/paths\\/~1/));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"discover\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"schemaContext\": [\n      \"{{shc-schema-base}}/AgricultureResource/v0.2/context.jsonld#openagrinet:AgricultureResource\"\n    ],\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\"\n  },\n  \"message\": {\n    \"intent\": {\n      \"filters\": {\n        \"type\": \"jsonpath\",\n        \"expression\": \"$.catalogs[*].resources[*] ? (@.descriptor.code == \\\"shc-reports\\\")\"\n      }\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/discover",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "discover"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Select - check soil health card reports",
+          "item": [
+            {
+              "name": "Select - reports for a mobile and cycle",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "// A fault comes back inside a 200 as often as it comes back as a 4xx, so the",
+                      "// status code alone does not tell you the call worked.",
+                      "pm.test('not a NACK', () => {",
+                      "    const b = pm.response.json();",
+                      "    const err = (b.error) || (b.message && b.message.error);",
+                      "    if (err) throw new Error(`${err.code}: ${err.message}`);",
+                      "});",
+                      "",
+                      "const a = pm.response.json().message.contract.commitments[0].resources[0].resourceAttributes;",
+                      "pm.test('SHC answered with reports', () => pm.expect(a.data.getTestForAuthUser).to.be.an('array').that.is.not.empty);",
+                      "pm.test('each report names its cycle', () => a.data.getTestForAuthUser.forEach(r => pm.expect(r.cycle).to.eql(pm.collectionVariables.get('shc-cycle'))));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"context\": {\n    \"domain\": \"agriculture\",\n    \"action\": \"select\",\n    \"version\": \"2.0.0\",\n    \"transactionId\": \"{{$guid}}\",\n    \"messageId\": \"{{$guid}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"bppUri\": \"{{bppUri}}\",\n    \"schemaContext\": [\n      \"{{shc-schema-base}}/AgricultureResource/v0.2/context.jsonld#openagrinet:AgricultureResource\"\n    ],\n    \"networkId\": \"{{networkId}}\",\n    \"senderId\": \"{{senderId}}\",\n    \"receiverId\": \"{{receiverId}}\"\n  },\n  \"message\": {\n    \"contract\": {\n      \"status\": {\n        \"code\": \"ACTIVE\",\n        \"name\": \"active\"\n      },\n      \"commitments\": [\n        {\n          \"status\": {\n            \"descriptor\": {\n              \"code\": \"ACTIVE\",\n              \"name\": \"active\"\n            }\n          },\n          \"resources\": [\n            {\n              \"id\": \"res-shc-reports\",\n              \"quantity\": {\n                \"count\": 1\n              },\n              \"resourceAttributes\": {\n                \"@context\": \"{{shc-schema-base}}/AgricultureResource/v0.2/context.jsonld\",\n                \"@type\": \"openagrinet:AgricultureResource\",\n                \"query\": \"query GetTestForAuthUser($computedId: String, $phone: PhoneNumber, $state: String, $district: String, $name: String, $farmer: String, $from: Datetime, $to: Datetime, $cycle: String, $locale: String, $scheme: String, $limit: Int, $skip: Int) { getTestForAuthUser(computedID: $computedId, phone: $phone, state: $state, district: $district, name: $name, farmer: $farmer, from: $from, to: $to, cycle: $cycle, scheme: $scheme, limit: $limit, skip: $skip) { id computedID cycle scheme plot { address area surveyNo } farmer { address name phone } crop location testparameters rdfValues status testCompletedAt sampleDate reportData district block village results fertilizer html(locale: $locale) uniqueID } }\",\n                \"variables\": {\n                  \"cycle\": \"{{shc-cycle}}\",\n                  \"phone\": \"{{shc-mobile}}\",\n                  \"limit\": 10,\n                  \"skip\": 0,\n                  \"locale\": \"en\"\n                }\n              }\n            }\n          ],\n          \"offer\": {\n            \"id\": \"offer:shc-reports\",\n            \"resourceIds\": [\n              \"res-shc-reports\"\n            ],\n            \"provider\": {\n              \"id\": \"shc\",\n              \"descriptor\": {\n                \"code\": \"SHC\",\n                \"name\": \"Soil Health Card\"\n              }\n            }\n          }\n        }\n      ]\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{network-adapter-host}}/select",
+                  "host": [
+                    "{{network-adapter-host}}"
+                  ],
+                  "path": [
+                    "select"
+                  ]
+                }
+              }
             }
           ]
         }
