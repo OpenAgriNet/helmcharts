@@ -1,0 +1,115 @@
+{
+  "context": {
+    "action": "catalog/publish",
+    "messageId": "{{messageId}}",
+    "timestamp": "{{timestamp}}",
+    "transactionId": "{{transactionId}}",
+    "version": "2.0.0",
+    "senderId": "{{senderId}}",
+    "receiverId": "{{receiverId}}"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "descriptor": {
+          "code": "MANDI_PRICE_MARKET_GO",
+          "longDesc": "One resource per market. Each carries the Agmarknet codes a select must send, that market's traded commodities, and its point location for proximity discovery.",
+          "name": "Agmarknet mandi markets — Goa",
+          "shortDesc": "Markets in Goa, their locations, and what each trades"
+        },
+        "id": "catalog:mandi-price:GO",
+        "isActive": true,
+        "provider": {
+          "descriptor": {
+            "code": "AGMARKNET",
+            "name": "Agmarknet Vistaar",
+            "shortDesc": "Provider of live agricultural market price information."
+          },
+          "id": "agmarknet"
+        },
+        "resources": [
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_802",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mapusa APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Mapusa APMC mandi prices",
+              "shortDesc": "Mandi prices at Mapusa APMC, North Goa, Goa"
+            },
+            "id": "resource:mandi-price:market:802",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    73.81043,
+                    15.588341
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "129",
+                  "areaLevel": "District",
+                  "areaName": "North Goa",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-GA",
+                  "areaLevel": "State",
+                  "areaName": "Goa",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "North Goa",
+                "marketCode": "802",
+                "marketName": "Mapusa APMC",
+                "state": "GO"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:mandi-price:GO",
+        "catalogType": "REGULAR",
+        "schemaTypes": [
+          "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld"
+        ],
+        "updateMode": "FULL",
+        "visibleTo": [
+          "{{networkId}}"
+        ]
+      }
+    ]
+  }
+}

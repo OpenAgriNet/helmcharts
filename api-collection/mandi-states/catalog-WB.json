@@ -1,0 +1,5349 @@
+{
+  "context": {
+    "action": "catalog/publish",
+    "messageId": "{{messageId}}",
+    "timestamp": "{{timestamp}}",
+    "transactionId": "{{transactionId}}",
+    "version": "2.0.0",
+    "senderId": "{{senderId}}",
+    "receiverId": "{{receiverId}}"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "descriptor": {
+          "code": "MANDI_PRICE_MARKET_WB",
+          "longDesc": "One resource per market. Each carries the Agmarknet codes a select must send, that market's traded commodities, and its point location for proximity discovery.",
+          "name": "Agmarknet mandi markets — West Bengal",
+          "shortDesc": "Markets in West Bengal, their locations, and what each trades"
+        },
+        "id": "catalog:mandi-price:WB",
+        "isActive": true,
+        "provider": {
+          "descriptor": {
+            "code": "AGMARKNET",
+            "name": "Agmarknet Vistaar",
+            "shortDesc": "Provider of live agricultural market price information."
+          },
+          "id": "agmarknet"
+        },
+        "resources": [
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_676",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Alipurduar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Alipurduar APMC mandi prices",
+              "shortDesc": "Mandi prices at Alipurduar APMC, Alipurduar, West Bengal"
+            },
+            "id": "resource:mandi-price:market:676",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    89.5311127,
+                    26.5035775
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "674",
+                  "areaLevel": "District",
+                  "areaName": "Alipurduar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Alipurduar",
+                "marketCode": "676",
+                "marketName": "Alipurduar APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3117",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Asansol APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Asansol APMC mandi prices",
+              "shortDesc": "Mandi prices at Asansol APMC, Paschim Bardhaman, West Bengal"
+            },
+            "id": "resource:mandi-price:market:3117",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    86.968666,
+                    23.690611
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "693",
+                  "areaLevel": "District",
+                  "areaName": "Paschim Bardhaman",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Paschim Bardhaman",
+                "marketCode": "3117",
+                "marketName": "Asansol APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2905",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Balarampur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Balarampur APMC mandi prices",
+              "shortDesc": "Mandi prices at Balarampur APMC, Puruliya, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2905",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    86.265,
+                    23.105
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "695",
+                  "areaLevel": "District",
+                  "areaName": "Puruliya",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Puruliya",
+                "marketCode": "2905",
+                "marketName": "Balarampur APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "52",
+                  "name": "Lentil(Masur)(Whole)"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4667",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Balurghat APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Balurghat APMC mandi prices",
+              "shortDesc": "Mandi prices at Balurghat APMC, Dakshin Dinajpur, West Bengal"
+            },
+            "id": "resource:mandi-price:market:4667",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.77930333333333,
+                    25.22350333333333
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "679",
+                  "areaLevel": "District",
+                  "areaName": "Dakshin Dinajpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Dakshin Dinajpur",
+                "marketCode": "4667",
+                "marketName": "Balurghat APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_329",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bankura Sadar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bankura Sadar APMC mandi prices",
+              "shortDesc": "Mandi prices at Bankura Sadar APMC, Bankura, West Bengal"
+            },
+            "id": "resource:mandi-price:market:329",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    87.06621499,
+                    23.23479596
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "675",
+                  "areaLevel": "District",
+                  "areaName": "Bankura",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Bankura",
+                "marketCode": "329",
+                "marketName": "Bankura Sadar APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2894",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bara Bazar (Posta Bazar) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bara Bazar (Posta Bazar) APMC mandi prices",
+              "shortDesc": "Mandi prices at Bara Bazar (Posta Bazar) APMC, Kolkata, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2894",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.3525,
+                    22.5875
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "686",
+                  "areaLevel": "District",
+                  "areaName": "Kolkata",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kolkata",
+                "marketCode": "2894",
+                "marketName": "Bara Bazar (Posta Bazar) APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_328",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Barasat APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Barasat APMC mandi prices",
+              "shortDesc": "Mandi prices at Barasat APMC, North 24 Parganas, West Bengal"
+            },
+            "id": "resource:mandi-price:market:328",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.662699,
+                    22.849512
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "692",
+                  "areaLevel": "District",
+                  "areaName": "North 24 Parganas",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "North 24 Parganas",
+                "marketCode": "328",
+                "marketName": "Barasat APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2268",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Baruipur(Canning) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Baruipur(Canning) APMC mandi prices",
+              "shortDesc": "Mandi prices at Baruipur(Canning) APMC, Sounth 24 Parganas, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2268",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.427979,
+                    22.366589
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "696",
+                  "areaLevel": "District",
+                  "areaName": "Sounth 24 Parganas",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Sounth 24 Parganas",
+                "marketCode": "2268",
+                "marketName": "Baruipur(Canning) APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4670",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Baxirhat APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Baxirhat APMC mandi prices",
+              "shortDesc": "Mandi prices at Baxirhat APMC, Coochbehar, West Bengal"
+            },
+            "id": "resource:mandi-price:market:4670",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    89.767984,
+                    26.323227
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "678",
+                  "areaLevel": "District",
+                  "areaName": "Coochbehar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Coochbehar",
+                "marketCode": "4670",
+                "marketName": "Baxirhat APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2536",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Belacoba APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Belacoba APMC mandi prices",
+              "shortDesc": "Mandi prices at Belacoba APMC, Jalpaiguri, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2536",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.589,
+                    26.59
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "683",
+                  "areaLevel": "District",
+                  "areaName": "Jalpaiguri",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Jalpaiguri",
+                "marketCode": "2536",
+                "marketName": "Belacoba APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2904",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Beldanga APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Beldanga APMC mandi prices",
+              "shortDesc": "Mandi prices at Beldanga APMC, Murshidabad, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2904",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.240816,
+                    23.933546
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "690",
+                  "areaLevel": "District",
+                  "areaName": "Murshidabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Murshidabad",
+                "marketCode": "2904",
+                "marketName": "Beldanga APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_342",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bethuadahari APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bethuadahari APMC mandi prices",
+              "shortDesc": "Mandi prices at Bethuadahari APMC, Nadia, West Bengal"
+            },
+            "id": "resource:mandi-price:market:342",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.39215,
+                    23.6060542
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "691",
+                  "areaLevel": "District",
+                  "areaName": "Nadia",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nadia",
+                "marketCode": "342",
+                "marketName": "Bethuadahari APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_672",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Birbhum APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Birbhum APMC mandi prices",
+              "shortDesc": "Mandi prices at Birbhum APMC, Birbhum, West Bengal"
+            },
+            "id": "resource:mandi-price:market:672",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    87.514,
+                    23.908
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "676",
+                  "areaLevel": "District",
+                  "areaName": "Birbhum",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Birbhum",
+                "marketCode": "672",
+                "marketName": "Birbhum APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_801",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bishnupur(Bankura) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bishnupur(Bankura) APMC mandi prices",
+              "shortDesc": "Mandi prices at Bishnupur(Bankura) APMC, Bankura, West Bengal"
+            },
+            "id": "resource:mandi-price:market:801",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    87.30626091,
+                    23.12065807
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "675",
+                  "areaLevel": "District",
+                  "areaName": "Bankura",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Bankura",
+                "marketCode": "801",
+                "marketName": "Bishnupur(Bankura) APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_330",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bolpur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bolpur APMC mandi prices",
+              "shortDesc": "Mandi prices at Bolpur APMC, Birbhum, West Bengal"
+            },
+            "id": "resource:mandi-price:market:330",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    89.697,
+                    23.658
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "676",
+                  "areaLevel": "District",
+                  "areaName": "Birbhum",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Birbhum",
+                "marketCode": "330",
+                "marketName": "Bolpur APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_670",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Burdwan APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Burdwan APMC mandi prices",
+              "shortDesc": "Mandi prices at Burdwan APMC, Purba Bardhaman, West Bengal"
+            },
+            "id": "resource:mandi-price:market:670",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    87.860793,
+                    23.238307
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "694",
+                  "areaLevel": "District",
+                  "areaName": "Purba Bardhaman",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Purba Bardhaman",
+                "marketCode": "670",
+                "marketName": "Burdwan APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3350",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Chakdah APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Chakdah APMC mandi prices",
+              "shortDesc": "Mandi prices at Chakdah APMC, Nadia, West Bengal"
+            },
+            "id": "resource:mandi-price:market:3350",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.529476,
+                    23.081198
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "691",
+                  "areaLevel": "District",
+                  "areaName": "Nadia",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nadia",
+                "marketCode": "3350",
+                "marketName": "Chakdah APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_821",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Champadanga APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Champadanga APMC mandi prices",
+              "shortDesc": "Mandi prices at Champadanga APMC, Hooghly, West Bengal"
+            },
+            "id": "resource:mandi-price:market:821",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    87.972957,
+                    22.831155
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "681",
+                  "areaLevel": "District",
+                  "areaName": "Hooghly",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Hooghly",
+                "marketCode": "821",
+                "marketName": "Champadanga APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_333",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Coochbehar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Coochbehar APMC mandi prices",
+              "shortDesc": "Mandi prices at Coochbehar APMC, Coochbehar, West Bengal"
+            },
+            "id": "resource:mandi-price:market:333",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    89.446025,
+                    26.32448
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "678",
+                  "areaLevel": "District",
+                  "areaName": "Coochbehar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Coochbehar",
+                "marketCode": "333",
+                "marketName": "Coochbehar APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3342",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Darjeeling APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Darjeeling APMC mandi prices",
+              "shortDesc": "Mandi prices at Darjeeling APMC, Darjeeling, West Bengal"
+            },
+            "id": "resource:mandi-price:market:3342",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "680",
+                  "areaLevel": "District",
+                  "areaName": "Darjeeling",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Darjeeling",
+                "marketCode": "3342",
+                "marketName": "Darjeeling APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_335",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Dhupguri APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Dhupguri APMC mandi prices",
+              "shortDesc": "Mandi prices at Dhupguri APMC, Jalpaiguri, West Bengal"
+            },
+            "id": "resource:mandi-price:market:335",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    89.01,
+                    26.59
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "683",
+                  "areaLevel": "District",
+                  "areaName": "Jalpaiguri",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Jalpaiguri",
+                "marketCode": "335",
+                "marketName": "Dhupguri APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3346",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Diamond Harbour(South 24-pgs) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Diamond Harbour(South 24-pgs) APMC mandi prices",
+              "shortDesc": "Mandi prices at Diamond Harbour(South 24-pgs) APMC, Sounth 24 Parganas, West Bengal"
+            },
+            "id": "resource:mandi-price:market:3346",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.190688,
+                    22.193365
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "696",
+                  "areaLevel": "District",
+                  "areaName": "Sounth 24 Parganas",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Sounth 24 Parganas",
+                "marketCode": "3346",
+                "marketName": "Diamond Harbour(South 24-pgs) APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_817",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Dinhata APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Dinhata APMC mandi prices",
+              "shortDesc": "Mandi prices at Dinhata APMC, Coochbehar, West Bengal"
+            },
+            "id": "resource:mandi-price:market:817",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    89.44614,
+                    26.129643
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "678",
+                  "areaLevel": "District",
+                  "areaName": "Coochbehar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Coochbehar",
+                "marketCode": "817",
+                "marketName": "Dinhata APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2899",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Durgapur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Durgapur APMC mandi prices",
+              "shortDesc": "Mandi prices at Durgapur APMC, Paschim Bardhaman, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2899",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    87.274267,
+                    23.558006
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "693",
+                  "areaLevel": "District",
+                  "areaName": "Paschim Bardhaman",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Paschim Bardhaman",
+                "marketCode": "2899",
+                "marketName": "Durgapur APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2272",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Egra/contai APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Egra/contai APMC mandi prices",
+              "shortDesc": "Mandi prices at Egra/contai APMC, Medinipur(E), West Bengal"
+            },
+            "id": "resource:mandi-price:market:2272",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    87.74767,
+                    21.77463
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "688",
+                  "areaLevel": "District",
+                  "areaName": "Medinipur(E)",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Medinipur(E)",
+                "marketCode": "2272",
+                "marketName": "Egra/contai APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_337",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for English Bazar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "English Bazar APMC mandi prices",
+              "shortDesc": "Mandi prices at English Bazar APMC, Malda, West Bengal"
+            },
+            "id": "resource:mandi-price:market:337",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.14,
+                    24.99
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "687",
+                  "areaLevel": "District",
+                  "areaName": "Malda",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Malda",
+                "marketCode": "337",
+                "marketName": "English Bazar APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "52",
+                  "name": "Lentil(Masur)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3339",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Falakata APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Falakata APMC mandi prices",
+              "shortDesc": "Mandi prices at Falakata APMC, Alipurduar, West Bengal"
+            },
+            "id": "resource:mandi-price:market:3339",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    89.2229,
+                    26.5143
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "674",
+                  "areaLevel": "District",
+                  "areaName": "Alipurduar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Alipurduar",
+                "marketCode": "3339",
+                "marketName": "Falakata APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2902",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Gajol APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Gajol APMC mandi prices",
+              "shortDesc": "Mandi prices at Gajol APMC, Malda, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2902",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.189277,
+                    25.220473
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "687",
+                  "areaLevel": "District",
+                  "areaName": "Malda",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Malda",
+                "marketCode": "2902",
+                "marketName": "Gajol APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3344",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Gangarampur(Dakshin Dinajpur) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Gangarampur(Dakshin Dinajpur) APMC mandi prices",
+              "shortDesc": "Mandi prices at Gangarampur(Dakshin Dinajpur) APMC, Dakshin Dinajpur, West Bengal"
+            },
+            "id": "resource:mandi-price:market:3344",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.557704,
+                    25.400589
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "679",
+                  "areaLevel": "District",
+                  "areaName": "Dakshin Dinajpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Dakshin Dinajpur",
+                "marketCode": "3344",
+                "marketName": "Gangarampur(Dakshin Dinajpur) APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3352",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Garbeta(Medinipur) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Garbeta(Medinipur) APMC mandi prices",
+              "shortDesc": "Mandi prices at Garbeta(Medinipur) APMC, Medinipur(W), West Bengal"
+            },
+            "id": "resource:mandi-price:market:3352",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    87.3296,
+                    22.4258
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "689",
+                  "areaLevel": "District",
+                  "areaName": "Medinipur(W)",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Medinipur(W)",
+                "marketCode": "3352",
+                "marketName": "Garbeta(Medinipur) APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_820",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ghatal APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Ghatal APMC mandi prices",
+              "shortDesc": "Mandi prices at Ghatal APMC, Medinipur(W), West Bengal"
+            },
+            "id": "resource:mandi-price:market:820",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    87.7312,
+                    22.6651
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "689",
+                  "areaLevel": "District",
+                  "areaName": "Medinipur(W)",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Medinipur(W)",
+                "marketCode": "820",
+                "marketName": "Ghatal APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3348",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Guskara APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Guskara APMC mandi prices",
+              "shortDesc": "Mandi prices at Guskara APMC, Purba Bardhaman, West Bengal"
+            },
+            "id": "resource:mandi-price:market:3348",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    87.75,
+                    23.5
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "694",
+                  "areaLevel": "District",
+                  "areaName": "Purba Bardhaman",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Purba Bardhaman",
+                "marketCode": "3348",
+                "marketName": "Guskara APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "11",
+                  "name": "Sesamum(Sesame,Gingelly,Til)"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2897",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Habra APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Habra APMC mandi prices",
+              "shortDesc": "Mandi prices at Habra APMC, North 24 Parganas, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2897",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.486645,
+                    22.723983
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "692",
+                  "areaLevel": "District",
+                  "areaName": "North 24 Parganas",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "North 24 Parganas",
+                "marketCode": "2897",
+                "marketName": "Habra APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2535",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Haldibari APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Haldibari APMC mandi prices",
+              "shortDesc": "Mandi prices at Haldibari APMC, Coochbehar, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2535",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.783557,
+                    26.339218
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "678",
+                  "areaLevel": "District",
+                  "areaName": "Coochbehar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Coochbehar",
+                "marketCode": "2535",
+                "marketName": "Haldibari APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3351",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Indus(Bankura Sadar) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Indus(Bankura Sadar) APMC mandi prices",
+              "shortDesc": "Mandi prices at Indus(Bankura Sadar) APMC, Bankura, West Bengal"
+            },
+            "id": "resource:mandi-price:market:3351",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    87.62820217,
+                    23.167255
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "675",
+                  "areaLevel": "District",
+                  "areaName": "Bankura",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Bankura",
+                "marketCode": "3351",
+                "marketName": "Indus(Bankura Sadar) APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_343",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Islampur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Islampur APMC mandi prices",
+              "shortDesc": "Mandi prices at Islampur APMC, Uttar Dinajpur, West Bengal"
+            },
+            "id": "resource:mandi-price:market:343",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.177,
+                    26.251
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "697",
+                  "areaLevel": "District",
+                  "areaName": "Uttar Dinajpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Uttar Dinajpur",
+                "marketCode": "343",
+                "marketName": "Islampur APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_675",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jalpaiguri Sadar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jalpaiguri Sadar APMC mandi prices",
+              "shortDesc": "Mandi prices at Jalpaiguri Sadar APMC, Jalpaiguri, West Bengal"
+            },
+            "id": "resource:mandi-price:market:675",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.73,
+                    26.52
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "683",
+                  "areaLevel": "District",
+                  "areaName": "Jalpaiguri",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Jalpaiguri",
+                "marketCode": "675",
+                "marketName": "Jalpaiguri Sadar APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_822",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jangipur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jangipur APMC mandi prices",
+              "shortDesc": "Mandi prices at Jangipur APMC, Murshidabad, West Bengal"
+            },
+            "id": "resource:mandi-price:market:822",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.1047,
+                    24.459
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "690",
+                  "areaLevel": "District",
+                  "areaName": "Murshidabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Murshidabad",
+                "marketCode": "822",
+                "marketName": "Jangipur APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2903",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jhargram APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jhargram APMC mandi prices",
+              "shortDesc": "Mandi prices at Jhargram APMC, Jhargram, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2903",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    86.9945863,
+                    22.4768618
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "684",
+                  "areaLevel": "District",
+                  "areaName": "Jhargram",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Jhargram",
+                "marketCode": "2903",
+                "marketName": "Jhargram APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3345",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jiaganj APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jiaganj APMC mandi prices",
+              "shortDesc": "Mandi prices at Jiaganj APMC, Murshidabad, West Bengal"
+            },
+            "id": "resource:mandi-price:market:3345",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.284722,
+                    24.239444
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "690",
+                  "areaLevel": "District",
+                  "areaName": "Murshidabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Murshidabad",
+                "marketCode": "3345",
+                "marketName": "Jiaganj APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_344",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kaliaganj APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kaliaganj APMC mandi prices",
+              "shortDesc": "Mandi prices at Kaliaganj APMC, Uttar Dinajpur, West Bengal"
+            },
+            "id": "resource:mandi-price:market:344",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.328903,
+                    25.635657
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "697",
+                  "areaLevel": "District",
+                  "areaName": "Uttar Dinajpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Uttar Dinajpur",
+                "marketCode": "344",
+                "marketName": "Kaliaganj APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "16",
+                  "name": "Jute"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_677",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kalimpong APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kalimpong APMC mandi prices",
+              "shortDesc": "Mandi prices at Kalimpong APMC, Kalimpong, West Bengal"
+            },
+            "id": "resource:mandi-price:market:677",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.6,
+                    27.04
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "685",
+                  "areaLevel": "District",
+                  "areaName": "Kalimpong",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kalimpong",
+                "marketCode": "677",
+                "marketName": "Kalimpong APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3347",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kalipur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kalipur APMC mandi prices",
+              "shortDesc": "Mandi prices at Kalipur APMC, Hooghly, West Bengal"
+            },
+            "id": "resource:mandi-price:market:3347",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    87.798996,
+                    22.784012
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "681",
+                  "areaLevel": "District",
+                  "areaName": "Hooghly",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Hooghly",
+                "marketCode": "3347",
+                "marketName": "Kalipur APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_331",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kalna APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kalna APMC mandi prices",
+              "shortDesc": "Mandi prices at Kalna APMC, Purba Bardhaman, West Bengal"
+            },
+            "id": "resource:mandi-price:market:331",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "694",
+                  "areaLevel": "District",
+                  "areaName": "Purba Bardhaman",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Purba Bardhaman",
+                "marketCode": "331",
+                "marketName": "Kalna APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2266",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kalyani APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kalyani APMC mandi prices",
+              "shortDesc": "Mandi prices at Kalyani APMC, Nadia, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2266",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.434509,
+                    22.975084
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "691",
+                  "areaLevel": "District",
+                  "areaName": "Nadia",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nadia",
+                "marketCode": "2266",
+                "marketName": "Kalyani APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2265",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kandi APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kandi APMC mandi prices",
+              "shortDesc": "Mandi prices at Kandi APMC, Murshidabad, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2265",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.039,
+                    23.964
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "690",
+                  "areaLevel": "District",
+                  "areaName": "Murshidabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Murshidabad",
+                "marketCode": "2265",
+                "marketName": "Kandi APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_341",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Karimpur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Karimpur APMC mandi prices",
+              "shortDesc": "Mandi prices at Karimpur APMC, Nadia, West Bengal"
+            },
+            "id": "resource:mandi-price:market:341",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.637204,
+                    23.981405
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "691",
+                  "areaLevel": "District",
+                  "areaName": "Nadia",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nadia",
+                "marketCode": "341",
+                "marketName": "Karimpur APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3341",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Karsiyang(Matigara) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Karsiyang(Matigara) APMC mandi prices",
+              "shortDesc": "Mandi prices at Karsiyang(Matigara) APMC, Darjeeling, West Bengal"
+            },
+            "id": "resource:mandi-price:market:3341",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "680",
+                  "areaLevel": "District",
+                  "areaName": "Darjeeling",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Darjeeling",
+                "marketCode": "3341",
+                "marketName": "Karsiyang(Matigara) APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_340",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kasimbazar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kasimbazar APMC mandi prices",
+              "shortDesc": "Mandi prices at Kasimbazar APMC, Murshidabad, West Bengal"
+            },
+            "id": "resource:mandi-price:market:340",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.27334,
+                    24.10347
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "690",
+                  "areaLevel": "District",
+                  "areaName": "Murshidabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Murshidabad",
+                "marketCode": "340",
+                "marketName": "Kasimbazar APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "16",
+                  "name": "Jute"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3354",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kasipur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kasipur APMC mandi prices",
+              "shortDesc": "Mandi prices at Kasipur APMC, Puruliya, West Bengal"
+            },
+            "id": "resource:mandi-price:market:3354",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    86.685,
+                    23.465
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "695",
+                  "areaLevel": "District",
+                  "areaName": "Puruliya",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Puruliya",
+                "marketCode": "3354",
+                "marketName": "Kasipur APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_332",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Katwa APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Katwa APMC mandi prices",
+              "shortDesc": "Mandi prices at Katwa APMC, Purba Bardhaman, West Bengal"
+            },
+            "id": "resource:mandi-price:market:332",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.132858,
+                    23.64437
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "694",
+                  "areaLevel": "District",
+                  "areaName": "Purba Bardhaman",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Purba Bardhaman",
+                "marketCode": "332",
+                "marketName": "Katwa APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "11",
+                  "name": "Sesamum(Sesame,Gingelly,Til)"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2898",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Khatra APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Khatra APMC mandi prices",
+              "shortDesc": "Mandi prices at Khatra APMC, Bankura, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2898",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    86.85159554,
+                    22.98676526
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "675",
+                  "areaLevel": "District",
+                  "areaName": "Bankura",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Bankura",
+                "marketCode": "2898",
+                "marketName": "Khatra APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3353",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kolaghat APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kolaghat APMC mandi prices",
+              "shortDesc": "Mandi prices at Kolaghat APMC, Medinipur(E), West Bengal"
+            },
+            "id": "resource:mandi-price:market:3353",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    87.88138,
+                    22.43606
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "688",
+                  "areaLevel": "District",
+                  "areaName": "Medinipur(E)",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Medinipur(E)",
+                "marketCode": "3353",
+                "marketName": "Kolaghat APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_818",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Lalbagh APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Lalbagh APMC mandi prices",
+              "shortDesc": "Mandi prices at Lalbagh APMC, Murshidabad, West Bengal"
+            },
+            "id": "resource:mandi-price:market:818",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.28817,
+                    24.18052
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "690",
+                  "areaLevel": "District",
+                  "areaName": "Murshidabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Murshidabad",
+                "marketCode": "818",
+                "marketName": "Lalbagh APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "16",
+                  "name": "Jute"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2534",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mathabhanga APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Mathabhanga APMC mandi prices",
+              "shortDesc": "Mandi prices at Mathabhanga APMC, Coochbehar, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2534",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    89.216584,
+                    26.343495
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "678",
+                  "areaLevel": "District",
+                  "areaName": "Coochbehar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Coochbehar",
+                "marketCode": "2534",
+                "marketName": "Mathabhanga APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_671",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Medinipur(West) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Medinipur(West) APMC mandi prices",
+              "shortDesc": "Mandi prices at Medinipur(West) APMC, Medinipur(W), West Bengal"
+            },
+            "id": "resource:mandi-price:market:671",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    87.3296,
+                    22.4258
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "689",
+                  "areaLevel": "District",
+                  "areaName": "Medinipur(W)",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Medinipur(W)",
+                "marketCode": "671",
+                "marketName": "Medinipur(West) APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4671",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mekhliganj APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Mekhliganj APMC mandi prices",
+              "shortDesc": "Mandi prices at Mekhliganj APMC, Coochbehar, West Bengal"
+            },
+            "id": "resource:mandi-price:market:4671",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.909236,
+                    26.343984
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "678",
+                  "areaLevel": "District",
+                  "areaName": "Coochbehar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Coochbehar",
+                "marketCode": "4671",
+                "marketName": "Mekhliganj APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2900",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Memari APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Memari APMC mandi prices",
+              "shortDesc": "Mandi prices at Memari APMC, Purba Bardhaman, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2900",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.1034,
+                    23.1745
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "694",
+                  "areaLevel": "District",
+                  "areaName": "Purba Bardhaman",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Purba Bardhaman",
+                "marketCode": "2900",
+                "marketName": "Memari APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3340",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Moynaguri APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Moynaguri APMC mandi prices",
+              "shortDesc": "Mandi prices at Moynaguri APMC, Jalpaiguri, West Bengal"
+            },
+            "id": "resource:mandi-price:market:3340",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.82,
+                    26.56
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "683",
+                  "areaLevel": "District",
+                  "areaName": "Jalpaiguri",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Jalpaiguri",
+                "marketCode": "3340",
+                "marketName": "Moynaguri APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_674",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nadia APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Nadia APMC mandi prices",
+              "shortDesc": "Mandi prices at Nadia APMC, Nadia, West Bengal"
+            },
+            "id": "resource:mandi-price:market:674",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.49,
+                    23.41
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "691",
+                  "areaLevel": "District",
+                  "areaName": "Nadia",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nadia",
+                "marketCode": "674",
+                "marketName": "Nadia APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2269",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nimdhighi Market. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Nimdhighi Market mandi prices",
+              "shortDesc": "Mandi prices at Nimdhighi Market, Howrah, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2269",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.09525,
+                    22.478111
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "682",
+                  "areaLevel": "District",
+                  "areaName": "Howrah",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Howrah",
+                "marketCode": "2269",
+                "marketName": "Nimdhighi Market",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_334",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Pandua APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Pandua APMC mandi prices",
+              "shortDesc": "Mandi prices at Pandua APMC, Hooghly, West Bengal"
+            },
+            "id": "resource:mandi-price:market:334",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.293594,
+                    23.071893
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "681",
+                  "areaLevel": "District",
+                  "areaName": "Hooghly",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Hooghly",
+                "marketCode": "334",
+                "marketName": "Pandua APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2901",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Pundibari APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Pundibari APMC mandi prices",
+              "shortDesc": "Mandi prices at Pundibari APMC, Coochbehar, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2901",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    89.370684,
+                    26.407955
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "678",
+                  "areaLevel": "District",
+                  "areaName": "Coochbehar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Coochbehar",
+                "marketCode": "2901",
+                "marketName": "Pundibari APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_673",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Purulia APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Purulia APMC mandi prices",
+              "shortDesc": "Mandi prices at Purulia APMC, Puruliya, West Bengal"
+            },
+            "id": "resource:mandi-price:market:673",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    86.38,
+                    23.37
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "695",
+                  "areaLevel": "District",
+                  "areaName": "Puruliya",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Puruliya",
+                "marketCode": "673",
+                "marketName": "Purulia APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3343",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Raiganj APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Raiganj APMC mandi prices",
+              "shortDesc": "Mandi prices at Raiganj APMC, Uttar Dinajpur, West Bengal"
+            },
+            "id": "resource:mandi-price:market:3343",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.137,
+                    25.644
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "697",
+                  "areaLevel": "District",
+                  "areaName": "Uttar Dinajpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Uttar Dinajpur",
+                "marketCode": "3343",
+                "marketName": "Raiganj APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_799",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ramkrishanpur(Howrah). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Ramkrishanpur(Howrah) mandi prices",
+              "shortDesc": "Mandi prices at Ramkrishanpur(Howrah), Howrah, West Bengal"
+            },
+            "id": "resource:mandi-price:market:799",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.328583,
+                    22.580528
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "682",
+                  "areaLevel": "District",
+                  "areaName": "Howrah",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Howrah",
+                "marketCode": "799",
+                "marketName": "Ramkrishanpur(Howrah)",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4666",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Rampurhat APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Rampurhat APMC mandi prices",
+              "shortDesc": "Mandi prices at Rampurhat APMC, Birbhum, West Bengal"
+            },
+            "id": "resource:mandi-price:market:4666",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    87.787,
+                    24.173
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "676",
+                  "areaLevel": "District",
+                  "areaName": "Birbhum",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Birbhum",
+                "marketCode": "4666",
+                "marketName": "Rampurhat APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3349",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ranaghat APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Ranaghat APMC mandi prices",
+              "shortDesc": "Mandi prices at Ranaghat APMC, Nadia, West Bengal"
+            },
+            "id": "resource:mandi-price:market:3349",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.566976,
+                    23.176153
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "691",
+                  "areaLevel": "District",
+                  "areaName": "Nadia",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nadia",
+                "marketCode": "3349",
+                "marketName": "Ranaghat APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3355",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sainthia APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sainthia APMC mandi prices",
+              "shortDesc": "Mandi prices at Sainthia APMC, Birbhum, West Bengal"
+            },
+            "id": "resource:mandi-price:market:3355",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    87.679,
+                    23.948
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "676",
+                  "areaLevel": "District",
+                  "areaName": "Birbhum",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Birbhum",
+                "marketCode": "3355",
+                "marketName": "Sainthia APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_336",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Samsi APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Samsi APMC mandi prices",
+              "shortDesc": "Mandi prices at Samsi APMC, Malda, West Bengal"
+            },
+            "id": "resource:mandi-price:market:336",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.04,
+                    25.2735
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "687",
+                  "areaLevel": "District",
+                  "areaName": "Malda",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Malda",
+                "marketCode": "336",
+                "marketName": "Samsi APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2896",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sealdah Koley Market APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sealdah Koley Market APMC mandi prices",
+              "shortDesc": "Mandi prices at Sealdah Koley Market APMC, Kolkata, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2896",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.3682,
+                    22.5662
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "686",
+                  "areaLevel": "District",
+                  "areaName": "Kolkata",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kolkata",
+                "marketCode": "2896",
+                "marketName": "Sealdah Koley Market APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2270",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sheoraphuly APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sheoraphuly APMC mandi prices",
+              "shortDesc": "Mandi prices at Sheoraphuly APMC, Hooghly, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2270",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    88.315258,
+                    22.787453
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "681",
+                  "areaLevel": "District",
+                  "areaName": "Hooghly",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Hooghly",
+                "marketCode": "2270",
+                "marketName": "Sheoraphuly APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2537",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Siliguri APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Siliguri APMC mandi prices",
+              "shortDesc": "Mandi prices at Siliguri APMC, Darjeeling, West Bengal"
+            },
+            "id": "resource:mandi-price:market:2537",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "680",
+                  "areaLevel": "District",
+                  "areaName": "Darjeeling",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Darjeeling",
+                "marketCode": "2537",
+                "marketName": "Siliguri APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_338",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Tamluk (Medinipur E) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Tamluk (Medinipur E) APMC mandi prices",
+              "shortDesc": "Mandi prices at Tamluk (Medinipur E) APMC, Medinipur(E), West Bengal"
+            },
+            "id": "resource:mandi-price:market:338",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    87.92548,
+                    22.28171
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "688",
+                  "areaLevel": "District",
+                  "areaName": "Medinipur(E)",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Medinipur(E)",
+                "marketCode": "338",
+                "marketName": "Tamluk (Medinipur E) APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_819",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Toofanganj APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Toofanganj APMC mandi prices",
+              "shortDesc": "Mandi prices at Toofanganj APMC, Coochbehar, West Bengal"
+            },
+            "id": "resource:mandi-price:market:819",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    89.668578,
+                    26.315483
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "678",
+                  "areaLevel": "District",
+                  "areaName": "Coochbehar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-WB",
+                  "areaLevel": "State",
+                  "areaName": "West Bengal",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Coochbehar",
+                "marketCode": "819",
+                "marketName": "Toofanganj APMC",
+                "state": "WB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:mandi-price:WB",
+        "catalogType": "REGULAR",
+        "schemaTypes": [
+          "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld"
+        ],
+        "updateMode": "FULL",
+        "visibleTo": [
+          "{{networkId}}"
+        ]
+      }
+    ]
+  }
+}

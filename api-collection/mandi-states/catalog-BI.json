@@ -1,0 +1,577 @@
+{
+  "context": {
+    "action": "catalog/publish",
+    "messageId": "{{messageId}}",
+    "timestamp": "{{timestamp}}",
+    "transactionId": "{{transactionId}}",
+    "version": "2.0.0",
+    "senderId": "{{senderId}}",
+    "receiverId": "{{receiverId}}"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "descriptor": {
+          "code": "MANDI_PRICE_MARKET_BI",
+          "longDesc": "One resource per market. Each carries the Agmarknet codes a select must send, that market's traded commodities, and its point location for proximity discovery.",
+          "name": "Agmarknet mandi markets — Bihar",
+          "shortDesc": "Markets in Bihar, their locations, and what each trades"
+        },
+        "id": "catalog:mandi-price:BI",
+        "isActive": true,
+        "provider": {
+          "descriptor": {
+            "code": "AGMARKNET",
+            "name": "Agmarknet Vistaar",
+            "shortDesc": "Provider of live agricultural market price information."
+          },
+          "id": "agmarknet"
+        },
+        "resources": [
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_392",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Aarah APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Aarah APMC mandi prices",
+              "shortDesc": "Mandi prices at Aarah APMC, Bhojpur, Bihar"
+            },
+            "id": "resource:mandi-price:market:392",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "61",
+                  "areaLevel": "District",
+                  "areaName": "Bhojpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-BR",
+                  "areaLevel": "State",
+                  "areaName": "Bihar",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Bhojpur",
+                "marketCode": "392",
+                "marketName": "Aarah APMC",
+                "state": "BI"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1493",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Barahat APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Barahat APMC mandi prices",
+              "shortDesc": "Mandi prices at Barahat APMC, Banka, Bihar"
+            },
+            "id": "resource:mandi-price:market:1493",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "58",
+                  "areaLevel": "District",
+                  "areaName": "Banka",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-BR",
+                  "areaLevel": "State",
+                  "areaName": "Bihar",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Banka",
+                "marketCode": "1493",
+                "marketName": "Barahat APMC",
+                "state": "BI"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_393",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Buxur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Buxur APMC mandi prices",
+              "shortDesc": "Mandi prices at Buxur APMC, Buxar, Bihar"
+            },
+            "id": "resource:mandi-price:market:393",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    83.97515061311424,
+                    25.574216293171048
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "62",
+                  "areaLevel": "District",
+                  "areaName": "Buxar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-BR",
+                  "areaLevel": "State",
+                  "areaName": "Bihar",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Buxar",
+                "marketCode": "393",
+                "marketName": "Buxur APMC",
+                "state": "BI"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1497",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jainagar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jainagar APMC mandi prices",
+              "shortDesc": "Mandi prices at Jainagar APMC, Madhubani, Bihar"
+            },
+            "id": "resource:mandi-price:market:1497",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "76",
+                  "areaLevel": "District",
+                  "areaName": "Madhubani",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-BR",
+                  "areaLevel": "State",
+                  "areaName": "Bihar",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Madhubani",
+                "marketCode": "1497",
+                "marketName": "Jainagar APMC",
+                "state": "BI"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3939",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mansi Mandi APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Mansi Mandi APMC mandi prices",
+              "shortDesc": "Mandi prices at Mansi Mandi APMC, Khagaria, Bihar"
+            },
+            "id": "resource:mandi-price:market:3939",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    86.55273333333335,
+                    25.511611666666667
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "72",
+                  "areaLevel": "District",
+                  "areaName": "Khagaria",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-BR",
+                  "areaLevel": "State",
+                  "areaName": "Bihar",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Khagaria",
+                "marketCode": "3939",
+                "marketName": "Mansi Mandi APMC",
+                "state": "BI"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_36",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Muzaffarpur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Muzaffarpur APMC mandi prices",
+              "shortDesc": "Mandi prices at Muzaffarpur APMC, Muzaffarpur, Bihar"
+            },
+            "id": "resource:mandi-price:market:36",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    85.39634,
+                    26.149694
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "78",
+                  "areaLevel": "District",
+                  "areaName": "Muzaffarpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-BR",
+                  "areaLevel": "State",
+                  "areaName": "Bihar",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Muzaffarpur",
+                "marketCode": "36",
+                "marketName": "Muzaffarpur APMC",
+                "state": "BI"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1481",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Natwar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Natwar APMC mandi prices",
+              "shortDesc": "Mandi prices at Natwar APMC, Rohtas, Bihar"
+            },
+            "id": "resource:mandi-price:market:1481",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "83",
+                  "areaLevel": "District",
+                  "areaName": "Rohtas",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-BR",
+                  "areaLevel": "State",
+                  "areaName": "Bihar",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Rohtas",
+                "marketCode": "1481",
+                "marketName": "Natwar APMC",
+                "state": "BI"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_41",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sasaram APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sasaram APMC mandi prices",
+              "shortDesc": "Mandi prices at Sasaram APMC, Rohtas, Bihar"
+            },
+            "id": "resource:mandi-price:market:41",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "83",
+                  "areaLevel": "District",
+                  "areaName": "Rohtas",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-BR",
+                  "areaLevel": "State",
+                  "areaName": "Bihar",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Rohtas",
+                "marketCode": "41",
+                "marketName": "Sasaram APMC",
+                "state": "BI"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3956",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sheohar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sheohar APMC mandi prices",
+              "shortDesc": "Mandi prices at Sheohar APMC, Sheohar, Bihar"
+            },
+            "id": "resource:mandi-price:market:3956",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "88",
+                  "areaLevel": "District",
+                  "areaName": "Sheohar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-BR",
+                  "areaLevel": "State",
+                  "areaName": "Bihar",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Sheohar",
+                "marketCode": "3956",
+                "marketName": "Sheohar APMC",
+                "state": "BI"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:mandi-price:BI",
+        "catalogType": "REGULAR",
+        "schemaTypes": [
+          "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld"
+        ],
+        "updateMode": "FULL",
+        "visibleTo": [
+          "{{networkId}}"
+        ]
+      }
+    ]
+  }
+}

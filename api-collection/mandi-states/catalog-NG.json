@@ -1,0 +1,698 @@
+{
+  "context": {
+    "action": "catalog/publish",
+    "messageId": "{{messageId}}",
+    "timestamp": "{{timestamp}}",
+    "transactionId": "{{transactionId}}",
+    "version": "2.0.0",
+    "senderId": "{{senderId}}",
+    "receiverId": "{{receiverId}}"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "descriptor": {
+          "code": "MANDI_PRICE_MARKET_NG",
+          "longDesc": "One resource per market. Each carries the Agmarknet codes a select must send, that market's traded commodities, and its point location for proximity discovery.",
+          "name": "Agmarknet mandi markets — Nagaland",
+          "shortDesc": "Markets in Nagaland, their locations, and what each trades"
+        },
+        "id": "catalog:mandi-price:NG",
+        "isActive": true,
+        "provider": {
+          "descriptor": {
+            "code": "AGMARKNET",
+            "name": "Agmarknet Vistaar",
+            "shortDesc": "Provider of live agricultural market price information."
+          },
+          "id": "agmarknet"
+        },
+        "resources": [
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3293",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Baghty APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Baghty APMC mandi prices",
+              "shortDesc": "Mandi prices at Baghty APMC, Wokha, Nagaland"
+            },
+            "id": "resource:mandi-price:market:3293",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    94.1884,
+                    26.2582
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "412",
+                  "areaLevel": "District",
+                  "areaName": "Wokha",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-NL",
+                  "areaLevel": "State",
+                  "areaName": "Nagaland",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Wokha",
+                "marketCode": "3293",
+                "marketName": "Baghty APMC",
+                "state": "NG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3289",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ghathashi APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Ghathashi APMC mandi prices",
+              "shortDesc": "Mandi prices at Ghathashi APMC, Zunheboto, Nagaland"
+            },
+            "id": "resource:mandi-price:market:3289",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    94.4173,
+                    25.8698
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "413",
+                  "areaLevel": "District",
+                  "areaName": "Zunheboto",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-NL",
+                  "areaLevel": "State",
+                  "areaName": "Nagaland",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Zunheboto",
+                "marketCode": "3289",
+                "marketName": "Ghathashi APMC",
+                "state": "NG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_195",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jalukie APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jalukie APMC mandi prices",
+              "shortDesc": "Mandi prices at Jalukie APMC, Kohima, Nagaland"
+            },
+            "id": "resource:mandi-price:market:195",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    93.5065,
+                    25.5406
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "404",
+                  "areaLevel": "District",
+                  "areaName": "Kohima",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-NL",
+                  "areaLevel": "State",
+                  "areaName": "Nagaland",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kohima",
+                "marketCode": "195",
+                "marketName": "Jalukie APMC",
+                "state": "NG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3295",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kipheri APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kipheri APMC mandi prices",
+              "shortDesc": "Mandi prices at Kipheri APMC, Kiphire, Nagaland"
+            },
+            "id": "resource:mandi-price:market:3295",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    94.8251,
+                    25.8449
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "403",
+                  "areaLevel": "District",
+                  "areaName": "Kiphire",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-NL",
+                  "areaLevel": "State",
+                  "areaName": "Nagaland",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kiphire",
+                "marketCode": "3295",
+                "marketName": "Kipheri APMC",
+                "state": "NG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1699",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kohima APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kohima APMC mandi prices",
+              "shortDesc": "Mandi prices at Kohima APMC, Kohima, Nagaland"
+            },
+            "id": "resource:mandi-price:market:1699",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    94.12,
+                    25.67
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "404",
+                  "areaLevel": "District",
+                  "areaName": "Kohima",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-NL",
+                  "areaLevel": "State",
+                  "areaName": "Nagaland",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kohima",
+                "marketCode": "1699",
+                "marketName": "Kohima APMC",
+                "state": "NG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3294",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Longleng APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Longleng APMC mandi prices",
+              "shortDesc": "Mandi prices at Longleng APMC, Longleng, Nagaland"
+            },
+            "id": "resource:mandi-price:market:3294",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    94.8167,
+                    26.4667
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "405",
+                  "areaLevel": "District",
+                  "areaName": "Longleng",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-NL",
+                  "areaLevel": "State",
+                  "areaName": "Nagaland",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Longleng",
+                "marketCode": "3294",
+                "marketName": "Longleng APMC",
+                "state": "NG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3669",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mangkolemba APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Mangkolemba APMC mandi prices",
+              "shortDesc": "Mandi prices at Mangkolemba APMC, Mokokchung, Nagaland"
+            },
+            "id": "resource:mandi-price:market:3669",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    94.439,
+                    26.4994
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "406",
+                  "areaLevel": "District",
+                  "areaName": "Mokokchung",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-NL",
+                  "areaLevel": "State",
+                  "areaName": "Nagaland",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Mokokchung",
+                "marketCode": "3669",
+                "marketName": "Mangkolemba APMC",
+                "state": "NG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1697",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Phek APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Phek APMC mandi prices",
+              "shortDesc": "Mandi prices at Phek APMC, Phek, Nagaland"
+            },
+            "id": "resource:mandi-price:market:1697",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    94.4635,
+                    25.6927
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "409",
+                  "areaLevel": "District",
+                  "areaName": "Phek",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-NL",
+                  "areaLevel": "State",
+                  "areaName": "Nagaland",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Phek",
+                "marketCode": "1697",
+                "marketName": "Phek APMC",
+                "state": "NG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_588",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Wokha Town APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Wokha Town APMC mandi prices",
+              "shortDesc": "Mandi prices at Wokha Town APMC, Wokha, Nagaland"
+            },
+            "id": "resource:mandi-price:market:588",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    94.2589,
+                    26.091
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "412",
+                  "areaLevel": "District",
+                  "areaName": "Wokha",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-NL",
+                  "areaLevel": "State",
+                  "areaName": "Nagaland",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Wokha",
+                "marketCode": "588",
+                "marketName": "Wokha Town APMC",
+                "state": "NG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1696",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Zunheboto APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Zunheboto APMC mandi prices",
+              "shortDesc": "Mandi prices at Zunheboto APMC, Zunheboto, Nagaland"
+            },
+            "id": "resource:mandi-price:market:1696",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    94.5264,
+                    26.0133
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "413",
+                  "areaLevel": "District",
+                  "areaName": "Zunheboto",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-NL",
+                  "areaLevel": "State",
+                  "areaName": "Nagaland",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Zunheboto",
+                "marketCode": "1696",
+                "marketName": "Zunheboto APMC",
+                "state": "NG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:mandi-price:NG",
+        "catalogType": "REGULAR",
+        "schemaTypes": [
+          "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld"
+        ],
+        "updateMode": "FULL",
+        "visibleTo": [
+          "{{networkId}}"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,1755 @@
+{
+  "context": {
+    "action": "catalog/publish",
+    "messageId": "{{messageId}}",
+    "timestamp": "{{timestamp}}",
+    "transactionId": "{{transactionId}}",
+    "version": "2.0.0",
+    "senderId": "{{senderId}}",
+    "receiverId": "{{receiverId}}"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "descriptor": {
+          "code": "MANDI_PRICE_MARKET_TR",
+          "longDesc": "One resource per market. Each carries the Agmarknet codes a select must send, that market's traded commodities, and its point location for proximity discovery.",
+          "name": "Agmarknet mandi markets — Tripura",
+          "shortDesc": "Markets in Tripura, their locations, and what each trades"
+        },
+        "id": "catalog:mandi-price:TR",
+        "isActive": true,
+        "provider": {
+          "descriptor": {
+            "code": "AGMARKNET",
+            "name": "Agmarknet Vistaar",
+            "shortDesc": "Provider of live agricultural market price information."
+          },
+          "id": "agmarknet"
+        },
+        "resources": [
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_680",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bachaibari APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bachaibari APMC mandi prices",
+              "shortDesc": "Mandi prices at Bachaibari APMC, Khowai, Tripura"
+            },
+            "id": "resource:mandi-price:market:680",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.644042,
+                    24.10597
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "580",
+                  "areaLevel": "District",
+                  "areaName": "Khowai",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Khowai",
+                "marketCode": "680",
+                "marketName": "Bachaibari APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3105",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Barpathari APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Barpathari APMC mandi prices",
+              "shortDesc": "Mandi prices at Barpathari APMC, South Tripura, Tripura"
+            },
+            "id": "resource:mandi-price:market:3105",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.40736,
+                    23.29909
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "583",
+                  "areaLevel": "District",
+                  "areaName": "South Tripura",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "South Tripura",
+                "marketCode": "3105",
+                "marketName": "Barpathari APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_295",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bishalgarh APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bishalgarh APMC mandi prices",
+              "shortDesc": "Mandi prices at Bishalgarh APMC, Sepahijala, Tripura"
+            },
+            "id": "resource:mandi-price:market:295",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.289283,
+                    23.660558
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "582",
+                  "areaLevel": "District",
+                  "areaName": "Sepahijala",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Sepahijala",
+                "marketCode": "295",
+                "marketName": "Bishalgarh APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3672",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bishramganj. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bishramganj mandi prices",
+              "shortDesc": "Mandi prices at Bishramganj, Sepahijala, Tripura"
+            },
+            "id": "resource:mandi-price:market:3672",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.347929,
+                    23.60728
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "582",
+                  "areaLevel": "District",
+                  "areaName": "Sepahijala",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Sepahijala",
+                "marketCode": "3672",
+                "marketName": "Bishramganj",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3673",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Boxonagar. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Boxonagar mandi prices",
+              "shortDesc": "Mandi prices at Boxonagar, Sepahijala, Tripura"
+            },
+            "id": "resource:mandi-price:market:3673",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.196,
+                    23.608
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "582",
+                  "areaLevel": "District",
+                  "areaName": "Sepahijala",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Sepahijala",
+                "marketCode": "3673",
+                "marketName": "Boxonagar",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1700",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Champaknagar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Champaknagar APMC mandi prices",
+              "shortDesc": "Mandi prices at Champaknagar APMC, West District, Tripura"
+            },
+            "id": "resource:mandi-price:market:1700",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.4905,
+                    23.804
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "585",
+                  "areaLevel": "District",
+                  "areaName": "West District",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "West District",
+                "marketCode": "1700",
+                "marketName": "Champaknagar APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3101",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Chowmanu APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Chowmanu APMC mandi prices",
+              "shortDesc": "Mandi prices at Chowmanu APMC, Dhalai, Tripura"
+            },
+            "id": "resource:mandi-price:market:3101",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.9957649,
+                    23.853983
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "578",
+                  "areaLevel": "District",
+                  "areaName": "Dhalai",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Dhalai",
+                "marketCode": "3101",
+                "marketName": "Chowmanu APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1704",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Dasda APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Dasda APMC mandi prices",
+              "shortDesc": "Mandi prices at Dasda APMC, North Tripura, Tripura"
+            },
+            "id": "resource:mandi-price:market:1704",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    92.2073,
+                    23.9461
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "581",
+                  "areaLevel": "District",
+                  "areaName": "North Tripura",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "North Tripura",
+                "marketCode": "1704",
+                "marketName": "Dasda APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1702",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Garjee APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Garjee APMC mandi prices",
+              "shortDesc": "Mandi prices at Garjee APMC, Gomati, Tripura"
+            },
+            "id": "resource:mandi-price:market:1702",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.5064,
+                    23.4225
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "579",
+                  "areaLevel": "District",
+                  "areaName": "Gomati",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Gomati",
+                "marketCode": "1702",
+                "marketName": "Garjee APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3102",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Gondatwisa APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Gondatwisa APMC mandi prices",
+              "shortDesc": "Mandi prices at Gondatwisa APMC, Dhalai, Tripura"
+            },
+            "id": "resource:mandi-price:market:3102",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.820201,
+                    23.603166
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "578",
+                  "areaLevel": "District",
+                  "areaName": "Dhalai",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Dhalai",
+                "marketCode": "3102",
+                "marketName": "Gondatwisa APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3099",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jampuijala APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jampuijala APMC mandi prices",
+              "shortDesc": "Mandi prices at Jampuijala APMC, Sepahijala, Tripura"
+            },
+            "id": "resource:mandi-price:market:3099",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.459844,
+                    23.704013
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "582",
+                  "areaLevel": "District",
+                  "areaName": "Sepahijala",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Sepahijala",
+                "marketCode": "3099",
+                "marketName": "Jampuijala APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3680",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kadamtala. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kadamtala mandi prices",
+              "shortDesc": "Mandi prices at Kadamtala, North Tripura, Tripura"
+            },
+            "id": "resource:mandi-price:market:3680",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.75707,
+                    24.7257
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "581",
+                  "areaLevel": "District",
+                  "areaName": "North Tripura",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "North Tripura",
+                "marketCode": "3680",
+                "marketName": "Kadamtala",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3098",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kalyanpur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kalyanpur APMC mandi prices",
+              "shortDesc": "Mandi prices at Kalyanpur APMC, Khowai, Tripura"
+            },
+            "id": "resource:mandi-price:market:3098",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.610643,
+                    23.931623
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "580",
+                  "areaLevel": "District",
+                  "areaName": "Khowai",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Khowai",
+                "marketCode": "3098",
+                "marketName": "Kalyanpur APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3677",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kanchanpur. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kanchanpur mandi prices",
+              "shortDesc": "Mandi prices at Kanchanpur, North Tripura, Tripura"
+            },
+            "id": "resource:mandi-price:market:3677",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    92.2304,
+                    23.9143
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "581",
+                  "areaLevel": "District",
+                  "areaName": "North Tripura",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "North Tripura",
+                "marketCode": "3677",
+                "marketName": "Kanchanpur",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_684",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kulai APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kulai APMC mandi prices",
+              "shortDesc": "Mandi prices at Kulai APMC, Dhalai, Tripura"
+            },
+            "id": "resource:mandi-price:market:684",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.832275,
+                    23.946403333333333
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "578",
+                  "areaLevel": "District",
+                  "areaName": "Dhalai",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Dhalai",
+                "marketCode": "684",
+                "marketName": "Kulai APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3679",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Masli. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Masli mandi prices",
+              "shortDesc": "Mandi prices at Masli, Dhalai, Tripura"
+            },
+            "id": "resource:mandi-price:market:3679",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    92.05,
+                    23.883
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "578",
+                  "areaLevel": "District",
+                  "areaName": "Dhalai",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Dhalai",
+                "marketCode": "3679",
+                "marketName": "Masli",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_679",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Melaghar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Melaghar APMC mandi prices",
+              "shortDesc": "Mandi prices at Melaghar APMC, Sepahijala, Tripura"
+            },
+            "id": "resource:mandi-price:market:679",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.3297059,
+                    23.4920793
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "582",
+                  "areaLevel": "District",
+                  "areaName": "Sepahijala",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Sepahijala",
+                "marketCode": "679",
+                "marketName": "Melaghar APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1703",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nutanbazar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Nutanbazar APMC mandi prices",
+              "shortDesc": "Mandi prices at Nutanbazar APMC, Gomati, Tripura"
+            },
+            "id": "resource:mandi-price:market:1703",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.753505,
+                    23.4289514
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "579",
+                  "areaLevel": "District",
+                  "areaName": "Gomati",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Gomati",
+                "marketCode": "1703",
+                "marketName": "Nutanbazar APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_678",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Pabiacherra APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Pabiacherra APMC mandi prices",
+              "shortDesc": "Mandi prices at Pabiacherra APMC, Unokoti, Tripura"
+            },
+            "id": "resource:mandi-price:market:678",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    92.03508,
+                    24.15952
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "584",
+                  "areaLevel": "District",
+                  "areaName": "Unokoti",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Unokoti",
+                "marketCode": "678",
+                "marketName": "Pabiacherra APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3676",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Panichowki. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Panichowki mandi prices",
+              "shortDesc": "Mandi prices at Panichowki, Unokoti, Tripura"
+            },
+            "id": "resource:mandi-price:market:3676",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    92.02,
+                    24.28
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "584",
+                  "areaLevel": "District",
+                  "areaName": "Unokoti",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Unokoti",
+                "marketCode": "3676",
+                "marketName": "Panichowki",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_683",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Panisagar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Panisagar APMC mandi prices",
+              "shortDesc": "Mandi prices at Panisagar APMC, North Tripura, Tripura"
+            },
+            "id": "resource:mandi-price:market:683",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    92.151498,
+                    24.265049
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "581",
+                  "areaLevel": "District",
+                  "areaName": "North Tripura",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "North Tripura",
+                "marketCode": "683",
+                "marketName": "Panisagar APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_294",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Shantipur Bazar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Shantipur Bazar APMC mandi prices",
+              "shortDesc": "Mandi prices at Shantipur Bazar APMC, South Tripura, Tripura"
+            },
+            "id": "resource:mandi-price:market:294",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.628953,
+                    23.280748
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "583",
+                  "areaLevel": "District",
+                  "areaName": "South Tripura",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "South Tripura",
+                "marketCode": "294",
+                "marketName": "Shantipur Bazar APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3104",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Silachhari APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Silachhari APMC mandi prices",
+              "shortDesc": "Mandi prices at Silachhari APMC, Gomati, Tripura"
+            },
+            "id": "resource:mandi-price:market:3104",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.776,
+                    23.23252
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "579",
+                  "areaLevel": "District",
+                  "areaName": "Gomati",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Gomati",
+                "marketCode": "3104",
+                "marketName": "Silachhari APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3100",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sonamura APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sonamura APMC mandi prices",
+              "shortDesc": "Mandi prices at Sonamura APMC, Sepahijala, Tripura"
+            },
+            "id": "resource:mandi-price:market:3100",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.269569,
+                    23.474707
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "582",
+                  "areaLevel": "District",
+                  "areaName": "Sepahijala",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Sepahijala",
+                "marketCode": "3100",
+                "marketName": "Sonamura APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_296",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Teliamura APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Teliamura APMC mandi prices",
+              "shortDesc": "Mandi prices at Teliamura APMC, Khowai, Tripura"
+            },
+            "id": "resource:mandi-price:market:296",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.671416,
+                    23.849909
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "580",
+                  "areaLevel": "District",
+                  "areaName": "Khowai",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TR",
+                  "areaLevel": "State",
+                  "areaName": "Tripura",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Khowai",
+                "marketCode": "296",
+                "marketName": "Teliamura APMC",
+                "state": "TR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:mandi-price:TR",
+        "catalogType": "REGULAR",
+        "schemaTypes": [
+          "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld"
+        ],
+        "updateMode": "FULL",
+        "visibleTo": [
+          "{{networkId}}"
+        ]
+      }
+    ]
+  }
+}

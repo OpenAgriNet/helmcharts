@@ -1,0 +1,1153 @@
+{
+  "context": {
+    "action": "catalog/publish",
+    "messageId": "{{messageId}}",
+    "timestamp": "{{timestamp}}",
+    "transactionId": "{{transactionId}}",
+    "version": "2.0.0",
+    "senderId": "{{senderId}}",
+    "receiverId": "{{receiverId}}"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "descriptor": {
+          "code": "MANDI_PRICE_MARKET_MH_2",
+          "longDesc": "One resource per market. Each carries the Agmarknet codes a select must send, that market's traded commodities, and its point location for proximity discovery.",
+          "name": "Agmarknet mandi markets — Maharashtra",
+          "shortDesc": "Markets in Maharashtra, their locations, and what each trades"
+        },
+        "id": "catalog:mandi-price:MH-2",
+        "isActive": true,
+        "provider": {
+          "descriptor": {
+            "code": "AGMARKNET",
+            "name": "Agmarknet Vistaar",
+            "shortDesc": "Provider of live agricultural market price information."
+          },
+          "id": "agmarknet"
+        },
+        "resources": [
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4022",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Acf Agro Marketing, Malkapur, Dist Buldhana. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Acf Agro Marketing, Malkapur, Dist Buldhana mandi prices",
+              "shortDesc": "Mandi prices at Acf Agro Marketing, Malkapur, Dist Buldhana, Buldhana, Maharashtra"
+            },
+            "id": "resource:mandi-price:market:4022",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "344",
+                  "areaLevel": "District",
+                  "areaName": "Buldhana",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MH",
+                  "areaLevel": "State",
+                  "areaName": "Maharashtra",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Buldhana",
+                "marketCode": "4022",
+                "marketName": "Acf Agro Marketing, Malkapur, Dist Buldhana",
+                "state": "MH"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "15",
+                  "name": "Cotton"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4010",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bsk Krishi Bazar Private Limited, Mehkar, Dist Buldhana. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bsk Krishi Bazar Private Limited, Mehkar, Dist Buldhana mandi prices",
+              "shortDesc": "Mandi prices at Bsk Krishi Bazar Private Limited, Mehkar, Dist Buldhana, Buldhana, Maharashtra"
+            },
+            "id": "resource:mandi-price:market:4010",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "344",
+                  "areaLevel": "District",
+                  "areaName": "Buldhana",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MH",
+                  "areaLevel": "State",
+                  "areaName": "Maharashtra",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Buldhana",
+                "marketCode": "4010",
+                "marketName": "Bsk Krishi Bazar Private Limited, Mehkar, Dist Buldhana",
+                "state": "MH"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "13",
+                  "name": "Soyabean"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4012",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jaykissan Krushi Uttpan Khajgi Bazar, Khamgaon, Dist Buldhana. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jaykissan Krushi Uttpan Khajgi Bazar, Khamgaon, Dist Buldhana mandi prices",
+              "shortDesc": "Mandi prices at Jaykissan Krushi Uttpan Khajgi Bazar, Khamgaon, Dist Buldhana, Buldhana, Maharashtra"
+            },
+            "id": "resource:mandi-price:market:4012",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "344",
+                  "areaLevel": "District",
+                  "areaName": "Buldhana",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MH",
+                  "areaLevel": "State",
+                  "areaName": "Maharashtra",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Buldhana",
+                "marketCode": "4012",
+                "marketName": "Jaykissan Krushi Uttpan Khajgi Bazar, Khamgaon, Dist Buldhana",
+                "state": "MH"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "5",
+                  "name": "Jowar(Sorghum)"
+                },
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "13",
+                  "name": "Soyabean"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4011",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Krushna Krishi Bazar, Washim. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Krushna Krishi Bazar, Washim mandi prices",
+              "shortDesc": "Mandi prices at Krushna Krishi Bazar, Washim, Washim, Maharashtra"
+            },
+            "id": "resource:mandi-price:market:4011",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "372",
+                  "areaLevel": "District",
+                  "areaName": "Washim",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MH",
+                  "areaLevel": "State",
+                  "areaName": "Maharashtra",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Washim",
+                "marketCode": "4011",
+                "marketName": "Krushna Krishi Bazar, Washim",
+                "state": "MH"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "13",
+                  "name": "Soyabean"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3996",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Laxmi-Sopan Agriculture Produce Marketing Co Ltd, Barshi, Dist Solapur. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Laxmi-Sopan Agriculture Produce Marketing Co Ltd, Barshi, Dist Solapur mandi prices",
+              "shortDesc": "Mandi prices at Laxmi-Sopan Agriculture Produce Marketing Co Ltd, Barshi, Dist Solapur, Solapur, Maharashtra"
+            },
+            "id": "resource:mandi-price:market:3996",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    75.68,
+                    18.24
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "369",
+                  "areaLevel": "District",
+                  "areaName": "Solapur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MH",
+                  "areaLevel": "State",
+                  "areaName": "Maharashtra",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Solapur",
+                "marketCode": "3996",
+                "marketName": "Laxmi-Sopan Agriculture Produce Marketing Co Ltd, Barshi, Dist Solapur",
+                "state": "MH"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3983",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for M/S Kalpana Agri Commodities Marketing, Nagpur. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "M/S Kalpana Agri Commodities Marketing, Nagpur mandi prices",
+              "shortDesc": "Mandi prices at M/S Kalpana Agri Commodities Marketing, Nagpur, Nagpur, Maharashtra"
+            },
+            "id": "resource:mandi-price:market:3983",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.307798,
+                    21.138365
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "358",
+                  "areaLevel": "District",
+                  "areaName": "Nagpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MH",
+                  "areaLevel": "State",
+                  "areaName": "Maharashtra",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nagpur",
+                "marketCode": "3983",
+                "marketName": "M/S Kalpana Agri Commodities Marketing, Nagpur",
+                "state": "MH"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4018",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mahesh Krushi Utpanna Bazar, Digras, Dist Yeotmal. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Mahesh Krushi Utpanna Bazar, Digras, Dist Yeotmal mandi prices",
+              "shortDesc": "Mandi prices at Mahesh Krushi Utpanna Bazar, Digras, Dist Yeotmal, Yavatmal, Maharashtra"
+            },
+            "id": "resource:mandi-price:market:4018",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "374",
+                  "areaLevel": "District",
+                  "areaName": "Yavatmal",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MH",
+                  "areaLevel": "State",
+                  "areaName": "Maharashtra",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Yavatmal",
+                "marketCode": "4018",
+                "marketName": "Mahesh Krushi Utpanna Bazar, Digras, Dist Yeotmal",
+                "state": "MH"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "5",
+                  "name": "Jowar(Sorghum)"
+                },
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "13",
+                  "name": "Soyabean"
+                },
+                {
+                  "code": "28",
+                  "name": "Bajra(Pearl Millet/Cumbu)"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4037",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Malharshree Khajgi Krushi Utpann Bajar, Chandanpuri Tal Malegaon, Nashik. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Malharshree Khajgi Krushi Utpann Bajar, Chandanpuri Tal Malegaon, Nashik mandi prices",
+              "shortDesc": "Mandi prices at Malharshree Khajgi Krushi Utpann Bajar, Chandanpuri Tal Malegaon, Nashik, Nashik, Maharashtra"
+            },
+            "id": "resource:mandi-price:market:4037",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "361",
+                  "areaLevel": "District",
+                  "areaName": "Nashik",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MH",
+                  "areaLevel": "State",
+                  "areaName": "Maharashtra",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nashik",
+                "marketCode": "4037",
+                "marketName": "Malharshree Khajgi Krushi Utpann Bajar, Chandanpuri Tal Malegaon, Nashik",
+                "state": "MH"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4001",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for N.N.Mundhada Agriculture Market Produce, Dist Washim. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "N.N.Mundhada Agriculture Market Produce, Dist Washim mandi prices",
+              "shortDesc": "Mandi prices at N.N.Mundhada Agriculture Market Produce, Dist Washim, Washim, Maharashtra"
+            },
+            "id": "resource:mandi-price:market:4001",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "372",
+                  "areaLevel": "District",
+                  "areaName": "Washim",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MH",
+                  "areaLevel": "State",
+                  "areaName": "Maharashtra",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Washim",
+                "marketCode": "4001",
+                "marketName": "N.N.Mundhada Agriculture Market Produce, Dist Washim",
+                "state": "MH"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "13",
+                  "name": "Soyabean"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4025",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Omchatinya Multi State Agro Purpose Co-Op Society, Dist Ahilyanagar. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Omchatinya Multi State Agro Purpose Co-Op Society, Dist Ahilyanagar mandi prices",
+              "shortDesc": "Mandi prices at Omchatinya Multi State Agro Purpose Co-Op Society, Dist Ahilyanagar, Ahilyanagar, Maharashtra"
+            },
+            "id": "resource:mandi-price:market:4025",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    74.627294,
+                    18.69333
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "338",
+                  "areaLevel": "District",
+                  "areaName": "Ahilyanagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MH",
+                  "areaLevel": "State",
+                  "areaName": "Maharashtra",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Ahilyanagar",
+                "marketCode": "4025",
+                "marketName": "Omchatinya Multi State Agro Purpose Co-Op Society, Dist Ahilyanagar",
+                "state": "MH"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "5",
+                  "name": "Jowar(Sorghum)"
+                },
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "11",
+                  "name": "Sesamum(Sesame,Gingelly,Til)"
+                },
+                {
+                  "code": "13",
+                  "name": "Soyabean"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "28",
+                  "name": "Bajra(Pearl Millet/Cumbu)"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3995",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ramdev Krushi Bazaar, Digras road, Manora, Dist Washim. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Ramdev Krushi Bazaar, Digras road, Manora, Dist Washim mandi prices",
+              "shortDesc": "Mandi prices at Ramdev Krushi Bazaar, Digras road, Manora, Dist Washim, Yavatmal, Maharashtra"
+            },
+            "id": "resource:mandi-price:market:3995",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "374",
+                  "areaLevel": "District",
+                  "areaName": "Yavatmal",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MH",
+                  "areaLevel": "State",
+                  "areaName": "Maharashtra",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Yavatmal",
+                "marketCode": "3995",
+                "marketName": "Ramdev Krushi Bazaar, Digras road, Manora, Dist Washim",
+                "state": "MH"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "5",
+                  "name": "Jowar(Sorghum)"
+                },
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "13",
+                  "name": "Soyabean"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3999",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Rangrao Patil Krushi Utpanna Khajgi Bazar (Llp), Udgir, Dist Latur. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Rangrao Patil Krushi Utpanna Khajgi Bazar (Llp), Udgir, Dist Latur mandi prices",
+              "shortDesc": "Mandi prices at Rangrao Patil Krushi Utpanna Khajgi Bazar (Llp), Udgir, Dist Latur, Latur, Maharashtra"
+            },
+            "id": "resource:mandi-price:market:3999",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.078996,
+                    18.39062
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "355",
+                  "areaLevel": "District",
+                  "areaName": "Latur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MH",
+                  "areaLevel": "State",
+                  "areaName": "Maharashtra",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Latur",
+                "marketCode": "3999",
+                "marketName": "Rangrao Patil Krushi Utpanna Khajgi Bazar (Llp), Udgir, Dist Latur",
+                "state": "MH"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "13",
+                  "name": "Soyabean"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4038",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Shivsiddha Govind Producer Company Ltd Sanchalit Khajgi Krushi Utpann Bajar Samati-Abhona-Kalwan. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Shivsiddha Govind Producer Company Ltd Sanchalit Khajgi Krushi Utpann Bajar Samati-Abhona-Kalwan mandi prices",
+              "shortDesc": "Mandi prices at Shivsiddha Govind Producer Company Ltd Sanchalit Khajgi Krushi Utpann Bajar Samati-Abhona-Kalwan, Nashik, Maharashtra"
+            },
+            "id": "resource:mandi-price:market:4038",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    73.934673,
+                    20.47992
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "361",
+                  "areaLevel": "District",
+                  "areaName": "Nashik",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MH",
+                  "areaLevel": "State",
+                  "areaName": "Maharashtra",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nashik",
+                "marketCode": "4038",
+                "marketName": "Shivsiddha Govind Producer Company Ltd Sanchalit Khajgi Krushi Utpann Bajar Samati-Abhona-Kalwan",
+                "state": "MH"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4024",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Shree Sairaj Krushi Market, Dist Ahilyanagar. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Shree Sairaj Krushi Market, Dist Ahilyanagar mandi prices",
+              "shortDesc": "Mandi prices at Shree Sairaj Krushi Market, Dist Ahilyanagar, Ahilyanagar, Maharashtra"
+            },
+            "id": "resource:mandi-price:market:4024",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    73.37,
+                    18.75
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "338",
+                  "areaLevel": "District",
+                  "areaName": "Ahilyanagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MH",
+                  "areaLevel": "State",
+                  "areaName": "Maharashtra",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Ahilyanagar",
+                "marketCode": "4024",
+                "marketName": "Shree Sairaj Krushi Market, Dist Ahilyanagar",
+                "state": "MH"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4019",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Shree Salasar Krushi Bazar, Dist Parbhani. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Shree Salasar Krushi Bazar, Dist Parbhani mandi prices",
+              "shortDesc": "Mandi prices at Shree Salasar Krushi Bazar, Dist Parbhani, Parbhani, Maharashtra"
+            },
+            "id": "resource:mandi-price:market:4019",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    76.660124,
+                    19.306621
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "363",
+                  "areaLevel": "District",
+                  "areaName": "Parbhani",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MH",
+                  "areaLevel": "State",
+                  "areaName": "Maharashtra",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Parbhani",
+                "marketCode": "4019",
+                "marketName": "Shree Salasar Krushi Bazar, Dist Parbhani",
+                "state": "MH"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "13",
+                  "name": "Soyabean"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4033",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Shri Rameshwar Krushi Market, M.Nagar, Tal Deola, Dist Nashik. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Shri Rameshwar Krushi Market, M.Nagar, Tal Deola, Dist Nashik mandi prices",
+              "shortDesc": "Mandi prices at Shri Rameshwar Krushi Market, M.Nagar, Tal Deola, Dist Nashik, Nashik, Maharashtra"
+            },
+            "id": "resource:mandi-price:market:4033",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "361",
+                  "areaLevel": "District",
+                  "areaName": "Nashik",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MH",
+                  "areaLevel": "State",
+                  "areaName": "Maharashtra",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nashik",
+                "marketCode": "4033",
+                "marketName": "Shri Rameshwar Krushi Market, M.Nagar, Tal Deola, Dist Nashik",
+                "state": "MH"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:mandi-price:MH-2",
+        "catalogType": "REGULAR",
+        "schemaTypes": [
+          "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld"
+        ],
+        "updateMode": "FULL",
+        "visibleTo": [
+          "{{networkId}}"
+        ]
+      }
+    ]
+  }
+}

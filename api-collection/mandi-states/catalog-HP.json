@@ -1,0 +1,2042 @@
+{
+  "context": {
+    "action": "catalog/publish",
+    "messageId": "{{messageId}}",
+    "timestamp": "{{timestamp}}",
+    "transactionId": "{{transactionId}}",
+    "version": "2.0.0",
+    "senderId": "{{senderId}}",
+    "receiverId": "{{receiverId}}"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "descriptor": {
+          "code": "MANDI_PRICE_MARKET_HP",
+          "longDesc": "One resource per market. Each carries the Agmarknet codes a select must send, that market's traded commodities, and its point location for proximity discovery.",
+          "name": "Agmarknet mandi markets — Himachal Pradesh",
+          "shortDesc": "Markets in Himachal Pradesh, their locations, and what each trades"
+        },
+        "id": "catalog:mandi-price:HP",
+        "isActive": true,
+        "provider": {
+          "descriptor": {
+            "code": "AGMARKNET",
+            "name": "Agmarknet Vistaar",
+            "shortDesc": "Provider of live agricultural market price information."
+          },
+          "id": "agmarknet"
+        },
+        "resources": [
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_464",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for PMY Bilaspur. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "PMY Bilaspur mandi prices",
+              "shortDesc": "Mandi prices at PMY Bilaspur, Bilaspur, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:464",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    76.6875,
+                    31.3407
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "186",
+                  "areaLevel": "District",
+                  "areaName": "Bilaspur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Bilaspur",
+                "marketCode": "464",
+                "marketName": "PMY Bilaspur",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_463",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for PMY Chamba. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "PMY Chamba mandi prices",
+              "shortDesc": "Mandi prices at PMY Chamba, Chamba, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:463",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "187",
+                  "areaLevel": "District",
+                  "areaName": "Chamba",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Chamba",
+                "marketCode": "463",
+                "marketName": "PMY Chamba",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_467",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for PMY Dhalli Shimla. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "PMY Dhalli Shimla mandi prices",
+              "shortDesc": "Mandi prices at PMY Dhalli Shimla, Shimla, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:467",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "195",
+                  "areaLevel": "District",
+                  "areaName": "Shimla",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Shimla",
+                "marketCode": "467",
+                "marketName": "PMY Dhalli Shimla",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_466",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for PMY Hamirpur. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "PMY Hamirpur mandi prices",
+              "shortDesc": "Mandi prices at PMY Hamirpur, Hamirpur, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:466",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "188",
+                  "areaLevel": "District",
+                  "areaName": "Hamirpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Hamirpur",
+                "marketCode": "466",
+                "marketName": "PMY Hamirpur",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_69",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for PMY Kangra. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "PMY Kangra mandi prices",
+              "shortDesc": "Mandi prices at PMY Kangra, Kangra, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:69",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "189",
+                  "areaLevel": "District",
+                  "areaName": "Kangra",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kangra",
+                "marketCode": "69",
+                "marketName": "PMY Kangra",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_72",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for PMY Kather Solan. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "PMY Kather Solan mandi prices",
+              "shortDesc": "Mandi prices at PMY Kather Solan, Solan, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:72",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.0916029,
+                    30.9146549
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "197",
+                  "areaLevel": "District",
+                  "areaName": "Solan",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Solan",
+                "marketCode": "72",
+                "marketName": "PMY Kather Solan",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_70",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for PMY Kullu. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "PMY Kullu mandi prices",
+              "shortDesc": "Mandi prices at PMY Kullu, Kullu, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:70",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "192",
+                  "areaLevel": "District",
+                  "areaName": "Kullu",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kullu",
+                "marketCode": "70",
+                "marketName": "PMY Kullu",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_71",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for PMY Paonta Sahib. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "PMY Paonta Sahib mandi prices",
+              "shortDesc": "Mandi prices at PMY Paonta Sahib, Sirmore, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:71",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "196",
+                  "areaLevel": "District",
+                  "areaName": "Sirmore",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Sirmore",
+                "marketCode": "71",
+                "marketName": "PMY Paonta Sahib",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_462",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for PMY Una. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "PMY Una mandi prices",
+              "shortDesc": "Mandi prices at PMY Una, Una, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:462",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "198",
+                  "areaLevel": "District",
+                  "areaName": "Una",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Una",
+                "marketCode": "462",
+                "marketName": "PMY Una",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2526",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Baijnath. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Baijnath mandi prices",
+              "shortDesc": "Mandi prices at SMY Baijnath, Kangra, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:2526",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "189",
+                  "areaLevel": "District",
+                  "areaName": "Kangra",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kangra",
+                "marketCode": "2526",
+                "marketName": "SMY Baijnath",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3041",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Bandrol. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Bandrol mandi prices",
+              "shortDesc": "Mandi prices at SMY Bandrol, Kullu, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:3041",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "192",
+                  "areaLevel": "District",
+                  "areaName": "Kullu",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kullu",
+                "marketCode": "3041",
+                "marketName": "SMY Bandrol",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_471",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Bhuntar. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Bhuntar mandi prices",
+              "shortDesc": "Mandi prices at SMY Bhuntar, Kullu, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:471",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "192",
+                  "areaLevel": "District",
+                  "areaName": "Kullu",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kullu",
+                "marketCode": "471",
+                "marketName": "SMY Bhuntar",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3040",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Chail Chowk. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Chail Chowk mandi prices",
+              "shortDesc": "Mandi prices at SMY Chail Chowk, Mandi, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:3040",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.00426666666667,
+                    31.568086666666666
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "194",
+                  "areaLevel": "District",
+                  "areaName": "Mandi",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Mandi",
+                "marketCode": "3040",
+                "marketName": "SMY Chail Chowk",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2523",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Chauri Bihal. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Chauri Bihal mandi prices",
+              "shortDesc": "Mandi prices at SMY Chauri Bihal, Kullu, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:2523",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "192",
+                  "areaLevel": "District",
+                  "areaName": "Kullu",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kullu",
+                "marketCode": "2523",
+                "marketName": "SMY Chauri Bihal",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_465",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Dhanotu. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Dhanotu mandi prices",
+              "shortDesc": "Mandi prices at SMY Dhanotu, Mandi, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:465",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "194",
+                  "areaLevel": "District",
+                  "areaName": "Mandi",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Mandi",
+                "marketCode": "465",
+                "marketName": "SMY Dhanotu",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_470",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Dharampur. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Dharampur mandi prices",
+              "shortDesc": "Mandi prices at SMY Dharampur, Solan, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:470",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.02318,
+                    30.89786
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "197",
+                  "areaLevel": "District",
+                  "areaName": "Solan",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Solan",
+                "marketCode": "470",
+                "marketName": "SMY Dharampur",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3444",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Dharamshala. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Dharamshala mandi prices",
+              "shortDesc": "Mandi prices at SMY Dharamshala, Kangra, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:3444",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "189",
+                  "areaLevel": "District",
+                  "areaName": "Kangra",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kangra",
+                "marketCode": "3444",
+                "marketName": "SMY Dharamshala",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2529",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Jaisinghpur. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Jaisinghpur mandi prices",
+              "shortDesc": "Mandi prices at SMY Jaisinghpur, Kangra, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:2529",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "189",
+                  "areaLevel": "District",
+                  "areaName": "Kangra",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kangra",
+                "marketCode": "2529",
+                "marketName": "SMY Jaisinghpur",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2528",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Jassur. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Jassur mandi prices",
+              "shortDesc": "Mandi prices at SMY Jassur, Kangra, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:2528",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "189",
+                  "areaLevel": "District",
+                  "areaName": "Kangra",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kangra",
+                "marketCode": "2528",
+                "marketName": "SMY Jassur",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4402",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Jogindernagar. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Jogindernagar mandi prices",
+              "shortDesc": "Mandi prices at SMY Jogindernagar, Mandi, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:4402",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "194",
+                  "areaLevel": "District",
+                  "areaName": "Mandi",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Mandi",
+                "marketCode": "4402",
+                "marketName": "SMY Jogindernagar",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3149",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Jwalaji. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Jwalaji mandi prices",
+              "shortDesc": "Mandi prices at SMY Jwalaji, Kangra, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:3149",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "189",
+                  "areaLevel": "District",
+                  "areaName": "Kangra",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kangra",
+                "marketCode": "3149",
+                "marketName": "SMY Jwalaji",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2521",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Nadaun. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Nadaun mandi prices",
+              "shortDesc": "Mandi prices at SMY Nadaun, Hamirpur, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:2521",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "188",
+                  "areaLevel": "District",
+                  "areaName": "Hamirpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Hamirpur",
+                "marketCode": "2521",
+                "marketName": "SMY Nadaun",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2527",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Nagrota Bagwan. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Nagrota Bagwan mandi prices",
+              "shortDesc": "Mandi prices at SMY Nagrota Bagwan, Kangra, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:2527",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "189",
+                  "areaLevel": "District",
+                  "areaName": "Kangra",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kangra",
+                "marketCode": "2527",
+                "marketName": "SMY Nagrota Bagwan",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_469",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Nahan. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Nahan mandi prices",
+              "shortDesc": "Mandi prices at SMY Nahan, Sirmore, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:469",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "196",
+                  "areaLevel": "District",
+                  "areaName": "Sirmore",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Sirmore",
+                "marketCode": "469",
+                "marketName": "SMY Nahan",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2514",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Nalagarh. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Nalagarh mandi prices",
+              "shortDesc": "Mandi prices at SMY Nalagarh, Solan, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:2514",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    76.70745,
+                    31.05851
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "197",
+                  "areaLevel": "District",
+                  "areaName": "Solan",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Solan",
+                "marketCode": "2514",
+                "marketName": "SMY Nalagarh",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_468",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Palampur. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Palampur mandi prices",
+              "shortDesc": "Mandi prices at SMY Palampur, Kangra, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:468",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "189",
+                  "areaLevel": "District",
+                  "areaName": "Kangra",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kangra",
+                "marketCode": "468",
+                "marketName": "SMY Palampur",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2511",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Rampur. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Rampur mandi prices",
+              "shortDesc": "Mandi prices at SMY Rampur, Shimla, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:2511",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "195",
+                  "areaLevel": "District",
+                  "areaName": "Shimla",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Shimla",
+                "marketCode": "2511",
+                "marketName": "SMY Rampur",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3042",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Rohroo. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Rohroo mandi prices",
+              "shortDesc": "Mandi prices at SMY Rohroo, Shimla, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:3042",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "195",
+                  "areaLevel": "District",
+                  "areaName": "Shimla",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Shimla",
+                "marketCode": "3042",
+                "marketName": "SMY Rohroo",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3039",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Santoshgarh. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Santoshgarh mandi prices",
+              "shortDesc": "Mandi prices at SMY Santoshgarh, Una, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:3039",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "198",
+                  "areaLevel": "District",
+                  "areaName": "Una",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Una",
+                "marketCode": "3039",
+                "marketName": "SMY Santoshgarh",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2524",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Takoli. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Takoli mandi prices",
+              "shortDesc": "Mandi prices at SMY Takoli, Mandi, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:2524",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "194",
+                  "areaLevel": "District",
+                  "areaName": "Mandi",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Mandi",
+                "marketCode": "2524",
+                "marketName": "SMY Takoli",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4408",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Wakhnaghat. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Wakhnaghat mandi prices",
+              "shortDesc": "Mandi prices at SMY Wakhnaghat, Solan, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:4408",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.09292,
+                    31.00879
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "197",
+                  "areaLevel": "District",
+                  "areaName": "Solan",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Solan",
+                "marketCode": "4408",
+                "marketName": "SMY Wakhnaghat",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:mandi-price:HP",
+        "catalogType": "REGULAR",
+        "schemaTypes": [
+          "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld"
+        ],
+        "updateMode": "FULL",
+        "visibleTo": [
+          "{{networkId}}"
+        ]
+      }
+    ]
+  }
+}

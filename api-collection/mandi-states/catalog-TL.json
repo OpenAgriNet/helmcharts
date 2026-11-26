@@ -1,0 +1,5324 @@
+{
+  "context": {
+    "action": "catalog/publish",
+    "messageId": "{{messageId}}",
+    "timestamp": "{{timestamp}}",
+    "transactionId": "{{transactionId}}",
+    "version": "2.0.0",
+    "senderId": "{{senderId}}",
+    "receiverId": "{{receiverId}}"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "descriptor": {
+          "code": "MANDI_PRICE_MARKET_TL",
+          "longDesc": "One resource per market. Each carries the Agmarknet codes a select must send, that market's traded commodities, and its point location for proximity discovery.",
+          "name": "Agmarknet mandi markets — Telangana",
+          "shortDesc": "Markets in Telangana, their locations, and what each trades"
+        },
+        "id": "catalog:mandi-price:TL",
+        "isActive": true,
+        "provider": {
+          "descriptor": {
+            "code": "AGMARKNET",
+            "name": "Agmarknet Vistaar",
+            "shortDesc": "Provider of live agricultural market price information."
+          },
+          "id": "agmarknet"
+        },
+        "resources": [
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_830",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Alampur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Alampur APMC mandi prices",
+              "shortDesc": "Mandi prices at Alampur APMC, Jogulamba Gadwal, Telangana"
+            },
+            "id": "resource:mandi-price:market:830",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.0200739,
+                    15.9183471
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "730",
+                  "areaLevel": "District",
+                  "areaName": "Jogulamba Gadwal",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Jogulamba Gadwal",
+                "marketCode": "830",
+                "marketName": "Alampur APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "15",
+                  "name": "Cotton"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1994",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Aler APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Aler APMC mandi prices",
+              "shortDesc": "Mandi prices at Aler APMC, Yadadri Bhuvanagiri, Telangana"
+            },
+            "id": "resource:mandi-price:market:1994",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.060929,
+                    17.2499237
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "739",
+                  "areaLevel": "District",
+                  "areaName": "Yadadri Bhuvanagiri",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Yadadri Bhuvanagiri",
+                "marketCode": "1994",
+                "marketName": "Aler APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_840",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Asifabad APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Asifabad APMC mandi prices",
+              "shortDesc": "Mandi prices at Asifabad APMC, Asifabad, Telangana"
+            },
+            "id": "resource:mandi-price:market:840",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.286577,
+                    19.360962
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "729",
+                  "areaLevel": "District",
+                  "areaName": "Asifabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Asifabad",
+                "marketCode": "840",
+                "marketName": "Asifabad APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_6",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Badepally APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Badepally APMC mandi prices",
+              "shortDesc": "Mandi prices at Badepally APMC, Mahbubnagar, Telangana"
+            },
+            "id": "resource:mandi-price:market:6",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.14598,
+                    16.75346
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "571",
+                  "areaLevel": "District",
+                  "areaName": "Mahbubnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Mahbubnagar",
+                "marketCode": "6",
+                "marketName": "Badepally APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_369",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bhadrachalam APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bhadrachalam APMC mandi prices",
+              "shortDesc": "Mandi prices at Bhadrachalam APMC, Bhadradri Kothagudem, Telangana"
+            },
+            "id": "resource:mandi-price:market:369",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "704",
+                  "areaLevel": "District",
+                  "areaName": "Bhadradri Kothagudem",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Bhadradri Kothagudem",
+                "marketCode": "369",
+                "marketName": "Bhadrachalam APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_846",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bhainsa APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bhainsa APMC mandi prices",
+              "shortDesc": "Mandi prices at Bhainsa APMC, Nirmal, Telangana"
+            },
+            "id": "resource:mandi-price:market:846",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.96181,
+                    19.109461
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "736",
+                  "areaLevel": "District",
+                  "areaName": "Nirmal",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nirmal",
+                "marketCode": "846",
+                "marketName": "Bhainsa APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "5",
+                  "name": "Jowar(Sorghum)"
+                },
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "11",
+                  "name": "Sesamum(Sesame,Gingelly,Til)"
+                },
+                {
+                  "code": "13",
+                  "name": "Soyabean"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_850",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bhongir APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bhongir APMC mandi prices",
+              "shortDesc": "Mandi prices at Bhongir APMC, Yadadri Bhuvanagiri, Telangana"
+            },
+            "id": "resource:mandi-price:market:850",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.886812,
+                    17.522906
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "739",
+                  "areaLevel": "District",
+                  "areaName": "Yadadri Bhuvanagiri",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Yadadri Bhuvanagiri",
+                "marketCode": "850",
+                "marketName": "Bhongir APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_851",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Boath APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Boath APMC mandi prices",
+              "shortDesc": "Mandi prices at Boath APMC, Adilabad, Telangana"
+            },
+            "id": "resource:mandi-price:market:851",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.319396,
+                    19.347072
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "565",
+                  "areaLevel": "District",
+                  "areaName": "Adilabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Adilabad",
+                "marketCode": "851",
+                "marketName": "Boath APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1868",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bowenpally APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bowenpally APMC mandi prices",
+              "shortDesc": "Mandi prices at Bowenpally APMC, Hyderabad, Telangana"
+            },
+            "id": "resource:mandi-price:market:1868",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.4951,
+                    17.4703
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "566",
+                  "areaLevel": "District",
+                  "areaName": "Hyderabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Hyderabad",
+                "marketCode": "1868",
+                "marketName": "Bowenpally APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1222",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Charla APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Charla APMC mandi prices",
+              "shortDesc": "Mandi prices at Charla APMC, Khammam, Telangana"
+            },
+            "id": "resource:mandi-price:market:1222",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "570",
+                  "areaLevel": "District",
+                  "areaName": "Khammam",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Khammam",
+                "marketCode": "1222",
+                "marketName": "Charla APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2907",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Chevella APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Chevella APMC mandi prices",
+              "shortDesc": "Mandi prices at Chevella APMC, Ranga Reddy, Telangana"
+            },
+            "id": "resource:mandi-price:market:2907",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.1549,
+                    17.30825
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "575",
+                  "areaLevel": "District",
+                  "areaName": "Ranga Reddy",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Ranga Reddy",
+                "marketCode": "2907",
+                "marketName": "Chevella APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_862",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Choppadandi APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Choppadandi APMC mandi prices",
+              "shortDesc": "Mandi prices at Choppadandi APMC, Karimnagar, Telangana"
+            },
+            "id": "resource:mandi-price:market:862",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.16882,
+                    18.58926
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "569",
+                  "areaLevel": "District",
+                  "areaName": "Karimnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Karimnagar",
+                "marketCode": "862",
+                "marketName": "Choppadandi APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1667",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Choutuppal APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Choutuppal APMC mandi prices",
+              "shortDesc": "Mandi prices at Choutuppal APMC, Yadadri Bhuvanagiri, Telangana"
+            },
+            "id": "resource:mandi-price:market:1667",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.892407,
+                    17.254461
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "739",
+                  "areaLevel": "District",
+                  "areaName": "Yadadri Bhuvanagiri",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Yadadri Bhuvanagiri",
+                "marketCode": "1667",
+                "marketName": "Choutuppal APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1221",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Devarakadra APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Devarakadra APMC mandi prices",
+              "shortDesc": "Mandi prices at Devarakadra APMC, Mahbubnagar, Telangana"
+            },
+            "id": "resource:mandi-price:market:1221",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.83881333333333,
+                    16.623375
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "571",
+                  "areaLevel": "District",
+                  "areaName": "Mahbubnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Mahbubnagar",
+                "marketCode": "1221",
+                "marketName": "Devarakadra APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_866",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Devarakonda APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Devarakonda APMC mandi prices",
+              "shortDesc": "Mandi prices at Devarakonda APMC, Nalgonda, Telangana"
+            },
+            "id": "resource:mandi-price:market:866",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.914749,
+                    16.687188
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "573",
+                  "areaLevel": "District",
+                  "areaName": "Nalgonda",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nalgonda",
+                "marketCode": "866",
+                "marketName": "Devarakonda APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2405",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Devarkonda(Dindi) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Devarkonda(Dindi) APMC mandi prices",
+              "shortDesc": "Mandi prices at Devarkonda(Dindi) APMC, Nalgonda, Telangana"
+            },
+            "id": "resource:mandi-price:market:2405",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.68701,
+                    16.551867
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "573",
+                  "areaLevel": "District",
+                  "areaName": "Nalgonda",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nalgonda",
+                "marketCode": "2405",
+                "marketName": "Devarkonda(Dindi) APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2404",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Devarkonda(Mallepalli) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Devarkonda(Mallepalli) APMC mandi prices",
+              "shortDesc": "Mandi prices at Devarkonda(Mallepalli) APMC, Nalgonda, Telangana"
+            },
+            "id": "resource:mandi-price:market:2404",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.9798867,
+                    16.712685
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "573",
+                  "areaLevel": "District",
+                  "areaName": "Nalgonda",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nalgonda",
+                "marketCode": "2404",
+                "marketName": "Devarkonda(Mallepalli) APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_867",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Dharmaram APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Dharmaram APMC mandi prices",
+              "shortDesc": "Mandi prices at Dharmaram APMC, Peddapalli, Telangana"
+            },
+            "id": "resource:mandi-price:market:867",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.197779,
+                    18.734714
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "737",
+                  "areaLevel": "District",
+                  "areaName": "Peddapalli",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Peddapalli",
+                "marketCode": "867",
+                "marketName": "Dharmaram APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1220",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Dubbak APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Dubbak APMC mandi prices",
+              "shortDesc": "Mandi prices at Dubbak APMC, Siddipet, Telangana"
+            },
+            "id": "resource:mandi-price:market:1220",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.6717673,
+                    18.1809247
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "576",
+                  "areaLevel": "District",
+                  "areaName": "Siddipet",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Siddipet",
+                "marketCode": "1220",
+                "marketName": "Dubbak APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_7",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Gadwal APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Gadwal APMC mandi prices",
+              "shortDesc": "Mandi prices at Gadwal APMC, Jogulamba Gadwal, Telangana"
+            },
+            "id": "resource:mandi-price:market:7",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.80726,
+                    16.22894
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "730",
+                  "areaLevel": "District",
+                  "areaName": "Jogulamba Gadwal",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Jogulamba Gadwal",
+                "marketCode": "7",
+                "marketName": "Gadwal APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_875",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Gajwel APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Gajwel APMC mandi prices",
+              "shortDesc": "Mandi prices at Gajwel APMC, Siddipet, Telangana"
+            },
+            "id": "resource:mandi-price:market:875",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.671599,
+                    17.848022
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "576",
+                  "areaLevel": "District",
+                  "areaName": "Siddipet",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Siddipet",
+                "marketCode": "875",
+                "marketName": "Gajwel APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_876",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Gangadhara APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Gangadhara APMC mandi prices",
+              "shortDesc": "Mandi prices at Gangadhara APMC, Karimnagar, Telangana"
+            },
+            "id": "resource:mandi-price:market:876",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.009248,
+                    18.573867
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "569",
+                  "areaLevel": "District",
+                  "areaName": "Karimnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Karimnagar",
+                "marketCode": "876",
+                "marketName": "Gangadhara APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_879",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ghanpur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Ghanpur APMC mandi prices",
+              "shortDesc": "Mandi prices at Ghanpur APMC, Warangal, Telangana"
+            },
+            "id": "resource:mandi-price:market:879",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "577",
+                  "areaLevel": "District",
+                  "areaName": "Warangal",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Warangal",
+                "marketCode": "879",
+                "marketName": "Ghanpur APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1078",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Gudimalkapur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Gudimalkapur APMC mandi prices",
+              "shortDesc": "Mandi prices at Gudimalkapur APMC, Hyderabad, Telangana"
+            },
+            "id": "resource:mandi-price:market:1078",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.4354,
+                    17.3839
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "566",
+                  "areaLevel": "District",
+                  "areaName": "Hyderabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Hyderabad",
+                "marketCode": "1078",
+                "marketName": "Gudimalkapur APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_775",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Husnabad APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Husnabad APMC mandi prices",
+              "shortDesc": "Mandi prices at Husnabad APMC, Karimnagar, Telangana"
+            },
+            "id": "resource:mandi-price:market:775",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.21653,
+                    18.12731
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "569",
+                  "areaLevel": "District",
+                  "areaName": "Karimnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Karimnagar",
+                "marketCode": "775",
+                "marketName": "Husnabad APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_891",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Huzurnagar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Huzurnagar APMC mandi prices",
+              "shortDesc": "Mandi prices at Huzurnagar APMC, Suryapet, Telangana"
+            },
+            "id": "resource:mandi-price:market:891",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.87077,
+                    16.90514
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "738",
+                  "areaLevel": "District",
+                  "areaName": "Suryapet",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Suryapet",
+                "marketCode": "891",
+                "marketName": "Huzurnagar APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3477",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Huzurnagar Garidepally APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Huzurnagar Garidepally APMC mandi prices",
+              "shortDesc": "Mandi prices at Huzurnagar Garidepally APMC, Nalgonda, Telangana"
+            },
+            "id": "resource:mandi-price:market:3477",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "573",
+                  "areaLevel": "District",
+                  "areaName": "Nalgonda",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nalgonda",
+                "marketCode": "3477",
+                "marketName": "Huzurnagar Garidepally APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3478",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Huzurnagar Matampally APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Huzurnagar Matampally APMC mandi prices",
+              "shortDesc": "Mandi prices at Huzurnagar Matampally APMC, Nalgonda, Telangana"
+            },
+            "id": "resource:mandi-price:market:3478",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "573",
+                  "areaLevel": "District",
+                  "areaName": "Nalgonda",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nalgonda",
+                "marketCode": "3478",
+                "marketName": "Huzurnagar Matampally APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_890",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Huzzurabad APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Huzzurabad APMC mandi prices",
+              "shortDesc": "Mandi prices at Huzzurabad APMC, Karimnagar, Telangana"
+            },
+            "id": "resource:mandi-price:market:890",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.3967,
+                    18.2019
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "569",
+                  "areaLevel": "District",
+                  "areaName": "Karimnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Karimnagar",
+                "marketCode": "890",
+                "marketName": "Huzzurabad APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_892",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ibrahimpatnam APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Ibrahimpatnam APMC mandi prices",
+              "shortDesc": "Mandi prices at Ibrahimpatnam APMC, Ranga Reddy, Telangana"
+            },
+            "id": "resource:mandi-price:market:892",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "575",
+                  "areaLevel": "District",
+                  "areaName": "Ranga Reddy",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Ranga Reddy",
+                "marketCode": "892",
+                "marketName": "Ibrahimpatnam APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_896",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jagtial APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jagtial APMC mandi prices",
+              "shortDesc": "Mandi prices at Jagtial APMC, Jagtial, Telangana"
+            },
+            "id": "resource:mandi-price:market:896",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.91091991,
+                    18.7904983
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "567",
+                  "areaLevel": "District",
+                  "areaName": "Jagtial",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Jagtial",
+                "marketCode": "896",
+                "marketName": "Jagtial APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "11",
+                  "name": "Sesamum(Sesame,Gingelly,Til)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_899",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jainath APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jainath APMC mandi prices",
+              "shortDesc": "Mandi prices at Jainath APMC, Adilabad, Telangana"
+            },
+            "id": "resource:mandi-price:market:899",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.642833,
+                    19.727645
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "565",
+                  "areaLevel": "District",
+                  "areaName": "Adilabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Adilabad",
+                "marketCode": "899",
+                "marketName": "Jainath APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jammikunta APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jammikunta APMC mandi prices",
+              "shortDesc": "Mandi prices at Jammikunta APMC, Karimnagar, Telangana"
+            },
+            "id": "resource:mandi-price:market:4",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.543662,
+                    18.278336
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "569",
+                  "areaLevel": "District",
+                  "areaName": "Karimnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Karimnagar",
+                "marketCode": "4",
+                "marketName": "Jammikunta APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "15",
+                  "name": "Cotton"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_901",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jangaon APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jangaon APMC mandi prices",
+              "shortDesc": "Mandi prices at Jangaon APMC, Jangaon, Telangana"
+            },
+            "id": "resource:mandi-price:market:901",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.15742,
+                    17.73032
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "702",
+                  "areaLevel": "District",
+                  "areaName": "Jangaon",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Jangaon",
+                "marketCode": "901",
+                "marketName": "Jangaon APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_906",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kallur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kallur APMC mandi prices",
+              "shortDesc": "Mandi prices at Kallur APMC, Khammam, Telangana"
+            },
+            "id": "resource:mandi-price:market:906",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    80.565198,
+                    17.200351
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "570",
+                  "areaLevel": "District",
+                  "areaName": "Khammam",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Khammam",
+                "marketCode": "906",
+                "marketName": "Kallur APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_907",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kalwakurthy APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kalwakurthy APMC mandi prices",
+              "shortDesc": "Mandi prices at Kalwakurthy APMC, Nagarkurnool, Telangana"
+            },
+            "id": "resource:mandi-price:market:907",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.494566,
+                    16.669975
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "734",
+                  "areaLevel": "District",
+                  "areaName": "Nagarkurnool",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nagarkurnool",
+                "marketCode": "907",
+                "marketName": "Kalwakurthy APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_378",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kesamudram APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kesamudram APMC mandi prices",
+              "shortDesc": "Mandi prices at Kesamudram APMC, Mahabubabad, Telangana"
+            },
+            "id": "resource:mandi-price:market:378",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.88996,
+                    17.688623
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "731",
+                  "areaLevel": "District",
+                  "areaName": "Mahabubabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Mahabubabad",
+                "marketCode": "378",
+                "marketName": "Kesamudram APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "15",
+                  "name": "Cotton"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_5",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Khammam APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Khammam APMC mandi prices",
+              "shortDesc": "Mandi prices at Khammam APMC, Khammam, Telangana"
+            },
+            "id": "resource:mandi-price:market:5",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    80.13124,
+                    17.236508
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "570",
+                  "areaLevel": "District",
+                  "areaName": "Khammam",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Khammam",
+                "marketCode": "5",
+                "marketName": "Khammam APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "15",
+                  "name": "Cotton"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_773",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kodad APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kodad APMC mandi prices",
+              "shortDesc": "Mandi prices at Kodad APMC, Suryapet, Telangana"
+            },
+            "id": "resource:mandi-price:market:773",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.95784,
+                    16.998
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "738",
+                  "areaLevel": "District",
+                  "areaName": "Suryapet",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Suryapet",
+                "marketCode": "773",
+                "marketName": "Kodad APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_917",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kodakandal APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kodakandal APMC mandi prices",
+              "shortDesc": "Mandi prices at Kodakandal APMC, Warangal, Telangana"
+            },
+            "id": "resource:mandi-price:market:917",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "577",
+                  "areaLevel": "District",
+                  "areaName": "Warangal",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Warangal",
+                "marketCode": "917",
+                "marketName": "Kodakandal APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_919",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kollapur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kollapur APMC mandi prices",
+              "shortDesc": "Mandi prices at Kollapur APMC, Nagarkurnool, Telangana"
+            },
+            "id": "resource:mandi-price:market:919",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.30376,
+                    16.113796
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "734",
+                  "areaLevel": "District",
+                  "areaName": "Nagarkurnool",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nagarkurnool",
+                "marketCode": "919",
+                "marketName": "Kollapur APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_368",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kothagudem APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kothagudem APMC mandi prices",
+              "shortDesc": "Mandi prices at Kothagudem APMC, Bhadradri Kothagudem, Telangana"
+            },
+            "id": "resource:mandi-price:market:368",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    80.622954,
+                    17.562204
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "704",
+                  "areaLevel": "District",
+                  "areaName": "Bhadradri Kothagudem",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Bhadradri Kothagudem",
+                "marketCode": "368",
+                "marketName": "Kothagudem APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3331",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kukatpally Rythu Bazar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kukatpally Rythu Bazar APMC mandi prices",
+              "shortDesc": "Mandi prices at Kukatpally Rythu Bazar APMC, Ranga Reddy, Telangana"
+            },
+            "id": "resource:mandi-price:market:3331",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "575",
+                  "areaLevel": "District",
+                  "areaName": "Ranga Reddy",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Ranga Reddy",
+                "marketCode": "3331",
+                "marketName": "Kukatpally Rythu Bazar APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3018",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for L B Nagar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "L B Nagar APMC mandi prices",
+              "shortDesc": "Mandi prices at L B Nagar APMC, Ranga Reddy, Telangana"
+            },
+            "id": "resource:mandi-price:market:3018",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.547433,
+                    17.35572
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "575",
+                  "areaLevel": "District",
+                  "areaName": "Ranga Reddy",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Ranga Reddy",
+                "marketCode": "3018",
+                "marketName": "L B Nagar APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_934",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Luxettipet APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Luxettipet APMC mandi prices",
+              "shortDesc": "Mandi prices at Luxettipet APMC, Mancherial, Telangana"
+            },
+            "id": "resource:mandi-price:market:934",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.205891,
+                    18.893957
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "706",
+                  "areaLevel": "District",
+                  "areaName": "Mancherial",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Mancherial",
+                "marketCode": "934",
+                "marketName": "Luxettipet APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3327",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mahabubnagar(Rythu Bazar). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Mahabubnagar(Rythu Bazar) mandi prices",
+              "shortDesc": "Mandi prices at Mahabubnagar(Rythu Bazar), Mahbubnagar, Telangana"
+            },
+            "id": "resource:mandi-price:market:3327",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.00685,
+                    16.76975
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "571",
+                  "areaLevel": "District",
+                  "areaName": "Mahbubnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Mahbubnagar",
+                "marketCode": "3327",
+                "marketName": "Mahabubnagar(Rythu Bazar)",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mahboob Manison APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Mahboob Manison APMC mandi prices",
+              "shortDesc": "Mandi prices at Mahboob Manison APMC, Hyderabad, Telangana"
+            },
+            "id": "resource:mandi-price:market:2",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.50399,
+                    17.37483
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "566",
+                  "areaLevel": "District",
+                  "areaName": "Hyderabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Hyderabad",
+                "marketCode": "2",
+                "marketName": "Mahboob Manison APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_8",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mahbubnagar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Mahbubnagar APMC mandi prices",
+              "shortDesc": "Mandi prices at Mahbubnagar APMC, Mahbubnagar, Telangana"
+            },
+            "id": "resource:mandi-price:market:8",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.990439,
+                    16.755749
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "571",
+                  "areaLevel": "District",
+                  "areaName": "Mahbubnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Mahbubnagar",
+                "marketCode": "8",
+                "marketName": "Mahbubnagar APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3017",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mallial(Cheppial) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Mallial(Cheppial) APMC mandi prices",
+              "shortDesc": "Mandi prices at Mallial(Cheppial) APMC, Karimnagar, Telangana"
+            },
+            "id": "resource:mandi-price:market:3017",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.965424,
+                    18.699327
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "569",
+                  "areaLevel": "District",
+                  "areaName": "Karimnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Karimnagar",
+                "marketCode": "3017",
+                "marketName": "Mallial(Cheppial) APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3762",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Manakodur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Manakodur APMC mandi prices",
+              "shortDesc": "Mandi prices at Manakodur APMC, Karimnagar, Telangana"
+            },
+            "id": "resource:mandi-price:market:3762",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.1929293,
+                    18.396218
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "569",
+                  "areaLevel": "District",
+                  "areaName": "Karimnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Karimnagar",
+                "marketCode": "3762",
+                "marketName": "Manakodur APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_945",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mancherial APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Mancherial APMC mandi prices",
+              "shortDesc": "Mandi prices at Mancherial APMC, Mancherial, Telangana"
+            },
+            "id": "resource:mandi-price:market:945",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.445838,
+                    18.865184
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "706",
+                  "areaLevel": "District",
+                  "areaName": "Mancherial",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Mancherial",
+                "marketCode": "945",
+                "marketName": "Mancherial APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_771",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nagarkurnool APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Nagarkurnool APMC mandi prices",
+              "shortDesc": "Mandi prices at Nagarkurnool APMC, Nagarkurnool, Telangana"
+            },
+            "id": "resource:mandi-price:market:771",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.334282,
+                    16.470913
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "734",
+                  "areaLevel": "District",
+                  "areaName": "Nagarkurnool",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nagarkurnool",
+                "marketCode": "771",
+                "marketName": "Nagarkurnool APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_967",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Narayanpet APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Narayanpet APMC mandi prices",
+              "shortDesc": "Mandi prices at Narayanpet APMC, Narayanpet, Telangana"
+            },
+            "id": "resource:mandi-price:market:967",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.506862,
+                    16.735336
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "735",
+                  "areaLevel": "District",
+                  "areaName": "Narayanpet",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Narayanpet",
+                "marketCode": "967",
+                "marketName": "Narayanpet APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_971",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Narsampet APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Narsampet APMC mandi prices",
+              "shortDesc": "Mandi prices at Narsampet APMC, Warangal, Telangana"
+            },
+            "id": "resource:mandi-price:market:971",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.898058,
+                    17.920649
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "577",
+                  "areaLevel": "District",
+                  "areaName": "Warangal",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Warangal",
+                "marketCode": "971",
+                "marketName": "Narsampet APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3491",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nelakondapally APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Nelakondapally APMC mandi prices",
+              "shortDesc": "Mandi prices at Nelakondapally APMC, Khammam, Telangana"
+            },
+            "id": "resource:mandi-price:market:3491",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    80.04396,
+                    17.099603
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "570",
+                  "areaLevel": "District",
+                  "areaName": "Khammam",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Khammam",
+                "marketCode": "3491",
+                "marketName": "Nelakondapally APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1995",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Neredcherla APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Neredcherla APMC mandi prices",
+              "shortDesc": "Mandi prices at Neredcherla APMC, Suryapet, Telangana"
+            },
+            "id": "resource:mandi-price:market:1995",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.68736,
+                    16.88095
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "738",
+                  "areaLevel": "District",
+                  "areaName": "Suryapet",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Suryapet",
+                "marketCode": "1995",
+                "marketName": "Neredcherla APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4663",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nidamanoor APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Nidamanoor APMC mandi prices",
+              "shortDesc": "Mandi prices at Nidamanoor APMC, Nalgonda, Telangana"
+            },
+            "id": "resource:mandi-price:market:4663",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "573",
+                  "areaLevel": "District",
+                  "areaName": "Nalgonda",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nalgonda",
+                "marketCode": "4663",
+                "marketName": "Nidamanoor APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_14",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nizamabad APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Nizamabad APMC mandi prices",
+              "shortDesc": "Mandi prices at Nizamabad APMC, Nizamabad, Telangana"
+            },
+            "id": "resource:mandi-price:market:14",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.091252,
+                    18.683321
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "574",
+                  "areaLevel": "District",
+                  "areaName": "Nizamabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nizamabad",
+                "marketCode": "14",
+                "marketName": "Nizamabad APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_985",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Pargi APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Pargi APMC mandi prices",
+              "shortDesc": "Mandi prices at Pargi APMC, Vikarabad, Telangana"
+            },
+            "id": "resource:mandi-price:market:985",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.878618,
+                    17.176179
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "708",
+                  "areaLevel": "District",
+                  "areaName": "Vikarabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Vikarabad",
+                "marketCode": "985",
+                "marketName": "Pargi APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2877",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Pavilion Ground,Khammam,RBZ. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Pavilion Ground,Khammam,RBZ mandi prices",
+              "shortDesc": "Mandi prices at Pavilion Ground,Khammam,RBZ, Khammam, Telangana"
+            },
+            "id": "resource:mandi-price:market:2877",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    80.1427443,
+                    17.2527287
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "570",
+                  "areaLevel": "District",
+                  "areaName": "Khammam",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Khammam",
+                "marketCode": "2877",
+                "marketName": "Pavilion Ground,Khammam,RBZ",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2813",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Pudur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Pudur APMC mandi prices",
+              "shortDesc": "Mandi prices at Pudur APMC, Karimnagar, Telangana"
+            },
+            "id": "resource:mandi-price:market:2813",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "569",
+                  "areaLevel": "District",
+                  "areaName": "Karimnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Karimnagar",
+                "marketCode": "2813",
+                "marketName": "Pudur APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3332",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for RYTHU BAZAR MEHDIPATNAM. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "RYTHU BAZAR MEHDIPATNAM mandi prices",
+              "shortDesc": "Mandi prices at RYTHU BAZAR MEHDIPATNAM, Hyderabad, Telangana"
+            },
+            "id": "resource:mandi-price:market:3332",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.4397,
+                    17.3958
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "566",
+                  "areaLevel": "District",
+                  "areaName": "Hyderabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Hyderabad",
+                "marketCode": "3332",
+                "marketName": "RYTHU BAZAR MEHDIPATNAM",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_11",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sadasivpet APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sadasivpet APMC mandi prices",
+              "shortDesc": "Mandi prices at Sadasivpet APMC, Sangareddy, Telangana"
+            },
+            "id": "resource:mandi-price:market:11",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.95841915,
+                    17.62041633
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "700",
+                  "areaLevel": "District",
+                  "areaName": "Sangareddy",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Sangareddy",
+                "marketCode": "11",
+                "marketName": "Sadasivpet APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "5",
+                  "name": "Jowar(Sorghum)"
+                },
+                {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1017",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sathupally APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sathupally APMC mandi prices",
+              "shortDesc": "Mandi prices at Sathupally APMC, Khammam, Telangana"
+            },
+            "id": "resource:mandi-price:market:1017",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "570",
+                  "areaLevel": "District",
+                  "areaName": "Khammam",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Khammam",
+                "marketCode": "1017",
+                "marketName": "Sathupally APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2879",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sattupalli (Ramalayam),RBZ. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sattupalli (Ramalayam),RBZ mandi prices",
+              "shortDesc": "Mandi prices at Sattupalli (Ramalayam),RBZ, Khammam, Telangana"
+            },
+            "id": "resource:mandi-price:market:2879",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    80.8372,
+                    17.2095621
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "570",
+                  "areaLevel": "District",
+                  "areaName": "Khammam",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Khammam",
+                "marketCode": "2879",
+                "marketName": "Sattupalli (Ramalayam),RBZ",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_9",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Shadnagar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Shadnagar APMC mandi prices",
+              "shortDesc": "Mandi prices at Shadnagar APMC, Ranga Reddy, Telangana"
+            },
+            "id": "resource:mandi-price:market:9",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.20165,
+                    17.04164
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "575",
+                  "areaLevel": "District",
+                  "areaName": "Ranga Reddy",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Ranga Reddy",
+                "marketCode": "9",
+                "marketName": "Shadnagar APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_10",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Siddipet APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Siddipet APMC mandi prices",
+              "shortDesc": "Mandi prices at Siddipet APMC, Siddipet, Telangana"
+            },
+            "id": "resource:mandi-price:market:10",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.845547,
+                    18.005677
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "576",
+                  "areaLevel": "District",
+                  "areaName": "Siddipet",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Siddipet",
+                "marketCode": "10",
+                "marketName": "Siddipet APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_13",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Suryapeta APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Suryapeta APMC mandi prices",
+              "shortDesc": "Mandi prices at Suryapeta APMC, Suryapet, Telangana"
+            },
+            "id": "resource:mandi-price:market:13",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.640398,
+                    17.137547
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "738",
+                  "areaLevel": "District",
+                  "areaName": "Suryapet",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Suryapet",
+                "marketCode": "13",
+                "marketName": "Suryapeta APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "5",
+                  "name": "Jowar(Sorghum)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1030",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Tanduru APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Tanduru APMC mandi prices",
+              "shortDesc": "Mandi prices at Tanduru APMC, Vikarabad, Telangana"
+            },
+            "id": "resource:mandi-price:market:1030",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.5848661,
+                    17.2586913
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "708",
+                  "areaLevel": "District",
+                  "areaName": "Vikarabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Vikarabad",
+                "marketCode": "1030",
+                "marketName": "Tanduru APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1037",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Thungathurthy APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Thungathurthy APMC mandi prices",
+              "shortDesc": "Mandi prices at Thungathurthy APMC, Suryapet, Telangana"
+            },
+            "id": "resource:mandi-price:market:1037",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.58831,
+                    17.418417
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "738",
+                  "areaLevel": "District",
+                  "areaName": "Suryapet",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Suryapet",
+                "marketCode": "1037",
+                "marketName": "Thungathurthy APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1867",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Tirumalagiri APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Tirumalagiri APMC mandi prices",
+              "shortDesc": "Mandi prices at Tirumalagiri APMC, Suryapet, Telangana"
+            },
+            "id": "resource:mandi-price:market:1867",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.4474,
+                    17.4698
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "738",
+                  "areaLevel": "District",
+                  "areaName": "Suryapet",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Suryapet",
+                "marketCode": "1867",
+                "marketName": "Tirumalagiri APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3401",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Vantamamidi APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Vantamamidi APMC mandi prices",
+              "shortDesc": "Mandi prices at Vantamamidi APMC, Siddipet, Telangana"
+            },
+            "id": "resource:mandi-price:market:3401",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.613832,
+                    17.709485
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "576",
+                  "areaLevel": "District",
+                  "areaName": "Siddipet",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Siddipet",
+                "marketCode": "3401",
+                "marketName": "Vantamamidi APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3763",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Vatpally APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Vatpally APMC mandi prices",
+              "shortDesc": "Mandi prices at Vatpally APMC, Sangareddy, Telangana"
+            },
+            "id": "resource:mandi-price:market:3763",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.8818273,
+                    17.9087739
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "700",
+                  "areaLevel": "District",
+                  "areaName": "Sangareddy",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Sangareddy",
+                "marketCode": "3763",
+                "marketName": "Vatpally APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1048",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Venkateswarnagar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Venkateswarnagar APMC mandi prices",
+              "shortDesc": "Mandi prices at Venkateswarnagar APMC, Nalgonda, Telangana"
+            },
+            "id": "resource:mandi-price:market:1048",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.733214,
+                    16.973135
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "573",
+                  "areaLevel": "District",
+                  "areaName": "Nalgonda",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nalgonda",
+                "marketCode": "1048",
+                "marketName": "Venkateswarnagar APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_373",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Vikarabad APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Vikarabad APMC mandi prices",
+              "shortDesc": "Mandi prices at Vikarabad APMC, Vikarabad, Telangana"
+            },
+            "id": "resource:mandi-price:market:373",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.905342,
+                    17.340754
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "708",
+                  "areaLevel": "District",
+                  "areaName": "Vikarabad",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Vikarabad",
+                "marketCode": "373",
+                "marketName": "Vikarabad APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2400",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Wanaparthy Road Prbbair APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Wanaparthy Road Prbbair APMC mandi prices",
+              "shortDesc": "Mandi prices at Wanaparthy Road Prbbair APMC, Mahbubnagar, Telangana"
+            },
+            "id": "resource:mandi-price:market:2400",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "571",
+                  "areaLevel": "District",
+                  "areaName": "Mahbubnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Mahbubnagar",
+                "marketCode": "2400",
+                "marketName": "Wanaparthy Road Prbbair APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1055",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Wanaparthy town APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Wanaparthy town APMC mandi prices",
+              "shortDesc": "Mandi prices at Wanaparthy town APMC, Wanaparthy, Telangana"
+            },
+            "id": "resource:mandi-price:market:1055",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.083618,
+                    16.404006
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "707",
+                  "areaLevel": "District",
+                  "areaName": "Wanaparthy",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Wanaparthy",
+                "marketCode": "1055",
+                "marketName": "Wanaparthy town APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_19",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Warangal APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Warangal APMC mandi prices",
+              "shortDesc": "Mandi prices at Warangal APMC, Warangal, Telangana"
+            },
+            "id": "resource:mandi-price:market:19",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.62789577,
+                    17.99573071
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "577",
+                  "areaLevel": "District",
+                  "areaName": "Warangal",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Warangal",
+                "marketCode": "19",
+                "marketName": "Warangal APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "5",
+                  "name": "Jowar(Sorghum)"
+                },
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
+                  "code": "11",
+                  "name": "Sesamum(Sesame,Gingelly,Til)"
+                },
+                {
+                  "code": "14",
+                  "name": "Sunflower"
+                },
+                {
+                  "code": "15",
+                  "name": "Cotton"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1057",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Wyra APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Wyra APMC mandi prices",
+              "shortDesc": "Mandi prices at Wyra APMC, Khammam, Telangana"
+            },
+            "id": "resource:mandi-price:market:1057",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    80.3806,
+                    17.2006
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "570",
+                  "areaLevel": "District",
+                  "areaName": "Khammam",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Khammam",
+                "marketCode": "1057",
+                "marketName": "Wyra APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_375",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Zaheerabad APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Zaheerabad APMC mandi prices",
+              "shortDesc": "Mandi prices at Zaheerabad APMC, Sangareddy, Telangana"
+            },
+            "id": "resource:mandi-price:market:375",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.6102519,
+                    17.6791223
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "700",
+                  "areaLevel": "District",
+                  "areaName": "Sangareddy",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TS",
+                  "areaLevel": "State",
+                  "areaName": "Telangana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Sangareddy",
+                "marketCode": "375",
+                "marketName": "Zaheerabad APMC",
+                "state": "TL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "5",
+                  "name": "Jowar(Sorghum)"
+                },
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "13",
+                  "name": "Soyabean"
+                },
+                {
+                  "code": "14",
+                  "name": "Sunflower"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                },
+                {
+                  "code": "48",
+                  "name": "Safflower"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:mandi-price:TL",
+        "catalogType": "REGULAR",
+        "schemaTypes": [
+          "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld"
+        ],
+        "updateMode": "FULL",
+        "visibleTo": [
+          "{{networkId}}"
+        ]
+      }
+    ]
+  }
+}

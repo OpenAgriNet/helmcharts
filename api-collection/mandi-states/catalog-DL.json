@@ -1,0 +1,424 @@
+{
+  "context": {
+    "action": "catalog/publish",
+    "messageId": "{{messageId}}",
+    "timestamp": "{{timestamp}}",
+    "transactionId": "{{transactionId}}",
+    "version": "2.0.0",
+    "senderId": "{{senderId}}",
+    "receiverId": "{{receiverId}}"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "descriptor": {
+          "code": "MANDI_PRICE_MARKET_DL",
+          "longDesc": "One resource per market. Each carries the Agmarknet codes a select must send, that market's traded commodities, and its point location for proximity discovery.",
+          "name": "Agmarknet mandi markets — NCT of Delhi",
+          "shortDesc": "Markets in NCT of Delhi, their locations, and what each trades"
+        },
+        "id": "catalog:mandi-price:DL",
+        "isActive": true,
+        "provider": {
+          "descriptor": {
+            "code": "AGMARKNET",
+            "name": "Agmarknet Vistaar",
+            "shortDesc": "Provider of live agricultural market price information."
+          },
+          "id": "agmarknet"
+        },
+        "resources": [
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3445",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for APMC Azadpur. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "APMC Azadpur mandi prices",
+              "shortDesc": "Mandi prices at APMC Azadpur, Delhi, NCT of Delhi"
+            },
+            "id": "resource:mandi-price:market:3445",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.16478971,
+                    28.72143758
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "414",
+                  "areaLevel": "District",
+                  "areaName": "Delhi",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-DL",
+                  "areaLevel": "State",
+                  "areaName": "NCT of Delhi",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Delhi",
+                "marketCode": "3445",
+                "marketName": "APMC Azadpur",
+                "state": "DL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_423",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for APMC Keshopur. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "APMC Keshopur mandi prices",
+              "shortDesc": "Mandi prices at APMC Keshopur, Delhi, NCT of Delhi"
+            },
+            "id": "resource:mandi-price:market:423",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.08796578,
+                    28.65118441
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "414",
+                  "areaLevel": "District",
+                  "areaName": "Delhi",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-DL",
+                  "areaLevel": "State",
+                  "areaName": "NCT of Delhi",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Delhi",
+                "marketCode": "423",
+                "marketName": "APMC Keshopur",
+                "state": "DL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_48",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for APMC Najafgarh. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "APMC Najafgarh mandi prices",
+              "shortDesc": "Mandi prices at APMC Najafgarh, Delhi, NCT of Delhi"
+            },
+            "id": "resource:mandi-price:market:48",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    76.9741375,
+                    28.61956609
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "414",
+                  "areaLevel": "District",
+                  "areaName": "Delhi",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-DL",
+                  "areaLevel": "State",
+                  "areaName": "NCT of Delhi",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Delhi",
+                "marketCode": "48",
+                "marketName": "APMC Najafgarh",
+                "state": "DL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "5",
+                  "name": "Jowar(Sorghum)"
+                },
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "28",
+                  "name": "Bajra(Pearl Millet/Cumbu)"
+                },
+                {
+                  "code": "29",
+                  "name": "Barley(Jau)"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_47",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for APMC Narela. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "APMC Narela mandi prices",
+              "shortDesc": "Mandi prices at APMC Narela, Delhi, NCT of Delhi"
+            },
+            "id": "resource:mandi-price:market:47",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.08801526,
+                    28.84148107
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "414",
+                  "areaLevel": "District",
+                  "areaName": "Delhi",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-DL",
+                  "areaLevel": "State",
+                  "areaName": "NCT of Delhi",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Delhi",
+                "marketCode": "47",
+                "marketName": "APMC Narela",
+                "state": "DL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "28",
+                  "name": "Bajra(Pearl Millet/Cumbu)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4707",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for APMC Shahdara, Fruit and Vegetable Market, Gazipur. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "APMC Shahdara, Fruit and Vegetable Market, Gazipur mandi prices",
+              "shortDesc": "Mandi prices at APMC Shahdara, Fruit and Vegetable Market, Gazipur, Delhi, NCT of Delhi"
+            },
+            "id": "resource:mandi-price:market:4707",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "414",
+                  "areaLevel": "District",
+                  "areaName": "Delhi",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-DL",
+                  "areaLevel": "State",
+                  "areaName": "NCT of Delhi",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Delhi",
+                "marketCode": "4707",
+                "marketName": "APMC Shahdara, Fruit and Vegetable Market, Gazipur",
+                "state": "DL"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:mandi-price:DL",
+        "catalogType": "REGULAR",
+        "schemaTypes": [
+          "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld"
+        ],
+        "updateMode": "FULL",
+        "visibleTo": [
+          "{{networkId}}"
+        ]
+      }
+    ]
+  }
+}

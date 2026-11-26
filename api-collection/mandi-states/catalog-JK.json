@@ -1,0 +1,538 @@
+{
+  "context": {
+    "action": "catalog/publish",
+    "messageId": "{{messageId}}",
+    "timestamp": "{{timestamp}}",
+    "transactionId": "{{transactionId}}",
+    "version": "2.0.0",
+    "senderId": "{{senderId}}",
+    "receiverId": "{{receiverId}}"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "descriptor": {
+          "code": "MANDI_PRICE_MARKET_JK",
+          "longDesc": "One resource per market. Each carries the Agmarknet codes a select must send, that market's traded commodities, and its point location for proximity discovery.",
+          "name": "Agmarknet mandi markets — Jammu and Kashmir",
+          "shortDesc": "Markets in Jammu and Kashmir, their locations, and what each trades"
+        },
+        "id": "catalog:mandi-price:JK",
+        "isActive": true,
+        "provider": {
+          "descriptor": {
+            "code": "AGMARKNET",
+            "name": "Agmarknet Vistaar",
+            "shortDesc": "Provider of live agricultural market price information."
+          },
+          "id": "agmarknet"
+        },
+        "resources": [
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3357",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ashahipora (Anantnagh) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Ashahipora (Anantnagh) APMC mandi prices",
+              "shortDesc": "Mandi prices at Ashahipora (Anantnagh) APMC, Anantnag, Jammu and Kashmir"
+            },
+            "id": "resource:mandi-price:market:3357",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "199",
+                  "areaLevel": "District",
+                  "areaName": "Anantnag",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-JK",
+                  "areaLevel": "State",
+                  "areaName": "Jammu and Kashmir",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Anantnag",
+                "marketCode": "3357",
+                "marketName": "Ashahipora (Anantnagh) APMC",
+                "state": "JK"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2171",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Batote (F&V). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Batote (F&V) mandi prices",
+              "shortDesc": "Mandi prices at Batote (F&V), Ramban, Jammu and Kashmir"
+            },
+            "id": "resource:mandi-price:market:2171",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    75.327786,
+                    33.116415
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "215",
+                  "areaLevel": "District",
+                  "areaName": "Ramban",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-JK",
+                  "areaLevel": "State",
+                  "areaName": "Jammu and Kashmir",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Ramban",
+                "marketCode": "2171",
+                "marketName": "Batote (F&V)",
+                "state": "JK"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_98",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Fruit and Vegetable Market Udhampur. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Fruit and Vegetable Market Udhampur mandi prices",
+              "shortDesc": "Mandi prices at Fruit and Vegetable Market Udhampur, Udhampur, Jammu and Kashmir"
+            },
+            "id": "resource:mandi-price:market:98",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    75.135458,
+                    32.908942
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "219",
+                  "areaLevel": "District",
+                  "areaName": "Udhampur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-JK",
+                  "areaLevel": "State",
+                  "areaName": "Jammu and Kashmir",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Udhampur",
+                "marketCode": "98",
+                "marketName": "Fruit and Vegetable Market Udhampur",
+                "state": "JK"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2173",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kathua (F&V). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kathua (F&V) mandi prices",
+              "shortDesc": "Mandi prices at Kathua (F&V), Kathua, Jammu and Kashmir"
+            },
+            "id": "resource:mandi-price:market:2173",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    75.53265,
+                    32.380091
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "207",
+                  "areaLevel": "District",
+                  "areaName": "Kathua",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-JK",
+                  "areaLevel": "State",
+                  "areaName": "Jammu and Kashmir",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Kathua",
+                "marketCode": "2173",
+                "marketName": "Kathua (F&V)",
+                "state": "JK"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_472",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for MAC F&V Market Narwal Jammu. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "MAC F&V Market Narwal Jammu mandi prices",
+              "shortDesc": "Mandi prices at MAC F&V Market Narwal Jammu, Jammu, Jammu and Kashmir"
+            },
+            "id": "resource:mandi-price:market:472",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    74.884538,
+                    32.714728
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "205",
+                  "areaLevel": "District",
+                  "areaName": "Jammu",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-JK",
+                  "areaLevel": "State",
+                  "areaName": "Jammu and Kashmir",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Jammu",
+                "marketCode": "472",
+                "marketName": "MAC F&V Market Narwal Jammu",
+                "state": "JK"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_97",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Parimpore Srinagar (F&V). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Parimpore Srinagar (F&V) mandi prices",
+              "shortDesc": "Mandi prices at Parimpore Srinagar (F&V), Srinagar, Jammu and Kashmir"
+            },
+            "id": "resource:mandi-price:market:97",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    74.757846,
+                    34.09990882
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "218",
+                  "areaLevel": "District",
+                  "areaName": "Srinagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-JK",
+                  "areaLevel": "State",
+                  "areaName": "Jammu and Kashmir",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Srinagar",
+                "marketCode": "97",
+                "marketName": "Parimpore Srinagar (F&V)",
+                "state": "JK"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_478",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Rajouri (Phaliana) (F&V). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Rajouri (Phaliana) (F&V) mandi prices",
+              "shortDesc": "Mandi prices at Rajouri (Phaliana) (F&V), Rajouri, Jammu and Kashmir"
+            },
+            "id": "resource:mandi-price:market:478",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    74.3255,
+                    33.3418
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "214",
+                  "areaLevel": "District",
+                  "areaName": "Rajouri",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-JK",
+                  "areaLevel": "State",
+                  "areaName": "Jammu and Kashmir",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Rajouri",
+                "marketCode": "478",
+                "marketName": "Rajouri (Phaliana) (F&V)",
+                "state": "JK"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:mandi-price:JK",
+        "catalogType": "REGULAR",
+        "schemaTypes": [
+          "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld"
+        ],
+        "updateMode": "FULL",
+        "visibleTo": [
+          "{{networkId}}"
+        ]
+      }
+    ]
+  }
+}

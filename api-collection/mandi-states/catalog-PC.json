@@ -1,0 +1,245 @@
+{
+  "context": {
+    "action": "catalog/publish",
+    "messageId": "{{messageId}}",
+    "timestamp": "{{timestamp}}",
+    "transactionId": "{{transactionId}}",
+    "version": "2.0.0",
+    "senderId": "{{senderId}}",
+    "receiverId": "{{receiverId}}"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "descriptor": {
+          "code": "MANDI_PRICE_MARKET_PC",
+          "longDesc": "One resource per market. Each carries the Agmarknet codes a select must send, that market's traded commodities, and its point location for proximity discovery.",
+          "name": "Agmarknet mandi markets — Pondicherry",
+          "shortDesc": "Markets in Pondicherry, their locations, and what each trades"
+        },
+        "id": "catalog:mandi-price:PC",
+        "isActive": true,
+        "provider": {
+          "descriptor": {
+            "code": "AGMARKNET",
+            "name": "Agmarknet Vistaar",
+            "shortDesc": "Provider of live agricultural market price information."
+          },
+          "id": "agmarknet"
+        },
+        "resources": [
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3359",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Karaikal APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Karaikal APMC mandi prices",
+              "shortDesc": "Mandi prices at Karaikal APMC, Karaikal, Pondicherry"
+            },
+            "id": "resource:mandi-price:market:3359",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.829354,
+                    10.923457
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "448",
+                  "areaLevel": "District",
+                  "areaName": "Karaikal",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-PY",
+                  "areaLevel": "State",
+                  "areaName": "Pondicherry",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Karaikal",
+                "marketCode": "3359",
+                "marketName": "Karaikal APMC",
+                "state": "PC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1126",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Madagadipet APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Madagadipet APMC mandi prices",
+              "shortDesc": "Mandi prices at Madagadipet APMC, Pondicherry, Pondicherry"
+            },
+            "id": "resource:mandi-price:market:1126",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.636417,
+                    11.918884
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "450",
+                  "areaLevel": "District",
+                  "areaName": "Pondicherry",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-PY",
+                  "areaLevel": "State",
+                  "areaName": "Pondicherry",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Pondicherry",
+                "marketCode": "1126",
+                "marketName": "Madagadipet APMC",
+                "state": "PC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "30",
+                  "name": "Ragi(Finger Millet)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_242",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Thattanchavady APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Thattanchavady APMC mandi prices",
+              "shortDesc": "Mandi prices at Thattanchavady APMC, Pondicherry, Pondicherry"
+            },
+            "id": "resource:mandi-price:market:242",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.772844,
+                    11.798365
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "450",
+                  "areaLevel": "District",
+                  "areaName": "Pondicherry",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-PY",
+                  "areaLevel": "State",
+                  "areaName": "Pondicherry",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Pondicherry",
+                "marketCode": "242",
+                "marketName": "Thattanchavady APMC",
+                "state": "PC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "11",
+                  "name": "Sesamum(Sesame,Gingelly,Til)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:mandi-price:PC",
+        "catalogType": "REGULAR",
+        "schemaTypes": [
+          "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld"
+        ],
+        "updateMode": "FULL",
+        "visibleTo": [
+          "{{networkId}}"
+        ]
+      }
+    ]
+  }
+}
