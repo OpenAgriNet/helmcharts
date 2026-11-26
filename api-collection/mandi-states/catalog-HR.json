@@ -65,7 +65,7 @@
                 "en"
               ],
               "market": {
-                "district": "Hissar",
+                "district": "170",
                 "marketCode": "77",
                 "marketName": "Adampur APMC",
                 "state": "HR"
@@ -79,6 +79,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
                 {
                   "code": "9",
                   "name": "Green Gram(Moong)(Whole)"
@@ -140,7 +144,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ambala",
+                "district": "165",
                 "marketCode": "1108",
                 "marketName": "Ambala Cantt. APMC",
                 "state": "HR"
@@ -165,6 +169,73 @@
                 {
                   "code": "65",
                   "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_73",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ambala City APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Ambala City APMC mandi prices",
+              "shortDesc": "Mandi prices at Ambala City APMC, Ambala, Haryana"
+            },
+            "id": "resource:mandi-price:market:73",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    76.77006986,
+                    30.37058109
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "165",
+                  "areaLevel": "District",
+                  "areaName": "Ambala",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HR",
+                  "areaLevel": "State",
+                  "areaName": "Haryana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "165",
+                "marketCode": "73",
+                "marketName": "Ambala City APMC",
+                "state": "HR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
                 }
               ],
               "supportedPriceFields": [
@@ -204,7 +275,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ambala",
+                "district": "165",
                 "marketCode": "2441",
                 "marketName": "Ambala City(Subji Mandi) APMC",
                 "state": "HR"
@@ -225,10 +296,6 @@
                 {
                   "code": "24",
                   "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -275,7 +342,7 @@
                 "en"
               ],
               "market": {
-                "district": "Karnal",
+                "district": "174",
                 "marketCode": "83",
                 "marketName": "Asandh APMC",
                 "state": "HR"
@@ -338,7 +405,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mahendragarh-Narnaul",
+                "district": "176",
                 "marketCode": "1857",
                 "marketName": "Ateli APMC",
                 "state": "HR"
@@ -409,7 +476,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kurukshetra",
+                "district": "175",
                 "marketCode": "1856",
                 "marketName": "Babain APMC",
                 "state": "HR"
@@ -426,10 +493,6 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
-                },
-                {
-                  "code": "4",
-                  "name": "Maize"
                 }
               ],
               "supportedPriceFields": [
@@ -476,7 +539,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jhajar",
+                "district": "171",
                 "marketCode": "1865",
                 "marketName": "Bahadurgarh APMC",
                 "state": "HR"
@@ -547,7 +610,7 @@
                 "en"
               ],
               "market": {
-                "district": "Faridabad",
+                "district": "167",
                 "marketCode": "1110",
                 "marketName": "Ballabhgarh APMC",
                 "state": "HR"
@@ -562,76 +625,13 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "23",
-                  "name": "Onion"
+                  "code": "2",
+                  "name": "Paddy(Common)"
                 },
                 {
-                  "code": "24",
-                  "name": "Potato"
+                  "code": "15",
+                  "name": "Cotton"
                 },
-                {
-                  "code": "65",
-                  "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1805",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Barara APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Barara APMC mandi prices",
-              "shortDesc": "Mandi prices at Barara APMC, Ambala, Haryana"
-            },
-            "id": "resource:mandi-price:market:1805",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    77.0403,
-                    30.2084
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "165",
-                  "areaLevel": "District",
-                  "areaName": "Ambala",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-HR",
-                  "areaLevel": "State",
-                  "areaName": "Haryana",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Ambala",
-                "marketCode": "1805",
-                "marketName": "Barara APMC",
-                "state": "HR"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
                 {
                   "code": "23",
                   "name": "Onion"
@@ -689,7 +689,7 @@
                 "en"
               ],
               "market": {
-                "district": "Panchkula",
+                "district": "179",
                 "marketCode": "1804",
                 "marketName": "Barwala APMC",
                 "state": "HR"
@@ -764,7 +764,7 @@
                 "en"
               ],
               "market": {
-                "district": "Hissar",
+                "district": "170",
                 "marketCode": "1828",
                 "marketName": "Barwala(Hisar) APMC",
                 "state": "HR"
@@ -778,6 +778,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
                 {
                   "code": "15",
                   "name": "Cotton"
@@ -808,27 +812,27 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1816",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Behal APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Behal APMC mandi prices",
-              "shortDesc": "Mandi prices at Behal APMC, Bhiwani, Haryana"
+              "code": "MANDI_PRICE_MARKET_3363",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Beri APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Beri APMC mandi prices",
+              "shortDesc": "Mandi prices at Beri APMC, Jhajar, Haryana"
             },
-            "id": "resource:mandi-price:market:1816",
+            "id": "resource:mandi-price:market:3363",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
                 {
                   "coordinates": [
-                    75.617812,
-                    28.635318
+                    76.58,
+                    28.7
                   ],
                   "type": "Point"
                 },
                 {
-                  "areaCode": "166",
+                  "areaCode": "171",
                   "areaLevel": "District",
-                  "areaName": "Bhiwani",
+                  "areaName": "Jhajar",
                   "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
@@ -843,9 +847,9 @@
                 "en"
               ],
               "market": {
-                "district": "Bhiwani",
-                "marketCode": "1816",
-                "marketName": "Behal APMC",
+                "district": "171",
+                "marketCode": "3363",
+                "marketName": "Beri APMC",
                 "state": "HR"
               },
               "source": {
@@ -858,12 +862,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "12",
-                  "name": "Mustard"
-                },
-                {
-                  "code": "28",
-                  "name": "Bajra(Pearl Millet/Cumbu)"
+                  "code": "15",
+                  "name": "Cotton"
                 }
               ],
               "supportedPriceFields": [
@@ -910,7 +910,7 @@
                 "en"
               ],
               "market": {
-                "district": "Fatehabad",
+                "district": "168",
                 "marketCode": "1831",
                 "marketName": "Bhattu Kalan APMC",
                 "state": "HR"
@@ -929,12 +929,12 @@
                   "name": "Groundnut"
                 },
                 {
-                  "code": "15",
-                  "name": "Cotton"
+                  "code": "12",
+                  "name": "Mustard"
                 },
                 {
-                  "code": "28",
-                  "name": "Bajra(Pearl Millet/Cumbu)"
+                  "code": "15",
+                  "name": "Cotton"
                 }
               ],
               "supportedPriceFields": [
@@ -981,7 +981,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bhiwani",
+                "district": "166",
                 "marketCode": "453",
                 "marketName": "Bhiwani APMC",
                 "state": "HR"
@@ -996,20 +996,12 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "15",
-                  "name": "Cotton"
-                },
-                {
                   "code": "23",
                   "name": "Onion"
                 },
                 {
                   "code": "24",
                   "name": "Potato"
-                },
-                {
-                  "code": "28",
-                  "name": "Bajra(Pearl Millet/Cumbu)"
                 },
                 {
                   "code": "65",
@@ -1053,7 +1045,7 @@
                 "en"
               ],
               "market": {
-                "district": "Fatehabad",
+                "district": "168",
                 "marketCode": "1832",
                 "marketName": "Bhuna APMC",
                 "state": "HR"
@@ -1068,71 +1060,16 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "15",
-                  "name": "Cotton"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1815",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bilaspur APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Bilaspur APMC mandi prices",
-              "shortDesc": "Mandi prices at Bilaspur APMC, Yamuna Nagar, Haryana"
-            },
-            "id": "resource:mandi-price:market:1815",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    77.300776,
-                    30.2978204
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "185",
-                  "areaLevel": "District",
-                  "areaName": "Yamuna Nagar",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-HR",
-                  "areaLevel": "State",
-                  "areaName": "Haryana",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Yamuna Nagar",
-                "marketCode": "1815",
-                "marketName": "Bilaspur APMC",
-                "state": "HR"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "15",
+                  "name": "Cotton"
+                },
+                {
+                  "code": "28",
+                  "name": "Bajra(Pearl Millet/Cumbu)"
                 }
               ],
               "supportedPriceFields": [
@@ -1179,7 +1116,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bhiwani",
+                "district": "166",
                 "marketCode": "1109",
                 "marketName": "Ch. Dadri APMC",
                 "state": "HR"
@@ -1243,7 +1180,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kaithal",
+                "district": "173",
                 "marketCode": "84",
                 "marketName": "Cheeka APMC",
                 "state": "HR"
@@ -1260,62 +1197,6 @@
                 {
                   "code": "24",
                   "name": "Potato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_2458",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Chhachhrauli(Khizrabad) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Chhachhrauli(Khizrabad) APMC mandi prices",
-              "shortDesc": "Mandi prices at Chhachhrauli(Khizrabad) APMC, Yamuna Nagar, Haryana"
-            },
-            "id": "resource:mandi-price:market:2458",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "areaCode": "185",
-                  "areaLevel": "District",
-                  "areaName": "Yamuna Nagar",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-HR",
-                  "areaLevel": "State",
-                  "areaName": "Haryana",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Yamuna Nagar",
-                "marketCode": "2458",
-                "marketName": "Chhachhrauli(Khizrabad) APMC",
-                "state": "HR"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -1362,7 +1243,7 @@
                 "en"
               ],
               "market": {
-                "district": "Yamuna Nagar",
+                "district": "185",
                 "marketCode": "1811",
                 "marketName": "Chhachrauli APMC",
                 "state": "HR"
@@ -1376,10 +1257,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -1437,7 +1314,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sirsa",
+                "district": "183",
                 "marketCode": "93",
                 "marketName": "Dabwali APMC",
                 "state": "HR"
@@ -1452,16 +1329,12 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "12",
-                  "name": "Mustard"
-                },
-                {
                   "code": "15",
                   "name": "Cotton"
                 },
                 {
-                  "code": "24",
-                  "name": "Potato"
+                  "code": "23",
+                  "name": "Onion"
                 }
               ],
               "supportedPriceFields": [
@@ -1508,7 +1381,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kaithal",
+                "district": "173",
                 "marketCode": "1839",
                 "marketName": "Dhand APMC",
                 "state": "HR"
@@ -1523,10 +1396,6 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
-                {
                   "code": "23",
                   "name": "Onion"
                 },
@@ -1537,69 +1406,6 @@
                 {
                   "code": "65",
                   "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1835",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Dharsul APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Dharsul APMC mandi prices",
-              "shortDesc": "Mandi prices at Dharsul APMC, Fatehabad, Haryana"
-            },
-            "id": "resource:mandi-price:market:1835",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    75.729233,
-                    29.67853
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "168",
-                  "areaLevel": "District",
-                  "areaName": "Fatehabad",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-HR",
-                  "areaLevel": "State",
-                  "areaName": "Haryana",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Fatehabad",
-                "marketCode": "1835",
-                "marketName": "Dharsul APMC",
-                "state": "HR"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -1646,7 +1452,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sirsa",
+                "district": "183",
                 "marketCode": "1862",
                 "marketName": "Ding APMC",
                 "state": "HR"
@@ -1660,6 +1466,14 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
                 {
                   "code": "15",
                   "name": "Cotton"
@@ -1709,7 +1523,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sirsa",
+                "district": "183",
                 "marketCode": "91",
                 "marketName": "Ellanabad APMC",
                 "state": "HR"
@@ -1724,8 +1538,16 @@
               ],
               "supportedCommodities": [
                 {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
                   "code": "6",
                   "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
                 },
                 {
                   "code": "10",
@@ -1738,26 +1560,6 @@
                 {
                   "code": "15",
                   "name": "Cotton"
-                },
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "28",
-                  "name": "Bajra(Pearl Millet/Cumbu)"
-                },
-                {
-                  "code": "29",
-                  "name": "Barley(Jau)"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -1797,7 +1599,7 @@
                 "en"
               ],
               "market": {
-                "district": "Gurgaon",
+                "district": "169",
                 "marketCode": "1823",
                 "marketName": "Farukh Nagar APMC",
                 "state": "HR"
@@ -1876,7 +1678,7 @@
                 "en"
               ],
               "market": {
-                "district": "Fatehabad",
+                "district": "168",
                 "marketCode": "75",
                 "marketName": "Fatehabad APMC",
                 "state": "HR"
@@ -1947,7 +1749,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mewat",
+                "district": "177",
                 "marketCode": "2444",
                 "marketName": "FerozpurZirkha(Nagina) APMC",
                 "state": "HR"
@@ -2018,7 +1820,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sonipat",
+                "district": "184",
                 "marketCode": "1864",
                 "marketName": "Ganaur APMC",
                 "state": "HR"
@@ -2089,7 +1891,7 @@
                 "en"
               ],
               "market": {
-                "district": "Karnal",
+                "district": "174",
                 "marketCode": "1844",
                 "marketName": "Gharaunda APMC",
                 "state": "HR"
@@ -2164,7 +1966,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sonipat",
+                "district": "184",
                 "marketCode": "1079",
                 "marketName": "Gohana APMC",
                 "state": "HR"
@@ -2235,7 +2037,7 @@
                 "en"
               ],
               "market": {
-                "district": "Gurgaon",
+                "district": "169",
                 "marketCode": "459",
                 "marketName": "Gurgaon APMC",
                 "state": "HR"
@@ -2306,7 +2108,7 @@
                 "en"
               ],
               "market": {
-                "district": "Hissar",
+                "district": "170",
                 "marketCode": "1112",
                 "marketName": "Hansi APMC",
                 "state": "HR"
@@ -2339,10 +2141,6 @@
                 {
                   "code": "24",
                   "name": "Potato"
-                },
-                {
-                  "code": "28",
-                  "name": "Bajra(Pearl Millet/Cumbu)"
                 },
                 {
                   "code": "65",
@@ -2393,7 +2191,7 @@
                 "en"
               ],
               "market": {
-                "district": "Palwal",
+                "district": "178",
                 "marketCode": "1821",
                 "marketName": "Hassanpur APMC",
                 "state": "HR"
@@ -2410,18 +2208,6 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
-                },
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -2468,7 +2254,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mewat",
+                "district": "177",
                 "marketCode": "1822",
                 "marketName": "Hathin APMC",
                 "state": "HR"
@@ -2485,14 +2271,6 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
-                },
-                {
-                  "code": "15",
-                  "name": "Cotton"
-                },
-                {
-                  "code": "28",
-                  "name": "Bajra(Pearl Millet/Cumbu)"
                 }
               ],
               "supportedPriceFields": [
@@ -2539,7 +2317,7 @@
                 "en"
               ],
               "market": {
-                "district": "Hissar",
+                "district": "170",
                 "marketCode": "78",
                 "marketName": "Hissar APMC",
                 "state": "HR"
@@ -2564,6 +2342,10 @@
                 {
                   "code": "12",
                   "name": "Mustard"
+                },
+                {
+                  "code": "15",
+                  "name": "Cotton"
                 },
                 {
                   "code": "23",
@@ -2626,7 +2408,7 @@
                 "en"
               ],
               "market": {
-                "district": "Palwal",
+                "district": "178",
                 "marketCode": "74",
                 "marketName": "Hodal APMC",
                 "state": "HR"
@@ -2697,7 +2479,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kurukshetra",
+                "district": "175",
                 "marketCode": "88",
                 "marketName": "Iamailabad APMC",
                 "state": "HR"
@@ -2712,12 +2494,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
+                  "code": "2",
+                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -2764,7 +2542,7 @@
                 "en"
               ],
               "market": {
-                "district": "Karnal",
+                "district": "174",
                 "marketCode": "1845",
                 "marketName": "Indri APMC",
                 "state": "HR"
@@ -2839,7 +2617,7 @@
                 "en"
               ],
               "market": {
-                "district": "Yamuna Nagar",
+                "district": "185",
                 "marketCode": "1810",
                 "marketName": "Jagadhri APMC",
                 "state": "HR"
@@ -2910,7 +2688,7 @@
                 "en"
               ],
               "market": {
-                "district": "Fatehabad",
+                "district": "168",
                 "marketCode": "1833",
                 "marketName": "Jakhal APMC",
                 "state": "HR"
@@ -2981,7 +2759,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jhajar",
+                "district": "171",
                 "marketCode": "456",
                 "marketName": "Jhajjar APMC",
                 "state": "HR"
@@ -3052,7 +2830,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jind",
+                "district": "172",
                 "marketCode": "460",
                 "marketName": "Jind APMC",
                 "state": "HR"
@@ -3077,69 +2855,6 @@
                 {
                   "code": "65",
                   "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1817",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jui APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Jui APMC mandi prices",
-              "shortDesc": "Mandi prices at Jui APMC, Bhiwani, Haryana"
-            },
-            "id": "resource:mandi-price:market:1817",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    75.561,
-                    28.3747
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "166",
-                  "areaLevel": "District",
-                  "areaName": "Bhiwani",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-HR",
-                  "areaLevel": "State",
-                  "areaName": "Haryana",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Bhiwani",
-                "marketCode": "1817",
-                "marketName": "Jui APMC",
-                "state": "HR"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "28",
-                  "name": "Bajra(Pearl Millet/Cumbu)"
                 }
               ],
               "supportedPriceFields": [
@@ -3186,7 +2901,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jind",
+                "district": "172",
                 "marketCode": "1836",
                 "marketName": "Jullana APMC",
                 "state": "HR"
@@ -3253,7 +2968,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kaithal",
+                "district": "173",
                 "marketCode": "81",
                 "marketName": "Kaithal APMC",
                 "state": "HR"
@@ -3328,7 +3043,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sirsa",
+                "district": "183",
                 "marketCode": "92",
                 "marketName": "KALANWALIAPMC",
                 "state": "HR"
@@ -3357,10 +3072,6 @@
                 {
                   "code": "24",
                   "name": "Potato"
-                },
-                {
-                  "code": "28",
-                  "name": "Bajra(Pearl Millet/Cumbu)"
                 },
                 {
                   "code": "65",
@@ -3411,7 +3122,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mahendragarh-Narnaul",
+                "district": "176",
                 "marketCode": "1858",
                 "marketName": "Khanina APMC",
                 "state": "HR"
@@ -3428,6 +3139,10 @@
                 {
                   "code": "1",
                   "name": "Wheat"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
                 },
                 {
                   "code": "28",
@@ -3478,7 +3193,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sonipat",
+                "district": "184",
                 "marketCode": "2457",
                 "marketName": "Kharkhoda APMC",
                 "state": "HR"
@@ -3549,7 +3264,7 @@
                 "en"
               ],
               "market": {
-                "district": "Rewari",
+                "district": "181",
                 "marketCode": "1859",
                 "marketName": "Kosli APMC",
                 "state": "HR"
@@ -3570,6 +3285,10 @@
                 {
                   "code": "24",
                   "name": "Potato"
+                },
+                {
+                  "code": "28",
+                  "name": "Bajra(Pearl Millet/Cumbu)"
                 },
                 {
                   "code": "65",
@@ -3620,7 +3339,7 @@
                 "en"
               ],
               "market": {
-                "district": "Karnal",
+                "district": "174",
                 "marketCode": "1847",
                 "marketName": "Kunjpura APMC",
                 "state": "HR"
@@ -3683,7 +3402,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kurukshetra",
+                "district": "175",
                 "marketCode": "85",
                 "marketName": "Ladwa APMC",
                 "state": "HR"
@@ -3758,7 +3477,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bhiwani",
+                "district": "166",
                 "marketCode": "1818",
                 "marketName": "Loharu APMC",
                 "state": "HR"
@@ -3775,6 +3494,22 @@
                 {
                   "code": "12",
                   "name": "Mustard"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "28",
+                  "name": "Bajra(Pearl Millet/Cumbu)"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -3821,7 +3556,7 @@
                 "en"
               ],
               "market": {
-                "district": "Panipat",
+                "district": "180",
                 "marketCode": "1852",
                 "marketName": "Madlauda APMC",
                 "state": "HR"
@@ -3835,10 +3570,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -3896,7 +3627,7 @@
                 "en"
               ],
               "market": {
-                "district": "Rohtak",
+                "district": "182",
                 "marketCode": "1860",
                 "marketName": "Meham",
                 "state": "HR"
@@ -3967,7 +3698,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mahendragarh-Narnaul",
+                "district": "176",
                 "marketCode": "1113",
                 "marketName": "Mohindergarh APMC",
                 "state": "HR"
@@ -3990,138 +3721,8 @@
                   "name": "Potato"
                 },
                 {
-                  "code": "28",
-                  "name": "Bajra(Pearl Millet/Cumbu)"
-                },
-                {
                   "code": "65",
                   "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1806",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mullana APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Mullana APMC mandi prices",
-              "shortDesc": "Mandi prices at Mullana APMC, Ambala, Haryana"
-            },
-            "id": "resource:mandi-price:market:1806",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    77.0476,
-                    30.2753
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "165",
-                  "areaLevel": "District",
-                  "areaName": "Ambala",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-HR",
-                  "areaLevel": "State",
-                  "areaName": "Haryana",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Ambala",
-                "marketCode": "1806",
-                "marketName": "Mullana APMC",
-                "state": "HR"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_2442",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mullana(saha) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Mullana(saha) APMC mandi prices",
-              "shortDesc": "Mandi prices at Mullana(saha) APMC, Ambala, Haryana"
-            },
-            "id": "resource:mandi-price:market:2442",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    76.9672,
-                    30.3046
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "165",
-                  "areaLevel": "District",
-                  "areaName": "Ambala",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-HR",
-                  "areaLevel": "State",
-                  "areaName": "Haryana",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Ambala",
-                "marketCode": "2442",
-                "marketName": "Mullana(saha) APMC",
-                "state": "HR"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -4168,7 +3769,7 @@
                 "en"
               ],
               "market": {
-                "district": "Yamuna Nagar",
+                "district": "185",
                 "marketCode": "1812",
                 "marketName": "Mustafabad APMC",
                 "state": "HR"
@@ -4239,7 +3840,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ambala",
+                "district": "165",
                 "marketCode": "1807",
                 "marketName": "Naneola APMC",
                 "state": "HR"
@@ -4302,7 +3903,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ambala",
+                "district": "165",
                 "marketCode": "1808",
                 "marketName": "Naraingarh APMC",
                 "state": "HR"
@@ -4323,6 +3924,10 @@
                 {
                   "code": "4",
                   "name": "Maize"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
                 },
                 {
                   "code": "23",
@@ -4381,7 +3986,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mahendragarh-Narnaul",
+                "district": "176",
                 "marketCode": "458",
                 "marketName": "Narnaul APMC",
                 "state": "HR"
@@ -4396,8 +4001,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "6",
-                  "name": "Bengal Gram(Gram)(Whole)"
+                  "code": "12",
+                  "name": "Mustard"
                 },
                 {
                   "code": "23",
@@ -4453,7 +4058,7 @@
                 "en"
               ],
               "market": {
-                "district": "Hissar",
+                "district": "170",
                 "marketCode": "1830",
                 "marketName": "Narnaund APMC",
                 "state": "HR"
@@ -4509,7 +4114,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jind",
+                "district": "172",
                 "marketCode": "79",
                 "marketName": "Narwana APMC",
                 "state": "HR"
@@ -4524,8 +4129,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
+                  "code": "15",
+                  "name": "Cotton"
                 },
                 {
                   "code": "23",
@@ -4584,7 +4189,7 @@
                 "en"
               ],
               "market": {
-                "district": "Faridabad",
+                "district": "167",
                 "marketCode": "2910",
                 "marketName": "New Grain Market , Faridabad APMC",
                 "state": "HR"
@@ -4655,7 +4260,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jind",
+                "district": "172",
                 "marketCode": "2924",
                 "marketName": "New Grain Market , Jind APMC",
                 "state": "HR"
@@ -4718,7 +4323,7 @@
                 "en"
               ],
               "market": {
-                "district": "Panchkula",
+                "district": "179",
                 "marketCode": "2926",
                 "marketName": "New Grain Market , Panchkula APMC",
                 "state": "HR"
@@ -4735,14 +4340,6 @@
                 {
                   "code": "23",
                   "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -4789,7 +4386,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sirsa",
+                "district": "183",
                 "marketCode": "2886",
                 "marketName": "New Grain Market , Sirsa APMC",
                 "state": "HR"
@@ -4808,12 +4405,12 @@
                   "name": "Bengal Gram(Gram)(Whole)"
                 },
                 {
-                  "code": "15",
-                  "name": "Cotton"
+                  "code": "12",
+                  "name": "Mustard"
                 },
                 {
-                  "code": "28",
-                  "name": "Bajra(Pearl Millet/Cumbu)"
+                  "code": "15",
+                  "name": "Cotton"
                 }
               ],
               "supportedPriceFields": [
@@ -4860,199 +4457,9 @@
                 "en"
               ],
               "market": {
-                "district": "Sonipat",
+                "district": "184",
                 "marketCode": "2887",
                 "marketName": "New Grain Market , Sonipat APMC",
-                "state": "HR"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "28",
-                  "name": "Bajra(Pearl Millet/Cumbu)"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_2925",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for New Grain Market(main), Karnal APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "New Grain Market(main), Karnal APMC mandi prices",
-              "shortDesc": "Mandi prices at New Grain Market(main), Karnal APMC, Karnal, Haryana"
-            },
-            "id": "resource:mandi-price:market:2925",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    76.985202,
-                    29.656808
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "174",
-                  "areaLevel": "District",
-                  "areaName": "Karnal",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-HR",
-                  "areaLevel": "State",
-                  "areaName": "Haryana",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Karnal",
-                "marketCode": "2925",
-                "marketName": "New Grain Market(main), Karnal APMC",
-                "state": "HR"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1849",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nilokheri APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Nilokheri APMC mandi prices",
-              "shortDesc": "Mandi prices at Nilokheri APMC, Karnal, Haryana"
-            },
-            "id": "resource:mandi-price:market:1849",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "areaCode": "174",
-                  "areaLevel": "District",
-                  "areaName": "Karnal",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-HR",
-                  "areaLevel": "State",
-                  "areaName": "Haryana",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Karnal",
-                "marketCode": "1849",
-                "marketName": "Nilokheri APMC",
-                "state": "HR"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1850",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nissing APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Nissing APMC mandi prices",
-              "shortDesc": "Mandi prices at Nissing APMC, Karnal, Haryana"
-            },
-            "id": "resource:mandi-price:market:1850",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    76.77551,
-                    29.697628
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "174",
-                  "areaLevel": "District",
-                  "areaName": "Karnal",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-HR",
-                  "areaLevel": "State",
-                  "areaName": "Haryana",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Karnal",
-                "marketCode": "1850",
-                "marketName": "Nissing APMC",
                 "state": "HR"
               },
               "source": {
@@ -5113,7 +4520,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mewat",
+                "district": "177",
                 "marketCode": "1824",
                 "marketName": "Nuh APMC",
                 "state": "HR"
@@ -5138,69 +4545,6 @@
                 {
                   "code": "65",
                   "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1843",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Pai APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Pai APMC mandi prices",
-              "shortDesc": "Mandi prices at Pai APMC, Kaithal, Haryana"
-            },
-            "id": "resource:mandi-price:market:1843",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    76.528418,
-                    29.69796
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "173",
-                  "areaLevel": "District",
-                  "areaName": "Kaithal",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-HR",
-                  "areaLevel": "State",
-                  "areaName": "Haryana",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Kaithal",
-                "marketCode": "1843",
-                "marketName": "Pai APMC",
-                "state": "HR"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -5247,7 +4591,7 @@
                 "en"
               ],
               "market": {
-                "district": "Palwal",
+                "district": "178",
                 "marketCode": "461",
                 "marketName": "Palwal APMC",
                 "state": "HR"
@@ -5261,10 +4605,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "9",
-                  "name": "Green Gram(Moong)(Whole)"
-                },
                 {
                   "code": "15",
                   "name": "Cotton"
@@ -5330,7 +4670,7 @@
                 "en"
               ],
               "market": {
-                "district": "Panchkula",
+                "district": "179",
                 "marketCode": "2451",
                 "marketName": "Panchkul(Kalka) APMC",
                 "state": "HR"
@@ -5347,14 +4687,6 @@
                 {
                   "code": "23",
                   "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -5401,7 +4733,7 @@
                 "en"
               ],
               "market": {
-                "district": "Panipat",
+                "district": "180",
                 "marketCode": "452",
                 "marketName": "Panipat APMC",
                 "state": "HR"
@@ -5476,7 +4808,7 @@
                 "en"
               ],
               "market": {
-                "district": "Gurgaon",
+                "district": "169",
                 "marketCode": "1825",
                 "marketName": "Pataudi APMC",
                 "state": "HR"
@@ -5547,7 +4879,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kurukshetra",
+                "district": "175",
                 "marketCode": "86",
                 "marketName": "Pehowa APMC",
                 "state": "HR"
@@ -5572,69 +4904,6 @@
                 {
                   "code": "65",
                   "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1837",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Pillukhera APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Pillukhera APMC mandi prices",
-              "shortDesc": "Mandi prices at Pillukhera APMC, Jind, Haryana"
-            },
-            "id": "resource:mandi-price:market:1837",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    76.496945,
-                    29.352861
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "172",
-                  "areaLevel": "District",
-                  "areaName": "Jind",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-HR",
-                  "areaLevel": "State",
-                  "areaName": "Haryana",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Jind",
-                "marketCode": "1837",
-                "marketName": "Pillukhera APMC",
-                "state": "HR"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -5681,7 +4950,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kurukshetra",
+                "district": "175",
                 "marketCode": "1855",
                 "marketName": "Pipli APMC",
                 "state": "HR"
@@ -5744,7 +5013,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kaithal",
+                "district": "173",
                 "marketCode": "1840",
                 "marketName": "Pundri APMC",
                 "state": "HR"
@@ -5758,10 +5027,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -5819,7 +5084,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mewat",
+                "district": "177",
                 "marketCode": "1826",
                 "marketName": "Punhana APMC",
                 "state": "HR"
@@ -5890,7 +5155,7 @@
                 "en"
               ],
               "market": {
-                "district": "Yamuna Nagar",
+                "district": "185",
                 "marketCode": "1814",
                 "marketName": "Radaur APMC",
                 "state": "HR"
@@ -5961,7 +5226,7 @@
                 "en"
               ],
               "market": {
-                "district": "Panchkula",
+                "district": "179",
                 "marketCode": "1803",
                 "marketName": "Raipur Rani APMC",
                 "state": "HR"
@@ -6032,7 +5297,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kaithal",
+                "district": "173",
                 "marketCode": "2448",
                 "marketName": "Rajound APMC",
                 "state": "HR"
@@ -6095,9 +5360,80 @@
                 "en"
               ],
               "market": {
-                "district": "Sirsa",
+                "district": "183",
                 "marketCode": "1863",
                 "marketName": "Rania APMC",
+                "state": "HR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2454",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Rania(Jiwan nagar) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Rania(Jiwan nagar) APMC mandi prices",
+              "shortDesc": "Mandi prices at Rania(Jiwan nagar) APMC, Sirsa, Haryana"
+            },
+            "id": "resource:mandi-price:market:2454",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    74.740666,
+                    29.537377
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "183",
+                  "areaLevel": "District",
+                  "areaName": "Sirsa",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HR",
+                  "areaLevel": "State",
+                  "areaName": "Haryana",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "183",
+                "marketCode": "2454",
+                "marketName": "Rania(Jiwan nagar) APMC",
                 "state": "HR"
               },
               "source": {
@@ -6166,7 +5502,7 @@
                 "en"
               ],
               "market": {
-                "district": "Fatehabad",
+                "district": "168",
                 "marketCode": "1834",
                 "marketName": "Ratia APMC",
                 "state": "HR"
@@ -6237,7 +5573,7 @@
                 "en"
               ],
               "market": {
-                "district": "Rewari",
+                "district": "181",
                 "marketCode": "457",
                 "marketName": "Rewari APMC",
                 "state": "HR"
@@ -6252,12 +5588,12 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
                   "code": "12",
                   "name": "Mustard"
+                },
+                {
+                  "code": "15",
+                  "name": "Cotton"
                 },
                 {
                   "code": "23",
@@ -6320,7 +5656,7 @@
                 "en"
               ],
               "market": {
-                "district": "Rohtak",
+                "district": "182",
                 "marketCode": "455",
                 "marketName": "Rohtak APMC",
                 "state": "HR"
@@ -6391,7 +5727,7 @@
                 "en"
               ],
               "market": {
-                "district": "Yamuna Nagar",
+                "district": "185",
                 "marketCode": "1813",
                 "marketName": "Sadhaura APMC",
                 "state": "HR"
@@ -6455,7 +5791,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jind",
+                "district": "172",
                 "marketCode": "80",
                 "marketName": "Safidon APMC",
                 "state": "HR"
@@ -6469,10 +5805,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -6530,7 +5862,7 @@
                 "en"
               ],
               "market": {
-                "district": "Panipat",
+                "district": "180",
                 "marketCode": "1853",
                 "marketName": "Samalkha APMC",
                 "state": "HR"
@@ -6601,7 +5933,7 @@
                 "en"
               ],
               "market": {
-                "district": "Rohtak",
+                "district": "182",
                 "marketCode": "1861",
                 "marketName": "Sampla APMC",
                 "state": "HR"
@@ -6672,7 +6004,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kurukshetra",
+                "district": "175",
                 "marketCode": "89",
                 "marketName": "Shahabad APMC",
                 "state": "HR"
@@ -6747,7 +6079,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ambala",
+                "district": "165",
                 "marketCode": "1809",
                 "marketName": "Shahzadpur APMC",
                 "state": "HR"
@@ -6764,10 +6096,6 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
-                },
-                {
-                  "code": "4",
-                  "name": "Maize"
                 },
                 {
                   "code": "23",
@@ -6826,7 +6154,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sirsa",
+                "district": "183",
                 "marketCode": "90",
                 "marketName": "Sirsa APMC",
                 "state": "HR"
@@ -6897,7 +6225,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kaithal",
+                "district": "173",
                 "marketCode": "1842",
                 "marketName": "Siwan APMC",
                 "state": "HR"
@@ -6968,7 +6296,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bhiwani",
+                "district": "166",
                 "marketCode": "1820",
                 "marketName": "Siwani APMC",
                 "state": "HR"
@@ -7039,7 +6367,7 @@
                 "en"
               ],
               "market": {
-                "district": "Gurgaon",
+                "district": "169",
                 "marketCode": "1111",
                 "marketName": "Sohna APMC",
                 "state": "HR"
@@ -7054,20 +6382,12 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
-                {
                   "code": "23",
                   "name": "Onion"
                 },
                 {
                   "code": "24",
                   "name": "Potato"
-                },
-                {
-                  "code": "28",
-                  "name": "Bajra(Pearl Millet/Cumbu)"
                 },
                 {
                   "code": "65",
@@ -7118,7 +6438,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sonipat",
+                "district": "184",
                 "marketCode": "454",
                 "marketName": "Sonepat APMC",
                 "state": "HR"
@@ -7189,7 +6509,7 @@
                 "en"
               ],
               "market": {
-                "district": "Karnal",
+                "district": "174",
                 "marketCode": "82",
                 "marketName": "Tarori APMC",
                 "state": "HR"
@@ -7260,7 +6580,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mewat",
+                "district": "177",
                 "marketCode": "1827",
                 "marketName": "Tauru APMC",
                 "state": "HR"
@@ -7331,7 +6651,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kurukshetra",
+                "district": "175",
                 "marketCode": "87",
                 "marketName": "Thanesar APMC",
                 "state": "HR"
@@ -7402,7 +6722,7 @@
                 "en"
               ],
               "market": {
-                "district": "Fatehabad",
+                "district": "168",
                 "marketCode": "807",
                 "marketName": "Tohana APMC",
                 "state": "HR"
@@ -7419,18 +6739,6 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
-                },
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -7477,7 +6785,7 @@
                 "en"
               ],
               "market": {
-                "district": "Fatehabad",
+                "district": "168",
                 "marketCode": "2443",
                 "marketName": "Tohana(New Veg Market) APMC",
                 "state": "HR"
@@ -7548,7 +6856,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bhiwani",
+                "district": "166",
                 "marketCode": "1819",
                 "marketName": "Tosham APMC",
                 "state": "HR"
@@ -7563,8 +6871,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "4",
-                  "name": "Maize"
+                  "code": "15",
+                  "name": "Cotton"
                 },
                 {
                   "code": "28",
@@ -7615,7 +6923,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jind",
+                "district": "172",
                 "marketCode": "1838",
                 "marketName": "Uchana APMC",
                 "state": "HR"
@@ -7629,6 +6937,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
                 {
                   "code": "15",
                   "name": "Cotton"
@@ -7682,7 +6994,7 @@
                 "en"
               ],
               "market": {
-                "district": "Hissar",
+                "district": "170",
                 "marketCode": "1829",
                 "marketName": "Uklana APMC",
                 "state": "HR"
@@ -7696,10 +7008,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
                 {
                   "code": "15",
                   "name": "Cotton"
@@ -7765,7 +7073,7 @@
                 "en"
               ],
               "market": {
-                "district": "Yamuna Nagar",
+                "district": "185",
                 "marketCode": "451",
                 "marketName": "Yamuna Nagar APMC",
                 "state": "HR"

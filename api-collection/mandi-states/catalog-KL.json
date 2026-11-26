@@ -65,7 +65,7 @@
                 "en"
               ],
               "market": {
-                "district": "Idukki",
+                "district": "274",
                 "marketCode": "2676",
                 "marketName": "Adimali Market",
                 "state": "KL"
@@ -128,7 +128,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ernakulam",
+                "district": "273",
                 "marketCode": "126",
                 "marketName": "Aluva Market",
                 "state": "KL"
@@ -199,7 +199,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kollam",
+                "district": "277",
                 "marketCode": "2013",
                 "marketName": "Anchal Market",
                 "state": "KL"
@@ -270,7 +270,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ernakulam",
+                "district": "273",
                 "marketCode": "1978",
                 "marketName": "Angamaly Market",
                 "state": "KL"
@@ -341,7 +341,7 @@
                 "en"
               ],
               "market": {
-                "district": "Thiruvananthapuram",
+                "district": "284",
                 "marketCode": "2008",
                 "marketName": "Aralamoodu Market",
                 "state": "KL"
@@ -412,7 +412,7 @@
                 "en"
               ],
               "market": {
-                "district": "Alappuzha",
+                "district": "270",
                 "marketCode": "1971",
                 "marketName": "Aroor Market",
                 "state": "KL"
@@ -437,69 +437,6 @@
                 {
                   "code": "65",
                   "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_127",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for ARWM Muvattupuzha. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "ARWM Muvattupuzha mandi prices",
-              "shortDesc": "Mandi prices at ARWM Muvattupuzha, Ernakulam, Kerala"
-            },
-            "id": "resource:mandi-price:market:127",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    76.581,
-                    9.986
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "273",
-                  "areaLevel": "District",
-                  "areaName": "Ernakulam",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-KL",
-                  "areaLevel": "State",
-                  "areaName": "Kerala",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Ernakulam",
-                "marketCode": "127",
-                "marketName": "ARWM Muvattupuzha",
-                "state": "KL"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
                 }
               ],
               "supportedPriceFields": [
@@ -546,7 +483,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kottayam",
+                "district": "278",
                 "marketCode": "2674",
                 "marketName": "Athirampuzha Market",
                 "state": "KL"
@@ -617,7 +554,7 @@
                 "en"
               ],
               "market": {
-                "district": "Thiruvananthapuram",
+                "district": "284",
                 "marketCode": "2012",
                 "marketName": "Attingal Market",
                 "state": "KL"
@@ -680,7 +617,7 @@
                 "en"
               ],
               "market": {
-                "district": "Thiruvananthapuram",
+                "district": "284",
                 "marketCode": "4240",
                 "marketName": "Balarampuram Market",
                 "state": "KL"
@@ -751,7 +688,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ernakulam",
+                "district": "273",
                 "marketCode": "3393",
                 "marketName": "Broadway market Market",
                 "state": "KL"
@@ -822,7 +759,7 @@
                 "en"
               ],
               "market": {
-                "district": "Thiruvananthapuram",
+                "district": "284",
                 "marketCode": "2693",
                 "marketName": "Chala Market",
                 "state": "KL"
@@ -893,7 +830,7 @@
                 "en"
               ],
               "market": {
-                "district": "Thirssur",
+                "district": "283",
                 "marketCode": "2024",
                 "marketName": "Chalakudy Market",
                 "state": "KL"
@@ -964,7 +901,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kollam",
+                "district": "277",
                 "marketCode": "2670",
                 "marketName": "Chathanoor Market",
                 "state": "KL"
@@ -1035,7 +972,7 @@
                 "en"
               ],
               "market": {
-                "district": "Thirssur",
+                "district": "283",
                 "marketCode": "2026",
                 "marketName": "Chavakkad Market",
                 "state": "KL"
@@ -1106,7 +1043,7 @@
                 "en"
               ],
               "market": {
-                "district": "Thirssur",
+                "district": "283",
                 "marketCode": "1974",
                 "marketName": "Chelakkara Market",
                 "state": "KL"
@@ -1177,7 +1114,7 @@
                 "en"
               ],
               "market": {
-                "district": "Alappuzha",
+                "district": "270",
                 "marketCode": "2015",
                 "marketName": "Chengannur Market",
                 "state": "KL"
@@ -1248,7 +1185,7 @@
                 "en"
               ],
               "market": {
-                "district": "Alappuzha",
+                "district": "270",
                 "marketCode": "2018",
                 "marketName": "Cherthala Market",
                 "state": "KL"
@@ -1319,7 +1256,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ernakulam",
+                "district": "273",
                 "marketCode": "125",
                 "marketName": "Ernakulam Market",
                 "state": "KL"
@@ -1382,7 +1319,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kottayam",
+                "district": "278",
                 "marketCode": "2020",
                 "marketName": "Ettumanoor Market",
                 "state": "KL"
@@ -1407,69 +1344,6 @@
                 {
                   "code": "65",
                   "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_2017",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Harippad Market. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Harippad Market mandi prices",
-              "shortDesc": "Mandi prices at Harippad Market, Alappuzha, Kerala"
-            },
-            "id": "resource:mandi-price:market:2017",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    76.44,
-                    9.3
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "270",
-                  "areaLevel": "District",
-                  "areaName": "Alappuzha",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-KL",
-                  "areaLevel": "State",
-                  "areaName": "Kerala",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Alappuzha",
-                "marketCode": "2017",
-                "marketName": "Harippad Market",
-                "state": "KL"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
                 }
               ],
               "supportedPriceFields": [
@@ -1516,7 +1390,7 @@
                 "en"
               ],
               "market": {
-                "district": "Thirssur",
+                "district": "283",
                 "marketCode": "2025",
                 "marketName": "Irinjalakkuda Market",
                 "state": "KL"
@@ -1583,7 +1457,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kannur",
+                "district": "275",
                 "marketCode": "2688",
                 "marketName": "Irityy Market",
                 "state": "KL"
@@ -1646,7 +1520,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kozhikode(Calicut)",
+                "district": "279",
                 "marketCode": "1979",
                 "marketName": "Kallachi Market",
                 "state": "KL"
@@ -1717,7 +1591,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kasargod",
+                "district": "276",
                 "marketCode": "2035",
                 "marketName": "Kanjangadu Market",
                 "state": "KL"
@@ -1792,7 +1666,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kottayam",
+                "district": "278",
                 "marketCode": "2021",
                 "marketName": "Kanjirappally Market",
                 "state": "KL"
@@ -1863,7 +1737,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kannur",
+                "district": "275",
                 "marketCode": "129",
                 "marketName": "Kannur Market",
                 "state": "KL"
@@ -1926,7 +1800,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kasargod",
+                "district": "276",
                 "marketCode": "516",
                 "marketName": "Kasargod Market",
                 "state": "KL"
@@ -1993,7 +1867,7 @@
                 "en"
               ],
               "market": {
-                "district": "Idukki",
+                "district": "274",
                 "marketCode": "2679",
                 "marketName": "Kattappana Market",
                 "state": "KL"
@@ -2064,7 +1938,7 @@
                 "en"
               ],
               "market": {
-                "district": "Alappuzha",
+                "district": "270",
                 "marketCode": "2016",
                 "marketName": "Kayamkulam Market",
                 "state": "KL"
@@ -2135,7 +2009,7 @@
                 "en"
               ],
               "market": {
-                "district": "Thirssur",
+                "district": "283",
                 "marketCode": "140",
                 "marketName": "Kodungalloor Market",
                 "state": "KL"
@@ -2152,6 +2026,14 @@
                 {
                   "code": "23",
                   "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -2198,7 +2080,7 @@
                 "en"
               ],
               "market": {
-                "district": "Palakad",
+                "district": "281",
                 "marketCode": "136",
                 "marketName": "Koduvayoor Market",
                 "state": "KL"
@@ -2269,7 +2151,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kollam",
+                "district": "277",
                 "marketCode": "131",
                 "marketName": "Kollam Market",
                 "state": "KL"
@@ -2332,7 +2214,7 @@
                 "en"
               ],
               "market": {
-                "district": "Palakad",
+                "district": "281",
                 "marketCode": "2028",
                 "marketName": "Kollengode Market",
                 "state": "KL"
@@ -2403,7 +2285,7 @@
                 "en"
               ],
               "market": {
-                "district": "Malappuram",
+                "district": "280",
                 "marketCode": "2687",
                 "marketName": "Kondotty Market",
                 "state": "KL"
@@ -2474,7 +2356,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ernakulam",
+                "district": "273",
                 "marketCode": "2681",
                 "marketName": "Kothamangalam Market",
                 "state": "KL"
@@ -2545,7 +2427,7 @@
                 "en"
               ],
               "market": {
-                "district": "Malappuram",
+                "district": "280",
                 "marketCode": "1977",
                 "marketName": "Kottakkal Market",
                 "state": "KL"
@@ -2616,7 +2498,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kollam",
+                "district": "277",
                 "marketCode": "2668",
                 "marketName": "Kottarakkara Market",
                 "state": "KL"
@@ -2687,7 +2569,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kottayam",
+                "district": "278",
                 "marketCode": "132",
                 "marketName": "Kottayam Market",
                 "state": "KL"
@@ -2770,7 +2652,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kottayam",
+                "district": "278",
                 "marketCode": "1973",
                 "marketName": "Kuruppanthura Market",
                 "state": "KL"
@@ -2841,7 +2723,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kannur",
+                "district": "275",
                 "marketCode": "2032",
                 "marketName": "Kuthuparambu Market",
                 "state": "KL"
@@ -2908,7 +2790,7 @@
                 "en"
               ],
               "market": {
-                "district": "Alappuzha",
+                "district": "270",
                 "marketCode": "1986",
                 "marketName": "Madhavapuram Market",
                 "state": "KL"
@@ -2930,69 +2812,6 @@
                   "code": "24",
                   "name": "Potato"
                 },
-                {
-                  "code": "65",
-                  "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_4387",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Madikai VFPCK Market. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Madikai VFPCK Market mandi prices",
-              "shortDesc": "Mandi prices at Madikai VFPCK Market, Kasargod, Kerala"
-            },
-            "id": "resource:mandi-price:market:4387",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    75.9,
-                    12.194
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "276",
-                  "areaLevel": "District",
-                  "areaName": "Kasargod",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-KL",
-                  "areaLevel": "State",
-                  "areaName": "Kerala",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Kasargod",
-                "marketCode": "4387",
-                "marketName": "Madikai VFPCK Market",
-                "state": "KL"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -3042,7 +2861,7 @@
                 "en"
               ],
               "market": {
-                "district": "Malappuram",
+                "district": "280",
                 "marketCode": "134",
                 "marketName": "Manjeri Market",
                 "state": "KL"
@@ -3113,7 +2932,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kasargod",
+                "district": "276",
                 "marketCode": "2034",
                 "marketName": "Manjeswaram Market",
                 "state": "KL"
@@ -3184,7 +3003,7 @@
                 "en"
               ],
               "market": {
-                "district": "Alappuzha",
+                "district": "270",
                 "marketCode": "2673",
                 "marketName": "Mannar Market",
                 "state": "KL"
@@ -3255,7 +3074,7 @@
                 "en"
               ],
               "market": {
-                "district": "Palakad",
+                "district": "281",
                 "marketCode": "4631",
                 "marketName": "Moochamkundu VFPCK Market",
                 "state": "KL"
@@ -3318,7 +3137,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kozhikode(Calicut)",
+                "district": "279",
                 "marketCode": "2690",
                 "marketName": "Mukkom Market",
                 "state": "KL"
@@ -3389,7 +3208,7 @@
                 "en"
               ],
               "market": {
-                "district": "Idukki",
+                "district": "274",
                 "marketCode": "1975",
                 "marketName": "Munnar Market",
                 "state": "KL"
@@ -3460,7 +3279,7 @@
                 "en"
               ],
               "market": {
-                "district": "Idukki",
+                "district": "274",
                 "marketCode": "2678",
                 "marketName": "Nedumkandam Market",
                 "state": "KL"
@@ -3475,16 +3294,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
                   "code": "24",
                   "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -3531,7 +3342,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kasargod",
+                "district": "276",
                 "marketCode": "1981",
                 "marketName": "Neeleswaram Market",
                 "state": "KL"
@@ -3610,7 +3421,7 @@
                 "en"
               ],
               "market": {
-                "district": "Thiruvananthapuram",
+                "district": "284",
                 "marketCode": "2011",
                 "marketName": "Neyyatinkara Market",
                 "state": "KL"
@@ -3673,7 +3484,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ernakulam",
+                "district": "273",
                 "marketCode": "3394",
                 "marketName": "North Paravur Market",
                 "state": "KL"
@@ -3744,7 +3555,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kottayam",
+                "district": "278",
                 "marketCode": "2022",
                 "marketName": "Pala Market",
                 "state": "KL"
@@ -3815,7 +3626,7 @@
                 "en"
               ],
               "market": {
-                "district": "Palakad",
+                "district": "281",
                 "marketCode": "135",
                 "marketName": "Palakkad Market",
                 "state": "KL"
@@ -3867,77 +3678,6 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_515",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Palayam Market. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Palayam Market mandi prices",
-              "shortDesc": "Mandi prices at Palayam Market, Kozhikode(Calicut), Kerala"
-            },
-            "id": "resource:mandi-price:market:515",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    75.785515,
-                    11.252778
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "279",
-                  "areaLevel": "District",
-                  "areaName": "Kozhikode(Calicut)",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-KL",
-                  "areaLevel": "State",
-                  "areaName": "Kerala",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Kozhikode(Calicut)",
-                "marketCode": "515",
-                "marketName": "Palayam Market",
-                "state": "KL"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
               "code": "MANDI_PRICE_MARKET_2019",
               "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Pampady Market. The result uses the same MandiPrice type in Direct information mode.",
               "name": "Pampady Market mandi prices",
@@ -3973,7 +3713,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kottayam",
+                "district": "278",
                 "marketCode": "2019",
                 "marketName": "Pampady Market",
                 "state": "KL"
@@ -4044,7 +3784,7 @@
                 "en"
               ],
               "market": {
-                "district": "Malappuram",
+                "district": "280",
                 "marketCode": "2685",
                 "marketName": "Parappanangadi Market",
                 "state": "KL"
@@ -4115,7 +3855,7 @@
                 "en"
               ],
               "market": {
-                "district": "Thiruvananthapuram",
+                "district": "284",
                 "marketCode": "2010",
                 "marketName": "Parassala Market",
                 "state": "KL"
@@ -4129,6 +3869,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -4178,7 +3922,7 @@
                 "en"
               ],
               "market": {
-                "district": "Palakad",
+                "district": "281",
                 "marketCode": "2177",
                 "marketName": "Pattambi Market",
                 "state": "KL"
@@ -4249,7 +3993,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kannur",
+                "district": "275",
                 "marketCode": "130",
                 "marketName": "Payyannur Market",
                 "state": "KL"
@@ -4312,7 +4056,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kozhikode(Calicut)",
+                "district": "279",
                 "marketCode": "2689",
                 "marketName": "Perambra Market",
                 "state": "KL"
@@ -4383,7 +4127,7 @@
                 "en"
               ],
               "market": {
-                "district": "Malappuram",
+                "district": "280",
                 "marketCode": "2684",
                 "marketName": "Perinthalmanna Market",
                 "state": "KL"
@@ -4405,69 +4149,6 @@
                   "code": "24",
                   "name": "Potato"
                 },
-                {
-                  "code": "65",
-                  "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_4632",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Perumatty VFPCK Market. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Perumatty VFPCK Market mandi prices",
-              "shortDesc": "Mandi prices at Perumatty VFPCK Market, Palakad, Kerala"
-            },
-            "id": "resource:mandi-price:market:4632",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    76.734,
-                    10.72
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "281",
-                  "areaLevel": "District",
-                  "areaName": "Palakad",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-KL",
-                  "areaLevel": "State",
-                  "areaName": "Kerala",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Palakad",
-                "marketCode": "4632",
-                "marketName": "Perumatty VFPCK Market",
-                "state": "KL"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -4517,7 +4198,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ernakulam",
+                "district": "273",
                 "marketCode": "2680",
                 "marketName": "Perumbavoor Market",
                 "state": "KL"
@@ -4588,7 +4269,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ernakulam",
+                "district": "273",
                 "marketCode": "2007",
                 "marketName": "Piravam Market",
                 "state": "KL"
@@ -4659,7 +4340,7 @@
                 "en"
               ],
               "market": {
-                "district": "Thiruvananthapuram",
+                "district": "284",
                 "marketCode": "2009",
                 "marketName": "Pothencode Market",
                 "state": "KL"
@@ -4673,6 +4354,14 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -4722,7 +4411,7 @@
                 "en"
               ],
               "market": {
-                "district": "Wayanad",
+                "district": "285",
                 "marketCode": "1976",
                 "marketName": "Pulpally Market",
                 "state": "KL"
@@ -4785,7 +4474,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kollam",
+                "district": "277",
                 "marketCode": "2014",
                 "marketName": "Punalur Market",
                 "state": "KL"
@@ -4856,7 +4545,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kozhikode(Calicut)",
+                "district": "279",
                 "marketCode": "2691",
                 "marketName": "Quilandy Market",
                 "state": "KL"
@@ -4927,7 +4616,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kollam",
+                "district": "277",
                 "marketCode": "2006",
                 "marketName": "Sasthamkotta Market",
                 "state": "KL"
@@ -4990,7 +4679,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kannur",
+                "district": "275",
                 "marketCode": "1980",
                 "marketName": "Taliparamba Market",
                 "state": "KL"
@@ -5061,7 +4750,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kannur",
+                "district": "275",
                 "marketCode": "128",
                 "marketName": "Thalasserry Market",
                 "state": "KL"
@@ -5132,7 +4821,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kottayam",
+                "district": "278",
                 "marketCode": "2675",
                 "marketName": "Thalayolaparambu Market",
                 "state": "KL"
@@ -5203,7 +4892,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kozhikode(Calicut)",
+                "district": "279",
                 "marketCode": "2692",
                 "marketName": "Thamarassery Market",
                 "state": "KL"
@@ -5274,7 +4963,7 @@
                 "en"
               ],
               "market": {
-                "district": "Malappuram",
+                "district": "280",
                 "marketCode": "2686",
                 "marketName": "Thirurrangadi Market",
                 "state": "KL"
@@ -5291,6 +4980,10 @@
                 {
                   "code": "23",
                   "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
                 },
                 {
                   "code": "65",
@@ -5341,7 +5034,7 @@
                 "en"
               ],
               "market": {
-                "district": "Idukki",
+                "district": "274",
                 "marketCode": "1081",
                 "marketName": "Thodupuzha Market",
                 "state": "KL"
@@ -5366,6 +5059,10 @@
                 {
                   "code": "65",
                   "name": "Tomato"
+                },
+                {
+                  "code": "111",
+                  "name": "Copra"
                 }
               ],
               "supportedPriceFields": [
@@ -5412,7 +5109,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ernakulam",
+                "district": "273",
                 "marketCode": "2176",
                 "marketName": "Thrippunithura Market",
                 "state": "KL"
@@ -5483,7 +5180,7 @@
                 "en"
               ],
               "market": {
-                "district": "Thirssur",
+                "district": "283",
                 "marketCode": "139",
                 "marketName": "Thrissur Market",
                 "state": "KL"
@@ -5554,7 +5251,7 @@
                 "en"
               ],
               "market": {
-                "district": "Palakad",
+                "district": "281",
                 "marketCode": "2682",
                 "marketName": "vadakarapathy Market",
                 "state": "KL"
@@ -5621,7 +5318,7 @@
                 "en"
               ],
               "market": {
-                "district": "Palakad",
+                "district": "281",
                 "marketCode": "4413",
                 "marketName": "Vadakarapathy VFPCK Market",
                 "state": "KL"
@@ -5684,7 +5381,7 @@
                 "en"
               ],
               "market": {
-                "district": "Palakad",
+                "district": "281",
                 "marketCode": "2683",
                 "marketName": "Vadakkenchery Market",
                 "state": "KL"
@@ -5755,7 +5452,7 @@
                 "en"
               ],
               "market": {
-                "district": "Thiruvananthapuram",
+                "district": "284",
                 "marketCode": "2036",
                 "marketName": "Vamanapuram Market",
                 "state": "KL"
@@ -5826,7 +5523,7 @@
                 "en"
               ],
               "market": {
-                "district": "Idukki",
+                "district": "274",
                 "marketCode": "2677",
                 "marketName": "Vandiperiyar Market",
                 "state": "KL"
@@ -5897,7 +5594,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kozhikode(Calicut)",
+                "district": "279",
                 "marketCode": "124",
                 "marketName": "Vengeri(Kozhikode) Market",
                 "state": "KL"
@@ -5960,7 +5657,7 @@
                 "en"
               ],
               "market": {
-                "district": "Thirssur",
+                "district": "283",
                 "marketCode": "2027",
                 "marketName": "Wadakkanchery Market",
                 "state": "KL"

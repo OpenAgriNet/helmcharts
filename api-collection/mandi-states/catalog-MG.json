@@ -30,6 +30,231 @@
         "resources": [
           {
             "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3162",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ampati APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Ampati APMC mandi prices",
+              "shortDesc": "Mandi prices at Ampati APMC, South West Garo Hills, Meghalaya"
+            },
+            "id": "resource:mandi-price:market:3162",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    89.934167,
+                    25.470556
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "392",
+                  "areaLevel": "District",
+                  "areaName": "South West Garo Hills",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-ML",
+                  "areaLevel": "State",
+                  "areaName": "Meghalaya",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "392",
+                "marketCode": "3162",
+                "marketName": "Ampati APMC",
+                "state": "MG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "21",
+                  "name": "Pineapple"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "67",
+                  "name": "Bitter gourd"
+                },
+                {
+                  "code": "70",
+                  "name": "Pumpkin"
+                },
+                {
+                  "code": "71",
+                  "name": "Bhindi(Ladies Finger)"
+                },
+                {
+                  "code": "76",
+                  "name": "Banana - Green"
+                },
+                {
+                  "code": "131",
+                  "name": "Cucumbar(Kheera)"
+                },
+                {
+                  "code": "149",
+                  "name": "Knool Khol"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1115",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Dadengiri APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Dadengiri APMC mandi prices",
+              "shortDesc": "Mandi prices at Dadengiri APMC, West Garo Hills, Meghalaya"
+            },
+            "id": "resource:mandi-price:market:1115",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    90.1944,
+                    25.7207
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "394",
+                  "areaLevel": "District",
+                  "areaName": "West Garo Hills",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-ML",
+                  "areaLevel": "State",
+                  "areaName": "Meghalaya",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "394",
+                "marketCode": "1115",
+                "marketName": "Dadengiri APMC",
+                "state": "MG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3160",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Gasuapara APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Gasuapara APMC mandi prices",
+              "shortDesc": "Mandi prices at Gasuapara APMC, South Garo Hills, Meghalaya"
+            },
+            "id": "resource:mandi-price:market:3160",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    90.377,
+                    25.2242
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "391",
+                  "areaLevel": "District",
+                  "areaName": "South Garo Hills",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-ML",
+                  "areaLevel": "State",
+                  "areaName": "Meghalaya",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "391",
+                "marketCode": "3160",
+                "marketName": "Gasuapara APMC",
+                "state": "MG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
               "code": "MANDI_PRICE_MARKET_543",
               "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jowai APMC. The result uses the same MandiPrice type in Direct information mode.",
               "name": "Jowai APMC mandi prices",
@@ -65,7 +290,7 @@
                 "en"
               ],
               "market": {
-                "district": "West Jaintia Hills",
+                "district": "395",
                 "marketCode": "543",
                 "marketName": "Jowai APMC",
                 "state": "MG"
@@ -86,6 +311,18 @@
                 {
                   "code": "24",
                   "name": "Potato"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                },
+                {
+                  "code": "73",
+                  "name": "Green Chilli"
                 }
               ],
               "supportedPriceFields": [
@@ -132,7 +369,7 @@
                 "en"
               ],
               "market": {
-                "district": "South West Khasi Hills",
+                "district": "393",
                 "marketCode": "1873",
                 "marketName": "Mawkyrwat APMC",
                 "state": "MG"
@@ -147,8 +384,20 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "65",
-                  "name": "Tomato"
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
+                  "code": "21",
+                  "name": "Pineapple"
+                },
+                {
+                  "code": "126",
+                  "name": "Cabbage"
+                },
+                {
+                  "code": "249",
+                  "name": "French Beans(Frasbean)"
                 }
               ],
               "supportedPriceFields": [
@@ -195,7 +444,7 @@
                 "en"
               ],
               "market": {
-                "district": "West Khasi Hills",
+                "district": "396",
                 "marketCode": "1870",
                 "marketName": "Nongstoin APMC",
                 "state": "MG"
@@ -216,6 +465,121 @@
                 {
                   "code": "65",
                   "name": "Tomato"
+                },
+                {
+                  "code": "136",
+                  "name": "Capsicum"
+                },
+                {
+                  "code": "249",
+                  "name": "French Beans(Frasbean)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3161",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Rongram APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Rongram APMC mandi prices",
+              "shortDesc": "Mandi prices at Rongram APMC, West Garo Hills, Meghalaya"
+            },
+            "id": "resource:mandi-price:market:3161",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    90.023322,
+                    25.585869
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "394",
+                  "areaLevel": "District",
+                  "areaName": "West Garo Hills",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-ML",
+                  "areaLevel": "State",
+                  "areaName": "Meghalaya",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "394",
+                "marketCode": "3161",
+                "marketName": "Rongram APMC",
+                "state": "MG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
+                  "code": "21",
+                  "name": "Pineapple"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "25",
+                  "name": "Garlic"
+                },
+                {
+                  "code": "27",
+                  "name": "Ginger(Dry)"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                },
+                {
+                  "code": "70",
+                  "name": "Pumpkin"
+                },
+                {
+                  "code": "121",
+                  "name": "Betal Leaves"
+                },
+                {
+                  "code": "132",
+                  "name": "Ridgeguard(Tori)"
+                },
+                {
+                  "code": "262",
+                  "name": "Sponge gourd"
+                },
+                {
+                  "code": "282",
+                  "name": "Squash(Chappal Kadoo)"
                 }
               ],
               "supportedPriceFields": [
@@ -262,7 +626,7 @@
                 "en"
               ],
               "market": {
-                "district": "East Khasi Hills",
+                "district": "388",
                 "marketCode": "1872",
                 "marketName": "Shillong APMC",
                 "state": "MG"
@@ -277,8 +641,278 @@
               ],
               "supportedCommodities": [
                 {
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
                   "code": "24",
                   "name": "Potato"
+                },
+                {
+                  "code": "31",
+                  "name": "Cauliflower"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                },
+                {
+                  "code": "70",
+                  "name": "Pumpkin"
+                },
+                {
+                  "code": "118",
+                  "name": "Arecanut(Betelnut/Supari)"
+                },
+                {
+                  "code": "121",
+                  "name": "Betal Leaves"
+                },
+                {
+                  "code": "133",
+                  "name": "Raddish"
+                },
+                {
+                  "code": "279",
+                  "name": "Plum"
+                },
+                {
+                  "code": "282",
+                  "name": "Squash(Chappal Kadoo)"
+                },
+                {
+                  "code": "289",
+                  "name": "Turnip"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3154",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sohra APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sohra APMC mandi prices",
+              "shortDesc": "Mandi prices at Sohra APMC, East Khasi Hills, Meghalaya"
+            },
+            "id": "resource:mandi-price:market:3154",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.7215,
+                    25.2851
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "388",
+                  "areaLevel": "District",
+                  "areaName": "East Khasi Hills",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-ML",
+                  "areaLevel": "State",
+                  "areaName": "Meghalaya",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "388",
+                "marketCode": "3154",
+                "marketName": "Sohra APMC",
+                "state": "MG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                },
+                {
+                  "code": "118",
+                  "name": "Arecanut(Betelnut/Supari)"
+                },
+                {
+                  "code": "121",
+                  "name": "Betal Leaves"
+                },
+                {
+                  "code": "126",
+                  "name": "Cabbage"
+                },
+                {
+                  "code": "248",
+                  "name": "Yam(Ratalu)"
+                },
+                {
+                  "code": "249",
+                  "name": "French Beans(Frasbean)"
+                },
+                {
+                  "code": "282",
+                  "name": "Squash(Chappal Kadoo)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1116",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Tura APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Tura APMC mandi prices",
+              "shortDesc": "Mandi prices at Tura APMC, West Garo Hills, Meghalaya"
+            },
+            "id": "resource:mandi-price:market:1116",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    90.2503,
+                    25.5945
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "394",
+                  "areaLevel": "District",
+                  "areaName": "West Garo Hills",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-ML",
+                  "areaLevel": "State",
+                  "areaName": "Meghalaya",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "394",
+                "marketCode": "1116",
+                "marketName": "Tura APMC",
+                "state": "MG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
+                  "code": "21",
+                  "name": "Pineapple"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "25",
+                  "name": "Garlic"
+                },
+                {
+                  "code": "27",
+                  "name": "Ginger(Dry)"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                },
+                {
+                  "code": "67",
+                  "name": "Bitter gourd"
+                },
+                {
+                  "code": "68",
+                  "name": "Bottle gourd"
+                },
+                {
+                  "code": "70",
+                  "name": "Pumpkin"
+                },
+                {
+                  "code": "71",
+                  "name": "Bhindi(Ladies Finger)"
+                },
+                {
+                  "code": "75",
+                  "name": "Cowpea(Veg)"
+                },
+                {
+                  "code": "121",
+                  "name": "Betal Leaves"
+                },
+                {
+                  "code": "132",
+                  "name": "Ridgeguard(Tori)"
+                },
+                {
+                  "code": "157",
+                  "name": "Karbuja(Musk Melon)"
+                },
+                {
+                  "code": "262",
+                  "name": "Sponge gourd"
+                },
+                {
+                  "code": "282",
+                  "name": "Squash(Chappal Kadoo)"
                 }
               ],
               "supportedPriceFields": [
@@ -325,7 +959,7 @@
                 "en"
               ],
               "market": {
-                "district": "West Jaintia Hills",
+                "district": "395",
                 "marketCode": "3159",
                 "marketName": "Wahiajer APMC",
                 "state": "MG"
@@ -340,8 +974,36 @@
               ],
               "supportedCommodities": [
                 {
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
                   "code": "24",
                   "name": "Potato"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                },
+                {
+                  "code": "67",
+                  "name": "Bitter gourd"
+                },
+                {
+                  "code": "73",
+                  "name": "Green Chilli"
+                },
+                {
+                  "code": "248",
+                  "name": "Yam(Ratalu)"
+                },
+                {
+                  "code": "282",
+                  "name": "Squash(Chappal Kadoo)"
                 }
               ],
               "supportedPriceFields": [

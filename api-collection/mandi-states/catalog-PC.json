@@ -65,7 +65,7 @@
                 "en"
               ],
               "market": {
-                "district": "Karaikal",
+                "district": "448",
                 "marketCode": "3359",
                 "marketName": "Karaikal APMC",
                 "state": "PC"
@@ -128,7 +128,7 @@
                 "en"
               ],
               "market": {
-                "district": "Pondicherry",
+                "district": "450",
                 "marketCode": "1126",
                 "marketName": "Madagadipet APMC",
                 "state": "PC"
@@ -145,10 +145,6 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
-                },
-                {
-                  "code": "30",
-                  "name": "Ragi(Finger Millet)"
                 }
               ],
               "supportedPriceFields": [
@@ -195,7 +191,7 @@
                 "en"
               ],
               "market": {
-                "district": "Pondicherry",
+                "district": "450",
                 "marketCode": "242",
                 "marketName": "Thattanchavady APMC",
                 "state": "PC"
@@ -214,8 +210,20 @@
                   "name": "Paddy(Common)"
                 },
                 {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
                   "code": "11",
                   "name": "Sesamum(Sesame,Gingelly,Til)"
+                },
+                {
+                  "code": "30",
+                  "name": "Ragi(Finger Millet)"
                 }
               ],
               "supportedPriceFields": [

@@ -65,7 +65,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bilaspur",
+                "district": "186",
                 "marketCode": "464",
                 "marketName": "PMY Bilaspur",
                 "state": "HP"
@@ -129,7 +129,7 @@
                 "en"
               ],
               "market": {
-                "district": "Chamba",
+                "district": "187",
                 "marketCode": "463",
                 "marketName": "PMY Chamba",
                 "state": "HP"
@@ -193,7 +193,7 @@
                 "en"
               ],
               "market": {
-                "district": "Shimla",
+                "district": "195",
                 "marketCode": "467",
                 "marketName": "PMY Dhalli Shimla",
                 "state": "HP"
@@ -257,9 +257,73 @@
                 "en"
               ],
               "market": {
-                "district": "Hamirpur",
+                "district": "188",
                 "marketCode": "466",
                 "marketName": "PMY Hamirpur",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3517",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for PMY Kangni Mandi. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "PMY Kangni Mandi mandi prices",
+              "shortDesc": "Mandi prices at PMY Kangni Mandi, Mandi, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:3517",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "194",
+                  "areaLevel": "District",
+                  "areaName": "Mandi",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "194",
+                "marketCode": "3517",
+                "marketName": "PMY Kangni Mandi",
                 "state": "HP"
               },
               "source": {
@@ -321,7 +385,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kangra",
+                "district": "189",
                 "marketCode": "69",
                 "marketName": "PMY Kangra",
                 "state": "HP"
@@ -392,7 +456,7 @@
                 "en"
               ],
               "market": {
-                "district": "Solan",
+                "district": "197",
                 "marketCode": "72",
                 "marketName": "PMY Kather Solan",
                 "state": "HP"
@@ -456,7 +520,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kullu",
+                "district": "192",
                 "marketCode": "70",
                 "marketName": "PMY Kullu",
                 "state": "HP"
@@ -520,7 +584,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sirmore",
+                "district": "196",
                 "marketCode": "71",
                 "marketName": "PMY Paonta Sahib",
                 "state": "HP"
@@ -584,7 +648,7 @@
                 "en"
               ],
               "market": {
-                "district": "Una",
+                "district": "198",
                 "marketCode": "462",
                 "marketName": "PMY Una",
                 "state": "HP"
@@ -648,7 +712,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kangra",
+                "district": "189",
                 "marketCode": "2526",
                 "marketName": "SMY Baijnath",
                 "state": "HP"
@@ -712,7 +776,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kullu",
+                "district": "192",
                 "marketCode": "3041",
                 "marketName": "SMY Bandrol",
                 "state": "HP"
@@ -768,7 +832,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kullu",
+                "district": "192",
                 "marketCode": "471",
                 "marketName": "SMY Bhuntar",
                 "state": "HP"
@@ -839,7 +903,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mandi",
+                "district": "194",
                 "marketCode": "3040",
                 "marketName": "SMY Chail Chowk",
                 "state": "HP"
@@ -853,10 +917,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
                 {
                   "code": "24",
                   "name": "Potato"
@@ -899,7 +959,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kullu",
+                "district": "192",
                 "marketCode": "2523",
                 "marketName": "SMY Chauri Bihal",
                 "state": "HP"
@@ -963,7 +1023,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mandi",
+                "district": "194",
                 "marketCode": "465",
                 "marketName": "SMY Dhanotu",
                 "state": "HP"
@@ -1034,7 +1094,7 @@
                 "en"
               ],
               "market": {
-                "district": "Solan",
+                "district": "197",
                 "marketCode": "470",
                 "marketName": "SMY Dharampur",
                 "state": "HP"
@@ -1090,7 +1150,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kangra",
+                "district": "189",
                 "marketCode": "3444",
                 "marketName": "SMY Dharamshala",
                 "state": "HP"
@@ -1154,7 +1214,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kangra",
+                "district": "189",
                 "marketCode": "2529",
                 "marketName": "SMY Jaisinghpur",
                 "state": "HP"
@@ -1218,7 +1278,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kangra",
+                "district": "189",
                 "marketCode": "2528",
                 "marketName": "SMY Jassur",
                 "state": "HP"
@@ -1282,7 +1342,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mandi",
+                "district": "194",
                 "marketCode": "4402",
                 "marketName": "SMY Jogindernagar",
                 "state": "HP"
@@ -1346,7 +1406,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kangra",
+                "district": "189",
                 "marketCode": "3149",
                 "marketName": "SMY Jwalaji",
                 "state": "HP"
@@ -1410,7 +1470,7 @@
                 "en"
               ],
               "market": {
-                "district": "Hamirpur",
+                "district": "188",
                 "marketCode": "2521",
                 "marketName": "SMY Nadaun",
                 "state": "HP"
@@ -1474,7 +1534,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kangra",
+                "district": "189",
                 "marketCode": "2527",
                 "marketName": "SMY Nagrota Bagwan",
                 "state": "HP"
@@ -1538,7 +1598,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sirmore",
+                "district": "196",
                 "marketCode": "469",
                 "marketName": "SMY Nahan",
                 "state": "HP"
@@ -1609,7 +1669,7 @@
                 "en"
               ],
               "market": {
-                "district": "Solan",
+                "district": "197",
                 "marketCode": "2514",
                 "marketName": "SMY Nalagarh",
                 "state": "HP"
@@ -1673,7 +1733,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kangra",
+                "district": "189",
                 "marketCode": "468",
                 "marketName": "SMY Palampur",
                 "state": "HP"
@@ -1737,7 +1797,7 @@
                 "en"
               ],
               "market": {
-                "district": "Shimla",
+                "district": "195",
                 "marketCode": "2511",
                 "marketName": "SMY Rampur",
                 "state": "HP"
@@ -1797,7 +1857,7 @@
                 "en"
               ],
               "market": {
-                "district": "Shimla",
+                "district": "195",
                 "marketCode": "3042",
                 "marketName": "SMY Rohroo",
                 "state": "HP"
@@ -1861,7 +1921,7 @@
                 "en"
               ],
               "market": {
-                "district": "Una",
+                "district": "198",
                 "marketCode": "3039",
                 "marketName": "SMY Santoshgarh",
                 "state": "HP"
@@ -1883,6 +1943,62 @@
                   "code": "24",
                   "name": "Potato"
                 },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4401",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for SMY Shatt. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "SMY Shatt mandi prices",
+              "shortDesc": "Mandi prices at SMY Shatt, Kullu, Himachal Pradesh"
+            },
+            "id": "resource:mandi-price:market:4401",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "192",
+                  "areaLevel": "District",
+                  "areaName": "Kullu",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-HP",
+                  "areaLevel": "State",
+                  "areaName": "Himachal Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "192",
+                "marketCode": "4401",
+                "marketName": "SMY Shatt",
+                "state": "HP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -1925,7 +2041,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mandi",
+                "district": "194",
                 "marketCode": "2524",
                 "marketName": "SMY Takoli",
                 "state": "HP"
@@ -1996,7 +2112,7 @@
                 "en"
               ],
               "market": {
-                "district": "Solan",
+                "district": "197",
                 "marketCode": "4408",
                 "marketName": "SMY Wakhnaghat",
                 "state": "HP"

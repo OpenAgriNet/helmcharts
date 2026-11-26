@@ -65,7 +65,7 @@
                 "en"
               ],
               "market": {
-                "district": "Wokha",
+                "district": "412",
                 "marketCode": "3293",
                 "marketName": "Baghty APMC",
                 "state": "NG"
@@ -82,6 +82,10 @@
                 {
                   "code": "24",
                   "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -128,7 +132,7 @@
                 "en"
               ],
               "market": {
-                "district": "Zunheboto",
+                "district": "413",
                 "marketCode": "3289",
                 "marketName": "Ghathashi APMC",
                 "state": "NG"
@@ -143,8 +147,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "65",
-                  "name": "Tomato"
+                  "code": "24",
+                  "name": "Potato"
                 }
               ],
               "supportedPriceFields": [
@@ -191,7 +195,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kohima",
+                "district": "404",
                 "marketCode": "195",
                 "marketName": "Jalukie APMC",
                 "state": "NG"
@@ -262,7 +266,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kiphire",
+                "district": "403",
                 "marketCode": "3295",
                 "marketName": "Kipheri APMC",
                 "state": "NG"
@@ -276,6 +280,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -325,7 +333,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kohima",
+                "district": "404",
                 "marketCode": "1699",
                 "marketName": "Kohima APMC",
                 "state": "NG"
@@ -392,7 +400,7 @@
                 "en"
               ],
               "market": {
-                "district": "Longleng",
+                "district": "405",
                 "marketCode": "3294",
                 "marketName": "Longleng APMC",
                 "state": "NG"
@@ -424,27 +432,20 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_3669",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mangkolemba APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Mangkolemba APMC mandi prices",
-              "shortDesc": "Mandi prices at Mangkolemba APMC, Mokokchung, Nagaland"
+              "code": "MANDI_PRICE_MARKET_4397",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mon APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Mon APMC mandi prices",
+              "shortDesc": "Mandi prices at Mon APMC, Mon, Nagaland"
             },
-            "id": "resource:mandi-price:market:3669",
+            "id": "resource:mandi-price:market:4397",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
                 {
-                  "coordinates": [
-                    94.439,
-                    26.4994
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "406",
+                  "areaCode": "407",
                   "areaLevel": "District",
-                  "areaName": "Mokokchung",
+                  "areaName": "Mon",
                   "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
@@ -459,9 +460,9 @@
                 "en"
               ],
               "market": {
-                "district": "Mokokchung",
-                "marketCode": "3669",
-                "marketName": "Mangkolemba APMC",
+                "district": "407",
+                "marketCode": "4397",
+                "marketName": "Mon APMC",
                 "state": "NG"
               },
               "source": {
@@ -474,8 +475,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "23",
-                  "name": "Onion"
+                  "code": "1",
+                  "name": "Wheat"
                 }
               ],
               "supportedPriceFields": [
@@ -522,7 +523,7 @@
                 "en"
               ],
               "market": {
-                "district": "Phek",
+                "district": "409",
                 "marketCode": "1697",
                 "marketName": "Phek APMC",
                 "state": "NG"
@@ -539,73 +540,6 @@
                 {
                   "code": "24",
                   "name": "Potato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_588",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Wokha Town APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Wokha Town APMC mandi prices",
-              "shortDesc": "Mandi prices at Wokha Town APMC, Wokha, Nagaland"
-            },
-            "id": "resource:mandi-price:market:588",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    94.2589,
-                    26.091
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "412",
-                  "areaLevel": "District",
-                  "areaName": "Wokha",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-NL",
-                  "areaLevel": "State",
-                  "areaName": "Nagaland",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Wokha",
-                "marketCode": "588",
-                "marketName": "Wokha Town APMC",
-                "state": "NG"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -652,7 +586,7 @@
                 "en"
               ],
               "market": {
-                "district": "Zunheboto",
+                "district": "413",
                 "marketCode": "1696",
                 "marketName": "Zunheboto APMC",
                 "state": "NG"
@@ -667,8 +601,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "24",
-                  "name": "Potato"
+                  "code": "4",
+                  "name": "Maize"
                 }
               ],
               "supportedPriceFields": [

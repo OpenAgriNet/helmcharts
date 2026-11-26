@@ -65,7 +65,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bishnupur",
+                "district": "375",
                 "marketCode": "584",
                 "marketName": "Bishenpur APMC",
                 "state": "MN"
@@ -140,7 +140,7 @@
                 "en"
               ],
               "market": {
-                "district": "Imphal West",
+                "district": "379",
                 "marketCode": "583",
                 "marketName": "Imphal APMC",
                 "state": "MN"
@@ -161,10 +161,6 @@
                 {
                   "code": "6",
                   "name": "Bengal Gram(Gram)(Whole)"
-                },
-                {
-                  "code": "8",
-                  "name": "Black Gram(Urd Beans)(Whole)"
                 },
                 {
                   "code": "23",
@@ -212,7 +208,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kakching",
+                "district": "380",
                 "marketCode": "4398",
                 "marketName": "Kakching Market APMC",
                 "state": "MN"
@@ -291,7 +287,7 @@
                 "en"
               ],
               "market": {
-                "district": "Imphal East",
+                "district": "378",
                 "marketCode": "171",
                 "marketName": "Lamlong Bazaar APMC",
                 "state": "MN"
@@ -312,10 +308,6 @@
                 {
                   "code": "6",
                   "name": "Bengal Gram(Gram)(Whole)"
-                },
-                {
-                  "code": "12",
-                  "name": "Mustard"
                 },
                 {
                   "code": "23",
@@ -370,7 +362,7 @@
                 "en"
               ],
               "market": {
-                "district": "Thoubal",
+                "district": "384",
                 "marketCode": "1119",
                 "marketName": "Thoubal APMC",
                 "state": "MN"

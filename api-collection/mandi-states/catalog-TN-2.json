@@ -1,0 +1,4257 @@
+{
+  "context": {
+    "action": "catalog/publish",
+    "messageId": "{{messageId}}",
+    "timestamp": "{{timestamp}}",
+    "transactionId": "{{transactionId}}",
+    "version": "2.0.0",
+    "senderId": "{{senderId}}",
+    "receiverId": "{{receiverId}}"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "descriptor": {
+          "code": "MANDI_PRICE_MARKET_TN_2",
+          "longDesc": "One resource per market. Each carries the Agmarknet codes a select must send, that market's traded commodities, and its point location for proximity discovery.",
+          "name": "Agmarknet mandi markets — Tamil Nadu",
+          "shortDesc": "Markets in Tamil Nadu, their locations, and what each trades"
+        },
+        "id": "catalog:mandi-price:TN-2",
+        "isActive": true,
+        "provider": {
+          "descriptor": {
+            "code": "AGMARKNET",
+            "name": "Agmarknet Vistaar",
+            "shortDesc": "Provider of live agricultural market price information."
+          },
+          "id": "agmarknet"
+        },
+        "resources": [
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4857",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Alangulam APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Alangulam APMC mandi prices",
+              "shortDesc": "Mandi prices at Alangulam APMC, Tenkasi, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4857",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.4739,
+                    8.8176
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "550",
+                  "areaLevel": "District",
+                  "areaName": "Tenkasi",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "550",
+                "marketCode": "4857",
+                "marketName": "Alangulam APMC",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4226",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Arcot(Uzhavar Sandhai ). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Arcot(Uzhavar Sandhai ) mandi prices",
+              "shortDesc": "Mandi prices at Arcot(Uzhavar Sandhai ), Ranipet, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4226",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.3126,
+                    12.9042
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "547",
+                  "areaLevel": "District",
+                  "areaName": "Ranipet",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "547",
+                "marketCode": "4226",
+                "marketName": "Arcot(Uzhavar Sandhai )",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
+                  "code": "20",
+                  "name": "Mango"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "25",
+                  "name": "Garlic"
+                },
+                {
+                  "code": "31",
+                  "name": "Cauliflower"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "39",
+                  "name": "Coriander(Leaves)"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                },
+                {
+                  "code": "58",
+                  "name": "Chikoos(Sapota)"
+                },
+                {
+                  "code": "59",
+                  "name": "Papaya"
+                },
+                {
+                  "code": "64",
+                  "name": "Mousambi(Sweet Lime)"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                },
+                {
+                  "code": "66",
+                  "name": "Cluster beans"
+                },
+                {
+                  "code": "67",
+                  "name": "Bitter gourd"
+                },
+                {
+                  "code": "68",
+                  "name": "Bottle gourd"
+                },
+                {
+                  "code": "69",
+                  "name": "Ashgourd"
+                },
+                {
+                  "code": "70",
+                  "name": "Pumpkin"
+                },
+                {
+                  "code": "71",
+                  "name": "Bhindi(Ladies Finger)"
+                },
+                {
+                  "code": "72",
+                  "name": "Amaranthus"
+                },
+                {
+                  "code": "73",
+                  "name": "Green Chilli"
+                },
+                {
+                  "code": "75",
+                  "name": "Cowpea(Veg)"
+                },
+                {
+                  "code": "76",
+                  "name": "Banana - Green"
+                },
+                {
+                  "code": "80",
+                  "name": "Beans"
+                },
+                {
+                  "code": "85",
+                  "name": "Tapioca"
+                },
+                {
+                  "code": "87",
+                  "name": "Ginger(Green)"
+                },
+                {
+                  "code": "116",
+                  "name": "Coconut"
+                },
+                {
+                  "code": "124",
+                  "name": "Sweet Potato"
+                },
+                {
+                  "code": "126",
+                  "name": "Cabbage"
+                },
+                {
+                  "code": "128",
+                  "name": "Snakeguard"
+                },
+                {
+                  "code": "129",
+                  "name": "Beetroot"
+                },
+                {
+                  "code": "131",
+                  "name": "Cucumbar(Kheera)"
+                },
+                {
+                  "code": "132",
+                  "name": "Ridgeguard(Tori)"
+                },
+                {
+                  "code": "133",
+                  "name": "Raddish"
+                },
+                {
+                  "code": "134",
+                  "name": "Thondekai"
+                },
+                {
+                  "code": "136",
+                  "name": "Capsicum"
+                },
+                {
+                  "code": "137",
+                  "name": "Green Avare(W)"
+                },
+                {
+                  "code": "139",
+                  "name": "Chow Chow"
+                },
+                {
+                  "code": "140",
+                  "name": "Drumstick"
+                },
+                {
+                  "code": "144",
+                  "name": "Mango(Raw-Ripe)"
+                },
+                {
+                  "code": "149",
+                  "name": "Knool Khol"
+                },
+                {
+                  "code": "156",
+                  "name": "Guava"
+                },
+                {
+                  "code": "160",
+                  "name": "Pomegranate"
+                },
+                {
+                  "code": "161",
+                  "name": "Tender Coconut"
+                },
+                {
+                  "code": "193",
+                  "name": "Marigold(Calcutta)"
+                },
+                {
+                  "code": "247",
+                  "name": "Elephant Yam(Suran)"
+                },
+                {
+                  "code": "250",
+                  "name": "Indian Beans(Seam)"
+                },
+                {
+                  "code": "261",
+                  "name": "Lemon"
+                },
+                {
+                  "code": "269",
+                  "name": "Colacasia"
+                },
+                {
+                  "code": "300",
+                  "name": "Custard Apple(Sharifa)"
+                },
+                {
+                  "code": "303",
+                  "name": "Amla(Nelli Kai)"
+                },
+                {
+                  "code": "305",
+                  "name": "Onion Green"
+                },
+                {
+                  "code": "307",
+                  "name": "Mint(Pudina)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4236",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Dharapuram(Uzhavar Sandhai ). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Dharapuram(Uzhavar Sandhai ) mandi prices",
+              "shortDesc": "Mandi prices at Dharapuram(Uzhavar Sandhai ), Thirupur, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4236",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.5214,
+                    10.7344
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "557",
+                  "areaLevel": "District",
+                  "areaName": "Thirupur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "557",
+                "marketCode": "4236",
+                "marketName": "Dharapuram(Uzhavar Sandhai )",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
+                  "code": "20",
+                  "name": "Mango"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "31",
+                  "name": "Cauliflower"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "39",
+                  "name": "Coriander(Leaves)"
+                },
+                {
+                  "code": "58",
+                  "name": "Chikoos(Sapota)"
+                },
+                {
+                  "code": "59",
+                  "name": "Papaya"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                },
+                {
+                  "code": "66",
+                  "name": "Cluster beans"
+                },
+                {
+                  "code": "67",
+                  "name": "Bitter gourd"
+                },
+                {
+                  "code": "68",
+                  "name": "Bottle gourd"
+                },
+                {
+                  "code": "69",
+                  "name": "Ashgourd"
+                },
+                {
+                  "code": "70",
+                  "name": "Pumpkin"
+                },
+                {
+                  "code": "71",
+                  "name": "Bhindi(Ladies Finger)"
+                },
+                {
+                  "code": "72",
+                  "name": "Amaranthus"
+                },
+                {
+                  "code": "73",
+                  "name": "Green Chilli"
+                },
+                {
+                  "code": "75",
+                  "name": "Cowpea(Veg)"
+                },
+                {
+                  "code": "76",
+                  "name": "Banana - Green"
+                },
+                {
+                  "code": "80",
+                  "name": "Beans"
+                },
+                {
+                  "code": "87",
+                  "name": "Ginger(Green)"
+                },
+                {
+                  "code": "116",
+                  "name": "Coconut"
+                },
+                {
+                  "code": "126",
+                  "name": "Cabbage"
+                },
+                {
+                  "code": "128",
+                  "name": "Snakeguard"
+                },
+                {
+                  "code": "129",
+                  "name": "Beetroot"
+                },
+                {
+                  "code": "131",
+                  "name": "Cucumbar(Kheera)"
+                },
+                {
+                  "code": "132",
+                  "name": "Ridgeguard(Tori)"
+                },
+                {
+                  "code": "133",
+                  "name": "Raddish"
+                },
+                {
+                  "code": "134",
+                  "name": "Thondekai"
+                },
+                {
+                  "code": "137",
+                  "name": "Green Avare(W)"
+                },
+                {
+                  "code": "139",
+                  "name": "Chow Chow"
+                },
+                {
+                  "code": "140",
+                  "name": "Drumstick"
+                },
+                {
+                  "code": "144",
+                  "name": "Mango(Raw-Ripe)"
+                },
+                {
+                  "code": "156",
+                  "name": "Guava"
+                },
+                {
+                  "code": "247",
+                  "name": "Elephant Yam(Suran)"
+                },
+                {
+                  "code": "261",
+                  "name": "Lemon"
+                },
+                {
+                  "code": "305",
+                  "name": "Onion Green"
+                },
+                {
+                  "code": "307",
+                  "name": "Mint(Pudina)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4862",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ettayapuram APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Ettayapuram APMC mandi prices",
+              "shortDesc": "Mandi prices at Ettayapuram APMC, Tuticorin, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4862",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.98241667,
+                    9.15013889
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "561",
+                  "areaLevel": "District",
+                  "areaName": "Tuticorin",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "561",
+                "marketCode": "4862",
+                "marketName": "Ettayapuram APMC",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4855",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Gandhigramam(Uzhavar Sandhai). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Gandhigramam(Uzhavar Sandhai) mandi prices",
+              "shortDesc": "Mandi prices at Gandhigramam(Uzhavar Sandhai), Karur, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4855",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.1019,
+                    10.9447
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "537",
+                  "areaLevel": "District",
+                  "areaName": "Karur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "537",
+                "marketCode": "4855",
+                "marketName": "Gandhigramam(Uzhavar Sandhai)",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4866",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Irumboothipatty APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Irumboothipatty APMC mandi prices",
+              "shortDesc": "Mandi prices at Irumboothipatty APMC, Karur, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4866",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.3853,
+                    10.8615
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "537",
+                  "areaLevel": "District",
+                  "areaName": "Karur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "537",
+                "marketCode": "4866",
+                "marketName": "Irumboothipatty APMC",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "5",
+                  "name": "Jowar(Sorghum)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4721",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kallupatti RM APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kallupatti RM APMC mandi prices",
+              "shortDesc": "Mandi prices at Kallupatti RM APMC, Madurai, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4721",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.86,
+                    9.72
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "539",
+                  "areaLevel": "District",
+                  "areaName": "Madurai",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "539",
+                "marketCode": "4721",
+                "marketName": "Kallupatti RM APMC",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "5",
+                  "name": "Jowar(Sorghum)"
+                },
+                {
+                  "code": "28",
+                  "name": "Bajra(Pearl Millet/Cumbu)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4237",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kangayam(Uzhavar Sandhai ). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kangayam(Uzhavar Sandhai ) mandi prices",
+              "shortDesc": "Mandi prices at Kangayam(Uzhavar Sandhai ), Thirupur, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4237",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.5997,
+                    11.0077
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "557",
+                  "areaLevel": "District",
+                  "areaName": "Thirupur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "557",
+                "marketCode": "4237",
+                "marketName": "Kangayam(Uzhavar Sandhai )",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "31",
+                  "name": "Cauliflower"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "39",
+                  "name": "Coriander(Leaves)"
+                },
+                {
+                  "code": "59",
+                  "name": "Papaya"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                },
+                {
+                  "code": "66",
+                  "name": "Cluster beans"
+                },
+                {
+                  "code": "67",
+                  "name": "Bitter gourd"
+                },
+                {
+                  "code": "68",
+                  "name": "Bottle gourd"
+                },
+                {
+                  "code": "69",
+                  "name": "Ashgourd"
+                },
+                {
+                  "code": "70",
+                  "name": "Pumpkin"
+                },
+                {
+                  "code": "71",
+                  "name": "Bhindi(Ladies Finger)"
+                },
+                {
+                  "code": "72",
+                  "name": "Amaranthus"
+                },
+                {
+                  "code": "73",
+                  "name": "Green Chilli"
+                },
+                {
+                  "code": "76",
+                  "name": "Banana - Green"
+                },
+                {
+                  "code": "116",
+                  "name": "Coconut"
+                },
+                {
+                  "code": "128",
+                  "name": "Snakeguard"
+                },
+                {
+                  "code": "129",
+                  "name": "Beetroot"
+                },
+                {
+                  "code": "132",
+                  "name": "Ridgeguard(Tori)"
+                },
+                {
+                  "code": "133",
+                  "name": "Raddish"
+                },
+                {
+                  "code": "137",
+                  "name": "Green Avare(W)"
+                },
+                {
+                  "code": "140",
+                  "name": "Drumstick"
+                },
+                {
+                  "code": "144",
+                  "name": "Mango(Raw-Ripe)"
+                },
+                {
+                  "code": "161",
+                  "name": "Tender Coconut"
+                },
+                {
+                  "code": "261",
+                  "name": "Lemon"
+                },
+                {
+                  "code": "303",
+                  "name": "Amla(Nelli Kai)"
+                },
+                {
+                  "code": "305",
+                  "name": "Onion Green"
+                },
+                {
+                  "code": "307",
+                  "name": "Mint(Pudina)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4846",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Karimangalam(Uzhavar Sandhai). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Karimangalam(Uzhavar Sandhai) mandi prices",
+              "shortDesc": "Mandi prices at Karimangalam(Uzhavar Sandhai), Dharmapuri, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4846",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.2026,
+                    12.3128
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "532",
+                  "areaLevel": "District",
+                  "areaName": "Dharmapuri",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "532",
+                "marketCode": "4846",
+                "marketName": "Karimangalam(Uzhavar Sandhai)",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4848",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mecheri(Uzhavar Sandhai). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Mecheri(Uzhavar Sandhai) mandi prices",
+              "shortDesc": "Mandi prices at Mecheri(Uzhavar Sandhai), Salem, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4848",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.9448,
+                    11.8316
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "548",
+                  "areaLevel": "District",
+                  "areaName": "Salem",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "548",
+                "marketCode": "4848",
+                "marketName": "Mecheri(Uzhavar Sandhai)",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4231",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Natrampalli(Uzhavar Sandhai ). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Natrampalli(Uzhavar Sandhai ) mandi prices",
+              "shortDesc": "Mandi prices at Natrampalli(Uzhavar Sandhai ), Thirupathur, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4231",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.5154,
+                    12.5919
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "556",
+                  "areaLevel": "District",
+                  "areaName": "Thirupathur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "556",
+                "marketCode": "4231",
+                "marketName": "Natrampalli(Uzhavar Sandhai )",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
+                  "code": "20",
+                  "name": "Mango"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "25",
+                  "name": "Garlic"
+                },
+                {
+                  "code": "31",
+                  "name": "Cauliflower"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "39",
+                  "name": "Coriander(Leaves)"
+                },
+                {
+                  "code": "59",
+                  "name": "Papaya"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                },
+                {
+                  "code": "66",
+                  "name": "Cluster beans"
+                },
+                {
+                  "code": "67",
+                  "name": "Bitter gourd"
+                },
+                {
+                  "code": "68",
+                  "name": "Bottle gourd"
+                },
+                {
+                  "code": "70",
+                  "name": "Pumpkin"
+                },
+                {
+                  "code": "71",
+                  "name": "Bhindi(Ladies Finger)"
+                },
+                {
+                  "code": "72",
+                  "name": "Amaranthus"
+                },
+                {
+                  "code": "73",
+                  "name": "Green Chilli"
+                },
+                {
+                  "code": "76",
+                  "name": "Banana - Green"
+                },
+                {
+                  "code": "80",
+                  "name": "Beans"
+                },
+                {
+                  "code": "87",
+                  "name": "Ginger(Green)"
+                },
+                {
+                  "code": "116",
+                  "name": "Coconut"
+                },
+                {
+                  "code": "126",
+                  "name": "Cabbage"
+                },
+                {
+                  "code": "128",
+                  "name": "Snakeguard"
+                },
+                {
+                  "code": "129",
+                  "name": "Beetroot"
+                },
+                {
+                  "code": "131",
+                  "name": "Cucumbar(Kheera)"
+                },
+                {
+                  "code": "132",
+                  "name": "Ridgeguard(Tori)"
+                },
+                {
+                  "code": "133",
+                  "name": "Raddish"
+                },
+                {
+                  "code": "137",
+                  "name": "Green Avare(W)"
+                },
+                {
+                  "code": "140",
+                  "name": "Drumstick"
+                },
+                {
+                  "code": "144",
+                  "name": "Mango(Raw-Ripe)"
+                },
+                {
+                  "code": "149",
+                  "name": "Knool Khol"
+                },
+                {
+                  "code": "156",
+                  "name": "Guava"
+                },
+                {
+                  "code": "248",
+                  "name": "Yam(Ratalu)"
+                },
+                {
+                  "code": "261",
+                  "name": "Lemon"
+                },
+                {
+                  "code": "305",
+                  "name": "Onion Green"
+                },
+                {
+                  "code": "307",
+                  "name": "Mint(Pudina)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4232",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Palladam(Uzhavar Sandhai ). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Palladam(Uzhavar Sandhai ) mandi prices",
+              "shortDesc": "Mandi prices at Palladam(Uzhavar Sandhai ), Thirupur, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4232",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.2823,
+                    10.995
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "557",
+                  "areaLevel": "District",
+                  "areaName": "Thirupur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "557",
+                "marketCode": "4232",
+                "marketName": "Palladam(Uzhavar Sandhai )",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "31",
+                  "name": "Cauliflower"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "39",
+                  "name": "Coriander(Leaves)"
+                },
+                {
+                  "code": "58",
+                  "name": "Chikoos(Sapota)"
+                },
+                {
+                  "code": "59",
+                  "name": "Papaya"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                },
+                {
+                  "code": "66",
+                  "name": "Cluster beans"
+                },
+                {
+                  "code": "67",
+                  "name": "Bitter gourd"
+                },
+                {
+                  "code": "68",
+                  "name": "Bottle gourd"
+                },
+                {
+                  "code": "69",
+                  "name": "Ashgourd"
+                },
+                {
+                  "code": "70",
+                  "name": "Pumpkin"
+                },
+                {
+                  "code": "71",
+                  "name": "Bhindi(Ladies Finger)"
+                },
+                {
+                  "code": "72",
+                  "name": "Amaranthus"
+                },
+                {
+                  "code": "73",
+                  "name": "Green Chilli"
+                },
+                {
+                  "code": "75",
+                  "name": "Cowpea(Veg)"
+                },
+                {
+                  "code": "76",
+                  "name": "Banana - Green"
+                },
+                {
+                  "code": "80",
+                  "name": "Beans"
+                },
+                {
+                  "code": "87",
+                  "name": "Ginger(Green)"
+                },
+                {
+                  "code": "116",
+                  "name": "Coconut"
+                },
+                {
+                  "code": "126",
+                  "name": "Cabbage"
+                },
+                {
+                  "code": "128",
+                  "name": "Snakeguard"
+                },
+                {
+                  "code": "129",
+                  "name": "Beetroot"
+                },
+                {
+                  "code": "132",
+                  "name": "Ridgeguard(Tori)"
+                },
+                {
+                  "code": "133",
+                  "name": "Raddish"
+                },
+                {
+                  "code": "134",
+                  "name": "Thondekai"
+                },
+                {
+                  "code": "137",
+                  "name": "Green Avare(W)"
+                },
+                {
+                  "code": "139",
+                  "name": "Chow Chow"
+                },
+                {
+                  "code": "140",
+                  "name": "Drumstick"
+                },
+                {
+                  "code": "144",
+                  "name": "Mango(Raw-Ripe)"
+                },
+                {
+                  "code": "156",
+                  "name": "Guava"
+                },
+                {
+                  "code": "261",
+                  "name": "Lemon"
+                },
+                {
+                  "code": "305",
+                  "name": "Onion Green"
+                },
+                {
+                  "code": "307",
+                  "name": "Mint(Pudina)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4849",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Pallikonda(Uzhavar Sandhai). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Pallikonda(Uzhavar Sandhai) mandi prices",
+              "shortDesc": "Mandi prices at Pallikonda(Uzhavar Sandhai), Vellore, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4849",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.9392,
+                    12.904
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "562",
+                  "areaLevel": "District",
+                  "areaName": "Vellore",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "562",
+                "marketCode": "4849",
+                "marketName": "Pallikonda(Uzhavar Sandhai)",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4750",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Papanadu APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Papanadu APMC mandi prices",
+              "shortDesc": "Mandi prices at Papanadu APMC, Thanjavur, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4750",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.2832,
+                    10.5397
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "551",
+                  "areaLevel": "District",
+                  "areaName": "Thanjavur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "551",
+                "marketCode": "4750",
+                "marketName": "Papanadu APMC",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4877",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Pavoorchatram APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Pavoorchatram APMC mandi prices",
+              "shortDesc": "Mandi prices at Pavoorchatram APMC, Tenkasi, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4877",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.3793,
+                    8.9138
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "550",
+                  "areaLevel": "District",
+                  "areaName": "Tenkasi",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "550",
+                "marketCode": "4877",
+                "marketName": "Pavoorchatram APMC",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "5",
+                  "name": "Jowar(Sorghum)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4850",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Perampet(Uzhavar Sandhai). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Perampet(Uzhavar Sandhai) mandi prices",
+              "shortDesc": "Mandi prices at Perampet(Uzhavar Sandhai), Vellore, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4850",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.7235,
+                    12.9407
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "562",
+                  "areaLevel": "District",
+                  "areaName": "Vellore",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "562",
+                "marketCode": "4850",
+                "marketName": "Perampet(Uzhavar Sandhai)",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4851",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Peravurani(Uzhavar Sandhai). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Peravurani(Uzhavar Sandhai) mandi prices",
+              "shortDesc": "Mandi prices at Peravurani(Uzhavar Sandhai), Thanjavur, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4851",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.2076,
+                    10.2949
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "551",
+                  "areaLevel": "District",
+                  "areaName": "Thanjavur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "551",
+                "marketCode": "4851",
+                "marketName": "Peravurani(Uzhavar Sandhai)",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4852",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ponnamaravathi(Uzhavar Sandhai). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Ponnamaravathi(Uzhavar Sandhai) mandi prices",
+              "shortDesc": "Mandi prices at Ponnamaravathi(Uzhavar Sandhai), Pudukkottai, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4852",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.5384,
+                    10.2696
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "545",
+                  "areaLevel": "District",
+                  "areaName": "Pudukkottai",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "545",
+                "marketCode": "4852",
+                "marketName": "Ponnamaravathi(Uzhavar Sandhai)",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4752",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ponnamaravathy APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Ponnamaravathy APMC mandi prices",
+              "shortDesc": "Mandi prices at Ponnamaravathy APMC, Pudukkottai, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4752",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.539851,
+                    10.22457
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "545",
+                  "areaLevel": "District",
+                  "areaName": "Pudukkottai",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "545",
+                "marketCode": "4752",
+                "marketName": "Ponnamaravathy APMC",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4668",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Punjaipuliyampatti APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Punjaipuliyampatti APMC mandi prices",
+              "shortDesc": "Mandi prices at Punjaipuliyampatti APMC, Erode, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4668",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.170127,
+                    11.359328
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "534",
+                  "areaLevel": "District",
+                  "areaName": "Erode",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "534",
+                "marketCode": "4668",
+                "marketName": "Punjaipuliyampatti APMC",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "5",
+                  "name": "Jowar(Sorghum)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4225",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ranipettai(Uzhavar Sandhai ). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Ranipettai(Uzhavar Sandhai ) mandi prices",
+              "shortDesc": "Mandi prices at Ranipettai(Uzhavar Sandhai ), Ranipet, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4225",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.3299,
+                    12.9284
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "547",
+                  "areaLevel": "District",
+                  "areaName": "Ranipet",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "547",
+                "marketCode": "4225",
+                "marketName": "Ranipettai(Uzhavar Sandhai )",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
+                  "code": "20",
+                  "name": "Mango"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "25",
+                  "name": "Garlic"
+                },
+                {
+                  "code": "31",
+                  "name": "Cauliflower"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "39",
+                  "name": "Coriander(Leaves)"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                },
+                {
+                  "code": "46",
+                  "name": "Green Peas"
+                },
+                {
+                  "code": "58",
+                  "name": "Chikoos(Sapota)"
+                },
+                {
+                  "code": "59",
+                  "name": "Papaya"
+                },
+                {
+                  "code": "64",
+                  "name": "Mousambi(Sweet Lime)"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                },
+                {
+                  "code": "66",
+                  "name": "Cluster beans"
+                },
+                {
+                  "code": "67",
+                  "name": "Bitter gourd"
+                },
+                {
+                  "code": "68",
+                  "name": "Bottle gourd"
+                },
+                {
+                  "code": "69",
+                  "name": "Ashgourd"
+                },
+                {
+                  "code": "70",
+                  "name": "Pumpkin"
+                },
+                {
+                  "code": "71",
+                  "name": "Bhindi(Ladies Finger)"
+                },
+                {
+                  "code": "72",
+                  "name": "Amaranthus"
+                },
+                {
+                  "code": "73",
+                  "name": "Green Chilli"
+                },
+                {
+                  "code": "75",
+                  "name": "Cowpea(Veg)"
+                },
+                {
+                  "code": "76",
+                  "name": "Banana - Green"
+                },
+                {
+                  "code": "80",
+                  "name": "Beans"
+                },
+                {
+                  "code": "85",
+                  "name": "Tapioca"
+                },
+                {
+                  "code": "87",
+                  "name": "Ginger(Green)"
+                },
+                {
+                  "code": "116",
+                  "name": "Coconut"
+                },
+                {
+                  "code": "121",
+                  "name": "Betal Leaves"
+                },
+                {
+                  "code": "124",
+                  "name": "Sweet Potato"
+                },
+                {
+                  "code": "126",
+                  "name": "Cabbage"
+                },
+                {
+                  "code": "128",
+                  "name": "Snakeguard"
+                },
+                {
+                  "code": "129",
+                  "name": "Beetroot"
+                },
+                {
+                  "code": "131",
+                  "name": "Cucumbar(Kheera)"
+                },
+                {
+                  "code": "132",
+                  "name": "Ridgeguard(Tori)"
+                },
+                {
+                  "code": "133",
+                  "name": "Raddish"
+                },
+                {
+                  "code": "134",
+                  "name": "Thondekai"
+                },
+                {
+                  "code": "136",
+                  "name": "Capsicum"
+                },
+                {
+                  "code": "137",
+                  "name": "Green Avare(W)"
+                },
+                {
+                  "code": "139",
+                  "name": "Chow Chow"
+                },
+                {
+                  "code": "140",
+                  "name": "Drumstick"
+                },
+                {
+                  "code": "144",
+                  "name": "Mango(Raw-Ripe)"
+                },
+                {
+                  "code": "149",
+                  "name": "Knool Khol"
+                },
+                {
+                  "code": "155",
+                  "name": "Jamun(Narale Hannu)"
+                },
+                {
+                  "code": "156",
+                  "name": "Guava"
+                },
+                {
+                  "code": "161",
+                  "name": "Tender Coconut"
+                },
+                {
+                  "code": "180",
+                  "name": "Fig(Anjura/Anjeer)"
+                },
+                {
+                  "code": "187",
+                  "name": "Jasmine"
+                },
+                {
+                  "code": "188",
+                  "name": "Kakada"
+                },
+                {
+                  "code": "192",
+                  "name": "Tube Flower"
+                },
+                {
+                  "code": "193",
+                  "name": "Marigold(Calcutta)"
+                },
+                {
+                  "code": "247",
+                  "name": "Elephant Yam(Suran)"
+                },
+                {
+                  "code": "250",
+                  "name": "Indian Beans(Seam)"
+                },
+                {
+                  "code": "261",
+                  "name": "Lemon"
+                },
+                {
+                  "code": "269",
+                  "name": "Colacasia"
+                },
+                {
+                  "code": "280",
+                  "name": "Pear(Marasebu)"
+                },
+                {
+                  "code": "300",
+                  "name": "Custard Apple(Sharifa)"
+                },
+                {
+                  "code": "303",
+                  "name": "Amla(Nelli Kai)"
+                },
+                {
+                  "code": "305",
+                  "name": "Onion Green"
+                },
+                {
+                  "code": "307",
+                  "name": "Mint(Pudina)"
+                },
+                {
+                  "code": "321",
+                  "name": "Rose(Local)"
+                },
+                {
+                  "code": "337",
+                  "name": "Tube Rose(Loose)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4227",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sankarankoil(Uzhavar Sandhai ). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sankarankoil(Uzhavar Sandhai ) mandi prices",
+              "shortDesc": "Mandi prices at Sankarankoil(Uzhavar Sandhai ), Tenkasi, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4227",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.5361,
+                    9.1826
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "550",
+                  "areaLevel": "District",
+                  "areaName": "Tenkasi",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "550",
+                "marketCode": "4227",
+                "marketName": "Sankarankoil(Uzhavar Sandhai )",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
+                  "code": "20",
+                  "name": "Mango"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "39",
+                  "name": "Coriander(Leaves)"
+                },
+                {
+                  "code": "59",
+                  "name": "Papaya"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                },
+                {
+                  "code": "66",
+                  "name": "Cluster beans"
+                },
+                {
+                  "code": "67",
+                  "name": "Bitter gourd"
+                },
+                {
+                  "code": "68",
+                  "name": "Bottle gourd"
+                },
+                {
+                  "code": "69",
+                  "name": "Ashgourd"
+                },
+                {
+                  "code": "70",
+                  "name": "Pumpkin"
+                },
+                {
+                  "code": "71",
+                  "name": "Bhindi(Ladies Finger)"
+                },
+                {
+                  "code": "72",
+                  "name": "Amaranthus"
+                },
+                {
+                  "code": "73",
+                  "name": "Green Chilli"
+                },
+                {
+                  "code": "75",
+                  "name": "Cowpea(Veg)"
+                },
+                {
+                  "code": "76",
+                  "name": "Banana - Green"
+                },
+                {
+                  "code": "80",
+                  "name": "Beans"
+                },
+                {
+                  "code": "85",
+                  "name": "Tapioca"
+                },
+                {
+                  "code": "116",
+                  "name": "Coconut"
+                },
+                {
+                  "code": "128",
+                  "name": "Snakeguard"
+                },
+                {
+                  "code": "132",
+                  "name": "Ridgeguard(Tori)"
+                },
+                {
+                  "code": "133",
+                  "name": "Raddish"
+                },
+                {
+                  "code": "134",
+                  "name": "Thondekai"
+                },
+                {
+                  "code": "137",
+                  "name": "Green Avare(W)"
+                },
+                {
+                  "code": "140",
+                  "name": "Drumstick"
+                },
+                {
+                  "code": "144",
+                  "name": "Mango(Raw-Ripe)"
+                },
+                {
+                  "code": "151",
+                  "name": "Lime"
+                },
+                {
+                  "code": "156",
+                  "name": "Guava"
+                },
+                {
+                  "code": "161",
+                  "name": "Tender Coconut"
+                },
+                {
+                  "code": "247",
+                  "name": "Elephant Yam(Suran)"
+                },
+                {
+                  "code": "248",
+                  "name": "Yam(Ratalu)"
+                },
+                {
+                  "code": "261",
+                  "name": "Lemon"
+                },
+                {
+                  "code": "269",
+                  "name": "Colacasia"
+                },
+                {
+                  "code": "303",
+                  "name": "Amla(Nelli Kai)"
+                },
+                {
+                  "code": "305",
+                  "name": "Onion Green"
+                },
+                {
+                  "code": "307",
+                  "name": "Mint(Pudina)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4883",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sathankulam APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sathankulam APMC mandi prices",
+              "shortDesc": "Mandi prices at Sathankulam APMC, Tuticorin, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4883",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.9253,
+                    8.4717
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "561",
+                  "areaLevel": "District",
+                  "areaName": "Tuticorin",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "561",
+                "marketCode": "4883",
+                "marketName": "Sathankulam APMC",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4884",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Solakkadu APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Solakkadu APMC mandi prices",
+              "shortDesc": "Mandi prices at Solakkadu APMC, Namakkal, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4884",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.3495,
+                    11.3103
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "543",
+                  "areaLevel": "District",
+                  "areaName": "Namakkal",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "543",
+                "marketCode": "4884",
+                "marketName": "Solakkadu APMC",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "30",
+                  "name": "Ragi(Finger Millet)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4228",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Tenkasi(Uzhavar Sandhai ). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Tenkasi(Uzhavar Sandhai ) mandi prices",
+              "shortDesc": "Mandi prices at Tenkasi(Uzhavar Sandhai ), Tenkasi, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4228",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.3001,
+                    8.9743
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "550",
+                  "areaLevel": "District",
+                  "areaName": "Tenkasi",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "550",
+                "marketCode": "4228",
+                "marketName": "Tenkasi(Uzhavar Sandhai )",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
+                  "code": "20",
+                  "name": "Mango"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "25",
+                  "name": "Garlic"
+                },
+                {
+                  "code": "31",
+                  "name": "Cauliflower"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "39",
+                  "name": "Coriander(Leaves)"
+                },
+                {
+                  "code": "58",
+                  "name": "Chikoos(Sapota)"
+                },
+                {
+                  "code": "59",
+                  "name": "Papaya"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                },
+                {
+                  "code": "66",
+                  "name": "Cluster beans"
+                },
+                {
+                  "code": "67",
+                  "name": "Bitter gourd"
+                },
+                {
+                  "code": "68",
+                  "name": "Bottle gourd"
+                },
+                {
+                  "code": "69",
+                  "name": "Ashgourd"
+                },
+                {
+                  "code": "70",
+                  "name": "Pumpkin"
+                },
+                {
+                  "code": "71",
+                  "name": "Bhindi(Ladies Finger)"
+                },
+                {
+                  "code": "72",
+                  "name": "Amaranthus"
+                },
+                {
+                  "code": "73",
+                  "name": "Green Chilli"
+                },
+                {
+                  "code": "75",
+                  "name": "Cowpea(Veg)"
+                },
+                {
+                  "code": "76",
+                  "name": "Banana - Green"
+                },
+                {
+                  "code": "80",
+                  "name": "Beans"
+                },
+                {
+                  "code": "85",
+                  "name": "Tapioca"
+                },
+                {
+                  "code": "87",
+                  "name": "Ginger(Green)"
+                },
+                {
+                  "code": "116",
+                  "name": "Coconut"
+                },
+                {
+                  "code": "124",
+                  "name": "Sweet Potato"
+                },
+                {
+                  "code": "126",
+                  "name": "Cabbage"
+                },
+                {
+                  "code": "128",
+                  "name": "Snakeguard"
+                },
+                {
+                  "code": "129",
+                  "name": "Beetroot"
+                },
+                {
+                  "code": "131",
+                  "name": "Cucumbar(Kheera)"
+                },
+                {
+                  "code": "132",
+                  "name": "Ridgeguard(Tori)"
+                },
+                {
+                  "code": "133",
+                  "name": "Raddish"
+                },
+                {
+                  "code": "136",
+                  "name": "Capsicum"
+                },
+                {
+                  "code": "137",
+                  "name": "Green Avare(W)"
+                },
+                {
+                  "code": "140",
+                  "name": "Drumstick"
+                },
+                {
+                  "code": "144",
+                  "name": "Mango(Raw-Ripe)"
+                },
+                {
+                  "code": "151",
+                  "name": "Lime"
+                },
+                {
+                  "code": "153",
+                  "name": "Jack Fruit"
+                },
+                {
+                  "code": "156",
+                  "name": "Guava"
+                },
+                {
+                  "code": "161",
+                  "name": "Tender Coconut"
+                },
+                {
+                  "code": "247",
+                  "name": "Elephant Yam(Suran)"
+                },
+                {
+                  "code": "248",
+                  "name": "Yam(Ratalu)"
+                },
+                {
+                  "code": "261",
+                  "name": "Lemon"
+                },
+                {
+                  "code": "269",
+                  "name": "Colacasia"
+                },
+                {
+                  "code": "288",
+                  "name": "Mashrooms"
+                },
+                {
+                  "code": "303",
+                  "name": "Amla(Nelli Kai)"
+                },
+                {
+                  "code": "305",
+                  "name": "Onion Green"
+                },
+                {
+                  "code": "307",
+                  "name": "Mint(Pudina)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4887",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Thathaiyangarpettai APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Thathaiyangarpettai APMC mandi prices",
+              "shortDesc": "Mandi prices at Thathaiyangarpettai APMC, Thiruchirappalli, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4887",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.4393,
+                    11.1283
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "554",
+                  "areaLevel": "District",
+                  "areaName": "Thiruchirappalli",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "554",
+                "marketCode": "4887",
+                "marketName": "Thathaiyangarpettai APMC",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4888",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Thirunavalur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Thirunavalur APMC mandi prices",
+              "shortDesc": "Mandi prices at Thirunavalur APMC, Kallakuruchi, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4888",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.3882,
+                    11.7596
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "535",
+                  "areaLevel": "District",
+                  "areaName": "Kallakuruchi",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "535",
+                "marketCode": "4888",
+                "marketName": "Thirunavalur APMC",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "28",
+                  "name": "Bajra(Pearl Millet/Cumbu)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4234",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Tiruppur (North) (Uzhavar Sandhai ). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Tiruppur (North) (Uzhavar Sandhai ) mandi prices",
+              "shortDesc": "Mandi prices at Tiruppur (North) (Uzhavar Sandhai ), Thirupur, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4234",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.3405,
+                    11.1325
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "557",
+                  "areaLevel": "District",
+                  "areaName": "Thirupur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "557",
+                "marketCode": "4234",
+                "marketName": "Tiruppur (North) (Uzhavar Sandhai )",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "31",
+                  "name": "Cauliflower"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "39",
+                  "name": "Coriander(Leaves)"
+                },
+                {
+                  "code": "58",
+                  "name": "Chikoos(Sapota)"
+                },
+                {
+                  "code": "59",
+                  "name": "Papaya"
+                },
+                {
+                  "code": "60",
+                  "name": "Water Melon"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                },
+                {
+                  "code": "66",
+                  "name": "Cluster beans"
+                },
+                {
+                  "code": "67",
+                  "name": "Bitter gourd"
+                },
+                {
+                  "code": "68",
+                  "name": "Bottle gourd"
+                },
+                {
+                  "code": "69",
+                  "name": "Ashgourd"
+                },
+                {
+                  "code": "70",
+                  "name": "Pumpkin"
+                },
+                {
+                  "code": "71",
+                  "name": "Bhindi(Ladies Finger)"
+                },
+                {
+                  "code": "72",
+                  "name": "Amaranthus"
+                },
+                {
+                  "code": "73",
+                  "name": "Green Chilli"
+                },
+                {
+                  "code": "75",
+                  "name": "Cowpea(Veg)"
+                },
+                {
+                  "code": "76",
+                  "name": "Banana - Green"
+                },
+                {
+                  "code": "80",
+                  "name": "Beans"
+                },
+                {
+                  "code": "85",
+                  "name": "Tapioca"
+                },
+                {
+                  "code": "87",
+                  "name": "Ginger(Green)"
+                },
+                {
+                  "code": "116",
+                  "name": "Coconut"
+                },
+                {
+                  "code": "124",
+                  "name": "Sweet Potato"
+                },
+                {
+                  "code": "126",
+                  "name": "Cabbage"
+                },
+                {
+                  "code": "128",
+                  "name": "Snakeguard"
+                },
+                {
+                  "code": "129",
+                  "name": "Beetroot"
+                },
+                {
+                  "code": "132",
+                  "name": "Ridgeguard(Tori)"
+                },
+                {
+                  "code": "133",
+                  "name": "Raddish"
+                },
+                {
+                  "code": "134",
+                  "name": "Thondekai"
+                },
+                {
+                  "code": "137",
+                  "name": "Green Avare(W)"
+                },
+                {
+                  "code": "139",
+                  "name": "Chow Chow"
+                },
+                {
+                  "code": "140",
+                  "name": "Drumstick"
+                },
+                {
+                  "code": "144",
+                  "name": "Mango(Raw-Ripe)"
+                },
+                {
+                  "code": "156",
+                  "name": "Guava"
+                },
+                {
+                  "code": "161",
+                  "name": "Tender Coconut"
+                },
+                {
+                  "code": "247",
+                  "name": "Elephant Yam(Suran)"
+                },
+                {
+                  "code": "248",
+                  "name": "Yam(Ratalu)"
+                },
+                {
+                  "code": "261",
+                  "name": "Lemon"
+                },
+                {
+                  "code": "288",
+                  "name": "Mashrooms"
+                },
+                {
+                  "code": "303",
+                  "name": "Amla(Nelli Kai)"
+                },
+                {
+                  "code": "305",
+                  "name": "Onion Green"
+                },
+                {
+                  "code": "307",
+                  "name": "Mint(Pudina)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4235",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Tiruppur (South) (Uzhavar Sandhai ). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Tiruppur (South) (Uzhavar Sandhai ) mandi prices",
+              "shortDesc": "Mandi prices at Tiruppur (South) (Uzhavar Sandhai ), Thirupur, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4235",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.3449,
+                    11.0887
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "557",
+                  "areaLevel": "District",
+                  "areaName": "Thirupur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "557",
+                "marketCode": "4235",
+                "marketName": "Tiruppur (South) (Uzhavar Sandhai )",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "25",
+                  "name": "Garlic"
+                },
+                {
+                  "code": "31",
+                  "name": "Cauliflower"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "39",
+                  "name": "Coriander(Leaves)"
+                },
+                {
+                  "code": "59",
+                  "name": "Papaya"
+                },
+                {
+                  "code": "60",
+                  "name": "Water Melon"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                },
+                {
+                  "code": "66",
+                  "name": "Cluster beans"
+                },
+                {
+                  "code": "67",
+                  "name": "Bitter gourd"
+                },
+                {
+                  "code": "68",
+                  "name": "Bottle gourd"
+                },
+                {
+                  "code": "69",
+                  "name": "Ashgourd"
+                },
+                {
+                  "code": "70",
+                  "name": "Pumpkin"
+                },
+                {
+                  "code": "71",
+                  "name": "Bhindi(Ladies Finger)"
+                },
+                {
+                  "code": "72",
+                  "name": "Amaranthus"
+                },
+                {
+                  "code": "73",
+                  "name": "Green Chilli"
+                },
+                {
+                  "code": "75",
+                  "name": "Cowpea(Veg)"
+                },
+                {
+                  "code": "76",
+                  "name": "Banana - Green"
+                },
+                {
+                  "code": "80",
+                  "name": "Beans"
+                },
+                {
+                  "code": "85",
+                  "name": "Tapioca"
+                },
+                {
+                  "code": "87",
+                  "name": "Ginger(Green)"
+                },
+                {
+                  "code": "116",
+                  "name": "Coconut"
+                },
+                {
+                  "code": "126",
+                  "name": "Cabbage"
+                },
+                {
+                  "code": "128",
+                  "name": "Snakeguard"
+                },
+                {
+                  "code": "129",
+                  "name": "Beetroot"
+                },
+                {
+                  "code": "131",
+                  "name": "Cucumbar(Kheera)"
+                },
+                {
+                  "code": "132",
+                  "name": "Ridgeguard(Tori)"
+                },
+                {
+                  "code": "133",
+                  "name": "Raddish"
+                },
+                {
+                  "code": "134",
+                  "name": "Thondekai"
+                },
+                {
+                  "code": "137",
+                  "name": "Green Avare(W)"
+                },
+                {
+                  "code": "139",
+                  "name": "Chow Chow"
+                },
+                {
+                  "code": "140",
+                  "name": "Drumstick"
+                },
+                {
+                  "code": "144",
+                  "name": "Mango(Raw-Ripe)"
+                },
+                {
+                  "code": "156",
+                  "name": "Guava"
+                },
+                {
+                  "code": "247",
+                  "name": "Elephant Yam(Suran)"
+                },
+                {
+                  "code": "261",
+                  "name": "Lemon"
+                },
+                {
+                  "code": "303",
+                  "name": "Amla(Nelli Kai)"
+                },
+                {
+                  "code": "305",
+                  "name": "Onion Green"
+                },
+                {
+                  "code": "307",
+                  "name": "Mint(Pudina)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4891",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Tiruvenkadam APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Tiruvenkadam APMC mandi prices",
+              "shortDesc": "Mandi prices at Tiruvenkadam APMC, Tenkasi, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4891",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.657,
+                    9.252
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "550",
+                  "areaLevel": "District",
+                  "areaName": "Tenkasi",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "550",
+                "marketCode": "4891",
+                "marketName": "Tiruvenkadam APMC",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4892",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Tisayanvilai APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Tisayanvilai APMC mandi prices",
+              "shortDesc": "Mandi prices at Tisayanvilai APMC, Thirunelveli, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4892",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.8248,
+                    8.3511
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "555",
+                  "areaLevel": "District",
+                  "areaName": "Thirunelveli",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "555",
+                "marketCode": "4892",
+                "marketName": "Tisayanvilai APMC",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4893",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Vallioor APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Vallioor APMC mandi prices",
+              "shortDesc": "Mandi prices at Vallioor APMC, Thirunelveli, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4893",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.6147,
+                    8.3963
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "555",
+                  "areaLevel": "District",
+                  "areaName": "Thirunelveli",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "555",
+                "marketCode": "4893",
+                "marketName": "Vallioor APMC",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4229",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Vaniyampadi(Uzhavar Sandhai ). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Vaniyampadi(Uzhavar Sandhai ) mandi prices",
+              "shortDesc": "Mandi prices at Vaniyampadi(Uzhavar Sandhai ), Thirupathur, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4229",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.6172,
+                    12.6807
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "556",
+                  "areaLevel": "District",
+                  "areaName": "Thirupathur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "556",
+                "marketCode": "4229",
+                "marketName": "Vaniyampadi(Uzhavar Sandhai )",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
+                  "code": "20",
+                  "name": "Mango"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "25",
+                  "name": "Garlic"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "39",
+                  "name": "Coriander(Leaves)"
+                },
+                {
+                  "code": "58",
+                  "name": "Chikoos(Sapota)"
+                },
+                {
+                  "code": "59",
+                  "name": "Papaya"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                },
+                {
+                  "code": "66",
+                  "name": "Cluster beans"
+                },
+                {
+                  "code": "67",
+                  "name": "Bitter gourd"
+                },
+                {
+                  "code": "68",
+                  "name": "Bottle gourd"
+                },
+                {
+                  "code": "70",
+                  "name": "Pumpkin"
+                },
+                {
+                  "code": "71",
+                  "name": "Bhindi(Ladies Finger)"
+                },
+                {
+                  "code": "72",
+                  "name": "Amaranthus"
+                },
+                {
+                  "code": "73",
+                  "name": "Green Chilli"
+                },
+                {
+                  "code": "76",
+                  "name": "Banana - Green"
+                },
+                {
+                  "code": "80",
+                  "name": "Beans"
+                },
+                {
+                  "code": "85",
+                  "name": "Tapioca"
+                },
+                {
+                  "code": "87",
+                  "name": "Ginger(Green)"
+                },
+                {
+                  "code": "116",
+                  "name": "Coconut"
+                },
+                {
+                  "code": "124",
+                  "name": "Sweet Potato"
+                },
+                {
+                  "code": "126",
+                  "name": "Cabbage"
+                },
+                {
+                  "code": "128",
+                  "name": "Snakeguard"
+                },
+                {
+                  "code": "129",
+                  "name": "Beetroot"
+                },
+                {
+                  "code": "131",
+                  "name": "Cucumbar(Kheera)"
+                },
+                {
+                  "code": "132",
+                  "name": "Ridgeguard(Tori)"
+                },
+                {
+                  "code": "133",
+                  "name": "Raddish"
+                },
+                {
+                  "code": "137",
+                  "name": "Green Avare(W)"
+                },
+                {
+                  "code": "140",
+                  "name": "Drumstick"
+                },
+                {
+                  "code": "144",
+                  "name": "Mango(Raw-Ripe)"
+                },
+                {
+                  "code": "149",
+                  "name": "Knool Khol"
+                },
+                {
+                  "code": "156",
+                  "name": "Guava"
+                },
+                {
+                  "code": "157",
+                  "name": "Karbuja(Musk Melon)"
+                },
+                {
+                  "code": "161",
+                  "name": "Tender Coconut"
+                },
+                {
+                  "code": "180",
+                  "name": "Fig(Anjura/Anjeer)"
+                },
+                {
+                  "code": "215",
+                  "name": "Tamarind Fruit"
+                },
+                {
+                  "code": "248",
+                  "name": "Yam(Ratalu)"
+                },
+                {
+                  "code": "250",
+                  "name": "Indian Beans(Seam)"
+                },
+                {
+                  "code": "261",
+                  "name": "Lemon"
+                },
+                {
+                  "code": "269",
+                  "name": "Colacasia"
+                },
+                {
+                  "code": "300",
+                  "name": "Custard Apple(Sharifa)"
+                },
+                {
+                  "code": "305",
+                  "name": "Onion Green"
+                },
+                {
+                  "code": "307",
+                  "name": "Mint(Pudina)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4853",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Vazhapadi(Uzhavar Sandhai). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Vazhapadi(Uzhavar Sandhai) mandi prices",
+              "shortDesc": "Mandi prices at Vazhapadi(Uzhavar Sandhai), Salem, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4853",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "548",
+                  "areaLevel": "District",
+                  "areaName": "Salem",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "548",
+                "marketCode": "4853",
+                "marketName": "Vazhapadi(Uzhavar Sandhai)",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4854",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Vedaranyam(Uzhavar Sandhai). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Vedaranyam(Uzhavar Sandhai) mandi prices",
+              "shortDesc": "Mandi prices at Vedaranyam(Uzhavar Sandhai), Nagapattinam, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4854",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.7393,
+                    11.2338
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "541",
+                  "areaLevel": "District",
+                  "areaName": "Nagapattinam",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "541",
+                "marketCode": "4854",
+                "marketName": "Vedaranyam(Uzhavar Sandhai)",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4894",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Veppur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Veppur APMC mandi prices",
+              "shortDesc": "Mandi prices at Veppur APMC, Cuddalore, Tamil Nadu"
+            },
+            "id": "resource:mandi-price:market:4894",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.1421,
+                    11.5381
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "531",
+                  "areaLevel": "District",
+                  "areaName": "Cuddalore",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-TN",
+                  "areaLevel": "State",
+                  "areaName": "Tamil Nadu",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "531",
+                "marketCode": "4894",
+                "marketName": "Veppur APMC",
+                "state": "TN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "28",
+                  "name": "Bajra(Pearl Millet/Cumbu)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:mandi-price:TN-2",
+        "catalogType": "REGULAR",
+        "schemaTypes": [
+          "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld"
+        ],
+        "updateMode": "FULL",
+        "visibleTo": [
+          "{{networkId}}"
+        ]
+      }
+    ]
+  }
+}

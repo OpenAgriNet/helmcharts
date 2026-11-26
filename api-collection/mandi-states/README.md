@@ -69,32 +69,34 @@ healthy the `200` looks.
 
 | state | markets | documents |
 |---|---|---|
-| `AP` | 19 | `catalog-AP.json` |
-| `BI` | 9 | `catalog-BI.json` |
-| `CG` | 138 | `catalog-CG.json` |
+| `AN` | 3 | `catalog-AN.json` |
+| `AP` | 183 | `catalog-AP.json` |
+| `AS` | 15 | `catalog-AS.json` |
+| `BI` | 29 | `catalog-BI.json` |
+| `CG` | 142 | `catalog-CG.json` |
 | `CH` | 1 | `catalog-CH.json` |
 | `DL` | 5 | `catalog-DL.json` |
-| `GJ` | 147 | `catalog-GJ.json` |
+| `GJ` | 139 | `catalog-GJ.json` |
 | `GO` | 1 | `catalog-GO.json` |
-| `HP` | 31 | `catalog-HP.json` |
-| `HR` | 110 | `catalog-HR.json` |
-| `JK` | 7 | `catalog-JK.json` |
-| `KK` | 62 | `catalog-KK.json` | also inline in the collection |
-| `KL` | 86 | `catalog-KL.json` |
-| `MG` | 5 | `catalog-MG.json` |
-| `MH` | 272 | `catalog-MH.json`, `catalog-MH-2.json` |
+| `HP` | 33 | `catalog-HP.json` |
+| `HR` | 100 | `catalog-HR.json` |
+| `JK` | 6 | `catalog-JK.json` |
+| `KK` | 162 | `catalog-KK.json` | also inline in the collection |
+| `KL` | 81 | `catalog-KL.json` |
+| `MG` | 11 | `catalog-MG.json` |
+| `MH` | 352 | `catalog-MH.json`, `catalog-MH-2.json` |
 | `MN` | 5 | `catalog-MN.json` |
-| `MP` | 324 | `catalog-MP.json`, `catalog-MP-2.json` |
-| `NG` | 10 | `catalog-NG.json` |
-| `OR` | 56 | `catalog-OR.json` |
-| `PB` | 115 | `catalog-PB.json` |
+| `MP` | 340 | `catalog-MP.json`, `catalog-MP-2.json` |
+| `NG` | 9 | `catalog-NG.json` |
+| `OR` | 83 | `catalog-OR.json` |
+| `PB` | 101 | `catalog-PB.json` |
 | `PC` | 3 | `catalog-PC.json` |
-| `RJ` | 160 | `catalog-RJ.json` |
-| `TL` | 80 | `catalog-TL.json` |
-| `TN` | 242 | `catalog-TN.json` |
-| `TR` | 25 | `catalog-TR.json` |
-| `UC` | 22 | `catalog-UC.json` |
-| `UP` | 230 | `catalog-UP.json` |
-| `WB` | 75 | `catalog-WB.json` |
+| `RJ` | 156 | `catalog-RJ.json` |
+| `TL` | 88 | `catalog-TL.json` |
+| `TN` | 296 | `catalog-TN.json`, `catalog-TN-2.json` |
+| `TR` | 29 | `catalog-TR.json` |
+| `UC` | 23 | `catalog-UC.json` |
+| `UP` | 253 | `catalog-UP.json` |
+| `WB` | 74 | `catalog-WB.json` |
 
 Import one into Postman by pasting it as a raw body to `{{discoveryUrl}}/publish`.

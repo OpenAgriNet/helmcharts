@@ -65,7 +65,7 @@
                 "en"
               ],
               "market": {
-                "district": "Delhi",
+                "district": "414",
                 "marketCode": "3445",
                 "marketName": "APMC Azadpur",
                 "state": "DL"
@@ -136,7 +136,7 @@
                 "en"
               ],
               "market": {
-                "district": "Delhi",
+                "district": "414",
                 "marketCode": "423",
                 "marketName": "APMC Keshopur",
                 "state": "DL"
@@ -207,7 +207,7 @@
                 "en"
               ],
               "market": {
-                "district": "Delhi",
+                "district": "414",
                 "marketCode": "48",
                 "marketName": "APMC Najafgarh",
                 "state": "DL"
@@ -252,6 +252,10 @@
                 {
                   "code": "12",
                   "name": "Mustard"
+                },
+                {
+                  "code": "14",
+                  "name": "Sunflower"
                 },
                 {
                   "code": "28",
@@ -310,7 +314,7 @@
                 "en"
               ],
               "market": {
-                "district": "Delhi",
+                "district": "414",
                 "marketCode": "47",
                 "marketName": "APMC Narela",
                 "state": "DL"
@@ -325,12 +329,28 @@
               ],
               "supportedCommodities": [
                 {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
                   "code": "2",
                   "name": "Paddy(Common)"
                 },
                 {
-                  "code": "28",
-                  "name": "Bajra(Pearl Millet/Cumbu)"
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "5",
+                  "name": "Jowar(Sorghum)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
                 }
               ],
               "supportedPriceFields": [
@@ -370,7 +390,7 @@
                 "en"
               ],
               "market": {
-                "district": "Delhi",
+                "district": "414",
                 "marketCode": "4707",
                 "marketName": "APMC Shahdara, Fruit and Vegetable Market, Gazipur",
                 "state": "DL"

@@ -65,7 +65,7 @@
                 "en"
               ],
               "market": {
-                "district": "Raipur",
+                "district": "120",
                 "marketCode": "2055",
                 "marketName": "Abhanpur APMC",
                 "state": "CG"
@@ -82,6 +82,14 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "214",
+                  "name": "Arhar Dal(Tur Dal)"
                 }
               ],
               "supportedPriceFields": [
@@ -128,9 +136,72 @@
                 "en"
               ],
               "market": {
-                "district": "Janjgeer-Champa",
+                "district": "107",
                 "marketCode": "2067",
                 "marketName": "Akaltara APMC",
+                "state": "CG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2381",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Amandula APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Amandula APMC mandi prices",
+              "shortDesc": "Mandi prices at Amandula APMC, Sakti, Chattisgarh"
+            },
+            "id": "resource:mandi-price:market:2381",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    82.9635978,
+                    21.912163
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "744",
+                  "areaLevel": "District",
+                  "areaName": "Sakti",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-CG",
+                  "areaLevel": "State",
+                  "areaName": "Chattisgarh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "744",
+                "marketCode": "2381",
+                "marketName": "Amandula APMC",
                 "state": "CG"
               },
               "source": {
@@ -191,7 +262,7 @@
                 "en"
               ],
               "market": {
-                "district": "Surguja",
+                "district": "124",
                 "marketCode": "416",
                 "marketName": "Ambikapur APMC",
                 "state": "CG"
@@ -218,20 +289,12 @@
                   "name": "Maize"
                 },
                 {
-                  "code": "6",
-                  "name": "Bengal Gram(Gram)(Whole)"
+                  "code": "10",
+                  "name": "Groundnut"
                 },
                 {
-                  "code": "8",
-                  "name": "Black Gram(Urd Beans)(Whole)"
-                },
-                {
-                  "code": "9",
-                  "name": "Green Gram(Moong)(Whole)"
-                },
-                {
-                  "code": "30",
-                  "name": "Ragi(Finger Millet)"
+                  "code": "195",
+                  "name": "Millets"
                 }
               ],
               "supportedPriceFields": [
@@ -271,7 +334,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kanker",
+                "district": "110",
                 "marketCode": "3264",
                 "marketName": "Amoda APMC",
                 "state": "CG"
@@ -292,6 +355,10 @@
                 {
                   "code": "4",
                   "name": "Maize"
+                },
+                {
+                  "code": "438",
+                  "name": "Chironji"
                 }
               ],
               "supportedPriceFields": [
@@ -331,7 +398,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kanker",
+                "district": "110",
                 "marketCode": "3263",
                 "marketName": "Antagarh APMC",
                 "state": "CG"
@@ -352,6 +419,10 @@
                 {
                   "code": "4",
                   "name": "Maize"
+                },
+                {
+                  "code": "318",
+                  "name": "Mahua Seed(Hippe seed)"
                 }
               ],
               "supportedPriceFields": [
@@ -398,7 +469,7 @@
                 "en"
               ],
               "market": {
-                "district": "Raipur",
+                "district": "120",
                 "marketCode": "2054",
                 "marketName": "Arang APMC",
                 "state": "CG"
@@ -415,10 +486,6 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
-                },
-                {
-                  "code": "13",
-                  "name": "Soyabean"
                 }
               ],
               "supportedPriceFields": [
@@ -465,7 +532,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mahasamund",
+                "district": "115",
                 "marketCode": "2058",
                 "marketName": "Bagbahra APMC",
                 "state": "CG"
@@ -532,7 +599,7 @@
                 "en"
               ],
               "market": {
-                "district": "Koriya",
+                "district": "114",
                 "marketCode": "2392",
                 "marketName": "Baikunthpur APMC",
                 "state": "CG"
@@ -557,6 +624,22 @@
                 {
                   "code": "4",
                   "name": "Maize"
+                },
+                {
+                  "code": "29",
+                  "name": "Barley(Jau)"
+                },
+                {
+                  "code": "35",
+                  "name": "Turmeric"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
+                },
+                {
+                  "code": "357",
+                  "name": "Muleti"
                 }
               ],
               "supportedPriceFields": [
@@ -603,7 +686,7 @@
                 "en"
               ],
               "market": {
-                "district": "Balod",
+                "district": "95",
                 "marketCode": "407",
                 "marketName": "Balod APMC",
                 "state": "CG"
@@ -618,16 +701,79 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
                   "code": "2",
                   "name": "Paddy(Common)"
                 },
                 {
-                  "code": "12",
-                  "name": "Mustard"
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3225",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Baloda(Janjgir Campus) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Baloda(Janjgir Campus) APMC mandi prices",
+              "shortDesc": "Mandi prices at Baloda(Janjgir Campus) APMC, Janjgeer-Champa, Chattisgarh"
+            },
+            "id": "resource:mandi-price:market:3225",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    82.480707,
+                    22.140665
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "107",
+                  "areaLevel": "District",
+                  "areaName": "Janjgeer-Champa",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-CG",
+                  "areaLevel": "State",
+                  "areaName": "Chattisgarh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "107",
+                "marketCode": "3225",
+                "marketName": "Baloda(Janjgir Campus) APMC",
+                "state": "CG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -674,7 +820,7 @@
                 "en"
               ],
               "market": {
-                "district": "Balodabazar",
+                "district": "96",
                 "marketCode": "2371",
                 "marketName": "Balodabazar APMC",
                 "state": "CG"
@@ -737,7 +883,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mohla Manpur Ambagarh Chouki",
+                "district": "743",
                 "marketCode": "2062",
                 "marketName": "Bandhabazar APMC",
                 "state": "CG"
@@ -797,7 +943,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sakti",
+                "district": "744",
                 "marketCode": "3228",
                 "marketName": "Baradwar APMC",
                 "state": "CG"
@@ -860,7 +1006,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sarangarh Bilaigarh",
+                "district": "745",
                 "marketCode": "2383",
                 "marketName": "Baramkela APMC",
                 "state": "CG"
@@ -916,7 +1062,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kanker",
+                "district": "110",
                 "marketCode": "3267",
                 "marketName": "Bardewri APMC",
                 "state": "CG"
@@ -937,6 +1083,10 @@
                 {
                   "code": "4",
                   "name": "Maize"
+                },
+                {
+                  "code": "438",
+                  "name": "Chironji"
                 }
               ],
               "supportedPriceFields": [
@@ -976,7 +1126,7 @@
                 "en"
               ],
               "market": {
-                "district": "Balrampur",
+                "district": "97",
                 "marketCode": "3241",
                 "marketName": "Bariya APMC",
                 "state": "CG"
@@ -991,8 +1141,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
+                  "code": "4",
+                  "name": "Maize"
                 }
               ],
               "supportedPriceFields": [
@@ -1039,7 +1189,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mahasamund",
+                "district": "115",
                 "marketCode": "421",
                 "marketName": "Basana APMC",
                 "state": "CG"
@@ -1102,7 +1252,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bastar",
+                "district": "98",
                 "marketCode": "3250",
                 "marketName": "Bastar APMC",
                 "state": "CG"
@@ -1119,6 +1269,10 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
                 }
               ],
               "supportedPriceFields": [
@@ -1158,7 +1312,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kondagaon",
+                "district": "112",
                 "marketCode": "3255",
                 "marketName": "Bededonger APMC",
                 "state": "CG"
@@ -1172,6 +1326,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
                 {
                   "code": "4",
                   "name": "Maize"
@@ -1214,7 +1372,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dhamtari",
+                "district": "103",
                 "marketCode": "3196",
                 "marketName": "Belarbahara APMC",
                 "state": "CG"
@@ -1270,7 +1428,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dhamtari",
+                "district": "103",
                 "marketCode": "3195",
                 "marketName": "Belargaon APMC",
                 "state": "CG"
@@ -1287,10 +1445,6 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
-                },
-                {
-                  "code": "4",
-                  "name": "Maize"
                 }
               ],
               "supportedPriceFields": [
@@ -1337,7 +1491,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bemetara",
+                "district": "99",
                 "marketCode": "2061",
                 "marketName": "Bemetara APMC",
                 "state": "CG"
@@ -1356,8 +1510,16 @@
                   "name": "Wheat"
                 },
                 {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
                   "code": "4",
                   "name": "Maize"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
                 }
               ],
               "supportedPriceFields": [
@@ -1369,12 +1531,12 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_3465",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bemetara(Thankhamaria) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Bemetara(Thankhamaria) APMC mandi prices",
-              "shortDesc": "Mandi prices at Bemetara(Thankhamaria) APMC, Bemetara, Chattisgarh"
+              "code": "MANDI_PRICE_MARKET_3466",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bemetara(Navagarh) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bemetara(Navagarh) APMC mandi prices",
+              "shortDesc": "Mandi prices at Bemetara(Navagarh) APMC, Bemetara, Chattisgarh"
             },
-            "id": "resource:mandi-price:market:3465",
+            "id": "resource:mandi-price:market:3466",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
@@ -1397,9 +1559,9 @@
                 "en"
               ],
               "market": {
-                "district": "Bemetara",
-                "marketCode": "3465",
-                "marketName": "Bemetara(Thankhamaria) APMC",
+                "district": "99",
+                "marketCode": "3466",
+                "marketName": "Bemetara(Navagarh) APMC",
                 "state": "CG"
               },
               "source": {
@@ -1412,8 +1574,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "13",
-                  "name": "Soyabean"
+                  "code": "1",
+                  "name": "Wheat"
                 }
               ],
               "supportedPriceFields": [
@@ -1453,7 +1615,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dhamtari",
+                "district": "103",
                 "marketCode": "3189",
                 "marketName": "Bhakhara APMC",
                 "state": "CG"
@@ -1509,7 +1671,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kanker",
+                "district": "110",
                 "marketCode": "3271",
                 "marketName": "Bhanupratappur APMC",
                 "state": "CG"
@@ -1524,12 +1686,28 @@
               ],
               "supportedCommodities": [
                 {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
                   "code": "4",
                   "name": "Maize"
                 },
                 {
-                  "code": "6",
-                  "name": "Bengal Gram(Gram)(Whole)"
+                  "code": "48",
+                  "name": "Safflower"
+                },
+                {
+                  "code": "164",
+                  "name": "Bamboo"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
+                },
+                {
+                  "code": "318",
+                  "name": "Mahua Seed(Hippe seed)"
                 }
               ],
               "supportedPriceFields": [
@@ -1569,7 +1747,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bijapur",
+                "district": "100",
                 "marketCode": "3273",
                 "marketName": "Bharamgarh APMC",
                 "state": "CG"
@@ -1586,6 +1764,10 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
                 }
               ],
               "supportedPriceFields": [
@@ -1632,7 +1814,7 @@
                 "en"
               ],
               "market": {
-                "district": "Balodabazar",
+                "district": "96",
                 "marketCode": "404",
                 "marketName": "Bhatapara APMC",
                 "state": "CG"
@@ -1655,10 +1837,6 @@
                   "name": "Paddy(Common)"
                 },
                 {
-                  "code": "4",
-                  "name": "Maize"
-                },
-                {
                   "code": "6",
                   "name": "Bengal Gram(Gram)(Whole)"
                 },
@@ -1667,8 +1845,8 @@
                   "name": "Black Gram(Urd Beans)(Whole)"
                 },
                 {
-                  "code": "9",
-                  "name": "Green Gram(Moong)(Whole)"
+                  "code": "11",
+                  "name": "Sesamum(Sesame,Gingelly,Til)"
                 },
                 {
                   "code": "12",
@@ -1677,6 +1855,34 @@
                 {
                   "code": "13",
                   "name": "Soyabean"
+                },
+                {
+                  "code": "81",
+                  "name": "Lak(Teora)"
+                },
+                {
+                  "code": "92",
+                  "name": "Corriander seed"
+                },
+                {
+                  "code": "119",
+                  "name": "Tobacco"
+                },
+                {
+                  "code": "195",
+                  "name": "Millets"
+                },
+                {
+                  "code": "213",
+                  "name": "Masur Dal"
+                },
+                {
+                  "code": "214",
+                  "name": "Arhar Dal(Tur Dal)"
+                },
+                {
+                  "code": "346",
+                  "name": "Ambady/Mesta"
                 }
               ],
               "supportedPriceFields": [
@@ -1723,7 +1929,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sarangarh Bilaigarh",
+                "district": "745",
                 "marketCode": "2370",
                 "marketName": "Bhatgaon APMC",
                 "state": "CG"
@@ -1779,7 +1985,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mahasamund",
+                "district": "115",
                 "marketCode": "3182",
                 "marketName": "Bhavarpur APMC",
                 "state": "CG"
@@ -1839,7 +2045,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mahasamund",
+                "district": "115",
                 "marketCode": "3178",
                 "marketName": "Bheemkhoj APMC",
                 "state": "CG"
@@ -1856,10 +2062,6 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
-                },
-                {
-                  "code": "4",
-                  "name": "Maize"
                 }
               ],
               "supportedPriceFields": [
@@ -1899,7 +2101,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bijapur",
+                "district": "100",
                 "marketCode": "2397",
                 "marketName": "Bhopalpattnam APMC",
                 "state": "CG"
@@ -1916,6 +2118,10 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
                 }
               ],
               "supportedPriceFields": [
@@ -1955,7 +2161,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mahasamund",
+                "district": "115",
                 "marketCode": "3176",
                 "marketName": "Bhoring APMC",
                 "state": "CG"
@@ -2018,7 +2224,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bijapur",
+                "district": "100",
                 "marketCode": "2396",
                 "marketName": "Bijapur APMC",
                 "state": "CG"
@@ -2035,6 +2241,14 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
+                },
+                {
+                  "code": "318",
+                  "name": "Mahua Seed(Hippe seed)"
                 }
               ],
               "supportedPriceFields": [
@@ -2081,7 +2295,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bilaspur",
+                "district": "101",
                 "marketCode": "410",
                 "marketName": "Bilaspur APMC",
                 "state": "CG"
@@ -2104,20 +2318,12 @@
                   "name": "Paddy(Common)"
                 },
                 {
-                  "code": "4",
-                  "name": "Maize"
+                  "code": "10",
+                  "name": "Groundnut"
                 },
                 {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
+                  "code": "119",
+                  "name": "Tobacco"
                 }
               ],
               "supportedPriceFields": [
@@ -2157,7 +2363,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bilaspur",
+                "district": "101",
                 "marketCode": "3215",
                 "marketName": "Bilha APMC",
                 "state": "CG"
@@ -2213,7 +2419,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kabirdham",
+                "district": "109",
                 "marketCode": "3468",
                 "marketName": "Biranpur kalan (Sahaspur Lohra) APMC",
                 "state": "CG"
@@ -2232,8 +2438,20 @@
                   "name": "Wheat"
                 },
                 {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
                   "code": "13",
                   "name": "Soyabean"
+                },
+                {
+                  "code": "195",
+                  "name": "Millets"
                 }
               ],
               "supportedPriceFields": [
@@ -2273,7 +2491,7 @@
                 "en"
               ],
               "market": {
-                "district": "Janjgeer-Champa",
+                "district": "107",
                 "marketCode": "3231",
                 "marketName": "Birra APMC",
                 "state": "CG"
@@ -2336,7 +2554,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dhamtari",
+                "district": "103",
                 "marketCode": "3194",
                 "marketName": "Boraee APMC",
                 "state": "CG"
@@ -2399,7 +2617,7 @@
                 "en"
               ],
               "market": {
-                "district": "Janjgeer-Champa",
+                "district": "107",
                 "marketCode": "2380",
                 "marketName": "Champa APMC",
                 "state": "CG"
@@ -2462,7 +2680,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kanker",
+                "district": "110",
                 "marketCode": "2073",
                 "marketName": "Charama APMC",
                 "state": "CG"
@@ -2479,6 +2697,10 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
                 }
               ],
               "supportedPriceFields": [
@@ -2518,7 +2740,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kondagaon",
+                "district": "112",
                 "marketCode": "3258",
                 "marketName": "Chhinari APMC",
                 "state": "CG"
@@ -2532,6 +2754,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
                 {
                   "code": "4",
                   "name": "Maize"
@@ -2574,65 +2800,9 @@
                 "en"
               ],
               "market": {
-                "district": "Rajnandgaon",
+                "district": "121",
                 "marketCode": "2374",
                 "marketName": "Chhuria APMC",
-                "state": "CG"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_3234",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Chikhli APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Chikhli APMC mandi prices",
-              "shortDesc": "Mandi prices at Chikhli APMC, Raigarh, Chattisgarh"
-            },
-            "id": "resource:mandi-price:market:3234",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "areaCode": "119",
-                  "areaLevel": "District",
-                  "areaName": "Raigarh",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-CG",
-                  "areaLevel": "State",
-                  "areaName": "Chattisgarh",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Raigarh",
-                "marketCode": "3234",
-                "marketName": "Chikhli APMC",
                 "state": "CG"
               },
               "source": {
@@ -2686,9 +2856,65 @@
                 "en"
               ],
               "market": {
-                "district": "Gariyaband",
+                "district": "105",
                 "marketCode": "3173",
                 "marketName": "Chura APMC",
+                "state": "CG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3174",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Devbhog APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Devbhog APMC mandi prices",
+              "shortDesc": "Mandi prices at Devbhog APMC, Gariyaband, Chattisgarh"
+            },
+            "id": "resource:mandi-price:market:3174",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "105",
+                  "areaLevel": "District",
+                  "areaName": "Gariyaband",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-CG",
+                  "areaLevel": "State",
+                  "areaName": "Chattisgarh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "105",
+                "marketCode": "3174",
+                "marketName": "Devbhog APMC",
                 "state": "CG"
               },
               "source": {
@@ -2753,7 +2979,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bastar",
+                "district": "98",
                 "marketCode": "3252",
                 "marketName": "Devda APMC",
                 "state": "CG"
@@ -2820,7 +3046,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dhamtari",
+                "district": "103",
                 "marketCode": "175",
                 "marketName": "Dhamtari APMC",
                 "state": "CG"
@@ -2883,7 +3109,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kondagaon",
+                "district": "112",
                 "marketCode": "3260",
                 "marketName": "Dhanora APMC",
                 "state": "CG"
@@ -2897,6 +3123,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
                 {
                   "code": "4",
                   "name": "Maize"
@@ -2939,7 +3169,7 @@
                 "en"
               ],
               "market": {
-                "district": "Raigarh",
+                "district": "119",
                 "marketCode": "3239",
                 "marketName": "Dharamjaygarh APMC",
                 "state": "CG"
@@ -2999,7 +3229,7 @@
                 "en"
               ],
               "market": {
-                "district": "Balod",
+                "district": "95",
                 "marketCode": "3203",
                 "marketName": "Dondi APMC",
                 "state": "CG"
@@ -3014,16 +3244,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
                   "code": "2",
                   "name": "Paddy(Common)"
-                },
-                {
-                  "code": "6",
-                  "name": "Bengal Gram(Gram)(Whole)"
                 }
               ],
               "supportedPriceFields": [
@@ -3063,7 +3285,7 @@
                 "en"
               ],
               "market": {
-                "district": "Balod",
+                "district": "95",
                 "marketCode": "3202",
                 "marketName": "Dondilohara APMC",
                 "state": "CG"
@@ -3126,7 +3348,7 @@
                 "en"
               ],
               "market": {
-                "district": "Rajnandgaon",
+                "district": "121",
                 "marketCode": "2375",
                 "marketName": "Dongargaon APMC",
                 "state": "CG"
@@ -3197,7 +3419,7 @@
                 "en"
               ],
               "market": {
-                "district": "Rajnandgaon",
+                "district": "121",
                 "marketCode": "2376",
                 "marketName": "Dongargarh APMC",
                 "state": "CG"
@@ -3253,7 +3475,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sukma",
+                "district": "122",
                 "marketCode": "3272",
                 "marketName": "Doranpal APMC",
                 "state": "CG"
@@ -3270,6 +3492,18 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "215",
+                  "name": "Tamarind Fruit"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
+                },
+                {
+                  "code": "318",
+                  "name": "Mahua Seed(Hippe seed)"
                 }
               ],
               "supportedPriceFields": [
@@ -3309,7 +3543,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kanker",
+                "district": "110",
                 "marketCode": "3266",
                 "marketName": "Dudhawa APMC",
                 "state": "CG"
@@ -3330,6 +3564,10 @@
                 {
                   "code": "4",
                   "name": "Maize"
+                },
+                {
+                  "code": "438",
+                  "name": "Chironji"
                 }
               ],
               "supportedPriceFields": [
@@ -3376,7 +3614,7 @@
                 "en"
               ],
               "market": {
-                "district": "Durg",
+                "district": "104",
                 "marketCode": "406",
                 "marketName": "Durg APMC",
                 "state": "CG"
@@ -3391,8 +3629,36 @@
               ],
               "supportedCommodities": [
                 {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "13",
+                  "name": "Soyabean"
+                },
+                {
+                  "code": "18",
+                  "name": "Orange"
+                },
+                {
+                  "code": "19",
+                  "name": "Banana"
+                },
+                {
+                  "code": "20",
+                  "name": "Mango"
                 },
                 {
                   "code": "23",
@@ -3403,8 +3669,144 @@
                   "name": "Potato"
                 },
                 {
+                  "code": "31",
+                  "name": "Cauliflower"
+                },
+                {
+                  "code": "32",
+                  "name": "Brinjal"
+                },
+                {
+                  "code": "58",
+                  "name": "Chikoos(Sapota)"
+                },
+                {
+                  "code": "59",
+                  "name": "Papaya"
+                },
+                {
+                  "code": "64",
+                  "name": "Mousambi(Sweet Lime)"
+                },
+                {
                   "code": "65",
                   "name": "Tomato"
+                },
+                {
+                  "code": "67",
+                  "name": "Bitter gourd"
+                },
+                {
+                  "code": "68",
+                  "name": "Bottle gourd"
+                },
+                {
+                  "code": "69",
+                  "name": "Ashgourd"
+                },
+                {
+                  "code": "71",
+                  "name": "Bhindi(Ladies Finger)"
+                },
+                {
+                  "code": "72",
+                  "name": "Amaranthus"
+                },
+                {
+                  "code": "73",
+                  "name": "Green Chilli"
+                },
+                {
+                  "code": "74",
+                  "name": "Chilly Capsicum"
+                },
+                {
+                  "code": "75",
+                  "name": "Cowpea(Veg)"
+                },
+                {
+                  "code": "80",
+                  "name": "Beans"
+                },
+                {
+                  "code": "124",
+                  "name": "Sweet Potato"
+                },
+                {
+                  "code": "126",
+                  "name": "Cabbage"
+                },
+                {
+                  "code": "129",
+                  "name": "Beetroot"
+                },
+                {
+                  "code": "132",
+                  "name": "Ridgeguard(Tori)"
+                },
+                {
+                  "code": "133",
+                  "name": "Raddish"
+                },
+                {
+                  "code": "149",
+                  "name": "Knool Khol"
+                },
+                {
+                  "code": "156",
+                  "name": "Guava"
+                },
+                {
+                  "code": "160",
+                  "name": "Pomegranate"
+                },
+                {
+                  "code": "201",
+                  "name": "Yam"
+                },
+                {
+                  "code": "253",
+                  "name": "Little gourd(Kundru)"
+                },
+                {
+                  "code": "254",
+                  "name": "Pointed gourd(Parval)"
+                },
+                {
+                  "code": "261",
+                  "name": "Lemon"
+                },
+                {
+                  "code": "280",
+                  "name": "Pear(Marasebu)"
+                },
+                {
+                  "code": "282",
+                  "name": "Squash(Chappal Kadoo)"
+                },
+                {
+                  "code": "290",
+                  "name": "Spinach"
+                },
+                {
+                  "code": "295",
+                  "name": "Peas(Dry)"
+                },
+                {
+                  "code": "297",
+                  "name": "Tinda"
+                },
+                {
+                  "code": "300",
+                  "name": "Custard Apple(Sharifa)"
+                },
+                {
+                  "code": "304",
+                  "name": "Ber(Zizyphus/Borehannu)"
+                },
+                {
+                  "code": "358",
+                  "name": "White Muesli"
                 }
               ],
               "supportedPriceFields": [
@@ -3451,7 +3853,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kondagaon",
+                "district": "112",
                 "marketCode": "3262",
                 "marketName": "Gamhari APMC",
                 "state": "CG"
@@ -3465,6 +3867,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
                 {
                   "code": "4",
                   "name": "Maize"
@@ -3514,7 +3920,7 @@
                 "en"
               ],
               "market": {
-                "district": "Khairagarh Chhuikhadan Gandai",
+                "district": "741",
                 "marketCode": "2373",
                 "marketName": "Gandai APMC",
                 "state": "CG"
@@ -3537,6 +3943,10 @@
                   "name": "Paddy(Common)"
                 },
                 {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
                   "code": "13",
                   "name": "Soyabean"
                 },
@@ -3547,6 +3957,10 @@
                 {
                   "code": "65",
                   "name": "Tomato"
+                },
+                {
+                  "code": "195",
+                  "name": "Millets"
                 }
               ],
               "supportedPriceFields": [
@@ -3593,7 +4007,7 @@
                 "en"
               ],
               "market": {
-                "district": "Gariyaband",
+                "district": "105",
                 "marketCode": "2057",
                 "marketName": "Gariyaband APMC",
                 "state": "CG"
@@ -3614,6 +4028,10 @@
                 {
                   "code": "4",
                   "name": "Maize"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
                 }
               ],
               "supportedPriceFields": [
@@ -3653,7 +4071,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dhamtari",
+                "district": "103",
                 "marketCode": "3197",
                 "marketName": "Gattasilli APMC",
                 "state": "CG"
@@ -3716,7 +4134,7 @@
                 "en"
               ],
               "market": {
-                "district": "Raigarh",
+                "district": "119",
                 "marketCode": "2070",
                 "marketName": "Gharghoda APMC",
                 "state": "CG"
@@ -3787,7 +4205,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dantewada",
+                "district": "102",
                 "marketCode": "2395",
                 "marketName": "Gidam APMC",
                 "state": "CG"
@@ -3804,6 +4222,22 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "195",
+                  "name": "Millets"
+                },
+                {
+                  "code": "215",
+                  "name": "Tamarind Fruit"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
+                },
+                {
+                  "code": "318",
+                  "name": "Mahua Seed(Hippe seed)"
                 }
               ],
               "supportedPriceFields": [
@@ -3843,7 +4277,7 @@
                 "en"
               ],
               "market": {
-                "district": "Balod",
+                "district": "95",
                 "marketCode": "3204",
                 "marketName": "Gurur APMC",
                 "state": "CG"
@@ -3899,7 +4333,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kondagaon",
+                "district": "112",
                 "marketCode": "3257",
                 "marketName": "Hirapur APMC",
                 "state": "CG"
@@ -3913,6 +4347,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
                 {
                   "code": "4",
                   "name": "Maize"
@@ -3962,7 +4400,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bastar",
+                "district": "98",
                 "marketCode": "417",
                 "marketName": "Jagdalpur APMC",
                 "state": "CG"
@@ -3977,12 +4415,24 @@
               ],
               "supportedCommodities": [
                 {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
                   "code": "2",
                   "name": "Paddy(Common)"
                 },
                 {
                   "code": "4",
                   "name": "Maize"
+                },
+                {
+                  "code": "83",
+                  "name": "Niger Seed(Ramtil)"
+                },
+                {
+                  "code": "215",
+                  "name": "Tamarind Fruit"
                 }
               ],
               "supportedPriceFields": [
@@ -4029,7 +4479,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sakti",
+                "district": "744",
                 "marketCode": "2382",
                 "marketName": "Jaijaipur APMC",
                 "state": "CG"
@@ -4046,6 +4496,10 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
                 }
               ],
               "supportedPriceFields": [
@@ -4092,7 +4546,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bilaspur",
+                "district": "101",
                 "marketCode": "2066",
                 "marketName": "Jairamnagar APMC",
                 "state": "CG"
@@ -4155,7 +4609,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bastar",
+                "district": "98",
                 "marketCode": "3247",
                 "marketName": "Jaitgiri APMC",
                 "state": "CG"
@@ -4218,7 +4672,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jashpur",
+                "district": "108",
                 "marketCode": "422",
                 "marketName": "Jashpur APMC",
                 "state": "CG"
@@ -4245,8 +4699,12 @@
                   "name": "Maize"
                 },
                 {
-                  "code": "8",
-                  "name": "Black Gram(Urd Beans)(Whole)"
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "10",
+                  "name": "Groundnut"
                 },
                 {
                   "code": "30",
@@ -4255,62 +4713,30 @@
                 {
                   "code": "83",
                   "name": "Niger Seed(Ramtil)"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_3175",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jhalap APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Jhalap APMC mandi prices",
-              "shortDesc": "Mandi prices at Jhalap APMC, Mahasamund, Chattisgarh"
-            },
-            "id": "resource:mandi-price:market:3175",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "areaCode": "115",
-                  "areaLevel": "District",
-                  "areaName": "Mahasamund",
-                  "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
-                  "areaCode": "IN-CG",
-                  "areaLevel": "State",
-                  "areaName": "Chattisgarh",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Mahasamund",
-                "marketCode": "3175",
-                "marketName": "Jhalap APMC",
-                "state": "CG"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
+                  "code": "119",
+                  "name": "Tobacco"
+                },
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
+                  "code": "122",
+                  "name": "Sugarcane"
+                },
+                {
+                  "code": "164",
+                  "name": "Bamboo"
+                },
+                {
+                  "code": "214",
+                  "name": "Arhar Dal(Tur Dal)"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
+                },
+                {
+                  "code": "318",
+                  "name": "Mahua Seed(Hippe seed)"
                 }
               ],
               "supportedPriceFields": [
@@ -4357,7 +4783,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bastar",
+                "district": "98",
                 "marketCode": "3251",
                 "marketName": "Karpawand APMC",
                 "state": "CG"
@@ -4424,7 +4850,7 @@
                 "en"
               ],
               "market": {
-                "district": "Balodabazar",
+                "district": "96",
                 "marketCode": "2056",
                 "marketName": "Kasdol APMC",
                 "state": "CG"
@@ -4487,7 +4913,7 @@
                 "en"
               ],
               "market": {
-                "district": "Korba",
+                "district": "113",
                 "marketCode": "2068",
                 "marketName": "Katghora APMC",
                 "state": "CG"
@@ -4502,12 +4928,32 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
+                  "code": "13",
+                  "name": "Soyabean"
+                },
+                {
+                  "code": "30",
+                  "name": "Ragi(Finger Millet)"
+                },
+                {
+                  "code": "195",
+                  "name": "Millets"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
                 }
               ],
               "supportedPriceFields": [
@@ -4554,7 +5000,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kabirdham",
+                "district": "109",
                 "marketCode": "409",
                 "marketName": "Kawardha APMC",
                 "state": "CG"
@@ -4581,12 +5027,32 @@
                   "name": "Bengal Gram(Gram)(Whole)"
                 },
                 {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
                   "code": "10",
                   "name": "Groundnut"
                 },
                 {
                   "code": "13",
                   "name": "Soyabean"
+                },
+                {
+                  "code": "81",
+                  "name": "Lak(Teora)"
+                },
+                {
+                  "code": "195",
+                  "name": "Millets"
+                },
+                {
+                  "code": "214",
+                  "name": "Arhar Dal(Tur Dal)"
                 }
               ],
               "supportedPriceFields": [
@@ -4626,7 +5092,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sarangarh Bilaigarh",
+                "district": "745",
                 "marketCode": "3236",
                 "marketName": "Kedar APMC",
                 "state": "CG"
@@ -4640,6 +5106,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
@@ -4689,7 +5159,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kondagaon",
+                "district": "112",
                 "marketCode": "2071",
                 "marketName": "Keshkal APMC",
                 "state": "CG"
@@ -4704,12 +5174,24 @@
               ],
               "supportedCommodities": [
                 {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
                   "code": "2",
                   "name": "Paddy(Common)"
                 },
                 {
                   "code": "4",
                   "name": "Maize"
+                },
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "10",
+                  "name": "Groundnut"
                 }
               ],
               "supportedPriceFields": [
@@ -4749,7 +5231,7 @@
                 "en"
               ],
               "market": {
-                "district": "Raipur",
+                "district": "120",
                 "marketCode": "3171",
                 "marketName": "Kharora APMC",
                 "state": "CG"
@@ -4766,6 +5248,10 @@
                 {
                   "code": "1",
                   "name": "Wheat"
+                },
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -4812,7 +5298,7 @@
                 "en"
               ],
               "market": {
-                "district": "Raigarh",
+                "district": "119",
                 "marketCode": "415",
                 "marketName": "Kharsiya APMC",
                 "state": "CG"
@@ -4839,8 +5325,12 @@
                   "name": "Bengal Gram(Gram)(Whole)"
                 },
                 {
-                  "code": "10",
-                  "name": "Groundnut"
+                  "code": "283",
+                  "name": "Mahua"
+                },
+                {
+                  "code": "318",
+                  "name": "Mahua Seed(Hippe seed)"
                 }
               ],
               "supportedPriceFields": [
@@ -4887,7 +5377,7 @@
                 "en"
               ],
               "market": {
-                "district": "Khairagarh Chhuikhadan Gandai",
+                "district": "741",
                 "marketCode": "2063",
                 "marketName": "Kheragarh APMC",
                 "state": "CG"
@@ -4901,6 +5391,18 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
                 {
                   "code": "13",
                   "name": "Soyabean"
@@ -4950,7 +5452,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mahasamund",
+                "district": "115",
                 "marketCode": "3179",
                 "marketName": "Komakhan APMC",
                 "state": "CG"
@@ -4967,10 +5469,6 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
-                },
-                {
-                  "code": "4",
-                  "name": "Maize"
                 }
               ],
               "supportedPriceFields": [
@@ -5017,7 +5515,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kondagaon",
+                "district": "112",
                 "marketCode": "418",
                 "marketName": "Kondagoan APMC",
                 "state": "CG"
@@ -5031,6 +5529,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
                 {
                   "code": "4",
                   "name": "Maize"
@@ -5080,7 +5582,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sukma",
+                "district": "122",
                 "marketCode": "420",
                 "marketName": "Konta APMC",
                 "state": "CG"
@@ -5097,6 +5599,18 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "215",
+                  "name": "Tamarind Fruit"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
+                },
+                {
+                  "code": "318",
+                  "name": "Mahua Seed(Hippe seed)"
                 }
               ],
               "supportedPriceFields": [
@@ -5136,7 +5650,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kanker",
+                "district": "110",
                 "marketCode": "3270",
                 "marketName": "Korar APMC",
                 "state": "CG"
@@ -5159,8 +5673,12 @@
                   "name": "Maize"
                 },
                 {
-                  "code": "6",
-                  "name": "Bengal Gram(Gram)(Whole)"
+                  "code": "48",
+                  "name": "Safflower"
+                },
+                {
+                  "code": "195",
+                  "name": "Millets"
                 }
               ],
               "supportedPriceFields": [
@@ -5207,7 +5725,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bilaspur",
+                "district": "101",
                 "marketCode": "2378",
                 "marketName": "Kota APMC",
                 "state": "CG"
@@ -5267,7 +5785,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jashpur",
+                "district": "108",
                 "marketCode": "3238",
                 "marketName": "Kotba APMC",
                 "state": "CG"
@@ -5284,62 +5802,14 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_3230",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kotmi APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Kotmi APMC mandi prices",
-              "shortDesc": "Mandi prices at Kotmi APMC, Sakti, Chattisgarh"
-            },
-            "id": "resource:mandi-price:market:3230",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "areaCode": "744",
-                  "areaLevel": "District",
-                  "areaName": "Sakti",
-                  "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
-                  "areaCode": "IN-CG",
-                  "areaLevel": "State",
-                  "areaName": "Chattisgarh",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Sakti",
-                "marketCode": "3230",
-                "marketName": "Kotmi APMC",
-                "state": "CG"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
+                  "code": "4",
+                  "name": "Maize"
+                },
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
+                  "code": "283",
+                  "name": "Mahua"
                 }
               ],
               "supportedPriceFields": [
@@ -5386,7 +5856,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kanker",
+                "district": "110",
                 "marketCode": "419",
                 "marketName": "KRISHI UPAJ MANDI SAMITI (APMC) KANKER",
                 "state": "CG"
@@ -5407,6 +5877,10 @@
                 {
                   "code": "4",
                   "name": "Maize"
+                },
+                {
+                  "code": "318",
+                  "name": "Mahua Seed(Hippe seed)"
                 }
               ],
               "supportedPriceFields": [
@@ -5446,7 +5920,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sukma",
+                "district": "122",
                 "marketCode": "3253",
                 "marketName": "Kukanar APMC",
                 "state": "CG"
@@ -5463,6 +5937,138 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "215",
+                  "name": "Tamarind Fruit"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
+                },
+                {
+                  "code": "318",
+                  "name": "Mahua Seed(Hippe seed)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3214",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kunda APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kunda APMC mandi prices",
+              "shortDesc": "Mandi prices at Kunda APMC, Kabirdham, Chattisgarh"
+            },
+            "id": "resource:mandi-price:market:3214",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "109",
+                  "areaLevel": "District",
+                  "areaName": "Kabirdham",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-CG",
+                  "areaLevel": "State",
+                  "areaName": "Chattisgarh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "109",
+                "marketCode": "3214",
+                "marketName": "Kunda APMC",
+                "state": "CG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2385",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kunkuri APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kunkuri APMC mandi prices",
+              "shortDesc": "Mandi prices at Kunkuri APMC, Jashpur, Chattisgarh"
+            },
+            "id": "resource:mandi-price:market:2385",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "108",
+                  "areaLevel": "District",
+                  "areaName": "Jashpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-CG",
+                  "areaLevel": "State",
+                  "areaName": "Chattisgarh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "108",
+                "marketCode": "2385",
+                "marketName": "Kunkuri APMC",
+                "state": "CG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
                 }
               ],
               "supportedPriceFields": [
@@ -5509,7 +6115,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dhamtari",
+                "district": "103",
                 "marketCode": "176",
                 "marketName": "Kurud APMC",
                 "state": "CG"
@@ -5534,6 +6140,22 @@
                 {
                   "code": "6",
                   "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
                 }
               ],
               "supportedPriceFields": [
@@ -5580,7 +6202,7 @@
                 "en"
               ],
               "market": {
-                "district": "Balrampur",
+                "district": "97",
                 "marketCode": "2391",
                 "marketName": "Kusmee APMC",
                 "state": "CG"
@@ -5595,16 +6217,16 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
                   "code": "2",
                   "name": "Paddy(Common)"
                 },
                 {
                   "code": "4",
                   "name": "Maize"
+                },
+                {
+                  "code": "195",
+                  "name": "Millets"
                 }
               ],
               "supportedPriceFields": [
@@ -5644,7 +6266,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kanker",
+                "district": "110",
                 "marketCode": "3268",
                 "marketName": "Lakhanpuri APMC",
                 "state": "CG"
@@ -5707,7 +6329,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bastar",
+                "district": "98",
                 "marketCode": "3246",
                 "marketName": "Lohandiguda APMC",
                 "state": "CG"
@@ -5728,6 +6350,10 @@
                 {
                   "code": "4",
                   "name": "Maize"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
                 }
               ],
               "supportedPriceFields": [
@@ -5774,7 +6400,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mungeli",
+                "district": "116",
                 "marketCode": "2065",
                 "marketName": "Lormi APMC",
                 "state": "CG"
@@ -5791,6 +6417,10 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "81",
+                  "name": "Lak(Teora)"
                 }
               ],
               "supportedPriceFields": [
@@ -5837,7 +6467,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mahasamund",
+                "district": "115",
                 "marketCode": "408",
                 "marketName": "Mahasamund APMC",
                 "state": "CG"
@@ -5854,10 +6484,6 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
-                },
-                {
-                  "code": "4",
-                  "name": "Maize"
                 }
               ],
               "supportedPriceFields": [
@@ -5897,7 +6523,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kondagaon",
+                "district": "112",
                 "marketCode": "3256",
                 "marketName": "Makdi APMC",
                 "state": "CG"
@@ -5911,6 +6537,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
                 {
                   "code": "4",
                   "name": "Maize"
@@ -5960,7 +6590,7 @@
                 "en"
               ],
               "market": {
-                "district": "Manendragarh Chirmiri Bhartpur",
+                "district": "742",
                 "marketCode": "2393",
                 "marketName": "Manendragarh APMC",
                 "state": "CG"
@@ -5987,12 +6617,40 @@
                   "name": "Maize"
                 },
                 {
-                  "code": "10",
-                  "name": "Groundnut"
+                  "code": "5",
+                  "name": "Jowar(Sorghum)"
+                },
+                {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "92",
+                  "name": "Corriander seed"
                 },
                 {
                   "code": "122",
                   "name": "Sugarcane"
+                },
+                {
+                  "code": "164",
+                  "name": "Bamboo"
+                },
+                {
+                  "code": "195",
+                  "name": "Millets"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
+                },
+                {
+                  "code": "318",
+                  "name": "Mahua Seed(Hippe seed)"
                 }
               ],
               "supportedPriceFields": [
@@ -6032,7 +6690,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kondagaon",
+                "district": "112",
                 "marketCode": "3259",
                 "marketName": "Mardapal APMC",
                 "state": "CG"
@@ -6046,6 +6704,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
                 {
                   "code": "4",
                   "name": "Maize"
@@ -6095,7 +6757,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bastar",
+                "district": "98",
                 "marketCode": "3248",
                 "marketName": "Muli APMC",
                 "state": "CG"
@@ -6162,7 +6824,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mungeli",
+                "district": "116",
                 "marketCode": "411",
                 "marketName": "Mungeli APMC",
                 "state": "CG"
@@ -6189,8 +6851,8 @@
                   "name": "Bengal Gram(Gram)(Whole)"
                 },
                 {
-                  "code": "8",
-                  "name": "Black Gram(Urd Beans)(Whole)"
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
                 },
                 {
                   "code": "10",
@@ -6201,8 +6863,16 @@
                   "name": "Mustard"
                 },
                 {
-                  "code": "13",
-                  "name": "Soyabean"
+                  "code": "81",
+                  "name": "Lak(Teora)"
+                },
+                {
+                  "code": "195",
+                  "name": "Millets"
+                },
+                {
+                  "code": "214",
+                  "name": "Arhar Dal(Tur Dal)"
                 }
               ],
               "supportedPriceFields": [
@@ -6249,7 +6919,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dhamtari",
+                "district": "103",
                 "marketCode": "2377",
                 "marketName": "Nagari APMC",
                 "state": "CG"
@@ -6266,6 +6936,10 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
                 }
               ],
               "supportedPriceFields": [
@@ -6312,7 +6986,7 @@
                 "en"
               ],
               "market": {
-                "district": "Janjgeer-Champa",
+                "district": "107",
                 "marketCode": "412",
                 "marketName": "Naila APMC",
                 "state": "CG"
@@ -6329,6 +7003,10 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "10",
+                  "name": "Groundnut"
                 }
               ],
               "supportedPriceFields": [
@@ -6375,7 +7053,7 @@
                 "en"
               ],
               "market": {
-                "district": "Narayanpur",
+                "district": "117",
                 "marketCode": "2072",
                 "marketName": "Narayanpur APMC",
                 "state": "CG"
@@ -6394,8 +7072,12 @@
                   "name": "Paddy(Common)"
                 },
                 {
-                  "code": "6",
-                  "name": "Bengal Gram(Gram)(Whole)"
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "215",
+                  "name": "Tamarind Fruit"
                 }
               ],
               "supportedPriceFields": [
@@ -6435,7 +7117,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kanker",
+                "district": "110",
                 "marketCode": "3269",
                 "marketName": "Narharpur APMC",
                 "state": "CG"
@@ -6452,6 +7134,10 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
                 }
               ],
               "supportedPriceFields": [
@@ -6498,9 +7184,72 @@
                 "en"
               ],
               "market": {
-                "district": "Raipur",
+                "district": "120",
                 "marketCode": "183",
                 "marketName": "Navapara APMC",
+                "state": "CG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_405",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Neora APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Neora APMC mandi prices",
+              "shortDesc": "Mandi prices at Neora APMC, Raipur, Chattisgarh"
+            },
+            "id": "resource:mandi-price:market:405",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    81.8079277,
+                    21.5604474
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "120",
+                  "areaLevel": "District",
+                  "areaName": "Raipur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-CG",
+                  "areaLevel": "State",
+                  "areaName": "Chattisgarh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "120",
+                "marketCode": "405",
+                "marketName": "Neora APMC",
                 "state": "CG"
               },
               "source": {
@@ -6561,7 +7310,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kanker",
+                "district": "110",
                 "marketCode": "3792",
                 "marketName": "Pakhanjur APMC",
                 "state": "CG"
@@ -6584,8 +7333,12 @@
                   "name": "Maize"
                 },
                 {
-                  "code": "6",
-                  "name": "Bengal Gram(Gram)(Whole)"
+                  "code": "48",
+                  "name": "Safflower"
+                },
+                {
+                  "code": "164",
+                  "name": "Bamboo"
                 }
               ],
               "supportedPriceFields": [
@@ -6632,7 +7385,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kabirdham",
+                "district": "109",
                 "marketCode": "2372",
                 "marketName": "Pandariya APMC",
                 "state": "CG"
@@ -6657,6 +7410,10 @@
                 {
                   "code": "122",
                   "name": "Sugarcane"
+                },
+                {
+                  "code": "195",
+                  "name": "Millets"
                 }
               ],
               "supportedPriceFields": [
@@ -6703,7 +7460,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jashpur",
+                "district": "108",
                 "marketCode": "2384",
                 "marketName": "Pathalgaon APMC",
                 "state": "CG"
@@ -6728,6 +7485,78 @@
                 {
                   "code": "4",
                   "name": "Maize"
+                },
+                {
+                  "code": "10",
+                  "name": "Groundnut"
+                },
+                {
+                  "code": "122",
+                  "name": "Sugarcane"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3220",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Pathriya APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Pathriya APMC mandi prices",
+              "shortDesc": "Mandi prices at Pathriya APMC, Mungeli, Chattisgarh"
+            },
+            "id": "resource:mandi-price:market:3220",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "116",
+                  "areaLevel": "District",
+                  "areaName": "Mungeli",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-CG",
+                  "areaLevel": "State",
+                  "areaName": "Chattisgarh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "116",
+                "marketCode": "3220",
+                "marketName": "Pathriya APMC",
+                "state": "CG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "81",
+                  "name": "Lak(Teora)"
                 }
               ],
               "supportedPriceFields": [
@@ -6774,7 +7603,7 @@
                 "en"
               ],
               "market": {
-                "district": "Gourela Pendra Marwahi",
+                "district": "740",
                 "marketCode": "2379",
                 "marketName": "Pendraroad APMC",
                 "state": "CG"
@@ -6795,6 +7624,18 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "195",
+                  "name": "Millets"
+                },
+                {
+                  "code": "346",
+                  "name": "Ambady/Mesta"
                 }
               ],
               "supportedPriceFields": [
@@ -6834,7 +7675,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kondagaon",
+                "district": "112",
                 "marketCode": "3254",
                 "marketName": "Pharasgaon APMC",
                 "state": "CG"
@@ -6848,6 +7689,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
                 {
                   "code": "4",
                   "name": "Maize"
@@ -6890,7 +7735,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kabirdham",
+                "district": "109",
                 "marketCode": "3213",
                 "marketName": "Pipriya APMC",
                 "state": "CG"
@@ -6904,6 +7749,14 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
                 {
                   "code": "13",
                   "name": "Soyabean"
@@ -6946,7 +7799,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mahasamund",
+                "district": "115",
                 "marketCode": "3186",
                 "marketName": "Pirda APMC",
                 "state": "CG"
@@ -7009,7 +7862,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mahasamund",
+                "district": "115",
                 "marketCode": "2060",
                 "marketName": "Pithoura APMC",
                 "state": "CG"
@@ -7072,7 +7925,7 @@
                 "en"
               ],
               "market": {
-                "district": "Surajpur",
+                "district": "123",
                 "marketCode": "2389",
                 "marketName": "Pratappur APMC",
                 "state": "CG"
@@ -7097,62 +7950,22 @@
                 {
                   "code": "4",
                   "name": "Maize"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_3233",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Pusor APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Pusor APMC mandi prices",
-              "shortDesc": "Mandi prices at Pusor APMC, Raigarh, Chattisgarh"
-            },
-            "id": "resource:mandi-price:market:3233",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "areaCode": "119",
-                  "areaLevel": "District",
-                  "areaName": "Raigarh",
-                  "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
-                  "areaCode": "IN-CG",
-                  "areaLevel": "State",
-                  "areaName": "Chattisgarh",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Raigarh",
-                "marketCode": "3233",
-                "marketName": "Pusor APMC",
-                "state": "CG"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
+                  "code": "12",
+                  "name": "Mustard"
+                },
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
+                  "code": "122",
+                  "name": "Sugarcane"
+                },
+                {
+                  "code": "164",
+                  "name": "Bamboo"
+                },
+                {
+                  "code": "341",
+                  "name": "White Peas"
                 }
               ],
               "supportedPriceFields": [
@@ -7199,7 +8012,7 @@
                 "en"
               ],
               "market": {
-                "district": "Raigarh",
+                "district": "119",
                 "marketCode": "414",
                 "marketName": "Raigarh APMC",
                 "state": "CG"
@@ -7226,8 +8039,16 @@
                   "name": "Maize"
                 },
                 {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
                   "code": "10",
                   "name": "Groundnut"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
                 },
                 {
                   "code": "23",
@@ -7236,6 +8057,14 @@
                 {
                   "code": "24",
                   "name": "Potato"
+                },
+                {
+                  "code": "25",
+                  "name": "Garlic"
+                },
+                {
+                  "code": "27",
+                  "name": "Ginger(Dry)"
                 },
                 {
                   "code": "65",
@@ -7286,7 +8115,7 @@
                 "en"
               ],
               "market": {
-                "district": "Raipur",
+                "district": "120",
                 "marketCode": "189",
                 "marketName": "Raipur APMC",
                 "state": "CG"
@@ -7313,8 +8142,16 @@
                   "name": "Maize"
                 },
                 {
+                  "code": "5",
+                  "name": "Jowar(Sorghum)"
+                },
+                {
                   "code": "6",
                   "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
                 },
                 {
                   "code": "9",
@@ -7325,12 +8162,64 @@
                   "name": "Groundnut"
                 },
                 {
+                  "code": "11",
+                  "name": "Sesamum(Sesame,Gingelly,Til)"
+                },
+                {
                   "code": "12",
                   "name": "Mustard"
                 },
                 {
                   "code": "28",
                   "name": "Bajra(Pearl Millet/Cumbu)"
+                },
+                {
+                  "code": "29",
+                  "name": "Barley(Jau)"
+                },
+                {
+                  "code": "35",
+                  "name": "Turmeric"
+                },
+                {
+                  "code": "38",
+                  "name": "Cummin Seed(Jeera)"
+                },
+                {
+                  "code": "81",
+                  "name": "Lak(Teora)"
+                },
+                {
+                  "code": "92",
+                  "name": "Corriander seed"
+                },
+                {
+                  "code": "114",
+                  "name": "Soanf"
+                },
+                {
+                  "code": "115",
+                  "name": "Ajwan"
+                },
+                {
+                  "code": "213",
+                  "name": "Masur Dal"
+                },
+                {
+                  "code": "214",
+                  "name": "Arhar Dal(Tur Dal)"
+                },
+                {
+                  "code": "318",
+                  "name": "Mahua Seed(Hippe seed)"
+                },
+                {
+                  "code": "344",
+                  "name": "Kutki"
+                },
+                {
+                  "code": "346",
+                  "name": "Ambady/Mesta"
                 }
               ],
               "supportedPriceFields": [
@@ -7377,7 +8266,7 @@
                 "en"
               ],
               "market": {
-                "district": "Gariyaband",
+                "district": "105",
                 "marketCode": "1097",
                 "marketName": "Rajim APMC",
                 "state": "CG"
@@ -7440,7 +8329,7 @@
                 "en"
               ],
               "market": {
-                "district": "Rajnandgaon",
+                "district": "121",
                 "marketCode": "184",
                 "marketName": "Rajnandgaon APMC",
                 "state": "CG"
@@ -7479,12 +8368,20 @@
                   "name": "Green Gram(Moong)(Whole)"
                 },
                 {
+                  "code": "11",
+                  "name": "Sesamum(Sesame,Gingelly,Til)"
+                },
+                {
                   "code": "12",
                   "name": "Mustard"
                 },
                 {
                   "code": "13",
                   "name": "Soyabean"
+                },
+                {
+                  "code": "14",
+                  "name": "Sunflower"
                 },
                 {
                   "code": "23",
@@ -7495,8 +8392,36 @@
                   "name": "Potato"
                 },
                 {
+                  "code": "48",
+                  "name": "Safflower"
+                },
+                {
+                  "code": "56",
+                  "name": "Linseed"
+                },
+                {
                   "code": "65",
                   "name": "Tomato"
+                },
+                {
+                  "code": "81",
+                  "name": "Lak(Teora)"
+                },
+                {
+                  "code": "92",
+                  "name": "Corriander seed"
+                },
+                {
+                  "code": "195",
+                  "name": "Millets"
+                },
+                {
+                  "code": "213",
+                  "name": "Masur Dal"
+                },
+                {
+                  "code": "214",
+                  "name": "Arhar Dal(Tur Dal)"
                 }
               ],
               "supportedPriceFields": [
@@ -7536,7 +8461,7 @@
                 "en"
               ],
               "market": {
-                "district": "Balrampur",
+                "district": "97",
                 "marketCode": "3242",
                 "marketName": "Rajpur APMC",
                 "state": "CG"
@@ -7611,7 +8536,7 @@
                 "en"
               ],
               "market": {
-                "district": "Balrampur",
+                "district": "97",
                 "marketCode": "2387",
                 "marketName": "Ramanujganj APMC",
                 "state": "CG"
@@ -7626,12 +8551,36 @@
               ],
               "supportedCommodities": [
                 {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
                   "code": "2",
                   "name": "Paddy(Common)"
                 },
                 {
                   "code": "4",
                   "name": "Maize"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "29",
+                  "name": "Barley(Jau)"
+                },
+                {
+                  "code": "119",
+                  "name": "Tobacco"
+                },
+                {
+                  "code": "122",
+                  "name": "Sugarcane"
+                },
+                {
+                  "code": "164",
+                  "name": "Bamboo"
                 }
               ],
               "supportedPriceFields": [
@@ -7671,7 +8620,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bilaspur",
+                "district": "101",
                 "marketCode": "3222",
                 "marketName": "Ratanpur APMC",
                 "state": "CG"
@@ -7727,7 +8676,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bemetara",
+                "district": "99",
                 "marketCode": "3206",
                 "marketName": "Saja APMC",
                 "state": "CG"
@@ -7742,8 +8691,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "1",
-                  "name": "Wheat"
+                  "code": "2",
+                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -7783,7 +8732,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mahasamund",
+                "district": "115",
                 "marketCode": "3184",
                 "marketName": "Sakra APMC",
                 "state": "CG"
@@ -7839,7 +8788,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bilaspur",
+                "district": "101",
                 "marketCode": "3221",
                 "marketName": "Sakri APMC",
                 "state": "CG"
@@ -7902,7 +8851,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sakti",
+                "district": "744",
                 "marketCode": "413",
                 "marketName": "Sakti APMC",
                 "state": "CG"
@@ -7919,10 +8868,6 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
-                },
-                {
-                  "code": "10",
-                  "name": "Groundnut"
                 }
               ],
               "supportedPriceFields": [
@@ -7962,7 +8907,7 @@
                 "en"
               ],
               "market": {
-                "district": "Raigarh",
+                "district": "119",
                 "marketCode": "3237",
                 "marketName": "Salihabhata APMC",
                 "state": "CG"
@@ -7979,6 +8924,70 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "318",
+                  "name": "Mahua Seed(Hippe seed)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3209",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sambalpur (Bemetra) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sambalpur (Bemetra) APMC mandi prices",
+              "shortDesc": "Mandi prices at Sambalpur (Bemetra) APMC, Bemetara, Chattisgarh"
+            },
+            "id": "resource:mandi-price:market:3209",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "99",
+                  "areaLevel": "District",
+                  "areaName": "Bemetara",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-CG",
+                  "areaLevel": "State",
+                  "areaName": "Chattisgarh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "99",
+                "marketCode": "3209",
+                "marketName": "Sambalpur (Bemetra) APMC",
+                "state": "CG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
                 }
               ],
               "supportedPriceFields": [
@@ -8025,7 +9034,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kanker",
+                "district": "110",
                 "marketCode": "2394",
                 "marketName": "Sambalpur APMC",
                 "state": "CG"
@@ -8040,10 +9049,6 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
                   "code": "2",
                   "name": "Paddy(Common)"
                 },
@@ -8054,6 +9059,14 @@
                 {
                   "code": "6",
                   "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "48",
+                  "name": "Safflower"
+                },
+                {
+                  "code": "195",
+                  "name": "Millets"
                 }
               ],
               "supportedPriceFields": [
@@ -8100,7 +9113,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sarangarh Bilaigarh",
+                "district": "745",
                 "marketCode": "2069",
                 "marketName": "Sarangarh APMC",
                 "state": "CG"
@@ -8115,8 +9128,16 @@
               ],
               "supportedCommodities": [
                 {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "10",
+                  "name": "Groundnut"
                 }
               ],
               "supportedPriceFields": [
@@ -8163,7 +9184,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mahasamund",
+                "district": "115",
                 "marketCode": "2059",
                 "marketName": "Saraypali APMC",
                 "state": "CG"
@@ -8180,6 +9201,66 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3219",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sargaon APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sargaon APMC mandi prices",
+              "shortDesc": "Mandi prices at Sargaon APMC, Mungeli, Chattisgarh"
+            },
+            "id": "resource:mandi-price:market:3219",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "116",
+                  "areaLevel": "District",
+                  "areaName": "Mungeli",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-CG",
+                  "areaLevel": "State",
+                  "areaName": "Chattisgarh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "116",
+                "marketCode": "3219",
+                "marketName": "Sargaon APMC",
+                "state": "CG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "81",
+                  "name": "Lak(Teora)"
                 }
               ],
               "supportedPriceFields": [
@@ -8219,7 +9300,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sarangarh Bilaigarh",
+                "district": "745",
                 "marketCode": "3235",
                 "marketName": "Sariya APMC",
                 "state": "CG"
@@ -8275,7 +9356,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kanker",
+                "district": "110",
                 "marketCode": "3265",
                 "marketName": "Sarona APMC",
                 "state": "CG"
@@ -8296,6 +9377,10 @@
                 {
                   "code": "4",
                   "name": "Maize"
+                },
+                {
+                  "code": "438",
+                  "name": "Chironji"
                 }
               ],
               "supportedPriceFields": [
@@ -8335,7 +9420,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sarangarh Bilaigarh",
+                "district": "745",
                 "marketCode": "3172",
                 "marketName": "Sarsiwan APMC",
                 "state": "CG"
@@ -8398,7 +9483,7 @@
                 "en"
               ],
               "market": {
-                "district": "Janjgeer-Champa",
+                "district": "107",
                 "marketCode": "3224",
                 "marketName": "Shivrinarayanpur APMC",
                 "state": "CG"
@@ -8454,7 +9539,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sukma",
+                "district": "122",
                 "marketCode": "3518",
                 "marketName": "Sukma APMC",
                 "state": "CG"
@@ -8471,6 +9556,18 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "215",
+                  "name": "Tamarind Fruit"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
+                },
+                {
+                  "code": "318",
+                  "name": "Mahua Seed(Hippe seed)"
                 }
               ],
               "supportedPriceFields": [
@@ -8517,7 +9614,7 @@
                 "en"
               ],
               "market": {
-                "district": "Surajpur",
+                "district": "123",
                 "marketCode": "2390",
                 "marketName": "Surajpur APMC",
                 "state": "CG"
@@ -8532,24 +9629,28 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
                   "code": "2",
                   "name": "Paddy(Common)"
                 },
                 {
-                  "code": "6",
-                  "name": "Bengal Gram(Gram)(Whole)"
+                  "code": "4",
+                  "name": "Maize"
                 },
                 {
-                  "code": "12",
-                  "name": "Mustard"
+                  "code": "105",
+                  "name": "Same/Savi"
                 },
                 {
                   "code": "122",
                   "name": "Sugarcane"
+                },
+                {
+                  "code": "283",
+                  "name": "Mahua"
+                },
+                {
+                  "code": "357",
+                  "name": "Muleti"
                 }
               ],
               "supportedPriceFields": [
@@ -8596,7 +9697,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bilaspur",
+                "district": "101",
                 "marketCode": "2064",
                 "marketName": "Takhatpur APMC",
                 "state": "CG"
@@ -8613,73 +9714,10 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_3177",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Tendukona APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Tendukona APMC mandi prices",
-              "shortDesc": "Mandi prices at Tendukona APMC, Mahasamund, Chattisgarh"
-            },
-            "id": "resource:mandi-price:market:3177",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    82.466428,
-                    21.111266
-                  ],
-                  "type": "Point"
                 },
                 {
-                  "areaCode": "115",
-                  "areaLevel": "District",
-                  "areaName": "Mahasamund",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-CG",
-                  "areaLevel": "State",
-                  "areaName": "Chattisgarh",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Mahasamund",
-                "marketCode": "3177",
-                "marketName": "Tendukona APMC",
-                "state": "CG"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
-                {
-                  "code": "4",
-                  "name": "Maize"
+                  "code": "283",
+                  "name": "Mahua"
                 }
               ],
               "supportedPriceFields": [
@@ -8719,7 +9757,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bilaspur",
+                "district": "101",
                 "marketCode": "3218",
                 "marketName": "Tiphra APMC",
                 "state": "CG"
@@ -8790,7 +9828,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bastar",
+                "district": "98",
                 "marketCode": "3249",
                 "marketName": "Tokapal APMC",
                 "state": "CG"
@@ -8857,7 +9895,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kondagaon",
+                "district": "112",
                 "marketCode": "3261",
                 "marketName": "Vishrampur APMC",
                 "state": "CG"
@@ -8871,6 +9909,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
                 {
                   "code": "4",
                   "name": "Maize"

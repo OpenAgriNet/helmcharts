@@ -30,6 +30,62 @@
         "resources": [
           {
             "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4417",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Agar(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Agar(F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Agar(F&V) APMC, Agar Malwa, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:4417",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "287",
+                  "areaLevel": "District",
+                  "areaName": "Agar Malwa",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "287",
+                "marketCode": "4417",
+                "marketName": "Agar(F&V) APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
               "code": "MANDI_PRICE_MARKET_4418",
               "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Akodiya(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
               "name": "Akodiya(F&V) APMC mandi prices",
@@ -58,7 +114,7 @@
                 "en"
               ],
               "market": {
-                "district": "Shajapur",
+                "district": "328",
                 "marketCode": "4418",
                 "marketName": "Akodiya(F&V) APMC",
                 "state": "MP"
@@ -75,6 +131,217 @@
                 {
                   "code": "23",
                   "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3789",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Amarwda APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Amarwda APMC mandi prices",
+              "shortDesc": "Mandi prices at Amarwda APMC, Chhindwara, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:3789",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.1635477,
+                    22.2944136
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "298",
+                  "areaLevel": "District",
+                  "areaName": "Chhindwara",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "298",
+                "marketCode": "3789",
+                "marketName": "Amarwda APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                },
+                {
+                  "code": "52",
+                  "name": "Lentil(Masur)(Whole)"
+                },
+                {
+                  "code": "344",
+                  "name": "Kutki"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4424",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Anuppur(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Anuppur(F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Anuppur(F&V) APMC, Anupur, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:4424",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "289",
+                  "areaLevel": "District",
+                  "areaName": "Anupur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "289",
+                "marketCode": "4424",
+                "marketName": "Anuppur(F&V) APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4415",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Aron (F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Aron (F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Aron (F&V) APMC, Guna, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:4415",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "304",
+                  "areaLevel": "District",
+                  "areaName": "Guna",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "304",
+                "marketCode": "4415",
+                "marketName": "Aron (F&V) APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -114,7 +381,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sehore",
+                "district": "326",
                 "marketCode": "4416",
                 "marketName": "Ashta (F&V) APMC",
                 "state": "MP"
@@ -177,7 +444,7 @@
                 "en"
               ],
               "market": {
-                "district": "Khargone",
+                "district": "313",
                 "marketCode": "4428",
                 "marketName": "Badwaha (F&V) APMC",
                 "state": "MP"
@@ -237,7 +504,7 @@
                 "en"
               ],
               "market": {
-                "district": "Badwani",
+                "district": "291",
                 "marketCode": "4429",
                 "marketName": "Badwani(F&V) APMC",
                 "state": "MP"
@@ -262,70 +529,6 @@
                 {
                   "code": "65",
                   "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_4433",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Banapura(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Banapura(F&V) APMC mandi prices",
-              "shortDesc": "Mandi prices at Banapura(F&V) APMC, Narmadapuram, Madhya Pradesh"
-            },
-            "id": "resource:mandi-price:market:4433",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "areaCode": "307",
-                  "areaLevel": "District",
-                  "areaName": "Narmadapuram",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-MP",
-                  "areaLevel": "State",
-                  "areaName": "Madhya Pradesh",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Narmadapuram",
-                "marketCode": "4433",
-                "marketName": "Banapura(F&V) APMC",
-                "state": "MP"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
-                  "code": "4",
-                  "name": "Maize"
-                },
-                {
-                  "code": "13",
-                  "name": "Soyabean"
                 }
               ],
               "supportedPriceFields": [
@@ -365,7 +568,7 @@
                 "en"
               ],
               "market": {
-                "district": "Raisen",
+                "district": "320",
                 "marketCode": "4434",
                 "marketName": "Bareli(F&V) APMC",
                 "state": "MP"
@@ -390,6 +593,69 @@
                 {
                   "code": "65",
                   "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3968",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bedia APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bedia APMC mandi prices",
+              "shortDesc": "Mandi prices at Bedia APMC, Khargone, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:3968",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    75.950937,
+                    22.075959
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "313",
+                  "areaLevel": "District",
+                  "areaName": "Khargone",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "313",
+                "marketCode": "3968",
+                "marketName": "Bedia APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "26",
+                  "name": "Chili Red"
                 }
               ],
               "supportedPriceFields": [
@@ -429,7 +695,7 @@
                 "en"
               ],
               "market": {
-                "district": "Betul",
+                "district": "293",
                 "marketCode": "4438",
                 "marketName": "Betul(F&V) APMC",
                 "state": "MP"
@@ -465,27 +731,20 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_4443",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bichhiya (F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Bichhiya (F&V) APMC mandi prices",
-              "shortDesc": "Mandi prices at Bichhiya (F&V) APMC, Mandla, Madhya Pradesh"
+              "code": "MANDI_PRICE_MARKET_4442",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Biaora(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Biaora(F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Biaora(F&V) APMC, Rajgarh, Madhya Pradesh"
             },
-            "id": "resource:mandi-price:market:4443",
+            "id": "resource:mandi-price:market:4442",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
                 {
-                  "coordinates": [
-                    80.42,
-                    22.27
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "314",
+                  "areaCode": "321",
                   "areaLevel": "District",
-                  "areaName": "Mandla",
+                  "areaName": "Rajgarh",
                   "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
@@ -500,9 +759,9 @@
                 "en"
               ],
               "market": {
-                "district": "Mandla",
-                "marketCode": "4443",
-                "marketName": "Bichhiya (F&V) APMC",
+                "district": "321",
+                "marketCode": "4442",
+                "marketName": "Biaora(F&V) APMC",
                 "state": "MP"
               },
               "source": {
@@ -515,16 +774,12 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "1",
-                  "name": "Wheat"
+                  "code": "24",
+                  "name": "Potato"
                 },
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
-                {
-                  "code": "4",
-                  "name": "Maize"
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -536,20 +791,20 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_4446",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Chhpara (F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Chhpara (F&V) APMC mandi prices",
-              "shortDesc": "Mandi prices at Chhpara (F&V) APMC, Seoni, Madhya Pradesh"
+              "code": "MANDI_PRICE_MARKET_4445",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Chhatarpur (F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Chhatarpur (F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Chhatarpur (F&V) APMC, Chhatarpur, Madhya Pradesh"
             },
-            "id": "resource:mandi-price:market:4446",
+            "id": "resource:mandi-price:market:4445",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
                 {
-                  "areaCode": "327",
+                  "areaCode": "297",
                   "areaLevel": "District",
-                  "areaName": "Seoni",
+                  "areaName": "Chhatarpur",
                   "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
@@ -564,9 +819,9 @@
                 "en"
               ],
               "market": {
-                "district": "Seoni",
-                "marketCode": "4446",
-                "marketName": "Chhpara (F&V) APMC",
+                "district": "297",
+                "marketCode": "4445",
+                "marketName": "Chhatarpur (F&V) APMC",
                 "state": "MP"
               },
               "source": {
@@ -579,12 +834,147 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "1",
-                  "name": "Wheat"
+                  "code": "24",
+                  "name": "Potato"
                 },
                 {
-                  "code": "4",
-                  "name": "Maize"
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4449",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Dabra(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Dabra(F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Dabra(F&V) APMC, Gwalior, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:4449",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "305",
+                  "areaLevel": "District",
+                  "areaName": "Gwalior",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "305",
+                "marketCode": "4449",
+                "marketName": "Dabra(F&V) APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4451",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Deori (F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Deori (F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Deori (F&V) APMC, Sagar, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:4451",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.0239,
+                    23.3974
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "324",
+                  "areaLevel": "District",
+                  "areaName": "Sagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "324",
+                "marketCode": "4451",
+                "marketName": "Deori (F&V) APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -631,7 +1021,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dhar",
+                "district": "302",
                 "marketCode": "4452",
                 "marketName": "Dhamnod(F&V) APMC",
                 "state": "MP"
@@ -667,16 +1057,23 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_4461",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Gotegaon(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Gotegaon(F&V) APMC mandi prices",
-              "shortDesc": "Mandi prices at Gotegaon(F&V) APMC, Narsinghpur, Madhya Pradesh"
+              "code": "MANDI_PRICE_MARKET_4454",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Gadarwada (F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Gadarwada (F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Gadarwada (F&V) APMC, Narsinghpur, Madhya Pradesh"
             },
-            "id": "resource:mandi-price:market:4461",
+            "id": "resource:mandi-price:market:4454",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.7738008,
+                    22.917168
+                  ],
+                  "type": "Point"
+                },
                 {
                   "areaCode": "317",
                   "areaLevel": "District",
@@ -695,9 +1092,9 @@
                 "en"
               ],
               "market": {
-                "district": "Narsinghpur",
-                "marketCode": "4461",
-                "marketName": "Gotegaon(F&V) APMC",
+                "district": "317",
+                "marketCode": "4454",
+                "marketName": "Gadarwada (F&V) APMC",
                 "state": "MP"
               },
               "source": {
@@ -710,24 +1107,199 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "1",
-                  "name": "Wheat"
+                  "code": "4",
+                  "name": "Maize"
                 },
                 {
-                  "code": "6",
-                  "name": "Bengal Gram(Gram)(Whole)"
+                  "code": "23",
+                  "name": "Onion"
                 },
                 {
-                  "code": "8",
-                  "name": "Black Gram(Urd Beans)(Whole)"
+                  "code": "24",
+                  "name": "Potato"
                 },
                 {
-                  "code": "9",
-                  "name": "Green Gram(Moong)(Whole)"
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4457",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Garoth(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Garoth(F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Garoth(F&V) APMC, Mandsaur, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:4457",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    75.63686333333334,
+                    24.33234
+                  ],
+                  "type": "Point"
                 },
                 {
-                  "code": "13",
-                  "name": "Soyabean"
+                  "areaCode": "315",
+                  "areaLevel": "District",
+                  "areaName": "Mandsaur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "315",
+                "marketCode": "4457",
+                "marketName": "Garoth(F&V) APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4458",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Gautampura(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Gautampura(F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Gautampura(F&V) APMC, Indore, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:4458",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "308",
+                  "areaLevel": "District",
+                  "areaName": "Indore",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "308",
+                "marketCode": "4458",
+                "marketName": "Gautampura(F&V) APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4463",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Haatpipliya (F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Haatpipliya (F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Haatpipliya (F&V) APMC, Dewas, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:4463",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "301",
+                  "areaLevel": "District",
+                  "areaName": "Dewas",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "301",
+                "marketCode": "4463",
+                "marketName": "Haatpipliya (F&V) APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -767,7 +1339,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mauganj",
+                "district": "748",
                 "marketCode": "4462",
                 "marketName": "Hanumana(F&V) APMC",
                 "state": "MP"
@@ -782,92 +1354,12 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
                   "code": "24",
                   "name": "Potato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_4465",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ichhawar(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Ichhawar(F&V) APMC mandi prices",
-              "shortDesc": "Mandi prices at Ichhawar(F&V) APMC, Sehore, Madhya Pradesh"
-            },
-            "id": "resource:mandi-price:market:4465",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "areaCode": "326",
-                  "areaLevel": "District",
-                  "areaName": "Sehore",
-                  "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
-                  "areaCode": "IN-MP",
-                  "areaLevel": "State",
-                  "areaName": "Madhya Pradesh",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Sehore",
-                "marketCode": "4465",
-                "marketName": "Ichhawar(F&V) APMC",
-                "state": "MP"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
-                  "code": "4",
-                  "name": "Maize"
-                },
-                {
-                  "code": "6",
-                  "name": "Bengal Gram(Gram)(Whole)"
-                },
-                {
-                  "code": "12",
-                  "name": "Mustard"
-                },
-                {
-                  "code": "13",
-                  "name": "Soyabean"
-                },
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "52",
-                  "name": "Lentil(Masur)(Whole)"
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -907,7 +1399,7 @@
                 "en"
               ],
               "market": {
-                "district": "Narmadapuram",
+                "district": "307",
                 "marketCode": "4466",
                 "marketName": "Itarsi(F&V) APMC",
                 "state": "MP"
@@ -971,7 +1463,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ratlam",
+                "district": "322",
                 "marketCode": "4469",
                 "marketName": "Jaora (F&V) APMC",
                 "state": "MP"
@@ -988,6 +1480,126 @@
                 {
                   "code": "65",
                   "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4471",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jeerapur (F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jeerapur (F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Jeerapur (F&V) APMC, Rajgarh, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:4471",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "321",
+                  "areaLevel": "District",
+                  "areaName": "Rajgarh",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "321",
+                "marketCode": "4471",
+                "marketName": "Jeerapur (F&V) APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4470",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jhabua(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jhabua(F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Jhabua(F&V) APMC, Jhabua, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:4470",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "310",
+                  "areaLevel": "District",
+                  "areaName": "Jhabua",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "310",
+                "marketCode": "4470",
+                "marketName": "Jhabua(F&V) APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "13",
+                  "name": "Soyabean"
                 }
               ],
               "supportedPriceFields": [
@@ -1034,7 +1646,7 @@
                 "en"
               ],
               "market": {
-                "district": "Shajapur",
+                "district": "328",
                 "marketCode": "4475",
                 "marketName": "Kalapipal(F&V) APMC",
                 "state": "MP"
@@ -1051,86 +1663,6 @@
                 {
                   "code": "23",
                   "name": "Onion"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_4477",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kareli(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Kareli(F&V) APMC mandi prices",
-              "shortDesc": "Mandi prices at Kareli(F&V) APMC, Narsinghpur, Madhya Pradesh"
-            },
-            "id": "resource:mandi-price:market:4477",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "areaCode": "317",
-                  "areaLevel": "District",
-                  "areaName": "Narsinghpur",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-MP",
-                  "areaLevel": "State",
-                  "areaName": "Madhya Pradesh",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Narsinghpur",
-                "marketCode": "4477",
-                "marketName": "Kareli(F&V) APMC",
-                "state": "MP"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
-                  "code": "4",
-                  "name": "Maize"
-                },
-                {
-                  "code": "6",
-                  "name": "Bengal Gram(Gram)(Whole)"
-                },
-                {
-                  "code": "8",
-                  "name": "Black Gram(Urd Beans)(Whole)"
-                },
-                {
-                  "code": "9",
-                  "name": "Green Gram(Moong)(Whole)"
-                },
-                {
-                  "code": "13",
-                  "name": "Soyabean"
-                },
-                {
-                  "code": "52",
-                  "name": "Lentil(Masur)(Whole)"
                 }
               ],
               "supportedPriceFields": [
@@ -1170,7 +1702,7 @@
                 "en"
               ],
               "market": {
-                "district": "Shivpuri",
+                "district": "331",
                 "marketCode": "4478",
                 "marketName": "Karera(F&V) APMC",
                 "state": "MP"
@@ -1206,27 +1738,27 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_4480",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Keolari (F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Keolari (F&V) APMC mandi prices",
-              "shortDesc": "Mandi prices at Keolari (F&V) APMC, Seoni, Madhya Pradesh"
+              "code": "MANDI_PRICE_MARKET_3788",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Khairlangi APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Khairlangi APMC mandi prices",
+              "shortDesc": "Mandi prices at Khairlangi APMC, Balaghat, Madhya Pradesh"
             },
-            "id": "resource:mandi-price:market:4480",
+            "id": "resource:mandi-price:market:3788",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
                 {
                   "coordinates": [
-                    79.8915608,
-                    22.3493141
+                    79.953216,
+                    21.589846
                   ],
                   "type": "Point"
                 },
                 {
-                  "areaCode": "327",
+                  "areaCode": "292",
                   "areaLevel": "District",
-                  "areaName": "Seoni",
+                  "areaName": "Balaghat",
                   "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
@@ -1241,9 +1773,9 @@
                 "en"
               ],
               "market": {
-                "district": "Seoni",
-                "marketCode": "4480",
-                "marketName": "Keolari (F&V) APMC",
+                "district": "292",
+                "marketCode": "3788",
+                "marketName": "Khairlangi APMC",
                 "state": "MP"
               },
               "source": {
@@ -1256,8 +1788,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "1",
-                  "name": "Wheat"
+                  "code": "2",
+                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -1297,7 +1829,7 @@
                 "en"
               ],
               "market": {
-                "district": "Khargone",
+                "district": "313",
                 "marketCode": "4484",
                 "marketName": "Khargone(F&V) APMC",
                 "state": "MP"
@@ -1364,7 +1896,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sagar",
+                "district": "324",
                 "marketCode": "4489",
                 "marketName": "Khurai(F&V) APMC",
                 "state": "MP"
@@ -1428,7 +1960,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dhar",
+                "district": "302",
                 "marketCode": "4491",
                 "marketName": "Kukshi(F&V) APMC",
                 "state": "MP"
@@ -1453,74 +1985,6 @@
                 {
                   "code": "65",
                   "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_4498",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mahidpur(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Mahidpur(F&V) APMC mandi prices",
-              "shortDesc": "Mandi prices at Mahidpur(F&V) APMC, Ujjain, Madhya Pradesh"
-            },
-            "id": "resource:mandi-price:market:4498",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "areaCode": "335",
-                  "areaLevel": "District",
-                  "areaName": "Ujjain",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-MP",
-                  "areaLevel": "State",
-                  "areaName": "Madhya Pradesh",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Ujjain",
-                "marketCode": "4498",
-                "marketName": "Mahidpur(F&V) APMC",
-                "state": "MP"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
-                {
-                  "code": "6",
-                  "name": "Bengal Gram(Gram)(Whole)"
-                },
-                {
-                  "code": "13",
-                  "name": "Soyabean"
                 }
               ],
               "supportedPriceFields": [
@@ -1567,9 +2031,69 @@
                 "en"
               ],
               "market": {
-                "district": "Maihar",
+                "district": "749",
                 "marketCode": "4499",
                 "marketName": "Maihar(F&V) APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4501",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Malthone(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Malthone(F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Malthone(F&V) APMC, Sagar, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:4501",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "324",
+                  "areaLevel": "District",
+                  "areaName": "Sagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "324",
+                "marketCode": "4501",
+                "marketName": "Malthone(F&V) APMC",
                 "state": "MP"
               },
               "source": {
@@ -1588,10 +2112,6 @@
                 {
                   "code": "24",
                   "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -1638,7 +2158,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dhar",
+                "district": "302",
                 "marketCode": "4503",
                 "marketName": "Manawar(F&V) APMC",
                 "state": "MP"
@@ -1702,7 +2222,7 @@
                 "en"
               ],
               "market": {
-                "district": "Indore",
+                "district": "308",
                 "marketCode": "4506",
                 "marketName": "Mhow (Ambedkar Nagar) (F&V) APMC",
                 "state": "MP"
@@ -1773,7 +2293,7 @@
                 "en"
               ],
               "market": {
-                "district": "Betul",
+                "district": "293",
                 "marketCode": "4509",
                 "marketName": "Multai(F&V) APMC",
                 "state": "MP"
@@ -1787,14 +2307,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -1844,7 +2356,7 @@
                 "en"
               ],
               "market": {
-                "district": "Khandwa",
+                "district": "312",
                 "marketCode": "3969",
                 "marketName": "Mundi APMC",
                 "state": "MP"
@@ -1863,143 +2375,28 @@
                   "name": "Wheat"
                 },
                 {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
                   "code": "13",
                   "name": "Soyabean"
                 },
                 {
                   "code": "15",
                   "name": "Cotton"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_4511",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nagda(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Nagda(F&V) APMC mandi prices",
-              "shortDesc": "Mandi prices at Nagda(F&V) APMC, Ujjain, Madhya Pradesh"
-            },
-            "id": "resource:mandi-price:market:4511",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "areaCode": "335",
-                  "areaLevel": "District",
-                  "areaName": "Ujjain",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-MP",
-                  "areaLevel": "State",
-                  "areaName": "Madhya Pradesh",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Ujjain",
-                "marketCode": "4511",
-                "marketName": "Nagda(F&V) APMC",
-                "state": "MP"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
-                  "code": "13",
-                  "name": "Soyabean"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_4512",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nalkheda(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Nalkheda(F&V) APMC mandi prices",
-              "shortDesc": "Mandi prices at Nalkheda(F&V) APMC, Agar Malwa, Madhya Pradesh"
-            },
-            "id": "resource:mandi-price:market:4512",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    76.256187,
-                    23.84595
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "287",
-                  "areaLevel": "District",
-                  "areaName": "Agar Malwa",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-MP",
-                  "areaLevel": "State",
-                  "areaName": "Madhya Pradesh",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Agar Malwa",
-                "marketCode": "4512",
-                "marketName": "Nalkheda(F&V) APMC",
-                "state": "MP"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
-                  "code": "13",
-                  "name": "Soyabean"
-                },
-                {
-                  "code": "52",
-                  "name": "Lentil(Masur)(Whole)"
                 }
               ],
               "supportedPriceFields": [
@@ -2039,7 +2436,7 @@
                 "en"
               ],
               "market": {
-                "district": "Narmadapuram",
+                "district": "307",
                 "marketCode": "4464",
                 "marketName": "Narmadapuram (F&V) APMC",
                 "state": "MP"
@@ -2053,18 +2450,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
-                {
-                  "code": "10",
-                  "name": "Groundnut"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -2087,20 +2472,20 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_4517",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Obedullaganj(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Obedullaganj(F&V) APMC mandi prices",
-              "shortDesc": "Mandi prices at Obedullaganj(F&V) APMC, Raisen, Madhya Pradesh"
+              "code": "MANDI_PRICE_MARKET_4515",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Neemuch(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Neemuch(F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Neemuch(F&V) APMC, Neemuch, Madhya Pradesh"
             },
-            "id": "resource:mandi-price:market:4517",
+            "id": "resource:mandi-price:market:4515",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
                 {
-                  "areaCode": "320",
+                  "areaCode": "318",
                   "areaLevel": "District",
-                  "areaName": "Raisen",
+                  "areaName": "Neemuch",
                   "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
@@ -2115,9 +2500,128 @@
                 "en"
               ],
               "market": {
-                "district": "Raisen",
-                "marketCode": "4517",
-                "marketName": "Obedullaganj(F&V) APMC",
+                "district": "318",
+                "marketCode": "4515",
+                "marketName": "Neemuch(F&V) APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4522",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Paatan (F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Paatan (F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Paatan (F&V) APMC, Jabalpur, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:4522",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "309",
+                  "areaLevel": "District",
+                  "areaName": "Jabalpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "309",
+                "marketCode": "4522",
+                "marketName": "Paatan (F&V) APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3787",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Paatan APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Paatan APMC mandi prices",
+              "shortDesc": "Mandi prices at Paatan APMC, Jabalpur, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:3787",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.7050775,
+                    23.2784562
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "309",
+                  "areaLevel": "District",
+                  "areaName": "Jabalpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "309",
+                "marketCode": "3787",
+                "marketName": "Paatan APMC",
                 "state": "MP"
               },
               "source": {
@@ -2134,8 +2638,187 @@
                   "name": "Wheat"
                 },
                 {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
                   "code": "13",
                   "name": "Soyabean"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                },
+                {
+                  "code": "46",
+                  "name": "Green Peas"
+                },
+                {
+                  "code": "52",
+                  "name": "Lentil(Masur)(Whole)"
+                },
+                {
+                  "code": "345",
+                  "name": "buttery"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4518",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Pachaur(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Pachaur(F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Pachaur(F&V) APMC, Rajgarh, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:4518",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "321",
+                  "areaLevel": "District",
+                  "areaName": "Rajgarh",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "321",
+                "marketCode": "4518",
+                "marketName": "Pachaur(F&V) APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "13",
+                  "name": "Soyabean"
+                },
+                {
+                  "code": "52",
+                  "name": "Lentil(Masur)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3790",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Palari APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Palari APMC mandi prices",
+              "shortDesc": "Mandi prices at Palari APMC, Seoni, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:3790",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.806944,
+                    22.304667
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "327",
+                  "areaLevel": "District",
+                  "areaName": "Seoni",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "327",
+                "marketCode": "3790",
+                "marketName": "Palari APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
                 }
               ],
               "supportedPriceFields": [
@@ -2182,7 +2865,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jhabua",
+                "district": "310",
                 "marketCode": "4523",
                 "marketName": "Petlawad(F&V) APMC",
                 "state": "MP"
@@ -2246,73 +2929,9 @@
                 "en"
               ],
               "market": {
-                "district": "Narmadapuram",
+                "district": "307",
                 "marketCode": "4524",
                 "marketName": "Pipariya(F&V) APMC",
-                "state": "MP"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_4528",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Rajgarh(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Rajgarh(F&V) APMC mandi prices",
-              "shortDesc": "Mandi prices at Rajgarh(F&V) APMC, Dhar, Madhya Pradesh"
-            },
-            "id": "resource:mandi-price:market:4528",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "areaCode": "302",
-                  "areaLevel": "District",
-                  "areaName": "Dhar",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-MP",
-                  "areaLevel": "State",
-                  "areaName": "Madhya Pradesh",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Dhar",
-                "marketCode": "4528",
-                "marketName": "Rajgarh(F&V) APMC",
                 "state": "MP"
               },
               "source": {
@@ -2374,7 +2993,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sagar",
+                "district": "324",
                 "marketCode": "4529",
                 "marketName": "Rehli(F&V) APMC",
                 "state": "MP"
@@ -2438,7 +3057,7 @@
                 "en"
               ],
               "market": {
-                "district": "Rewa",
+                "district": "323",
                 "marketCode": "4531",
                 "marketName": "Rewa(F&V) APMC",
                 "state": "MP"
@@ -2452,6 +3071,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
                 {
                   "code": "24",
                   "name": "Potato"
@@ -2498,7 +3121,7 @@
                 "en"
               ],
               "market": {
-                "district": "Morena",
+                "district": "316",
                 "marketCode": "4532",
                 "marketName": "Sabalgarh(F&V) APMC",
                 "state": "MP"
@@ -2569,7 +3192,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ratlam",
+                "district": "322",
                 "marketCode": "4533",
                 "marketName": "Sailana(F&V) APMC",
                 "state": "MP"
@@ -2584,32 +3207,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
-                  "code": "4",
-                  "name": "Maize"
-                },
-                {
-                  "code": "6",
-                  "name": "Bengal Gram(Gram)(Whole)"
-                },
-                {
-                  "code": "12",
-                  "name": "Mustard"
-                },
-                {
-                  "code": "13",
-                  "name": "Soyabean"
-                },
-                {
                   "code": "23",
                   "name": "Onion"
-                },
-                {
-                  "code": "52",
-                  "name": "Lentil(Masur)(Whole)"
                 }
               ],
               "supportedPriceFields": [
@@ -2649,7 +3248,7 @@
                 "en"
               ],
               "market": {
-                "district": "Khargone",
+                "district": "313",
                 "marketCode": "4534",
                 "marketName": "Sanawad(F&V) APMC",
                 "state": "MP"
@@ -2720,7 +3319,7 @@
                 "en"
               ],
               "market": {
-                "district": "Indore",
+                "district": "308",
                 "marketCode": "4535",
                 "marketName": "Sanwer(F&V) APMC",
                 "state": "MP"
@@ -2784,7 +3383,7 @@
                 "en"
               ],
               "market": {
-                "district": "Rajgarh",
+                "district": "321",
                 "marketCode": "4536",
                 "marketName": "Sarangpur(F&V) APMC",
                 "state": "MP"
@@ -2847,7 +3446,7 @@
                 "en"
               ],
               "market": {
-                "district": "Pandhurna",
+                "district": "747",
                 "marketCode": "4549",
                 "marketName": "Saunsar (F&V) APMC",
                 "state": "MP"
@@ -2870,8 +3469,12 @@
                   "name": "Maize"
                 },
                 {
-                  "code": "10",
-                  "name": "Groundnut"
+                  "code": "6",
+                  "name": "Bengal Gram(Gram)(Whole)"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
                 }
               ],
               "supportedPriceFields": [
@@ -2911,7 +3514,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sehore",
+                "district": "326",
                 "marketCode": "4538",
                 "marketName": "Sehore(F&V) APMC",
                 "state": "MP"
@@ -2974,7 +3577,7 @@
                 "en"
               ],
               "market": {
-                "district": "Badwani",
+                "district": "291",
                 "marketCode": "4539",
                 "marketName": "Sendhwa(F&V) APMC",
                 "state": "MP"
@@ -2991,6 +3594,77 @@
                 {
                   "code": "23",
                   "name": "Onion"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4540",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Seoni(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Seoni(F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Seoni(F&V) APMC, Seoni, Madhya Pradesh"
+            },
+            "id": "resource:mandi-price:market:4540",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.54334,
+                    22.07038
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "327",
+                  "areaLevel": "District",
+                  "areaName": "Seoni",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-MP",
+                  "areaLevel": "State",
+                  "areaName": "Madhya Pradesh",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "327",
+                "marketCode": "4540",
+                "marketName": "Seoni(F&V) APMC",
+                "state": "MP"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
                 },
                 {
                   "code": "65",
@@ -3034,7 +3708,7 @@
                 "en"
               ],
               "market": {
-                "district": "Shajapur",
+                "district": "328",
                 "marketCode": "4544",
                 "marketName": "Shujalpur(F&V) APMC",
                 "state": "MP"
@@ -3090,7 +3764,7 @@
                 "en"
               ],
               "market": {
-                "district": "Singroli",
+                "district": "333",
                 "marketCode": "4545",
                 "marketName": "Singroli(F&V) APMC",
                 "state": "MP"
@@ -3104,6 +3778,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -3153,7 +3831,7 @@
                 "en"
               ],
               "market": {
-                "district": "Harda",
+                "district": "306",
                 "marketCode": "4546",
                 "marketName": "Sirali(F&V) APMC",
                 "state": "MP"
@@ -3181,20 +3859,20 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_4548",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sonkatch (F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Sonkatch (F&V) APMC mandi prices",
-              "shortDesc": "Mandi prices at Sonkatch (F&V) APMC, Dewas, Madhya Pradesh"
+              "code": "MANDI_PRICE_MARKET_4547",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sitamau(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sitamau(F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Sitamau(F&V) APMC, Mandsaur, Madhya Pradesh"
             },
-            "id": "resource:mandi-price:market:4548",
+            "id": "resource:mandi-price:market:4547",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
                 {
-                  "areaCode": "301",
+                  "areaCode": "315",
                   "areaLevel": "District",
-                  "areaName": "Dewas",
+                  "areaName": "Mandsaur",
                   "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
@@ -3209,9 +3887,9 @@
                 "en"
               ],
               "market": {
-                "district": "Dewas",
-                "marketCode": "4548",
-                "marketName": "Sonkatch (F&V) APMC",
+                "district": "315",
+                "marketCode": "4547",
+                "marketName": "Sitamau(F&V) APMC",
                 "state": "MP"
               },
               "source": {
@@ -3226,10 +3904,6 @@
                 {
                   "code": "23",
                   "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
                 }
               ],
               "supportedPriceFields": [
@@ -3241,20 +3915,20 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_4555",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Thandla(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Thandla(F&V) APMC mandi prices",
-              "shortDesc": "Mandi prices at Thandla(F&V) APMC, Jhabua, Madhya Pradesh"
+              "code": "MANDI_PRICE_MARKET_4550",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Soyatkalan(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Soyatkalan(F&V) APMC mandi prices",
+              "shortDesc": "Mandi prices at Soyatkalan(F&V) APMC, Agar Malwa, Madhya Pradesh"
             },
-            "id": "resource:mandi-price:market:4555",
+            "id": "resource:mandi-price:market:4550",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
                 {
-                  "areaCode": "310",
+                  "areaCode": "287",
                   "areaLevel": "District",
-                  "areaName": "Jhabua",
+                  "areaName": "Agar Malwa",
                   "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
@@ -3269,9 +3943,9 @@
                 "en"
               ],
               "market": {
-                "district": "Jhabua",
-                "marketCode": "4555",
-                "marketName": "Thandla(F&V) APMC",
+                "district": "287",
+                "marketCode": "4550",
+                "marketName": "Soyatkalan(F&V) APMC",
                 "state": "MP"
               },
               "source": {
@@ -3283,97 +3957,9 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
-                {
-                  "code": "4",
-                  "name": "Maize"
-                },
-                {
-                  "code": "13",
-                  "name": "Soyabean"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_4556",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Tikamgarh(F&V) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Tikamgarh(F&V) APMC mandi prices",
-              "shortDesc": "Mandi prices at Tikamgarh(F&V) APMC, Tikamgarh, Madhya Pradesh"
-            },
-            "id": "resource:mandi-price:market:4556",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "areaCode": "334",
-                  "areaLevel": "District",
-                  "areaName": "Tikamgarh",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-MP",
-                  "areaLevel": "State",
-                  "areaName": "Madhya Pradesh",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Tikamgarh",
-                "marketCode": "4556",
-                "marketName": "Tikamgarh(F&V) APMC",
-                "state": "MP"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
-                  "code": "13",
-                  "name": "Soyabean"
-                },
-                {
-                  "code": "29",
-                  "name": "Barley(Jau)"
                 }
               ],
               "supportedPriceFields": [
@@ -3413,7 +3999,7 @@
                 "en"
               ],
               "market": {
-                "district": "Harda",
+                "district": "306",
                 "marketCode": "4557",
                 "marketName": "Timarni(F&V) APMC",
                 "state": "MP"

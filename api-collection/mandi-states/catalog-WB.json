@@ -65,7 +65,7 @@
                 "en"
               ],
               "market": {
-                "district": "Alipurduar",
+                "district": "674",
                 "marketCode": "676",
                 "marketName": "Alipurduar APMC",
                 "state": "WB"
@@ -136,7 +136,7 @@
                 "en"
               ],
               "market": {
-                "district": "Paschim Bardhaman",
+                "district": "693",
                 "marketCode": "3117",
                 "marketName": "Asansol APMC",
                 "state": "WB"
@@ -215,7 +215,7 @@
                 "en"
               ],
               "market": {
-                "district": "Puruliya",
+                "district": "695",
                 "marketCode": "2905",
                 "marketName": "Balarampur APMC",
                 "state": "WB"
@@ -236,10 +236,6 @@
                 {
                   "code": "24",
                   "name": "Potato"
-                },
-                {
-                  "code": "52",
-                  "name": "Lentil(Masur)(Whole)"
                 },
                 {
                   "code": "65",
@@ -290,7 +286,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dakshin Dinajpur",
+                "district": "679",
                 "marketCode": "4667",
                 "marketName": "Balurghat APMC",
                 "state": "WB"
@@ -305,12 +301,16 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
+                  "code": "23",
+                  "name": "Onion"
                 },
                 {
                   "code": "24",
                   "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -357,7 +357,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bankura",
+                "district": "675",
                 "marketCode": "329",
                 "marketName": "Bankura Sadar APMC",
                 "state": "WB"
@@ -432,7 +432,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kolkata",
+                "district": "686",
                 "marketCode": "2894",
                 "marketName": "Bara Bazar (Posta Bazar) APMC",
                 "state": "WB"
@@ -499,7 +499,7 @@
                 "en"
               ],
               "market": {
-                "district": "North 24 Parganas",
+                "district": "692",
                 "marketCode": "328",
                 "marketName": "Barasat APMC",
                 "state": "WB"
@@ -520,6 +520,10 @@
                 {
                   "code": "24",
                   "name": "Potato"
+                },
+                {
+                  "code": "52",
+                  "name": "Lentil(Masur)(Whole)"
                 },
                 {
                   "code": "65",
@@ -570,7 +574,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sounth 24 Parganas",
+                "district": "696",
                 "marketCode": "2268",
                 "marketName": "Baruipur(Canning) APMC",
                 "state": "WB"
@@ -587,6 +591,10 @@
                 {
                   "code": "23",
                   "name": "Onion"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -633,7 +641,7 @@
                 "en"
               ],
               "market": {
-                "district": "Coochbehar",
+                "district": "678",
                 "marketCode": "4670",
                 "marketName": "Baxirhat APMC",
                 "state": "WB"
@@ -647,6 +655,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
                 {
                   "code": "24",
                   "name": "Potato"
@@ -696,7 +708,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jalpaiguri",
+                "district": "683",
                 "marketCode": "2536",
                 "marketName": "Belacoba APMC",
                 "state": "WB"
@@ -763,7 +775,7 @@
                 "en"
               ],
               "market": {
-                "district": "Murshidabad",
+                "district": "690",
                 "marketCode": "2904",
                 "marketName": "Beldanga APMC",
                 "state": "WB"
@@ -777,6 +789,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
                 {
                   "code": "12",
                   "name": "Mustard"
@@ -834,7 +850,7 @@
                 "en"
               ],
               "market": {
-                "district": "Nadia",
+                "district": "691",
                 "marketCode": "342",
                 "marketName": "Bethuadahari APMC",
                 "state": "WB"
@@ -905,7 +921,7 @@
                 "en"
               ],
               "market": {
-                "district": "Birbhum",
+                "district": "676",
                 "marketCode": "672",
                 "marketName": "Birbhum APMC",
                 "state": "WB"
@@ -980,7 +996,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bankura",
+                "district": "675",
                 "marketCode": "801",
                 "marketName": "Bishnupur(Bankura) APMC",
                 "state": "WB"
@@ -1055,7 +1071,7 @@
                 "en"
               ],
               "market": {
-                "district": "Birbhum",
+                "district": "676",
                 "marketCode": "330",
                 "marketName": "Bolpur APMC",
                 "state": "WB"
@@ -1069,10 +1085,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "1",
-                  "name": "Wheat"
-                },
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
@@ -1134,7 +1146,7 @@
                 "en"
               ],
               "market": {
-                "district": "Purba Bardhaman",
+                "district": "694",
                 "marketCode": "670",
                 "marketName": "Burdwan APMC",
                 "state": "WB"
@@ -1205,7 +1217,7 @@
                 "en"
               ],
               "market": {
-                "district": "Nadia",
+                "district": "691",
                 "marketCode": "3350",
                 "marketName": "Chakdah APMC",
                 "state": "WB"
@@ -1276,7 +1288,7 @@
                 "en"
               ],
               "market": {
-                "district": "Hooghly",
+                "district": "681",
                 "marketCode": "821",
                 "marketName": "Champadanga APMC",
                 "state": "WB"
@@ -1351,7 +1363,7 @@
                 "en"
               ],
               "market": {
-                "district": "Coochbehar",
+                "district": "678",
                 "marketCode": "333",
                 "marketName": "Coochbehar APMC",
                 "state": "WB"
@@ -1365,10 +1377,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
                 {
                   "code": "24",
                   "name": "Potato"
@@ -1415,7 +1423,7 @@
                 "en"
               ],
               "market": {
-                "district": "Darjeeling",
+                "district": "680",
                 "marketCode": "3342",
                 "marketName": "Darjeeling APMC",
                 "state": "WB"
@@ -1429,10 +1437,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
                 {
                   "code": "24",
                   "name": "Potato"
@@ -1486,7 +1490,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jalpaiguri",
+                "district": "683",
                 "marketCode": "335",
                 "marketName": "Dhupguri APMC",
                 "state": "WB"
@@ -1507,6 +1511,10 @@
                 {
                   "code": "24",
                   "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -1553,7 +1561,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sounth 24 Parganas",
+                "district": "696",
                 "marketCode": "3346",
                 "marketName": "Diamond Harbour(South 24-pgs) APMC",
                 "state": "WB"
@@ -1624,7 +1632,7 @@
                 "en"
               ],
               "market": {
-                "district": "Coochbehar",
+                "district": "678",
                 "marketCode": "817",
                 "marketName": "Dinhata APMC",
                 "state": "WB"
@@ -1691,7 +1699,7 @@
                 "en"
               ],
               "market": {
-                "district": "Paschim Bardhaman",
+                "district": "693",
                 "marketCode": "2899",
                 "marketName": "Durgapur APMC",
                 "state": "WB"
@@ -1770,7 +1778,7 @@
                 "en"
               ],
               "market": {
-                "district": "Medinipur(E)",
+                "district": "688",
                 "marketCode": "2272",
                 "marketName": "Egra/contai APMC",
                 "state": "WB"
@@ -1784,10 +1792,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
                 {
                   "code": "24",
                   "name": "Potato"
@@ -1841,7 +1845,7 @@
                 "en"
               ],
               "market": {
-                "district": "Malda",
+                "district": "687",
                 "marketCode": "337",
                 "marketName": "English Bazar APMC",
                 "state": "WB"
@@ -1864,8 +1868,8 @@
                   "name": "Potato"
                 },
                 {
-                  "code": "52",
-                  "name": "Lentil(Masur)(Whole)"
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -1912,7 +1916,7 @@
                 "en"
               ],
               "market": {
-                "district": "Alipurduar",
+                "district": "674",
                 "marketCode": "3339",
                 "marketName": "Falakata APMC",
                 "state": "WB"
@@ -1983,7 +1987,7 @@
                 "en"
               ],
               "market": {
-                "district": "Malda",
+                "district": "687",
                 "marketCode": "2902",
                 "marketName": "Gajol APMC",
                 "state": "WB"
@@ -2000,18 +2004,6 @@
                 {
                   "code": "1",
                   "name": "Wheat"
-                },
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
-                {
-                  "code": "12",
-                  "name": "Mustard"
-                },
-                {
-                  "code": "16",
-                  "name": "Jute"
                 },
                 {
                   "code": "23",
@@ -2070,7 +2062,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dakshin Dinajpur",
+                "district": "679",
                 "marketCode": "3344",
                 "marketName": "Gangarampur(Dakshin Dinajpur) APMC",
                 "state": "WB"
@@ -2141,7 +2133,7 @@
                 "en"
               ],
               "market": {
-                "district": "Medinipur(W)",
+                "district": "689",
                 "marketCode": "3352",
                 "marketName": "Garbeta(Medinipur) APMC",
                 "state": "WB"
@@ -2212,7 +2204,7 @@
                 "en"
               ],
               "market": {
-                "district": "Medinipur(W)",
+                "district": "689",
                 "marketCode": "820",
                 "marketName": "Ghatal APMC",
                 "state": "WB"
@@ -2229,14 +2221,6 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
-                },
-                {
-                  "code": "12",
-                  "name": "Mustard"
-                },
-                {
-                  "code": "16",
-                  "name": "Jute"
                 },
                 {
                   "code": "23",
@@ -2295,7 +2279,7 @@
                 "en"
               ],
               "market": {
-                "district": "Purba Bardhaman",
+                "district": "694",
                 "marketCode": "3348",
                 "marketName": "Guskara APMC",
                 "state": "WB"
@@ -2309,14 +2293,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
-                {
-                  "code": "11",
-                  "name": "Sesamum(Sesame,Gingelly,Til)"
-                },
                 {
                   "code": "12",
                   "name": "Mustard"
@@ -2370,7 +2346,7 @@
                 "en"
               ],
               "market": {
-                "district": "North 24 Parganas",
+                "district": "692",
                 "marketCode": "2897",
                 "marketName": "Habra APMC",
                 "state": "WB"
@@ -2441,7 +2417,7 @@
                 "en"
               ],
               "market": {
-                "district": "Coochbehar",
+                "district": "678",
                 "marketCode": "2535",
                 "marketName": "Haldibari APMC",
                 "state": "WB"
@@ -2455,6 +2431,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
                 {
                   "code": "24",
                   "name": "Potato"
@@ -2504,7 +2484,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bankura",
+                "district": "675",
                 "marketCode": "3351",
                 "marketName": "Indus(Bankura Sadar) APMC",
                 "state": "WB"
@@ -2521,10 +2501,6 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
-                },
-                {
-                  "code": "12",
-                  "name": "Mustard"
                 },
                 {
                   "code": "24",
@@ -2575,7 +2551,7 @@
                 "en"
               ],
               "market": {
-                "district": "Uttar Dinajpur",
+                "district": "697",
                 "marketCode": "343",
                 "marketName": "Islampur APMC",
                 "state": "WB"
@@ -2590,8 +2566,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "16",
-                  "name": "Jute"
+                  "code": "23",
+                  "name": "Onion"
                 },
                 {
                   "code": "24",
@@ -2642,7 +2618,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jalpaiguri",
+                "district": "683",
                 "marketCode": "675",
                 "marketName": "Jalpaiguri Sadar APMC",
                 "state": "WB"
@@ -2663,6 +2639,10 @@
                 {
                   "code": "24",
                   "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -2709,7 +2689,7 @@
                 "en"
               ],
               "market": {
-                "district": "Murshidabad",
+                "district": "690",
                 "marketCode": "822",
                 "marketName": "Jangipur APMC",
                 "state": "WB"
@@ -2724,8 +2704,16 @@
               ],
               "supportedCommodities": [
                 {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "4",
+                  "name": "Maize"
                 },
                 {
                   "code": "16",
@@ -2784,7 +2772,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jhargram",
+                "district": "684",
                 "marketCode": "2903",
                 "marketName": "Jhargram APMC",
                 "state": "WB"
@@ -2847,7 +2835,7 @@
                 "en"
               ],
               "market": {
-                "district": "Murshidabad",
+                "district": "690",
                 "marketCode": "3345",
                 "marketName": "Jiaganj APMC",
                 "state": "WB"
@@ -2926,7 +2914,7 @@
                 "en"
               ],
               "market": {
-                "district": "Uttar Dinajpur",
+                "district": "697",
                 "marketCode": "344",
                 "marketName": "Kaliaganj APMC",
                 "state": "WB"
@@ -2941,12 +2929,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
-                  "code": "16",
-                  "name": "Jute"
+                  "code": "24",
+                  "name": "Potato"
                 }
               ],
               "supportedPriceFields": [
@@ -2993,7 +2977,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kalimpong",
+                "district": "685",
                 "marketCode": "677",
                 "marketName": "Kalimpong APMC",
                 "state": "WB"
@@ -3056,7 +3040,7 @@
                 "en"
               ],
               "market": {
-                "district": "Hooghly",
+                "district": "681",
                 "marketCode": "3347",
                 "marketName": "Kalipur APMC",
                 "state": "WB"
@@ -3070,10 +3054,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -3124,7 +3104,7 @@
                 "en"
               ],
               "market": {
-                "district": "Purba Bardhaman",
+                "district": "694",
                 "marketCode": "331",
                 "marketName": "Kalna APMC",
                 "state": "WB"
@@ -3138,10 +3118,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "16",
-                  "name": "Jute"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -3199,7 +3175,7 @@
                 "en"
               ],
               "market": {
-                "district": "Nadia",
+                "district": "691",
                 "marketCode": "2266",
                 "marketName": "Kalyani APMC",
                 "state": "WB"
@@ -3266,7 +3242,7 @@
                 "en"
               ],
               "market": {
-                "district": "Murshidabad",
+                "district": "690",
                 "marketCode": "2265",
                 "marketName": "Kandi APMC",
                 "state": "WB"
@@ -3283,10 +3259,6 @@
                 {
                   "code": "1",
                   "name": "Wheat"
-                },
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
                 },
                 {
                   "code": "12",
@@ -3341,7 +3313,7 @@
                 "en"
               ],
               "market": {
-                "district": "Nadia",
+                "district": "691",
                 "marketCode": "341",
                 "marketName": "Karimpur APMC",
                 "state": "WB"
@@ -3413,7 +3385,7 @@
                 "en"
               ],
               "market": {
-                "district": "Darjeeling",
+                "district": "680",
                 "marketCode": "3341",
                 "marketName": "Karsiyang(Matigara) APMC",
                 "state": "WB"
@@ -3484,7 +3456,7 @@
                 "en"
               ],
               "market": {
-                "district": "Murshidabad",
+                "district": "690",
                 "marketCode": "340",
                 "marketName": "Kasimbazar APMC",
                 "state": "WB"
@@ -3498,6 +3470,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
                 {
                   "code": "16",
                   "name": "Jute"
@@ -3547,7 +3523,7 @@
                 "en"
               ],
               "market": {
-                "district": "Puruliya",
+                "district": "695",
                 "marketCode": "3354",
                 "marketName": "Kasipur APMC",
                 "state": "WB"
@@ -3568,6 +3544,10 @@
                 {
                   "code": "24",
                   "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -3614,7 +3594,7 @@
                 "en"
               ],
               "market": {
-                "district": "Purba Bardhaman",
+                "district": "694",
                 "marketCode": "332",
                 "marketName": "Katwa APMC",
                 "state": "WB"
@@ -3629,28 +3609,12 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
-                {
-                  "code": "11",
-                  "name": "Sesamum(Sesame,Gingelly,Til)"
-                },
-                {
-                  "code": "12",
-                  "name": "Mustard"
-                },
-                {
-                  "code": "16",
-                  "name": "Jute"
-                },
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
                   "code": "24",
                   "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -3697,7 +3661,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bankura",
+                "district": "675",
                 "marketCode": "2898",
                 "marketName": "Khatra APMC",
                 "state": "WB"
@@ -3776,7 +3740,7 @@
                 "en"
               ],
               "market": {
-                "district": "Medinipur(E)",
+                "district": "688",
                 "marketCode": "3353",
                 "marketName": "Kolaghat APMC",
                 "state": "WB"
@@ -3793,69 +3757,6 @@
                 {
                   "code": "24",
                   "name": "Potato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_818",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Lalbagh APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Lalbagh APMC mandi prices",
-              "shortDesc": "Mandi prices at Lalbagh APMC, Murshidabad, West Bengal"
-            },
-            "id": "resource:mandi-price:market:818",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    88.28817,
-                    24.18052
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "690",
-                  "areaLevel": "District",
-                  "areaName": "Murshidabad",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-WB",
-                  "areaLevel": "State",
-                  "areaName": "West Bengal",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Murshidabad",
-                "marketCode": "818",
-                "marketName": "Lalbagh APMC",
-                "state": "WB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "16",
-                  "name": "Jute"
                 }
               ],
               "supportedPriceFields": [
@@ -3902,7 +3803,7 @@
                 "en"
               ],
               "market": {
-                "district": "Coochbehar",
+                "district": "678",
                 "marketCode": "2534",
                 "marketName": "Mathabhanga APMC",
                 "state": "WB"
@@ -3916,6 +3817,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "16",
+                  "name": "Jute"
+                },
                 {
                   "code": "24",
                   "name": "Potato"
@@ -3965,7 +3870,7 @@
                 "en"
               ],
               "market": {
-                "district": "Medinipur(W)",
+                "district": "689",
                 "marketCode": "671",
                 "marketName": "Medinipur(West) APMC",
                 "state": "WB"
@@ -4036,7 +3941,7 @@
                 "en"
               ],
               "market": {
-                "district": "Coochbehar",
+                "district": "678",
                 "marketCode": "4671",
                 "marketName": "Mekhliganj APMC",
                 "state": "WB"
@@ -4103,7 +4008,7 @@
                 "en"
               ],
               "market": {
-                "district": "Purba Bardhaman",
+                "district": "694",
                 "marketCode": "2900",
                 "marketName": "Memari APMC",
                 "state": "WB"
@@ -4170,7 +4075,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jalpaiguri",
+                "district": "683",
                 "marketCode": "3340",
                 "marketName": "Moynaguri APMC",
                 "state": "WB"
@@ -4191,10 +4096,6 @@
                 {
                   "code": "24",
                   "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -4241,7 +4142,7 @@
                 "en"
               ],
               "market": {
-                "district": "Nadia",
+                "district": "691",
                 "marketCode": "674",
                 "marketName": "Nadia APMC",
                 "state": "WB"
@@ -4316,7 +4217,7 @@
                 "en"
               ],
               "market": {
-                "district": "Howrah",
+                "district": "682",
                 "marketCode": "2269",
                 "marketName": "Nimdhighi Market",
                 "state": "WB"
@@ -4387,7 +4288,7 @@
                 "en"
               ],
               "market": {
-                "district": "Hooghly",
+                "district": "681",
                 "marketCode": "334",
                 "marketName": "Pandua APMC",
                 "state": "WB"
@@ -4458,7 +4359,7 @@
                 "en"
               ],
               "market": {
-                "district": "Coochbehar",
+                "district": "678",
                 "marketCode": "2901",
                 "marketName": "Pundibari APMC",
                 "state": "WB"
@@ -4473,12 +4374,12 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
                   "code": "24",
                   "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -4525,7 +4426,7 @@
                 "en"
               ],
               "market": {
-                "district": "Puruliya",
+                "district": "695",
                 "marketCode": "673",
                 "marketName": "Purulia APMC",
                 "state": "WB"
@@ -4546,6 +4447,10 @@
                 {
                   "code": "24",
                   "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -4592,7 +4497,7 @@
                 "en"
               ],
               "market": {
-                "district": "Uttar Dinajpur",
+                "district": "697",
                 "marketCode": "3343",
                 "marketName": "Raiganj APMC",
                 "state": "WB"
@@ -4606,14 +4511,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
-                  "code": "16",
-                  "name": "Jute"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -4667,7 +4564,7 @@
                 "en"
               ],
               "market": {
-                "district": "Howrah",
+                "district": "682",
                 "marketCode": "799",
                 "marketName": "Ramkrishanpur(Howrah)",
                 "state": "WB"
@@ -4738,7 +4635,7 @@
                 "en"
               ],
               "market": {
-                "district": "Birbhum",
+                "district": "676",
                 "marketCode": "4666",
                 "marketName": "Rampurhat APMC",
                 "state": "WB"
@@ -4817,7 +4714,7 @@
                 "en"
               ],
               "market": {
-                "district": "Nadia",
+                "district": "691",
                 "marketCode": "3349",
                 "marketName": "Ranaghat APMC",
                 "state": "WB"
@@ -4888,7 +4785,7 @@
                 "en"
               ],
               "market": {
-                "district": "Birbhum",
+                "district": "676",
                 "marketCode": "3355",
                 "marketName": "Sainthia APMC",
                 "state": "WB"
@@ -4903,8 +4800,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "1",
-                  "name": "Wheat"
+                  "code": "2",
+                  "name": "Paddy(Common)"
                 },
                 {
                   "code": "23",
@@ -4963,7 +4860,7 @@
                 "en"
               ],
               "market": {
-                "district": "Malda",
+                "district": "687",
                 "marketCode": "336",
                 "marketName": "Samsi APMC",
                 "state": "WB"
@@ -4977,10 +4874,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "16",
-                  "name": "Jute"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -5034,7 +4927,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kolkata",
+                "district": "686",
                 "marketCode": "2896",
                 "marketName": "Sealdah Koley Market APMC",
                 "state": "WB"
@@ -5097,7 +4990,7 @@
                 "en"
               ],
               "market": {
-                "district": "Hooghly",
+                "district": "681",
                 "marketCode": "2270",
                 "marketName": "Sheoraphuly APMC",
                 "state": "WB"
@@ -5161,7 +5054,7 @@
                 "en"
               ],
               "market": {
-                "district": "Darjeeling",
+                "district": "680",
                 "marketCode": "2537",
                 "marketName": "Siliguri APMC",
                 "state": "WB"
@@ -5232,7 +5125,7 @@
                 "en"
               ],
               "market": {
-                "district": "Medinipur(E)",
+                "district": "688",
                 "marketCode": "338",
                 "marketName": "Tamluk (Medinipur E) APMC",
                 "state": "WB"
@@ -5299,7 +5192,7 @@
                 "en"
               ],
               "market": {
-                "district": "Coochbehar",
+                "district": "678",
                 "marketCode": "819",
                 "marketName": "Toofanganj APMC",
                 "state": "WB"

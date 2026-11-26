@@ -1,0 +1,241 @@
+{
+  "context": {
+    "action": "catalog/publish",
+    "messageId": "{{messageId}}",
+    "timestamp": "{{timestamp}}",
+    "transactionId": "{{transactionId}}",
+    "version": "2.0.0",
+    "senderId": "{{senderId}}",
+    "receiverId": "{{receiverId}}"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "descriptor": {
+          "code": "MANDI_PRICE_MARKET_AN",
+          "longDesc": "One resource per market. Each carries the Agmarknet codes a select must send, that market's traded commodities, and its point location for proximity discovery.",
+          "name": "Agmarknet mandi markets — Andaman and Nicobar",
+          "shortDesc": "Markets in Andaman and Nicobar, their locations, and what each trades"
+        },
+        "id": "catalog:mandi-price:AN",
+        "isActive": true,
+        "provider": {
+          "descriptor": {
+            "code": "AGMARKNET",
+            "name": "Agmarknet Vistaar",
+            "shortDesc": "Provider of live agricultural market price information."
+          },
+          "id": "agmarknet"
+        },
+        "resources": [
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3367",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Diglipur Vegetable Market (Subhashgram). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Diglipur Vegetable Market (Subhashgram) mandi prices",
+              "shortDesc": "Mandi prices at Diglipur Vegetable Market (Subhashgram), North and Middle Andaman, Andaman and Nicobar"
+            },
+            "id": "resource:mandi-price:market:3367",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    92.972535,
+                    13.245947
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "2",
+                  "areaLevel": "District",
+                  "areaName": "North and Middle Andaman",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-AN",
+                  "areaLevel": "State",
+                  "areaName": "Andaman and Nicobar",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "2",
+                "marketCode": "3367",
+                "marketName": "Diglipur Vegetable Market (Subhashgram)",
+                "state": "AN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "8",
+                  "name": "Black Gram(Urd Beans)(Whole)"
+                },
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3366",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mayabander Vegetable Market. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Mayabander Vegetable Market mandi prices",
+              "shortDesc": "Mandi prices at Mayabander Vegetable Market, North and Middle Andaman, Andaman and Nicobar"
+            },
+            "id": "resource:mandi-price:market:3366",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    92.897552,
+                    12.916442
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "2",
+                  "areaLevel": "District",
+                  "areaName": "North and Middle Andaman",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-AN",
+                  "areaLevel": "State",
+                  "areaName": "Andaman and Nicobar",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "2",
+                "marketCode": "3366",
+                "marketName": "Mayabander Vegetable Market",
+                "state": "AN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3365",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Perka Vegetable Market. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Perka Vegetable Market mandi prices",
+              "shortDesc": "Mandi prices at Perka Vegetable Market, Nicobar, Andaman and Nicobar"
+            },
+            "id": "resource:mandi-price:market:3365",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    92.81564,
+                    9.17775
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "1",
+                  "areaLevel": "District",
+                  "areaName": "Nicobar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-AN",
+                  "areaLevel": "State",
+                  "areaName": "Andaman and Nicobar",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "1",
+                "marketCode": "3365",
+                "marketName": "Perka Vegetable Market",
+                "state": "AN"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:mandi-price:AN",
+        "catalogType": "REGULAR",
+        "schemaTypes": [
+          "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld"
+        ],
+        "updateMode": "FULL",
+        "visibleTo": [
+          "{{networkId}}"
+        ]
+      }
+    ]
+  }
+}

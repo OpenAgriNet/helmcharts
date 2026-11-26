@@ -65,7 +65,7 @@
                 "en"
               ],
               "market": {
-                "district": "Udhamsinghnagar",
+                "district": "672",
                 "marketCode": "1075",
                 "marketName": "Bazpur APMC",
                 "state": "UC"
@@ -86,10 +86,6 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
-                },
-                {
-                  "code": "12",
-                  "name": "Mustard"
                 },
                 {
                   "code": "23",
@@ -144,7 +140,7 @@
                 "en"
               ],
               "market": {
-                "district": "Haridwar",
+                "district": "667",
                 "marketCode": "3338",
                 "marketName": "Bhagwanpur(Naveen Mandi Sthal) APMC",
                 "state": "UC"
@@ -208,7 +204,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dehradoon",
+                "district": "664",
                 "marketCode": "1666",
                 "marketName": "Chakrata APMC",
                 "state": "UC"
@@ -222,6 +218,73 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4697",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Chamoli APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Chamoli APMC mandi prices",
+              "shortDesc": "Mandi prices at Chamoli APMC, Chamoli (Gopeshwar), Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:4697",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.221041,
+                    30.257677
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "662",
+                  "areaLevel": "District",
+                  "areaName": "Chamoli (Gopeshwar)",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "662",
+                "marketCode": "4697",
+                "marketName": "Chamoli APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
                 {
                   "code": "24",
                   "name": "Potato"
@@ -275,7 +338,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dehradoon",
+                "district": "664",
                 "marketCode": "303",
                 "marketName": "Dehradoon APMC",
                 "state": "UC"
@@ -346,7 +409,7 @@
                 "en"
               ],
               "market": {
-                "district": "Udhamsinghnagar",
+                "district": "672",
                 "marketCode": "1076",
                 "marketName": "Gadarpur APMC",
                 "state": "UC"
@@ -360,10 +423,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "1",
-                  "name": "Wheat"
-                },
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
@@ -413,7 +472,7 @@
                 "en"
               ],
               "market": {
-                "district": "Nanital",
+                "district": "668",
                 "marketCode": "1070",
                 "marketName": "Haldwani APMC",
                 "state": "UC"
@@ -484,7 +543,7 @@
                 "en"
               ],
               "market": {
-                "district": "Haridwar",
+                "district": "667",
                 "marketCode": "1071",
                 "marketName": "Haridwar Union APMC",
                 "state": "UC"
@@ -555,7 +614,7 @@
                 "en"
               ],
               "market": {
-                "district": "Udhamsinghnagar",
+                "district": "672",
                 "marketCode": "1664",
                 "marketName": "Jaspur(UC) APMC",
                 "state": "UC"
@@ -626,7 +685,7 @@
                 "en"
               ],
               "market": {
-                "district": "Udhamsinghnagar",
+                "district": "672",
                 "marketCode": "319",
                 "marketName": "Kashipur APMC",
                 "state": "UC"
@@ -697,7 +756,7 @@
                 "en"
               ],
               "market": {
-                "district": "Udhamsinghnagar",
+                "district": "672",
                 "marketCode": "669",
                 "marketName": "Khateema APMC",
                 "state": "UC"
@@ -768,7 +827,7 @@
                 "en"
               ],
               "market": {
-                "district": "Udhamsinghnagar",
+                "district": "672",
                 "marketCode": "325",
                 "marketName": "Kicchha APMC",
                 "state": "UC"
@@ -839,7 +898,7 @@
                 "en"
               ],
               "market": {
-                "district": "Garhwal (Pauri)",
+                "district": "665",
                 "marketCode": "1074",
                 "marketName": "Kotadwara APMC",
                 "state": "UC"
@@ -914,7 +973,7 @@
                 "en"
               ],
               "market": {
-                "district": "Haridwar",
+                "district": "667",
                 "marketCode": "1665",
                 "marketName": "Lakshar APMC",
                 "state": "UC"
@@ -977,7 +1036,7 @@
                 "en"
               ],
               "market": {
-                "district": "Haridwar",
+                "district": "667",
                 "marketCode": "1077",
                 "marketName": "Manglaur APMC",
                 "state": "UC"
@@ -1048,7 +1107,7 @@
                 "en"
               ],
               "market": {
-                "district": "Udhamsinghnagar",
+                "district": "672",
                 "marketCode": "3043",
                 "marketName": "Nanakmatta APMC",
                 "state": "UC"
@@ -1062,10 +1121,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "1",
-                  "name": "Wheat"
-                },
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
@@ -1115,7 +1170,7 @@
                 "en"
               ],
               "market": {
-                "district": "Nanital",
+                "district": "668",
                 "marketCode": "1072",
                 "marketName": "Ramnagar APMC",
                 "state": "UC"
@@ -1129,10 +1184,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "9",
-                  "name": "Green Gram(Moong)(Whole)"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -1190,7 +1241,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dehradoon",
+                "district": "664",
                 "marketCode": "667",
                 "marketName": "Rishikesh APMC",
                 "state": "UC"
@@ -1261,7 +1312,7 @@
                 "en"
               ],
               "market": {
-                "district": "Haridwar",
+                "district": "667",
                 "marketCode": "1073",
                 "marketName": "Roorkee APMC",
                 "state": "UC"
@@ -1332,7 +1383,7 @@
                 "en"
               ],
               "market": {
-                "district": "Udhamsinghnagar",
+                "district": "672",
                 "marketCode": "326",
                 "marketName": "Rudrapur APMC",
                 "state": "UC"
@@ -1403,7 +1454,7 @@
                 "en"
               ],
               "market": {
-                "district": "Udhamsinghnagar",
+                "district": "672",
                 "marketCode": "1663",
                 "marketName": "Sitarganj APMC",
                 "state": "UC"
@@ -1417,10 +1468,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -1478,7 +1525,7 @@
                 "en"
               ],
               "market": {
-                "district": "Champawat",
+                "district": "663",
                 "marketCode": "1662",
                 "marketName": "Tanakpur APMC",
                 "state": "UC"
@@ -1493,12 +1540,16 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
                   "code": "24",
                   "name": "Potato"
+                },
+                {
+                  "code": "45",
+                  "name": "Arhar(Tur/Red Gram)(Whole)"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -1545,7 +1596,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dehradoon",
+                "district": "664",
                 "marketCode": "668",
                 "marketName": "Vikasnagar APMC",
                 "state": "UC"

@@ -30,6 +30,270 @@
         "resources": [
           {
             "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1522",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Anandapur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Anandapur APMC mandi prices",
+              "shortDesc": "Mandi prices at Anandapur APMC, Keonjhar, Odisha"
+            },
+            "id": "resource:mandi-price:market:1522",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    86.122942,
+                    21.188057
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "434",
+                  "areaLevel": "District",
+                  "areaName": "Keonjhar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "434",
+                "marketCode": "1522",
+                "marketName": "Anandapur APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3090",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Angaura APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Angaura APMC mandi prices",
+              "shortDesc": "Mandi prices at Angaura APMC, Angul, Odisha"
+            },
+            "id": "resource:mandi-price:market:3090",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    85.22162,
+                    20.94266
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "415",
+                  "areaLevel": "District",
+                  "areaName": "Angul",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "415",
+                "marketCode": "3090",
+                "marketName": "Angaura APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_197",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Angul APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Angul APMC mandi prices",
+              "shortDesc": "Mandi prices at Angul APMC, Angul, Odisha"
+            },
+            "id": "resource:mandi-price:market:197",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    85.101305,
+                    20.824636
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "415",
+                  "areaLevel": "District",
+                  "areaName": "Angul",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "415",
+                "marketCode": "197",
+                "marketName": "Angul APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2712",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Angul(Atthamallick) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Angul(Atthamallick) APMC mandi prices",
+              "shortDesc": "Mandi prices at Angul(Atthamallick) APMC, Angul, Odisha"
+            },
+            "id": "resource:mandi-price:market:2712",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    84.534685,
+                    20.7338
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "415",
+                  "areaLevel": "District",
+                  "areaName": "Angul",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "415",
+                "marketCode": "2712",
+                "marketName": "Angul(Atthamallick) APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
               "code": "MANDI_PRICE_MARKET_198",
               "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Attabira APMC. The result uses the same MandiPrice type in Direct information mode.",
               "name": "Attabira APMC mandi prices",
@@ -65,7 +329,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bargarh",
+                "district": "417",
                 "marketCode": "198",
                 "marketName": "Attabira APMC",
                 "state": "OR"
@@ -79,14 +343,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -136,9 +392,65 @@
                 "en"
               ],
               "market": {
-                "district": "Nayagarh",
+                "district": "439",
                 "marketCode": "1124",
                 "marketName": "Bahadajhola APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_4677",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Balasore APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Balasore APMC mandi prices",
+              "shortDesc": "Mandi prices at Balasore APMC, Balasore, Odisha"
+            },
+            "id": "resource:mandi-price:market:4677",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "416",
+                  "areaLevel": "District",
+                  "areaName": "Balasore",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "416",
+                "marketCode": "4677",
+                "marketName": "Balasore APMC",
                 "state": "OR"
               },
               "source": {
@@ -199,7 +511,7 @@
                 "en"
               ],
               "market": {
-                "district": "Khurda",
+                "district": "435",
                 "marketCode": "1523",
                 "marketName": "Balugaon APMC",
                 "state": "OR"
@@ -221,6 +533,69 @@
                   "code": "24",
                   "name": "Potato"
                 },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1517",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Banki APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Banki APMC mandi prices",
+              "shortDesc": "Mandi prices at Banki APMC, Cuttack, Odisha"
+            },
+            "id": "resource:mandi-price:market:1517",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    85.526183,
+                    20.37532
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "423",
+                  "areaLevel": "District",
+                  "areaName": "Cuttack",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "423",
+                "marketCode": "1517",
+                "marketName": "Banki APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -270,7 +645,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bargarh",
+                "district": "417",
                 "marketCode": "199",
                 "marketName": "Bargarh APMC",
                 "state": "OR"
@@ -341,7 +716,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bargarh",
+                "district": "417",
                 "marketCode": "2714",
                 "marketName": "Bargarh(Barapalli) APMC",
                 "state": "OR"
@@ -363,6 +738,69 @@
                   "code": "24",
                   "name": "Potato"
                 },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3085",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Barikpur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Barikpur APMC mandi prices",
+              "shortDesc": "Mandi prices at Barikpur APMC, Balasore, Odisha"
+            },
+            "id": "resource:mandi-price:market:3085",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    86.747046,
+                    21.332852
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "416",
+                  "areaLevel": "District",
+                  "areaName": "Balasore",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "416",
+                "marketCode": "3085",
+                "marketName": "Barikpur APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -412,7 +850,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mayurbhanja",
+                "district": "438",
                 "marketCode": "592",
                 "marketName": "Baripada APMC",
                 "state": "OR"
@@ -475,7 +913,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mayurbhanja",
+                "district": "438",
                 "marketCode": "1519",
                 "marketName": "Betnoti APMC",
                 "state": "OR"
@@ -538,7 +976,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ganjam",
+                "district": "427",
                 "marketCode": "1506",
                 "marketName": "Bhanjanagar APMC",
                 "state": "OR"
@@ -601,7 +1039,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kalahandi",
+                "district": "431",
                 "marketCode": "207",
                 "marketName": "Bhawanipatna APMC",
                 "state": "OR"
@@ -615,10 +1053,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -668,7 +1102,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sonepur",
+                "district": "446",
                 "marketCode": "1525",
                 "marketName": "Birmaharajpur APMC",
                 "state": "OR"
@@ -739,7 +1173,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bolangir",
+                "district": "421",
                 "marketCode": "595",
                 "marketName": "Bolangir APMC",
                 "state": "OR"
@@ -761,6 +1195,62 @@
                   "code": "24",
                   "name": "Potato"
                 },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2713",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bonai APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bonai APMC mandi prices",
+              "shortDesc": "Mandi prices at Bonai APMC, Sundergarh, Odisha"
+            },
+            "id": "resource:mandi-price:market:2713",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "447",
+                  "areaLevel": "District",
+                  "areaName": "Sundergarh",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "447",
+                "marketCode": "2713",
+                "marketName": "Bonai APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -810,7 +1300,7 @@
                 "en"
               ],
               "market": {
-                "district": "Boudh",
+                "district": "422",
                 "marketCode": "1507",
                 "marketName": "Boudh APMC",
                 "state": "OR"
@@ -832,6 +1322,132 @@
                   "code": "24",
                   "name": "Potato"
                 },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1521",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Champua APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Champua APMC mandi prices",
+              "shortDesc": "Mandi prices at Champua APMC, Keonjhar, Odisha"
+            },
+            "id": "resource:mandi-price:market:1521",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    85.66366723,
+                    22.06440091
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "434",
+                  "areaLevel": "District",
+                  "areaName": "Keonjhar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "434",
+                "marketCode": "1521",
+                "marketName": "Champua APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2715",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Champua(Jhumpura) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Champua(Jhumpura) APMC mandi prices",
+              "shortDesc": "Mandi prices at Champua(Jhumpura) APMC, Keonjhar, Odisha"
+            },
+            "id": "resource:mandi-price:market:2715",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    85.56973586,
+                    21.82676642
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "434",
+                  "areaLevel": "District",
+                  "areaName": "Keonjhar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "434",
+                "marketCode": "2715",
+                "marketName": "Champua(Jhumpura) APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -881,7 +1497,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bhadrak",
+                "district": "419",
                 "marketCode": "1526",
                 "marketName": "Chandabali APMC",
                 "state": "OR"
@@ -952,7 +1568,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kendrapara",
+                "district": "433",
                 "marketCode": "3302",
                 "marketName": "Chatta Krushak Bazar APMC",
                 "state": "OR"
@@ -967,13 +1583,261 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
                   "code": "24",
                   "name": "Potato"
                 },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3303",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Damana Hat APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Damana Hat APMC mandi prices",
+              "shortDesc": "Mandi prices at Damana Hat APMC, Khurda, Odisha"
+            },
+            "id": "resource:mandi-price:market:3303",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    85.819781,
+                    20.332059
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "435",
+                  "areaLevel": "District",
+                  "areaName": "Khurda",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "435",
+                "marketCode": "3303",
+                "marketName": "Damana Hat APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1518",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Deogarh APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Deogarh APMC mandi prices",
+              "shortDesc": "Mandi prices at Deogarh APMC, Deogarh, Odisha"
+            },
+            "id": "resource:mandi-price:market:1518",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    84.723392,
+                    21.54264
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "424",
+                  "areaLevel": "District",
+                  "areaName": "Deogarh",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "424",
+                "marketCode": "1518",
+                "marketName": "Deogarh APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1514",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Dhenkanal APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Dhenkanal APMC mandi prices",
+              "shortDesc": "Mandi prices at Dhenkanal APMC, Dhenkanal, Odisha"
+            },
+            "id": "resource:mandi-price:market:1514",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    85.593845,
+                    20.650977
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "425",
+                  "areaLevel": "District",
+                  "areaName": "Dhenkanal",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "425",
+                "marketCode": "1514",
+                "marketName": "Dhenkanal APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1607",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Digapahandi APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Digapahandi APMC mandi prices",
+              "shortDesc": "Mandi prices at Digapahandi APMC, Ganjam, Odisha"
+            },
+            "id": "resource:mandi-price:market:1607",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    84.583322,
+                    19.930124
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "427",
+                  "areaLevel": "District",
+                  "areaName": "Ganjam",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "427",
+                "marketCode": "1607",
+                "marketName": "Digapahandi APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -1023,7 +1887,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sonepur",
+                "district": "446",
                 "marketCode": "201",
                 "marketName": "Dungurapalli APMC",
                 "state": "OR"
@@ -1094,7 +1958,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bargarh",
+                "district": "417",
                 "marketCode": "3086",
                 "marketName": "Godbhaga APMC",
                 "state": "OR"
@@ -1108,14 +1972,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -1165,7 +2021,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kendrapara",
+                "district": "433",
                 "marketCode": "3300",
                 "marketName": "Gopa APMC",
                 "state": "OR"
@@ -1180,13 +2036,72 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
                   "code": "24",
                   "name": "Potato"
                 },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3083",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Gosala APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Gosala APMC mandi prices",
+              "shortDesc": "Mandi prices at Gosala APMC, Sambalpur, Odisha"
+            },
+            "id": "resource:mandi-price:market:3083",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    83.899984,
+                    21.430437
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "445",
+                  "areaLevel": "District",
+                  "areaName": "Sambalpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "445",
+                "marketCode": "3083",
+                "marketName": "Gosala APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -1236,7 +2151,7 @@
                 "en"
               ],
               "market": {
-                "district": "Rayagada",
+                "district": "443",
                 "marketCode": "210",
                 "marketName": "Gunpur APMC",
                 "state": "OR"
@@ -1299,80 +2214,9 @@
                 "en"
               ],
               "market": {
-                "district": "Dhenkanal",
+                "district": "425",
                 "marketCode": "3308",
                 "marketName": "Hindol APMC",
-                "state": "OR"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1527",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Hinjilicut APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Hinjilicut APMC mandi prices",
-              "shortDesc": "Mandi prices at Hinjilicut APMC, Ganjam, Odisha"
-            },
-            "id": "resource:mandi-price:market:1527",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    84.741197,
-                    19.476799
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "427",
-                  "areaLevel": "District",
-                  "areaName": "Ganjam",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-OD",
-                  "areaLevel": "State",
-                  "areaName": "Odisha",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Ganjam",
-                "marketCode": "1527",
-                "marketName": "Hinjilicut APMC",
                 "state": "OR"
               },
               "source": {
@@ -1441,7 +2285,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jagatsinghpur",
+                "district": "428",
                 "marketCode": "1503",
                 "marketName": "Jagatsinghpur APMC",
                 "state": "OR"
@@ -1469,27 +2313,27 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1513",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jaleswar APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Jaleswar APMC mandi prices",
-              "shortDesc": "Mandi prices at Jaleswar APMC, Balasore, Odisha"
+              "code": "MANDI_PRICE_MARKET_1123",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jatni APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jatni APMC mandi prices",
+              "shortDesc": "Mandi prices at Jatni APMC, Khurda, Odisha"
             },
-            "id": "resource:mandi-price:market:1513",
+            "id": "resource:mandi-price:market:1123",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
                 {
                   "coordinates": [
-                    82.920733,
-                    20.459507
+                    85.69563,
+                    20.162143
                   ],
                   "type": "Point"
                 },
                 {
-                  "areaCode": "416",
+                  "areaCode": "435",
                   "areaLevel": "District",
-                  "areaName": "Balasore",
+                  "areaName": "Khurda",
                   "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
@@ -1504,9 +2348,9 @@
                 "en"
               ],
               "market": {
-                "district": "Balasore",
-                "marketCode": "1513",
-                "marketName": "Jaleswar APMC",
+                "district": "435",
+                "marketCode": "1123",
+                "marketName": "Jatni APMC",
                 "state": "OR"
               },
               "source": {
@@ -1519,17 +2363,131 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "10",
-                  "name": "Groundnut"
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_211",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jeypore APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jeypore APMC mandi prices",
+              "shortDesc": "Mandi prices at Jeypore APMC, Koraput, Odisha"
+            },
+            "id": "resource:mandi-price:market:211",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    82.560212,
+                    18.886425
+                  ],
+                  "type": "Point"
                 },
                 {
-                  "code": "23",
-                  "name": "Onion"
+                  "areaCode": "436",
+                  "areaLevel": "District",
+                  "areaName": "Koraput",
+                  "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
-                  "code": "24",
-                  "name": "Potato"
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "436",
+                "marketCode": "211",
+                "marketName": "Jeypore APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2717",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jeypore(Kotpad) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jeypore(Kotpad) APMC mandi prices",
+              "shortDesc": "Mandi prices at Jeypore(Kotpad) APMC, Koraput, Odisha"
+            },
+            "id": "resource:mandi-price:market:2717",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    82.317132,
+                    19.143126
+                  ],
+                  "type": "Point"
                 },
+                {
+                  "areaCode": "436",
+                  "areaLevel": "District",
+                  "areaName": "Koraput",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "436",
+                "marketCode": "2717",
+                "marketName": "Jeypore(Kotpad) APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -1579,7 +2537,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jharsuguda",
+                "district": "430",
                 "marketCode": "1204",
                 "marketName": "Jharsuguda APMC",
                 "state": "OR"
@@ -1600,6 +2558,10 @@
                 {
                   "code": "24",
                   "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -1646,7 +2608,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kalahandi",
+                "district": "431",
                 "marketCode": "205",
                 "marketName": "Junagarh APMC",
                 "state": "OR"
@@ -1709,7 +2671,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kalahandi",
+                "district": "431",
                 "marketCode": "2718",
                 "marketName": "Kalahandi(Dharamagarh) APMC",
                 "state": "OR"
@@ -1772,7 +2734,7 @@
                 "en"
               ],
               "market": {
-                "district": "Dhenkanal",
+                "district": "425",
                 "marketCode": "1516",
                 "marketName": "Kamakhyanagar APMC",
                 "state": "OR"
@@ -1843,7 +2805,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bolangir",
+                "district": "421",
                 "marketCode": "202",
                 "marketName": "Kantabaji APMC",
                 "state": "OR"
@@ -1906,7 +2868,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mayurbhanja",
+                "district": "438",
                 "marketCode": "1512",
                 "marketName": "Karanjia APMC",
                 "state": "OR"
@@ -1923,6 +2885,73 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3081",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kasinagar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kasinagar APMC mandi prices",
+              "shortDesc": "Mandi prices at Kasinagar APMC, Gajapati, Odisha"
+            },
+            "id": "resource:mandi-price:market:3081",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    83.8808,
+                    18.8578
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "426",
+                  "areaLevel": "District",
+                  "areaName": "Gajapati",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "426",
+                "marketCode": "3081",
+                "marketName": "Kasinagar APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -1969,7 +2998,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kendrapara",
+                "district": "433",
                 "marketCode": "203",
                 "marketName": "Kendrapara APMC",
                 "state": "OR"
@@ -1983,10 +3012,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
                 {
                   "code": "24",
                   "name": "Potato"
@@ -2040,7 +3065,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kendrapara",
+                "district": "433",
                 "marketCode": "2720",
                 "marketName": "Kendrapara(Marshaghai) APMC",
                 "state": "OR"
@@ -2055,13 +3080,135 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
                   "code": "24",
                   "name": "Potato"
                 },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1502",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kendupatna APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kendupatna APMC mandi prices",
+              "shortDesc": "Mandi prices at Kendupatna APMC, Cuttack, Odisha"
+            },
+            "id": "resource:mandi-price:market:1502",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    86.139083,
+                    20.47754
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "423",
+                  "areaLevel": "District",
+                  "areaName": "Cuttack",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "423",
+                "marketCode": "1502",
+                "marketName": "Kendupatna APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_2722",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kendupatna(Niali) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kendupatna(Niali) APMC mandi prices",
+              "shortDesc": "Mandi prices at Kendupatna(Niali) APMC, Cuttack, Odisha"
+            },
+            "id": "resource:mandi-price:market:2722",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    85.844447,
+                    20.479685
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "423",
+                  "areaLevel": "District",
+                  "areaName": "Cuttack",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "423",
+                "marketCode": "2722",
+                "marketName": "Kendupatna(Niali) APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -2111,7 +3258,7 @@
                 "en"
               ],
               "market": {
-                "district": "Keonjhar",
+                "district": "434",
                 "marketCode": "1520",
                 "marketName": "Keonjhar APMC",
                 "state": "OR"
@@ -2182,7 +3329,7 @@
                 "en"
               ],
               "market": {
-                "district": "Keonjhar",
+                "district": "434",
                 "marketCode": "2721",
                 "marketName": "Keonjhar(Dhekikote) APMC",
                 "state": "OR"
@@ -2253,7 +3400,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kalahandi",
+                "district": "431",
                 "marketCode": "206",
                 "marketName": "Kesinga APMC",
                 "state": "OR"
@@ -2268,16 +3415,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "10",
-                  "name": "Groundnut"
-                },
-                {
                   "code": "23",
                   "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
                 },
                 {
                   "code": "65",
@@ -2328,7 +3467,7 @@
                 "en"
               ],
               "market": {
-                "district": "Nuapada",
+                "district": "441",
                 "marketCode": "3297",
                 "marketName": "Khariar APMC",
                 "state": "OR"
@@ -2399,7 +3538,7 @@
                 "en"
               ],
               "market": {
-                "district": "Nuapada",
+                "district": "441",
                 "marketCode": "594",
                 "marketName": "Khariar Road APMC",
                 "state": "OR"
@@ -2470,7 +3609,7 @@
                 "en"
               ],
               "market": {
-                "district": "Boudh",
+                "district": "422",
                 "marketCode": "3082",
                 "marketName": "Khunthabandha APMC",
                 "state": "OR"
@@ -2541,7 +3680,7 @@
                 "en"
               ],
               "market": {
-                "district": "Koraput",
+                "district": "436",
                 "marketCode": "591",
                 "marketName": "Koraput APMC",
                 "state": "OR"
@@ -2555,10 +3694,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -2608,7 +3743,7 @@
                 "en"
               ],
               "market": {
-                "district": "Koraput",
+                "district": "436",
                 "marketCode": "1688",
                 "marketName": "Koraput(Semilguda) APMC",
                 "state": "OR"
@@ -2622,10 +3757,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -2675,7 +3806,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sambalpur",
+                "district": "445",
                 "marketCode": "1509",
                 "marketName": "Kuchinda APMC",
                 "state": "OR"
@@ -2689,10 +3820,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -2742,7 +3869,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kalahandi",
+                "district": "431",
                 "marketCode": "1528",
                 "marketName": "Mukhiguda",
                 "state": "OR"
@@ -2805,7 +3932,7 @@
                 "en"
               ],
               "market": {
-                "district": "Nowarangpur",
+                "district": "440",
                 "marketCode": "2724",
                 "marketName": "Nabarangpur(Umerkote) APMC",
                 "state": "OR"
@@ -2822,6 +3949,70 @@
                 {
                   "code": "4",
                   "name": "Maize"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_212",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nawarangpur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Nawarangpur APMC mandi prices",
+              "shortDesc": "Mandi prices at Nawarangpur APMC, Nowarangpur, Odisha"
+            },
+            "id": "resource:mandi-price:market:212",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "440",
+                  "areaLevel": "District",
+                  "areaName": "Nowarangpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "440",
+                "marketCode": "212",
+                "marketName": "Nawarangpur APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -2868,7 +4059,7 @@
                 "en"
               ],
               "market": {
-                "district": "Balasore",
+                "district": "416",
                 "marketCode": "3306",
                 "marketName": "Nilagiri APMC",
                 "state": "OR"
@@ -2882,6 +4073,77 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1504",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nimapara APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Nimapara APMC mandi prices",
+              "shortDesc": "Mandi prices at Nimapara APMC, Puri, Odisha"
+            },
+            "id": "resource:mandi-price:market:1504",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    86.011532,
+                    20.063386
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "442",
+                  "areaLevel": "District",
+                  "areaName": "Puri",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "442",
+                "marketCode": "1504",
+                "marketName": "Nimapara APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -2931,9 +4193,65 @@
                 "en"
               ],
               "market": {
-                "district": "Bargarh",
+                "district": "417",
                 "marketCode": "593",
                 "marketName": "Padampur APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3307",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Pallahara APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Pallahara APMC mandi prices",
+              "shortDesc": "Mandi prices at Pallahara APMC, Angul, Odisha"
+            },
+            "id": "resource:mandi-price:market:3307",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "415",
+                  "areaLevel": "District",
+                  "areaName": "Angul",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "415",
+                "marketCode": "3307",
+                "marketName": "Pallahara APMC",
                 "state": "OR"
               },
               "source": {
@@ -2994,7 +4312,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sonepur",
+                "district": "446",
                 "marketCode": "3095",
                 "marketName": "Pandkital APMC",
                 "state": "OR"
@@ -3065,7 +4383,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sundergarh",
+                "district": "447",
                 "marketCode": "1125",
                 "marketName": "Panposh APMC",
                 "state": "OR"
@@ -3128,7 +4446,7 @@
                 "en"
               ],
               "market": {
-                "district": "Gajapati",
+                "district": "426",
                 "marketCode": "1505",
                 "marketName": "Parlakhemundi APMC",
                 "state": "OR"
@@ -3195,9 +4513,76 @@
                 "en"
               ],
               "market": {
-                "district": "Kendrapara",
+                "district": "433",
                 "marketCode": "3301",
                 "marketName": "Pattamundai APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1508",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Rairakhol APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Rairakhol APMC mandi prices",
+              "shortDesc": "Mandi prices at Rairakhol APMC, Sambalpur, Odisha"
+            },
+            "id": "resource:mandi-price:market:1508",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    84.076053,
+                    21.112763
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "445",
+                  "areaLevel": "District",
+                  "areaName": "Sambalpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "445",
+                "marketCode": "1508",
+                "marketName": "Rairakhol APMC",
                 "state": "OR"
               },
               "source": {
@@ -3266,7 +4651,7 @@
                 "en"
               ],
               "market": {
-                "district": "Rayagada",
+                "district": "443",
                 "marketCode": "214",
                 "marketName": "Rayagada APMC",
                 "state": "OR"
@@ -3280,14 +4665,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -3337,7 +4714,7 @@
                 "en"
               ],
               "market": {
-                "district": "Rayagada",
+                "district": "443",
                 "marketCode": "2716",
                 "marketName": "Rayagada(Muniguda) APMC",
                 "state": "OR"
@@ -3400,7 +4777,7 @@
                 "en"
               ],
               "market": {
-                "district": "Keonjhar",
+                "district": "434",
                 "marketCode": "3092",
                 "marketName": "Saharpada APMC",
                 "state": "OR"
@@ -3422,6 +4799,125 @@
                   "code": "24",
                   "name": "Potato"
                 },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3298",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sahaspur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sahaspur APMC mandi prices",
+              "shortDesc": "Mandi prices at Sahaspur APMC, Sambalpur, Odisha"
+            },
+            "id": "resource:mandi-price:market:3298",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    83.964704,
+                    21.34015
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "445",
+                  "areaLevel": "District",
+                  "areaName": "Sambalpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "445",
+                "marketCode": "3298",
+                "marketName": "Sahaspur APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_596",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sambalpur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sambalpur APMC mandi prices",
+              "shortDesc": "Mandi prices at Sambalpur APMC, Sambalpur, Odisha"
+            },
+            "id": "resource:mandi-price:market:596",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "445",
+                  "areaLevel": "District",
+                  "areaName": "Sambalpur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "445",
+                "marketCode": "596",
+                "marketName": "Sambalpur APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -3471,7 +4967,7 @@
                 "en"
               ],
               "market": {
-                "district": "Nayagarh",
+                "district": "439",
                 "marketCode": "3089",
                 "marketName": "Sarankul APMC",
                 "state": "OR"
@@ -3534,7 +5030,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mayurbhanja",
+                "district": "438",
                 "marketCode": "3084",
                 "marketName": "Saraskana APMC",
                 "state": "OR"
@@ -3597,7 +5093,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sundergarh",
+                "district": "447",
                 "marketCode": "1510",
                 "marketName": "Sargipali APMC",
                 "state": "OR"
@@ -3668,9 +5164,143 @@
                 "en"
               ],
               "market": {
-                "district": "Bargarh",
+                "district": "417",
                 "marketCode": "3093",
                 "marketName": "Sohela APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1515",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Talcher APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Talcher APMC mandi prices",
+              "shortDesc": "Mandi prices at Talcher APMC, Angul, Odisha"
+            },
+            "id": "resource:mandi-price:market:1515",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    85.21644,
+                    20.90239
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "415",
+                  "areaLevel": "District",
+                  "areaName": "Angul",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "415",
+                "marketCode": "1515",
+                "marketName": "Talcher APMC",
+                "state": "OR"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3094",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Tileibani APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Tileibani APMC mandi prices",
+              "shortDesc": "Mandi prices at Tileibani APMC, Deogarh, Odisha"
+            },
+            "id": "resource:mandi-price:market:3094",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    84.604901,
+                    21.544761
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "424",
+                  "areaLevel": "District",
+                  "areaName": "Deogarh",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-OD",
+                  "areaLevel": "State",
+                  "areaName": "Odisha",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "424",
+                "marketCode": "3094",
+                "marketName": "Tileibani APMC",
                 "state": "OR"
               },
               "source": {
@@ -3731,7 +5361,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bolangir",
+                "district": "421",
                 "marketCode": "3080",
                 "marketName": "Tusura APMC",
                 "state": "OR"
@@ -3802,7 +5432,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mayurbhanja",
+                "district": "438",
                 "marketCode": "1511",
                 "marketName": "Udala APMC",
                 "state": "OR"

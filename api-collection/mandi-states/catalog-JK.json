@@ -30,16 +30,23 @@
         "resources": [
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_3357",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ashahipora (Anantnagh) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Ashahipora (Anantnagh) APMC mandi prices",
-              "shortDesc": "Mandi prices at Ashahipora (Anantnagh) APMC, Anantnag, Jammu and Kashmir"
+              "code": "MANDI_PRICE_MARKET_3500",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Batengoo Anantnag (F&V). The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Batengoo Anantnag (F&V) mandi prices",
+              "shortDesc": "Mandi prices at Batengoo Anantnag (F&V), Anantnag, Jammu and Kashmir"
             },
-            "id": "resource:mandi-price:market:3357",
+            "id": "resource:mandi-price:market:3500",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
+                {
+                  "coordinates": [
+                    75.119083,
+                    33.75501
+                  ],
+                  "type": "Point"
+                },
                 {
                   "areaCode": "199",
                   "areaLevel": "District",
@@ -58,80 +65,9 @@
                 "en"
               ],
               "market": {
-                "district": "Anantnag",
-                "marketCode": "3357",
-                "marketName": "Ashahipora (Anantnagh) APMC",
-                "state": "JK"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_2171",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Batote (F&V). The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Batote (F&V) mandi prices",
-              "shortDesc": "Mandi prices at Batote (F&V), Ramban, Jammu and Kashmir"
-            },
-            "id": "resource:mandi-price:market:2171",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    75.327786,
-                    33.116415
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "215",
-                  "areaLevel": "District",
-                  "areaName": "Ramban",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-JK",
-                  "areaLevel": "State",
-                  "areaName": "Jammu and Kashmir",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Ramban",
-                "marketCode": "2171",
-                "marketName": "Batote (F&V)",
+                "district": "199",
+                "marketCode": "3500",
+                "marketName": "Batengoo Anantnag (F&V)",
                 "state": "JK"
               },
               "source": {
@@ -200,7 +136,7 @@
                 "en"
               ],
               "market": {
-                "district": "Udhampur",
+                "district": "219",
                 "marketCode": "98",
                 "marketName": "Fruit and Vegetable Market Udhampur",
                 "state": "JK"
@@ -217,10 +153,6 @@
                 {
                   "code": "23",
                   "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
                 },
                 {
                   "code": "65",
@@ -271,7 +203,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kathua",
+                "district": "207",
                 "marketCode": "2173",
                 "marketName": "Kathua (F&V)",
                 "state": "JK"
@@ -342,7 +274,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jammu",
+                "district": "205",
                 "marketCode": "472",
                 "marketName": "MAC F&V Market Narwal Jammu",
                 "state": "JK"
@@ -413,7 +345,7 @@
                 "en"
               ],
               "market": {
-                "district": "Srinagar",
+                "district": "218",
                 "marketCode": "97",
                 "marketName": "Parimpore Srinagar (F&V)",
                 "state": "JK"
@@ -484,7 +416,7 @@
                 "en"
               ],
               "market": {
-                "district": "Rajouri",
+                "district": "214",
                 "marketCode": "478",
                 "marketName": "Rajouri (Phaliana) (F&V)",
                 "state": "JK"

@@ -65,7 +65,7 @@
                 "en"
               ],
               "market": {
-                "district": "Fazilka",
+                "district": "457",
                 "marketCode": "221",
                 "marketName": "Abohar APMC",
                 "state": "PB"
@@ -84,10 +84,6 @@
                   "name": "Wheat"
                 },
                 {
-                  "code": "4",
-                  "name": "Maize"
-                },
-                {
                   "code": "6",
                   "name": "Bengal Gram(Gram)(Whole)"
                 },
@@ -102,6 +98,85 @@
                 {
                   "code": "15",
                   "name": "Cotton"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1435",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Adampur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Adampur APMC mandi prices",
+              "shortDesc": "Mandi prices at Adampur APMC, Jalandhar, Punjab"
+            },
+            "id": "resource:mandi-price:market:1435",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    75.719716,
+                    31.425689
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "461",
+                  "areaLevel": "District",
+                  "areaName": "Jalandhar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-PB",
+                  "areaLevel": "State",
+                  "areaName": "Punjab",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "461",
+                "marketCode": "1435",
+                "marketName": "Adampur APMC",
+                "state": "PB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -148,7 +223,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sangrur",
+                "district": "472",
                 "marketCode": "1460",
                 "marketName": "Ahmedgarh APMC",
                 "state": "PB"
@@ -219,202 +294,9 @@
                 "en"
               ],
               "market": {
-                "district": "Amritsar",
+                "district": "452",
                 "marketCode": "597",
                 "marketName": "Ajnala APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1589",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Amargarh APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Amargarh APMC mandi prices",
-              "shortDesc": "Mandi prices at Amargarh APMC, Sangrur, Punjab"
-            },
-            "id": "resource:mandi-price:market:1589",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    76.0131,
-                    30.4607
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "472",
-                  "areaLevel": "District",
-                  "areaName": "Sangrur",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Sangrur",
-                "marketCode": "1589",
-                "marketName": "Amargarh APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_607",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Amloh APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Amloh APMC mandi prices",
-              "shortDesc": "Mandi prices at Amloh APMC, Fatehgarh, Punjab"
-            },
-            "id": "resource:mandi-price:market:607",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    76.2306306,
-                    30.5991366
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "456",
-                  "areaLevel": "District",
-                  "areaName": "Fatehgarh",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Fatehgarh",
-                "marketCode": "607",
-                "marketName": "Amloh APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_2498",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Amritsar(Amritsar Mewa Mandi) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Amritsar(Amritsar Mewa Mandi) APMC mandi prices",
-              "shortDesc": "Mandi prices at Amritsar(Amritsar Mewa Mandi) APMC, Amritsar, Punjab"
-            },
-            "id": "resource:mandi-price:market:2498",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    74.87123,
-                    31.60415
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "452",
-                  "areaLevel": "District",
-                  "areaName": "Amritsar",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Amritsar",
-                "marketCode": "2498",
-                "marketName": "Amritsar(Amritsar Mewa Mandi) APMC",
                 "state": "PB"
               },
               "source": {
@@ -483,7 +365,7 @@
                 "en"
               ],
               "market": {
-                "district": "Moga",
+                "district": "465",
                 "marketCode": "228",
                 "marketName": "Baghapurana APMC",
                 "state": "PB"
@@ -519,20 +401,20 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1454",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Banga APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Banga APMC mandi prices",
-              "shortDesc": "Mandi prices at Banga APMC, Nawanshahr, Punjab"
+              "code": "MANDI_PRICE_MARKET_1453",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Balachaur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Balachaur APMC mandi prices",
+              "shortDesc": "Mandi prices at Balachaur APMC, Nawanshahr, Punjab"
             },
-            "id": "resource:mandi-price:market:1454",
+            "id": "resource:mandi-price:market:1453",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
                 {
                   "coordinates": [
-                    75.982796,
-                    31.188139
+                    76.30727,
+                    31.06301
                   ],
                   "type": "Point"
                 },
@@ -554,9 +436,9 @@
                 "en"
               ],
               "market": {
-                "district": "Nawanshahr",
-                "marketCode": "1454",
-                "marketName": "Banga APMC",
+                "district": "468",
+                "marketCode": "1453",
+                "marketName": "Balachaur APMC",
                 "state": "PB"
               },
               "source": {
@@ -572,73 +454,6 @@
                   "code": "23",
                   "name": "Onion"
                 },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_3435",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Banur (Kheragaju) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Banur (Kheragaju) APMC mandi prices",
-              "shortDesc": "Mandi prices at Banur (Kheragaju) APMC, Mohali, Punjab"
-            },
-            "id": "resource:mandi-price:market:3435",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    76.6333205,
-                    30.5952481
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "466",
-                  "areaLevel": "District",
-                  "areaName": "Mohali",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Mohali",
-                "marketCode": "3435",
-                "marketName": "Banur (Kheragaju) APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
                 {
                   "code": "24",
                   "name": "Potato"
@@ -692,7 +507,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mohali",
+                "district": "466",
                 "marketCode": "1585",
                 "marketName": "Banur APMC",
                 "state": "PB"
@@ -763,7 +578,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mansa",
+                "district": "464",
                 "marketCode": "616",
                 "marketName": "Bareta APMC",
                 "state": "PB"
@@ -778,83 +593,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1452",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bariwala APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Bariwala APMC mandi prices",
-              "shortDesc": "Mandi prices at Bariwala APMC, Muktsar, Punjab"
-            },
-            "id": "resource:mandi-price:market:1452",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    74.654696,
-                    30.532301
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "467",
-                  "areaLevel": "District",
-                  "areaName": "Muktsar",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Muktsar",
-                "marketCode": "1452",
-                "marketName": "Bariwala APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "55",
-                  "name": "Toria"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
+                  "code": "15",
+                  "name": "Cotton"
                 }
               ],
               "supportedPriceFields": [
@@ -901,7 +641,7 @@
                 "en"
               ],
               "market": {
-                "district": "Fatehgarh",
+                "district": "456",
                 "marketCode": "1464",
                 "marketName": "Bassi Pathana APMC",
                 "state": "PB"
@@ -972,7 +712,7 @@
                 "en"
               ],
               "market": {
-                "district": "Gurdaspur",
+                "district": "459",
                 "marketCode": "222",
                 "marketName": "Batala APMC",
                 "state": "PB"
@@ -1043,7 +783,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bhatinda",
+                "district": "454",
                 "marketCode": "603",
                 "marketName": "Bathinda APMC",
                 "state": "PB"
@@ -1114,7 +854,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bhatinda",
+                "district": "454",
                 "marketCode": "1569",
                 "marketName": "Bhagta Bhai Ka APMC",
                 "state": "PB"
@@ -1185,7 +925,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sangrur",
+                "district": "472",
                 "marketCode": "240",
                 "marketName": "Bhawanigarh APMC",
                 "state": "PB"
@@ -1200,10 +940,6 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
-                {
                   "code": "23",
                   "name": "Onion"
                 },
@@ -1214,69 +950,6 @@
                 {
                   "code": "65",
                   "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1447",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bhikhi APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Bhikhi APMC mandi prices",
-              "shortDesc": "Mandi prices at Bhikhi APMC, Mansa, Punjab"
-            },
-            "id": "resource:mandi-price:market:1447",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    75.525249,
-                    30.063926
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "464",
-                  "areaLevel": "District",
-                  "areaName": "Mansa",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Mansa",
-                "marketCode": "1447",
-                "marketName": "Bhikhi APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -1323,7 +996,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jalandhar",
+                "district": "461",
                 "marketCode": "1436",
                 "marketName": "Bhogpur APMC",
                 "state": "PB"
@@ -1351,27 +1024,27 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_3408",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bhulath (Nadala) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Bhulath (Nadala) APMC mandi prices",
-              "shortDesc": "Mandi prices at Bhulath (Nadala) APMC, Kapurthala, Punjab"
+              "code": "MANDI_PRICE_MARKET_1421",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bhucho APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bhucho APMC mandi prices",
+              "shortDesc": "Mandi prices at Bhucho APMC, Bhatinda, Punjab"
             },
-            "id": "resource:mandi-price:market:3408",
+            "id": "resource:mandi-price:market:1421",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
                 {
                   "coordinates": [
-                    71.5697,
-                    30.7018
+                    75.09688,
+                    30.21287
                   ],
                   "type": "Point"
                 },
                 {
-                  "areaCode": "462",
+                  "areaCode": "454",
                   "areaLevel": "District",
-                  "areaName": "Kapurthala",
+                  "areaName": "Bhatinda",
                   "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
@@ -1386,139 +1059,9 @@
                 "en"
               ],
               "market": {
-                "district": "Kapurthala",
-                "marketCode": "3408",
-                "marketName": "Bhulath (Nadala) APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "24",
-                  "name": "Potato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1439",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bhulath APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Bhulath APMC mandi prices",
-              "shortDesc": "Mandi prices at Bhulath APMC, Kapurthala, Punjab"
-            },
-            "id": "resource:mandi-price:market:1439",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    75.5058,
-                    31.5423
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "462",
-                  "areaLevel": "District",
-                  "areaName": "Kapurthala",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Kapurthala",
-                "marketCode": "1439",
-                "marketName": "Bhulath APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1579",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bilga APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Bilga APMC mandi prices",
-              "shortDesc": "Mandi prices at Bilga APMC, Jalandhar, Punjab"
-            },
-            "id": "resource:mandi-price:market:1579",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    75.666333,
-                    31.060444
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "461",
-                  "areaLevel": "District",
-                  "areaName": "Jalandhar",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Jalandhar",
-                "marketCode": "1579",
-                "marketName": "Bilga APMC",
+                "district": "454",
+                "marketCode": "1421",
+                "marketName": "Bhucho APMC",
                 "state": "PB"
               },
               "source": {
@@ -1587,7 +1130,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mansa",
+                "district": "464",
                 "marketCode": "615",
                 "marketName": "Budalada APMC",
                 "state": "PB"
@@ -1601,10 +1144,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
                 {
                   "code": "15",
                   "name": "Cotton"
@@ -1620,6 +1159,69 @@
                 {
                   "code": "65",
                   "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1562",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Chabhal APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Chabhal APMC mandi prices",
+              "shortDesc": "Mandi prices at Chabhal APMC, Tarntaran, Punjab"
+            },
+            "id": "resource:mandi-price:market:1562",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    74.78381,
+                    31.48556
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "473",
+                  "areaLevel": "District",
+                  "areaName": "Tarntaran",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-PB",
+                  "areaLevel": "State",
+                  "areaName": "Punjab",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "473",
+                "marketCode": "1562",
+                "marketName": "Chabhal APMC",
+                "state": "PB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -1666,7 +1268,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ropar (Rupnagar)",
+                "district": "471",
                 "marketCode": "1457",
                 "marketName": "Chamkaur Sahib APMC",
                 "state": "PB"
@@ -1702,27 +1304,27 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1465",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Chanarthal APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Chanarthal APMC mandi prices",
-              "shortDesc": "Mandi prices at Chanarthal APMC, Fatehgarh, Punjab"
+              "code": "MANDI_PRICE_MARKET_1432",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Dasuya APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Dasuya APMC mandi prices",
+              "shortDesc": "Mandi prices at Dasuya APMC, Hoshiarpur, Punjab"
             },
-            "id": "resource:mandi-price:market:1465",
+            "id": "resource:mandi-price:market:1432",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
                 {
                   "coordinates": [
-                    76.3699308,
-                    30.5182574
+                    75.65,
+                    31.81
                   ],
                   "type": "Point"
                 },
                 {
-                  "areaCode": "456",
+                  "areaCode": "460",
                   "areaLevel": "District",
-                  "areaName": "Fatehgarh",
+                  "areaName": "Hoshiarpur",
                   "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
@@ -1737,9 +1339,9 @@
                 "en"
               ],
               "market": {
-                "district": "Fatehgarh",
-                "marketCode": "1465",
-                "marketName": "Chanarthal APMC",
+                "district": "460",
+                "marketCode": "1432",
+                "marketName": "Dasuya APMC",
                 "state": "PB"
               },
               "source": {
@@ -1752,8 +1354,16 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -1800,7 +1410,7 @@
                 "en"
               ],
               "market": {
-                "district": "Gurdaspur",
+                "district": "459",
                 "marketCode": "1574",
                 "marketName": "Dera Baba Nanak APMC",
                 "state": "PB"
@@ -1814,6 +1424,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
                 {
                   "code": "24",
                   "name": "Potato"
@@ -1867,7 +1481,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mohali",
+                "district": "466",
                 "marketCode": "1587",
                 "marketName": "Dera Bassi APMC",
                 "state": "PB"
@@ -1938,7 +1552,7 @@
                 "en"
               ],
               "market": {
-                "district": "Moga",
+                "district": "465",
                 "marketCode": "1448",
                 "marketName": "Dharamkot APMC",
                 "state": "PB"
@@ -1961,10 +1575,6 @@
                   "name": "Potato"
                 },
                 {
-                  "code": "55",
-                  "name": "Toria"
-                },
-                {
                   "code": "65",
                   "name": "Tomato"
                 }
@@ -1978,27 +1588,20 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1440",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Dhilwan APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Dhilwan APMC mandi prices",
-              "shortDesc": "Mandi prices at Dhilwan APMC, Kapurthala, Punjab"
+              "code": "MANDI_PRICE_MARKET_1430",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Dhariwal APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Dhariwal APMC mandi prices",
+              "shortDesc": "Mandi prices at Dhariwal APMC, Gurdaspur, Punjab"
             },
-            "id": "resource:mandi-price:market:1440",
+            "id": "resource:mandi-price:market:1430",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
                 {
-                  "coordinates": [
-                    75.335592,
-                    31.50192
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "462",
+                  "areaCode": "459",
                   "areaLevel": "District",
-                  "areaName": "Kapurthala",
+                  "areaName": "Gurdaspur",
                   "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
@@ -2013,9 +1616,9 @@
                 "en"
               ],
               "market": {
-                "district": "Kapurthala",
-                "marketCode": "1440",
-                "marketName": "Dhilwan APMC",
+                "district": "459",
+                "marketCode": "1430",
+                "marketName": "Dhariwal APMC",
                 "state": "PB"
               },
               "source": {
@@ -2030,6 +1633,18 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -2076,7 +1691,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sangrur",
+                "district": "472",
                 "marketCode": "237",
                 "marketName": "Dhuri APMC",
                 "state": "PB"
@@ -2090,10 +1705,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -2151,7 +1762,7 @@
                 "en"
               ],
               "market": {
-                "district": "Gurdaspur",
+                "district": "459",
                 "marketCode": "1428",
                 "marketName": "Dinanagar APMC",
                 "state": "PB"
@@ -2222,7 +1833,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ludhiana",
+                "district": "463",
                 "marketCode": "1441",
                 "marketName": "Doraha APMC",
                 "state": "PB"
@@ -2293,9 +1904,80 @@
                 "en"
               ],
               "market": {
-                "district": "Patiala",
+                "district": "470",
                 "marketCode": "619",
                 "marketName": "Dudhansadhan APMC",
+                "state": "PB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1575",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for F.G.Churian APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "F.G.Churian APMC mandi prices",
+              "shortDesc": "Mandi prices at F.G.Churian APMC, Gurdaspur, Punjab"
+            },
+            "id": "resource:mandi-price:market:1575",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    74.966925,
+                    31.866539
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "459",
+                  "areaLevel": "District",
+                  "areaName": "Gurdaspur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-PB",
+                  "areaLevel": "State",
+                  "areaName": "Punjab",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "459",
+                "marketCode": "1575",
+                "marketName": "F.G.Churian APMC",
                 "state": "PB"
               },
               "source": {
@@ -2364,7 +2046,7 @@
                 "en"
               ],
               "market": {
-                "district": "Faridkot",
+                "district": "455",
                 "marketCode": "606",
                 "marketName": "Faridkot APMC",
                 "state": "PB"
@@ -2435,7 +2117,7 @@
                 "en"
               ],
               "market": {
-                "district": "Fazilka",
+                "district": "457",
                 "marketCode": "218",
                 "marketName": "Fazilka APMC",
                 "state": "PB"
@@ -2506,7 +2188,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ferozpur",
+                "district": "458",
                 "marketCode": "220",
                 "marketName": "Ferozepur Cantt. APMC",
                 "state": "PB"
@@ -2527,77 +2209,6 @@
                 {
                   "code": "24",
                   "name": "Potato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_608",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Firozepur City APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Firozepur City APMC mandi prices",
-              "shortDesc": "Mandi prices at Firozepur City APMC, Ferozpur, Punjab"
-            },
-            "id": "resource:mandi-price:market:608",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    74.6234,
-                    30.9275
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "458",
-                  "areaLevel": "District",
-                  "areaName": "Ferozpur",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Ferozpur",
-                "marketCode": "608",
-                "marketName": "Firozepur City APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -2644,7 +2255,7 @@
                 "en"
               ],
               "market": {
-                "district": "Hoshiarpur",
+                "district": "460",
                 "marketCode": "1433",
                 "marketName": "Garh Shankar APMC",
                 "state": "PB"
@@ -2658,10 +2269,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -2719,7 +2326,7 @@
                 "en"
               ],
               "market": {
-                "district": "Hoshiarpur",
+                "district": "460",
                 "marketCode": "2701",
                 "marketName": "Garh Shankar(Mahalpur) APMC",
                 "state": "PB"
@@ -2790,7 +2397,7 @@
                 "en"
               ],
               "market": {
-                "district": "Hoshiarpur",
+                "district": "460",
                 "marketCode": "3440",
                 "marketName": "GarhShankar (Kotfatuhi) APMC",
                 "state": "PB"
@@ -2815,69 +2422,6 @@
                 {
                   "code": "65",
                   "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_2508",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Garhshankar(Saila Khurd) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Garhshankar(Saila Khurd) APMC mandi prices",
-              "shortDesc": "Mandi prices at Garhshankar(Saila Khurd) APMC, Hoshiarpur, Punjab"
-            },
-            "id": "resource:mandi-price:market:2508",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    76.0713,
-                    31.2979
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "460",
-                  "areaLevel": "District",
-                  "areaName": "Hoshiarpur",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Hoshiarpur",
-                "marketCode": "2508",
-                "marketName": "Garhshankar(Saila Khurd) APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -2924,7 +2468,7 @@
                 "en"
               ],
               "market": {
-                "district": "Patiala",
+                "district": "470",
                 "marketCode": "1588",
                 "marketName": "Ghanaur APMC",
                 "state": "PB"
@@ -2995,9 +2539,80 @@
                 "en"
               ],
               "market": {
-                "district": "Muktsar",
+                "district": "467",
                 "marketCode": "617",
                 "marketName": "Giddarbaha APMC",
+                "state": "PB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1437",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Goraya APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Goraya APMC mandi prices",
+              "shortDesc": "Mandi prices at Goraya APMC, Jalandhar, Punjab"
+            },
+            "id": "resource:mandi-price:market:1437",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    75.7540689,
+                    31.1287844
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "461",
+                  "areaLevel": "District",
+                  "areaName": "Jalandhar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-PB",
+                  "areaLevel": "State",
+                  "areaName": "Punjab",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "461",
+                "marketCode": "1437",
+                "marketName": "Goraya APMC",
                 "state": "PB"
               },
               "source": {
@@ -3066,151 +2681,9 @@
                 "en"
               ],
               "market": {
-                "district": "Gurdaspur",
+                "district": "459",
                 "marketCode": "600",
                 "marketName": "Gurdaspur APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_224",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Guru Har Sahai APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Guru Har Sahai APMC mandi prices",
-              "shortDesc": "Mandi prices at Guru Har Sahai APMC, Ferozpur, Punjab"
-            },
-            "id": "resource:mandi-price:market:224",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    74.39494,
-                    30.7148
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "458",
-                  "areaLevel": "District",
-                  "areaName": "Ferozpur",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Ferozpur",
-                "marketCode": "224",
-                "marketName": "Guru Har Sahai APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "23",
-                  "name": "Onion"
-                },
-                {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_610",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Hoshiarpur APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Hoshiarpur APMC mandi prices",
-              "shortDesc": "Mandi prices at Hoshiarpur APMC, Hoshiarpur, Punjab"
-            },
-            "id": "resource:mandi-price:market:610",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    75.896001,
-                    31.513776
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "460",
-                  "areaLevel": "District",
-                  "areaName": "Hoshiarpur",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Hoshiarpur",
-                "marketCode": "610",
-                "marketName": "Hoshiarpur APMC",
                 "state": "PB"
               },
               "source": {
@@ -3279,7 +2752,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ludhiana",
+                "district": "463",
                 "marketCode": "227",
                 "marketName": "Jagraon APMC",
                 "state": "PB"
@@ -3350,7 +2823,7 @@
                 "en"
               ],
               "market": {
-                "district": "Faridkot",
+                "district": "455",
                 "marketCode": "1424",
                 "marketName": "Jaitu APMC",
                 "state": "PB"
@@ -3365,8 +2838,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
+                  "code": "15",
+                  "name": "Cotton"
                 }
               ],
               "supportedPriceFields": [
@@ -3413,7 +2886,7 @@
                 "en"
               ],
               "market": {
-                "district": "Fazilka",
+                "district": "457",
                 "marketCode": "219",
                 "marketName": "Jalalabad APMC",
                 "state": "PB"
@@ -3438,69 +2911,6 @@
                 {
                   "code": "65",
                   "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1580",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jalandhar Cantt. APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Jalandhar Cantt. APMC mandi prices",
-              "shortDesc": "Mandi prices at Jalandhar Cantt. APMC, Jalandhar, Punjab"
-            },
-            "id": "resource:mandi-price:market:1580",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    75.630428,
-                    31.300299
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "461",
-                  "areaLevel": "District",
-                  "areaName": "Jalandhar",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Jalandhar",
-                "marketCode": "1580",
-                "marketName": "Jalandhar Cantt. APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -3547,7 +2957,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jalandhar",
+                "district": "461",
                 "marketCode": "601",
                 "marketName": "Jalandhar City APMC",
                 "state": "PB"
@@ -3561,10 +2971,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
                 {
                   "code": "4",
                   "name": "Maize"
@@ -3614,7 +3020,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jalandhar",
+                "district": "461",
                 "marketCode": "2487",
                 "marketName": "Jalandhar City(Jalandhar) APMC",
                 "state": "PB"
@@ -3650,27 +3056,27 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_2694",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jalandhar City(Kartar Pur Dana mandi) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Jalandhar City(Kartar Pur Dana mandi) APMC mandi prices",
-              "shortDesc": "Mandi prices at Jalandhar City(Kartar Pur Dana mandi) APMC, Jalandhar, Punjab"
+              "code": "MANDI_PRICE_MARKET_1576",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kahnuwan APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kahnuwan APMC mandi prices",
+              "shortDesc": "Mandi prices at Kahnuwan APMC, Gurdaspur, Punjab"
             },
-            "id": "resource:mandi-price:market:2694",
+            "id": "resource:mandi-price:market:1576",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
                 {
                   "coordinates": [
-                    75.491708,
-                    31.433021
+                    75.434108,
+                    31.9178881
                   ],
                   "type": "Point"
                 },
                 {
-                  "areaCode": "461",
+                  "areaCode": "459",
                   "areaLevel": "District",
-                  "areaName": "Jalandhar",
+                  "areaName": "Gurdaspur",
                   "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
@@ -3685,9 +3091,9 @@
                 "en"
               ],
               "market": {
-                "district": "Jalandhar",
-                "marketCode": "2694",
-                "marketName": "Jalandhar City(Kartar Pur Dana mandi) APMC",
+                "district": "459",
+                "marketCode": "1576",
+                "marketName": "Kahnuwan APMC",
                 "state": "PB"
               },
               "source": {
@@ -3702,10 +3108,69 @@
                 {
                   "code": "2",
                   "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1577",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kalanaur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kalanaur APMC mandi prices",
+              "shortDesc": "Mandi prices at Kalanaur APMC, Gurdaspur, Punjab"
+            },
+            "id": "resource:mandi-price:market:1577",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    75.14499584,
+                    32.00680795
+                  ],
+                  "type": "Point"
                 },
                 {
-                  "code": "4",
-                  "name": "Maize"
+                  "areaCode": "459",
+                  "areaLevel": "District",
+                  "areaName": "Gurdaspur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-PB",
+                  "areaLevel": "State",
+                  "areaName": "Punjab",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "459",
+                "marketCode": "1577",
+                "marketName": "Kalanaur APMC",
+                "state": "PB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -3752,7 +3217,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kapurthala",
+                "district": "462",
                 "marketCode": "225",
                 "marketName": "Kapurthala APMC",
                 "state": "PB"
@@ -3767,71 +3232,12 @@
               ],
               "supportedCommodities": [
                 {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
                   "code": "24",
                   "name": "Potato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_3411",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Khamano (Sanghol) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Khamano (Sanghol) APMC mandi prices",
-              "shortDesc": "Mandi prices at Khamano (Sanghol) APMC, Fatehgarh, Punjab"
-            },
-            "id": "resource:mandi-price:market:3411",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    76.3833,
-                    30.7833
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "456",
-                  "areaLevel": "District",
-                  "areaName": "Fatehgarh",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Fatehgarh",
-                "marketCode": "3411",
-                "marketName": "Khamano (Sanghol) APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -3878,7 +3284,7 @@
                 "en"
               ],
               "market": {
-                "district": "Fatehgarh",
+                "district": "456",
                 "marketCode": "1466",
                 "marketName": "Khamano APMC",
                 "state": "PB"
@@ -3892,10 +3298,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -3953,7 +3355,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ludhiana",
+                "district": "463",
                 "marketCode": "226",
                 "marketName": "Khanna APMC",
                 "state": "PB"
@@ -4024,7 +3426,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mohali",
+                "district": "466",
                 "marketCode": "1458",
                 "marketName": "Kharar APMC",
                 "state": "PB"
@@ -4039,10 +3441,6 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
-                {
                   "code": "23",
                   "name": "Onion"
                 },
@@ -4053,69 +3451,6 @@
                 {
                   "code": "65",
                   "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1571",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kot ise Khan APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Kot ise Khan APMC mandi prices",
-              "shortDesc": "Mandi prices at Kot ise Khan APMC, Moga, Punjab"
-            },
-            "id": "resource:mandi-price:market:1571",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    75.106567,
-                    30.94602
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "465",
-                  "areaLevel": "District",
-                  "areaName": "Moga",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Moga",
-                "marketCode": "1571",
-                "marketName": "Kot ise Khan APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "24",
-                  "name": "Potato"
                 }
               ],
               "supportedPriceFields": [
@@ -4162,7 +3497,7 @@
                 "en"
               ],
               "market": {
-                "district": "Faridkot",
+                "district": "455",
                 "marketCode": "217",
                 "marketName": "Kotkapura APMC",
                 "state": "PB"
@@ -4225,7 +3560,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mohali",
+                "district": "466",
                 "marketCode": "1459",
                 "marketName": "Kurali APMC",
                 "state": "PB"
@@ -4239,10 +3574,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -4300,7 +3631,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mohali",
+                "district": "466",
                 "marketCode": "793",
                 "marketName": "Lalru APMC",
                 "state": "PB"
@@ -4371,7 +3702,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sangrur",
+                "district": "472",
                 "marketCode": "1593",
                 "marketName": "Lehra Gaga APMC",
                 "state": "PB"
@@ -4442,7 +3773,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jalandhar",
+                "district": "461",
                 "marketCode": "1438",
                 "marketName": "Lohian Khas APMC",
                 "state": "PB"
@@ -4459,10 +3790,6 @@
                 {
                   "code": "24",
                   "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -4509,7 +3836,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ludhiana",
+                "district": "463",
                 "marketCode": "1443",
                 "marketName": "Ludhiana APMC",
                 "state": "PB"
@@ -4545,20 +3872,20 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_2502",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ludhiana(Salem Tabri) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Ludhiana(Salem Tabri) APMC mandi prices",
-              "shortDesc": "Mandi prices at Ludhiana(Salem Tabri) APMC, Ludhiana, Punjab"
+              "code": "MANDI_PRICE_MARKET_1444",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Machhiwara APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Machhiwara APMC mandi prices",
+              "shortDesc": "Mandi prices at Machhiwara APMC, Ludhiana, Punjab"
             },
-            "id": "resource:mandi-price:market:2502",
+            "id": "resource:mandi-price:market:1444",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
                 {
                   "coordinates": [
-                    75.8374,
-                    30.9327
+                    76.190661,
+                    30.908179
                   ],
                   "type": "Point"
                 },
@@ -4580,9 +3907,9 @@
                 "en"
               ],
               "market": {
-                "district": "Ludhiana",
-                "marketCode": "2502",
-                "marketName": "Ludhiana(Salem Tabri) APMC",
+                "district": "463",
+                "marketCode": "1444",
+                "marketName": "Machhiwara APMC",
                 "state": "PB"
               },
               "source": {
@@ -4595,8 +3922,16 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -4608,27 +3943,27 @@
           },
           {
             "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1566",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Majitha APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Majitha APMC mandi prices",
-              "shortDesc": "Mandi prices at Majitha APMC, Amritsar, Punjab"
+              "code": "MANDI_PRICE_MARKET_238",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Malerkotla APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Malerkotla APMC mandi prices",
+              "shortDesc": "Mandi prices at Malerkotla APMC, Sangrur, Punjab"
             },
-            "id": "resource:mandi-price:market:1566",
+            "id": "resource:mandi-price:market:238",
             "resourceAttributes": {
               "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
               "@type": "openagrinet:MandiPrice",
               "coverageAreas": [
                 {
                   "coordinates": [
-                    74.954953,
-                    31.756871
+                    75.885276,
+                    30.518384
                   ],
                   "type": "Point"
                 },
                 {
-                  "areaCode": "452",
+                  "areaCode": "472",
                   "areaLevel": "District",
-                  "areaName": "Amritsar",
+                  "areaName": "Sangrur",
                   "codeScheme": "AGMARKNET-DISTRICT"
                 },
                 {
@@ -4643,9 +3978,9 @@
                 "en"
               ],
               "market": {
-                "district": "Amritsar",
-                "marketCode": "1566",
-                "marketName": "Majitha APMC",
+                "district": "472",
+                "marketCode": "238",
+                "marketName": "Malerkotla APMC",
                 "state": "PB"
               },
               "source": {
@@ -4658,71 +3993,16 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1445",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Maloud APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Maloud APMC mandi prices",
-              "shortDesc": "Mandi prices at Maloud APMC, Ludhiana, Punjab"
-            },
-            "id": "resource:mandi-price:market:1445",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    75.94083,
-                    30.63291
-                  ],
-                  "type": "Point"
+                  "code": "23",
+                  "name": "Onion"
                 },
                 {
-                  "areaCode": "463",
-                  "areaLevel": "District",
-                  "areaName": "Ludhiana",
-                  "codeScheme": "AGMARKNET-DISTRICT"
+                  "code": "24",
+                  "name": "Potato"
                 },
                 {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Ludhiana",
-                "marketCode": "1445",
-                "marketName": "Maloud APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -4769,7 +4049,7 @@
                 "en"
               ],
               "market": {
-                "district": "Muktsar",
+                "district": "467",
                 "marketCode": "231",
                 "marketName": "Malout APMC",
                 "state": "PB"
@@ -4840,7 +4120,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ferozpur",
+                "district": "458",
                 "marketCode": "1573",
                 "marketName": "Mamdot APMC",
                 "state": "PB"
@@ -4911,7 +4191,7 @@
                 "en"
               ],
               "market": {
-                "district": "Mansa",
+                "district": "464",
                 "marketCode": "1130",
                 "marketName": "Mansa APMC",
                 "state": "PB"
@@ -4986,7 +4266,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bhatinda",
+                "district": "454",
                 "marketCode": "1422",
                 "marketName": "Maur APMC",
                 "state": "PB"
@@ -5007,66 +4287,7 @@
                 {
                   "code": "24",
                   "name": "Potato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_3033",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mehatpur APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Mehatpur APMC mandi prices",
-              "shortDesc": "Mandi prices at Mehatpur APMC, Jalandhar, Punjab"
-            },
-            "id": "resource:mandi-price:market:3033",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    75.472889,
-                    31.048472
-                  ],
-                  "type": "Point"
                 },
-                {
-                  "areaCode": "461",
-                  "areaLevel": "District",
-                  "areaName": "Jalandhar",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Jalandhar",
-                "marketCode": "3033",
-                "marketName": "Mehatpur APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -5116,7 +4337,7 @@
                 "en"
               ],
               "market": {
-                "district": "Moga",
+                "district": "465",
                 "marketCode": "229",
                 "marketName": "Moga APMC",
                 "state": "PB"
@@ -5187,7 +4408,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ropar (Rupnagar)",
+                "district": "471",
                 "marketCode": "794",
                 "marketName": "Morinda APMC",
                 "state": "PB"
@@ -5258,7 +4479,7 @@
                 "en"
               ],
               "market": {
-                "district": "Hoshiarpur",
+                "district": "460",
                 "marketCode": "611",
                 "marketName": "Mukerian APMC",
                 "state": "PB"
@@ -5329,7 +4550,7 @@
                 "en"
               ],
               "market": {
-                "district": "Hoshiarpur",
+                "district": "460",
                 "marketCode": "2510",
                 "marketName": "Mukerian(Talwara) APMC",
                 "state": "PB"
@@ -5400,7 +4621,7 @@
                 "en"
               ],
               "market": {
-                "district": "Muktsar",
+                "district": "467",
                 "marketCode": "230",
                 "marketName": "Muktsar APMC",
                 "state": "PB"
@@ -5414,6 +4635,10 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "15",
+                  "name": "Cotton"
+                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -5471,7 +4696,7 @@
                 "en"
               ],
               "market": {
-                "district": "Patiala",
+                "district": "470",
                 "marketCode": "235",
                 "marketName": "Nabha APMC",
                 "state": "PB"
@@ -5542,7 +4767,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jalandhar",
+                "district": "461",
                 "marketCode": "622",
                 "marketName": "Nakodar APMC",
                 "state": "PB"
@@ -5567,195 +4792,6 @@
                 {
                   "code": "65",
                   "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_3034",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nakodar(Sarih) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Nakodar(Sarih) APMC mandi prices",
-              "shortDesc": "Mandi prices at Nakodar(Sarih) APMC, Jalandhar, Punjab"
-            },
-            "id": "resource:mandi-price:market:3034",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    75.56991,
-                    31.14199
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "461",
-                  "areaLevel": "District",
-                  "areaName": "Jalandhar",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Jalandhar",
-                "marketCode": "3034",
-                "marketName": "Nakodar(Sarih) APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "4",
-                  "name": "Maize"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_2697",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nawan Shahar(Mandi Jadla) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Nawan Shahar(Mandi Jadla) APMC mandi prices",
-              "shortDesc": "Mandi prices at Nawan Shahar(Mandi Jadla) APMC, Nawanshahr, Punjab"
-            },
-            "id": "resource:mandi-price:market:2697",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    76.2175,
-                    31.0813
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "468",
-                  "areaLevel": "District",
-                  "areaName": "Nawanshahr",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Nawanshahr",
-                "marketCode": "2697",
-                "marketName": "Nawan Shahar(Mandi Jadla) APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_2491",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nawan Shahar(MandiRaho) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Nawan Shahar(MandiRaho) APMC mandi prices",
-              "shortDesc": "Mandi prices at Nawan Shahar(MandiRaho) APMC, Nawanshahr, Punjab"
-            },
-            "id": "resource:mandi-price:market:2491",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    76.1175,
-                    31.0521
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "468",
-                  "areaLevel": "District",
-                  "areaName": "Nawanshahr",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Nawanshahr",
-                "marketCode": "2491",
-                "marketName": "Nawan Shahar(MandiRaho) APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -5802,7 +4838,7 @@
                 "en"
               ],
               "market": {
-                "district": "Nawanshahr",
+                "district": "468",
                 "marketCode": "2490",
                 "marketName": "Nawan Shahar(Subzi Mandi) APMC",
                 "state": "PB"
@@ -5873,7 +4909,7 @@
                 "en"
               ],
               "market": {
-                "district": "Nawanshahr",
+                "district": "468",
                 "marketCode": "618",
                 "marketName": "Nawanshahar APMC",
                 "state": "PB"
@@ -5944,7 +4980,7 @@
                 "en"
               ],
               "market": {
-                "district": "Moga",
+                "district": "465",
                 "marketCode": "1449",
                 "marketName": "Nihal Singh Wala APMC",
                 "state": "PB"
@@ -6015,7 +5051,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jalandhar",
+                "district": "461",
                 "marketCode": "1581",
                 "marketName": "Noor Mehal APMC",
                 "state": "PB"
@@ -6030,12 +5066,8 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "24",
-                  "name": "Potato"
-                },
-                {
-                  "code": "65",
-                  "name": "Tomato"
+                  "code": "23",
+                  "name": "Onion"
                 }
               ],
               "supportedPriceFields": [
@@ -6082,7 +5114,7 @@
                 "en"
               ],
               "market": {
-                "district": "Pathankot",
+                "district": "469",
                 "marketCode": "599",
                 "marketName": "Pathankot APMC",
                 "state": "PB"
@@ -6153,7 +5185,7 @@
                 "en"
               ],
               "market": {
-                "district": "Patiala",
+                "district": "470",
                 "marketCode": "232",
                 "marketName": "Patiala APMC",
                 "state": "PB"
@@ -6170,6 +5202,10 @@
                 {
                   "code": "23",
                   "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
                 },
                 {
                   "code": "65",
@@ -6220,7 +5256,7 @@
                 "en"
               ],
               "market": {
-                "district": "Patiala",
+                "district": "470",
                 "marketCode": "233",
                 "marketName": "Patran APMC",
                 "state": "PB"
@@ -6291,7 +5327,7 @@
                 "en"
               ],
               "market": {
-                "district": "Tarntaran",
+                "district": "473",
                 "marketCode": "598",
                 "marketName": "Patti APMC",
                 "state": "PB"
@@ -6362,7 +5398,7 @@
                 "en"
               ],
               "market": {
-                "district": "Kapurthala",
+                "district": "462",
                 "marketCode": "614",
                 "marketName": "Phagwara APMC",
                 "state": "PB"
@@ -6433,7 +5469,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jalandhar",
+                "district": "461",
                 "marketCode": "602",
                 "marketName": "Phillaur APMC",
                 "state": "PB"
@@ -6447,6 +5483,14 @@
                 "Market"
               ],
               "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
                 {
                   "code": "65",
                   "name": "Tomato"
@@ -6496,7 +5540,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jalandhar",
+                "district": "461",
                 "marketCode": "2696",
                 "marketName": "Phillaur(Apra Mandi) APMC",
                 "state": "PB"
@@ -6567,9 +5611,80 @@
                 "en"
               ],
               "market": {
-                "district": "Gurdaspur",
+                "district": "459",
                 "marketCode": "1429",
                 "marketName": "Quadian APMC",
+                "state": "PB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_612",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Raikot APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Raikot APMC mandi prices",
+              "shortDesc": "Mandi prices at Raikot APMC, Ludhiana, Punjab"
+            },
+            "id": "resource:mandi-price:market:612",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    75.6043855,
+                    30.6524971
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "463",
+                  "areaLevel": "District",
+                  "areaName": "Ludhiana",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-PB",
+                  "areaLevel": "State",
+                  "areaName": "Punjab",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "463",
+                "marketCode": "612",
+                "marketName": "Raikot APMC",
                 "state": "PB"
               },
               "source": {
@@ -6638,7 +5753,7 @@
                 "en"
               ],
               "market": {
-                "district": "Patiala",
+                "district": "470",
                 "marketCode": "1456",
                 "marketName": "Rajpura APMC",
                 "state": "PB"
@@ -6652,14 +5767,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -6717,7 +5824,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bhatinda",
+                "district": "454",
                 "marketCode": "605",
                 "marketName": "Raman APMC",
                 "state": "PB"
@@ -6788,7 +5895,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bhatinda",
+                "district": "454",
                 "marketCode": "2505",
                 "marketName": "Rampuraphul(Nabha Mandi) APMC",
                 "state": "PB"
@@ -6859,7 +5966,7 @@
                 "en"
               ],
               "market": {
-                "district": "Amritsar",
+                "district": "452",
                 "marketCode": "1606",
                 "marketName": "Rayya APMC",
                 "state": "PB"
@@ -6927,7 +6034,7 @@
                 "en"
               ],
               "market": {
-                "district": "Amritsar",
+                "district": "452",
                 "marketCode": "2497",
                 "marketName": "Rayya(Sathiala) APMC",
                 "state": "PB"
@@ -6990,7 +6097,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ropar (Rupnagar)",
+                "district": "471",
                 "marketCode": "621",
                 "marketName": "Ropar APMC",
                 "state": "PB"
@@ -7005,83 +6112,16 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "1",
-                  "name": "Wheat"
-                },
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
-                {
                   "code": "23",
                   "name": "Onion"
                 },
                 {
                   "code": "24",
                   "name": "Potato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1425",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sadiq APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Sadiq APMC mandi prices",
-              "shortDesc": "Mandi prices at Sadiq APMC, Faridkot, Punjab"
-            },
-            "id": "resource:mandi-price:market:1425",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    74.59166,
-                    30.70752
-                  ],
-                  "type": "Point"
                 },
                 {
-                  "areaCode": "455",
-                  "areaLevel": "District",
-                  "areaName": "Faridkot",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Faridkot",
-                "marketCode": "1425",
-                "marketName": "Sadiq APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -7128,7 +6168,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ludhiana",
+                "district": "463",
                 "marketCode": "1446",
                 "marketName": "Sahnewal APMC",
                 "state": "PB"
@@ -7199,7 +6239,7 @@
                 "en"
               ],
               "market": {
-                "district": "Patiala",
+                "district": "470",
                 "marketCode": "234",
                 "marketName": "Samana APMC",
                 "state": "PB"
@@ -7274,7 +6314,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ludhiana",
+                "district": "463",
                 "marketCode": "613",
                 "marketName": "Samrala APMC",
                 "state": "PB"
@@ -7345,7 +6385,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bhatinda",
+                "district": "454",
                 "marketCode": "1423",
                 "marketName": "Sangat APMC",
                 "state": "PB"
@@ -7362,6 +6402,77 @@
                 {
                   "code": "15",
                   "name": "Cotton"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1595",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sangrur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sangrur APMC mandi prices",
+              "shortDesc": "Mandi prices at Sangrur APMC, Sangrur, Punjab"
+            },
+            "id": "resource:mandi-price:market:1595",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    75.8392,
+                    30.2486
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "472",
+                  "areaLevel": "District",
+                  "areaName": "Sangrur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-PB",
+                  "areaLevel": "State",
+                  "areaName": "Punjab",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "472",
+                "marketCode": "1595",
+                "marketName": "Sangrur APMC",
+                "state": "PB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
                 }
               ],
               "supportedPriceFields": [
@@ -7408,7 +6519,7 @@
                 "en"
               ],
               "market": {
-                "district": "Jalandhar",
+                "district": "461",
                 "marketCode": "1129",
                 "marketName": "Shahkot APMC",
                 "state": "PB"
@@ -7425,69 +6536,6 @@
                 {
                   "code": "65",
                   "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_1584",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sidhwan Bet APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Sidhwan Bet APMC mandi prices",
-              "shortDesc": "Mandi prices at Sidhwan Bet APMC, Ludhiana, Punjab"
-            },
-            "id": "resource:mandi-price:market:1584",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    75.4751875,
-                    30.9206547
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "463",
-                  "areaLevel": "District",
-                  "areaName": "Ludhiana",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Ludhiana",
-                "marketCode": "1584",
-                "marketName": "Sidhwan Bet APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "4",
-                  "name": "Maize"
                 }
               ],
               "supportedPriceFields": [
@@ -7534,7 +6582,7 @@
                 "en"
               ],
               "market": {
-                "district": "Fatehgarh",
+                "district": "456",
                 "marketCode": "1128",
                 "marketName": "Sirhind APMC",
                 "state": "PB"
@@ -7549,10 +6597,6 @@
               ],
               "supportedCommodities": [
                 {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
-                {
                   "code": "23",
                   "name": "Onion"
                 },
@@ -7563,6 +6607,132 @@
                 {
                   "code": "65",
                   "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1431",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sri Har Gobindpur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sri Har Gobindpur APMC mandi prices",
+              "shortDesc": "Mandi prices at Sri Har Gobindpur APMC, Gurdaspur, Punjab"
+            },
+            "id": "resource:mandi-price:market:1431",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    75.4739,
+                    31.687901
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "459",
+                  "areaLevel": "District",
+                  "areaName": "Gurdaspur",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-PB",
+                  "areaLevel": "State",
+                  "areaName": "Punjab",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "459",
+                "marketCode": "1431",
+                "marketName": "Sri Har Gobindpur APMC",
+                "state": "PB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3407",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sultanpur Lodhi (Tibba) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sultanpur Lodhi (Tibba) APMC mandi prices",
+              "shortDesc": "Mandi prices at Sultanpur Lodhi (Tibba) APMC, Kapurthala, Punjab"
+            },
+            "id": "resource:mandi-price:market:3407",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    75.222722,
+                    31.310333
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "462",
+                  "areaLevel": "District",
+                  "areaName": "Kapurthala",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-PB",
+                  "areaLevel": "State",
+                  "areaName": "Punjab",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "462",
+                "marketCode": "3407",
+                "marketName": "Sultanpur Lodhi (Tibba) APMC",
+                "state": "PB"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -7609,7 +6779,7 @@
                 "en"
               ],
               "market": {
-                "district": "Sangrur",
+                "district": "472",
                 "marketCode": "239",
                 "marketName": "Sunam APMC",
                 "state": "PB"
@@ -7680,7 +6850,7 @@
                 "en"
               ],
               "market": {
-                "district": "Bhatinda",
+                "district": "454",
                 "marketCode": "1570",
                 "marketName": "Talwandi Sabo APMC",
                 "state": "PB"
@@ -7751,7 +6921,7 @@
                 "en"
               ],
               "market": {
-                "district": "Hoshiarpur",
+                "district": "460",
                 "marketCode": "1434",
                 "marketName": "Tanda Urmur APMC",
                 "state": "PB"
@@ -7776,69 +6946,6 @@
                 {
                   "code": "65",
                   "name": "Tomato"
-                }
-              ],
-              "supportedPriceFields": [
-                "Minimum",
-                "Maximum",
-                "Modal"
-              ]
-            }
-          },
-          {
-            "descriptor": {
-              "code": "MANDI_PRICE_MARKET_2486",
-              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Tapa(Tapa Mandi) APMC. The result uses the same MandiPrice type in Direct information mode.",
-              "name": "Tapa(Tapa Mandi) APMC mandi prices",
-              "shortDesc": "Mandi prices at Tapa(Tapa Mandi) APMC, Barnala, Punjab"
-            },
-            "id": "resource:mandi-price:market:2486",
-            "resourceAttributes": {
-              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
-              "@type": "openagrinet:MandiPrice",
-              "coverageAreas": [
-                {
-                  "coordinates": [
-                    75.37368,
-                    30.28645
-                  ],
-                  "type": "Point"
-                },
-                {
-                  "areaCode": "453",
-                  "areaLevel": "District",
-                  "areaName": "Barnala",
-                  "codeScheme": "AGMARKNET-DISTRICT"
-                },
-                {
-                  "areaCode": "IN-PB",
-                  "areaLevel": "State",
-                  "areaName": "Punjab",
-                  "codeScheme": "ISO-3166-2"
-                }
-              ],
-              "informationMode": "OnDemand",
-              "languages": [
-                "en"
-              ],
-              "market": {
-                "district": "Barnala",
-                "marketCode": "2486",
-                "marketName": "Tapa(Tapa Mandi) APMC",
-                "state": "PB"
-              },
-              "source": {
-                "sourceId": "source:agmarknet",
-                "sourceName": "AGMARKNET",
-                "sourceUri": "https://agmarknet.gov.in"
-              },
-              "subjectCategories": [
-                "Market"
-              ],
-              "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
                 }
               ],
               "supportedPriceFields": [
@@ -7885,7 +6992,7 @@
                 "en"
               ],
               "market": {
-                "district": "Tarntaran",
+                "district": "473",
                 "marketCode": "216",
                 "marketName": "Tarantaran APMC",
                 "state": "PB"
@@ -7899,10 +7006,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
                 {
                   "code": "23",
                   "name": "Onion"
@@ -7960,7 +7063,7 @@
                 "en"
               ],
               "market": {
-                "district": "Ferozpur",
+                "district": "458",
                 "marketCode": "1427",
                 "marketName": "Zira APMC",
                 "state": "PB"
@@ -7974,10 +7077,6 @@
                 "Market"
               ],
               "supportedCommodities": [
-                {
-                  "code": "2",
-                  "name": "Paddy(Common)"
-                },
                 {
                   "code": "4",
                   "name": "Maize"
