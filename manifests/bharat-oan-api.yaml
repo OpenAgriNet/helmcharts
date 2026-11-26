@@ -45,7 +45,7 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: bharat-oan-api
-          image: ghcr.io/openagrinet/bharat-oan-api:bv-dev-rc2
+          image: ghcr.io/openagrinet/bharat-oan-api:bv-migration-rc1 
           # Always: bv-dev-rc2 is re-pushed under the same tag as bv-migration moves; a restart picks it up.
           imagePullPolicy: Always
           ports:
@@ -105,8 +105,8 @@ spec:
             name: bharat-oan-api-models
 ---
 # bv-dev model choice, merged over the image's config/models.yaml (agents/model_registry.py reads
-# config/models.local.yaml when it exists). Both models go through the LiteLLM proxy at
-# AGRINET_GEMMA_BASE_URL / AZURE_GPT54_MINI_BASE_URL (bharat-oan-api.env).
+# config/models.local.yaml when it exists). Both models go through one LiteLLM proxy and key,
+# AZURE_GPT54_MINI_BASE_URL / AZURE_GPT54_MINI_API_KEY (bharat-oan-api.env).
 # Changed it? kubectl apply -f this file, then restart: a subPath mount is not refreshed in a running pod.
 apiVersion: v1
 kind: ConfigMap
@@ -120,6 +120,9 @@ data:
         # LiteLLM serves chat completions; its Azure api-version is too old for the Responses API (400).
         api: chat
       gemma_vllm:
+        # Same LiteLLM proxy and key as gpt-5.4-mini, so the env file needs no AGRINET_GEMMA_BASE_URL / _API_KEY.
+        base_url: ${AZURE_GPT54_MINI_BASE_URL}
+        api_key: ${AZURE_GPT54_MINI_API_KEY}
         fallback:
           # LiteLLM has no vLLM /metrics to read, so no concurrency check; errors still fall back to gpt-5.4-mini.
           on_concurrency_above: null
