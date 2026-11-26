@@ -1,0 +1,78 @@
+# mock-aif: the quick-start AIF mock (quick-start/mock-server/mockaif), standing
+# in for the Agriculture Infrastructure Fund loan-status and support-ticket APIs
+# on bv-dev.
+#
+# The registry's aif upstream points here:
+#   http://mock-aif.mock-aif.svc.cluster.local:9103
+# The adapter sends the same apiKey as -api-key below (config/dev network-adapter
+# extraEnv AIF_API_KEY), or every call is refused.
+#
+# Test values: OTP 123456; every beneficiary ID exists except 999999.
+#
+# Deploy (in order):
+#   1. docker build --platform linux/amd64 -t ghcr.io/openagrinet/oan-mockaif:bv-dev-rc1 <mockaif source>
+#      docker push ghcr.io/openagrinet/oan-mockaif:bv-dev-rc1
+#   2. kubectl apply -f mock-aif.yaml   (the pod waits for the pull secret below)
+#   3. Copy the GHCR pull secret into mock-aif:
+#      kubectl -n oan-ui get secret ghcr-pull-secret -o yaml \
+#        | sed -e '/^  creationTimestamp:/d' -e '/^  resourceVersion:/d' -e '/^  uid:/d' \
+#              -e 's/^  namespace: oan-ui/  namespace: mock-aif/' \
+#        | kubectl apply -f -
+#   4. kubectl -n mock-aif rollout restart deploy/mock-aif
+#      kubectl -n mock-aif rollout status deploy/mock-aif
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mock-aif
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-aif
+  namespace: mock-aif
+  labels:
+    app: mock-aif
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-aif
+  template:
+    metadata:
+      labels:
+        app: mock-aif
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: mock
+          image: ghcr.io/openagrinet/oan-mockaif:bv-dev-rc1
+          args:
+            - -addr=:9103
+            - -api-key=local-aif-key
+            - -otp=123456
+            - -unknown-beneficiary=999999
+            - -expires-in=3600
+          ports:
+            - containerPort: 9103
+          readinessProbe:
+            tcpSocket:
+              port: 9103
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-aif
+  namespace: mock-aif
+spec:
+  selector:
+    app: mock-aif
+  ports:
+    - port: 9103
+      targetPort: 9103

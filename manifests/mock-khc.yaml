@@ -1,0 +1,81 @@
+# mock-khc: the quick-start Kisan Help Center mock (quick-start/mock-server/mockkhc),
+# standing in for KHC on bv-dev. A real KHC filing writes a grievance to a real
+# help desk with no delete, so bv-dev never calls it.
+#
+# Two callers use this address:
+#   - the registry's khc upstream (the adapter's Beckn calls: OTP, filing, status)
+#   - bharat-oan-api directly, for KHC's reference lists (KHC_BASE_URL)
+#   http://mock-khc.mock-khc.svc.cluster.local:9106
+# Both send the same Authorization value as -auth-header below
+# (config/dev network-adapter extraEnv and bharat-oan-api.env KHC_AUTH_HEADER).
+#
+# Test values: OTP 123456; 9000000001 is the one registered farmer (any other
+# mobile is a new farmer, who must give name and gender); grievance numbers start BR.
+#
+# Deploy (in order):
+#   1. docker build --platform linux/amd64 -t ghcr.io/openagrinet/oan-mockkhc:bv-dev-rc1 <mockkhc source>
+#      docker push ghcr.io/openagrinet/oan-mockkhc:bv-dev-rc1
+#   2. kubectl apply -f mock-khc.yaml   (the pod waits for the pull secret below)
+#   3. Copy the GHCR pull secret into mock-khc:
+#      kubectl -n oan-ui get secret ghcr-pull-secret -o yaml \
+#        | sed -e '/^  creationTimestamp:/d' -e '/^  resourceVersion:/d' -e '/^  uid:/d' \
+#              -e 's/^  namespace: oan-ui/  namespace: mock-khc/' \
+#        | kubectl apply -f -
+#   4. kubectl -n mock-khc rollout restart deploy/mock-khc
+#      kubectl -n mock-khc rollout status deploy/mock-khc
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mock-khc
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-khc
+  namespace: mock-khc
+  labels:
+    app: mock-khc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-khc
+  template:
+    metadata:
+      labels:
+        app: mock-khc
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: mock
+          image: ghcr.io/openagrinet/oan-mockkhc:bv-dev-rc1
+          args:
+            - -addr=:9106
+            - -auth-header=ApiKey local-khc-key
+            - -otp=123456
+            - -registered-mobile=9000000001
+            - -grievance-prefix=BR
+          ports:
+            - containerPort: 9106
+          readinessProbe:
+            tcpSocket:
+              port: 9106
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-khc
+  namespace: mock-khc
+spec:
+  selector:
+    app: mock-khc
+  ports:
+    - port: 9106
+      targetPort: 9106

@@ -1,0 +1,129 @@
+# mock-pmkisan: the quick-start PM-KISAN mock (quick-start/mock-server/mockpmkisan),
+# standing in for both PM-KISAN services on bv-dev.
+#
+# The registry already points PM-KISAN here, at two addresses:
+#   - Grievance:         http://mock-pmkisan.mock-pmkisan.svc.cluster.local:9102
+#   - SchemeApplication: http://mock-pmkisan-chatbot.mock-pmkisan.svc.cluster.local:9106/services/chatbotservice.asmx
+# The mock serves both at its root, so the nginx container answers the second
+# address and strips the .asmx prefix. No registry change is needed.
+#
+# The mock must hold the same key, nonce and tokens as the adapter, or every
+# call looks like a mapping fault, so its Secret is copied from the adapter's.
+#
+# Deploy (in order):
+#   1. docker build --platform linux/amd64 -t ghcr.io/openagrinet/oan-mockpmkisan:bv-dev-rc1 quick-start/mock-server/mockpmkisan
+#      docker push ghcr.io/openagrinet/oan-mockpmkisan:bv-dev-rc1
+#   2. kubectl apply -f mock-pmkisan.yaml   (pods wait for the two Secrets below)
+#   3. Copy the adapter's PM-KISAN Secret and the GHCR pull secret into mock-pmkisan,
+#      without printing them:
+#      kubectl -n network-adapter get secret provider-pmkisan -o json | python3 -c 'import sys,json; s=json.load(sys.stdin); print(json.dumps({"apiVersion":"v1","kind":"Secret","metadata":{"name":"mock-pmkisan","namespace":"mock-pmkisan"},"data":s["data"]}))' | kubectl apply -f -
+#      kubectl -n oan-ui get secret ghcr-pull-secret -o json | python3 -c 'import sys,json; s=json.load(sys.stdin); print(json.dumps({"apiVersion":"v1","kind":"Secret","type":s["type"],"metadata":{"name":"ghcr-pull-secret","namespace":"mock-pmkisan"},"data":s["data"]}))' | kubectl apply -f -
+#   4. kubectl -n mock-pmkisan rollout restart deploy/mock-pmkisan
+#      kubectl -n mock-pmkisan rollout status deploy/mock-pmkisan
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mock-pmkisan
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mock-pmkisan-chatbot
+  namespace: mock-pmkisan
+data:
+  default.conf: |
+    server {
+      listen 9106;
+      # The registry's chatbot base URL ends in this prefix; the mock serves at its root.
+      location /services/chatbotservice.asmx/ {
+        proxy_pass http://127.0.0.1:9102/;
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-pmkisan
+  namespace: mock-pmkisan
+  labels:
+    app: mock-pmkisan
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-pmkisan
+  template:
+    metadata:
+      labels:
+        app: mock-pmkisan
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: mock
+          image: ghcr.io/openagrinet/oan-mockpmkisan:bv-dev-rc1
+          envFrom:
+            - secretRef:
+                name: mock-pmkisan
+          args:
+            - -addr=:9102
+            - -otp-token=$(PMKISAN_OTP_TOKEN)
+            - -service-token=$(PMKISAN_SERVICE_TOKEN)
+            - -otp=1234
+            - -unknown-reg-no=UNKNOWN0000
+          ports:
+            - containerPort: 9102
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 9102
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+        - name: chatbot-prefix
+          image: nginx:alpine
+          ports:
+            - containerPort: 9106
+          readinessProbe:
+            tcpSocket:
+              port: 9106
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+          volumeMounts:
+            - name: chatbot-prefix
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: chatbot-prefix
+          configMap:
+            name: mock-pmkisan-chatbot
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-pmkisan
+  namespace: mock-pmkisan
+spec:
+  selector:
+    app: mock-pmkisan
+  ports:
+    - port: 9102
+      targetPort: 9102
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-pmkisan-chatbot
+  namespace: mock-pmkisan
+spec:
+  selector:
+    app: mock-pmkisan
+  ports:
+    - port: 9106
+      targetPort: 9106

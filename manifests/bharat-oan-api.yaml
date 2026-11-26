@@ -45,7 +45,9 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: bharat-oan-api
-          image: ghcr.io/openagrinet/bharat-oan-api:bv-dev-2302de3
+          image: ghcr.io/openagrinet/bharat-oan-api:bv-dev-rc2
+          # Always: bv-dev-rc2 is re-pushed under the same tag as bv-migration moves; a restart picks it up.
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8000
@@ -61,6 +63,11 @@ spec:
           volumeMounts:
             - name: jwt-keys
               mountPath: /etc/bharat-oan-api/keys
+              readOnly: true
+            # Merged by the app over its built-in config/models.yaml (see the ConfigMap below).
+            - name: models-local
+              mountPath: /app/config/models.local.yaml
+              subPath: models.local.yaml
               readOnly: true
           # Model load and 8 uvicorn workers can take minutes on a cold node.
           startupProbe:
@@ -93,6 +100,33 @@ spec:
         - name: jwt-keys
           secret:
             secretName: bharat-oan-api-keys
+        - name: models-local
+          configMap:
+            name: bharat-oan-api-models
+---
+# bv-dev model choice, merged over the image's config/models.yaml (agents/model_registry.py reads
+# config/models.local.yaml when it exists). Both models go through the LiteLLM proxy at
+# AGRINET_GEMMA_BASE_URL / AZURE_GPT54_MINI_BASE_URL (bharat-oan-api.env).
+# Changed it? kubectl apply -f this file, then restart: a subPath mount is not refreshed in a running pod.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bharat-oan-api-models
+  namespace: bharat-oan-api
+data:
+  models.local.yaml: |
+    models:
+      azure_gpt54_mini:
+        # LiteLLM serves chat completions; its Azure api-version is too old for the Responses API (400).
+        api: chat
+      gemma_vllm:
+        fallback:
+          # LiteLLM has no vLLM /metrics to read, so no concurrency check; errors still fall back to gpt-5.4-mini.
+          on_concurrency_above: null
+    use_cases:
+      agrinet:
+        # Gemma answers every chat; gpt-5.4-mini only when Gemma errors (gemma_vllm.fallback in models.yaml).
+        default_alias: gemma_vllm
 ---
 apiVersion: v1
 kind: Service

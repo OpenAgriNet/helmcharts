@@ -1,0 +1,86 @@
+# mock-pmfby: the quick-start PMFBY mock (quick-start/mock-server/mockpmfby),
+# standing in for both PMFBY services on bv-dev: FGMS grievance tickets and NIC
+# insurance (policy and claim status). One host serves both.
+#
+# The registry's pmfby upstream and the adapter's pmfby login point here:
+#   http://mock-pmfby.mock-pmfby.svc.cluster.local:9104
+# The mock accepts the same login as the adapter sends, so its Secret is copied
+# from the adapter's provider-pmfby (PMFBY_ACCESS_UID, PMFBY_ACCESS_PWD).
+#
+# Test values: OTP 123456; every mobile is a farmer except 9999999999.
+#
+# Deploy (in order):
+#   1. docker build --platform linux/amd64 -t ghcr.io/openagrinet/oan-mockpmfby:bv-dev-rc1 <mockpmfby source>
+#      docker push ghcr.io/openagrinet/oan-mockpmfby:bv-dev-rc1
+#   2. kubectl apply -f mock-pmfby.yaml   (the pod waits for the two Secrets below)
+#   3. Copy the adapter's PMFBY Secret and the GHCR pull secret into mock-pmfby:
+#      kubectl -n network-adapter get secret provider-pmfby -o yaml \
+#        | sed -e '/^  annotations:/,/^  creationTimestamp:/d' -e '/^  resourceVersion:/d' -e '/^  uid:/d' \
+#              -e 's/^  name: provider-pmfby/  name: mock-pmfby/' -e 's/^  namespace: network-adapter/  namespace: mock-pmfby/' \
+#        | kubectl apply -f -
+#      kubectl -n oan-ui get secret ghcr-pull-secret -o yaml \
+#        | sed -e '/^  creationTimestamp:/d' -e '/^  resourceVersion:/d' -e '/^  uid:/d' \
+#              -e 's/^  namespace: oan-ui/  namespace: mock-pmfby/' \
+#        | kubectl apply -f -
+#   4. kubectl -n mock-pmfby rollout restart deploy/mock-pmfby
+#      kubectl -n mock-pmfby rollout status deploy/mock-pmfby
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mock-pmfby
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-pmfby
+  namespace: mock-pmfby
+  labels:
+    app: mock-pmfby
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-pmfby
+  template:
+    metadata:
+      labels:
+        app: mock-pmfby
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: mock
+          image: ghcr.io/openagrinet/oan-mockpmfby:bv-dev-rc1
+          envFrom:
+            - secretRef:
+                name: mock-pmfby
+          args:
+            - -addr=:9104
+            - -access-uid=$(PMFBY_ACCESS_UID)
+            - -access-pwd=$(PMFBY_ACCESS_PWD)
+            - -otp=123456
+            - -unknown-mobile=9999999999
+            - -expires-in=3600
+          ports:
+            - containerPort: 9104
+          readinessProbe:
+            tcpSocket:
+              port: 9104
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-pmfby
+  namespace: mock-pmfby
+spec:
+  selector:
+    app: mock-pmfby
+  ports:
+    - port: 9104
+      targetPort: 9104

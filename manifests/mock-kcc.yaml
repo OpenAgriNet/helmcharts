@@ -1,0 +1,81 @@
+# mock-kcc: the quick-start KCC loan-status mock (quick-start/mock-server/mockkcc),
+# standing in for KCC on bv-dev. KCC's real host is production: every OTP there
+# is a real SMS to a real farmer, so bv-dev never calls it.
+#
+# The registry's kcc upstream and the adapter's kcc login point here:
+#   http://mock-kcc.mock-kcc.svc.cluster.local:9105
+# The adapter holds the same user ID, password and body key as the args below
+# (config/dev network-adapter extraEnv), or every call looks like a mapping fault.
+#
+# Test values: OTP 123456; every mobile has an application except 9999999999.
+#
+# Deploy (in order):
+#   1. docker build --platform linux/amd64 -t ghcr.io/openagrinet/oan-mockkcc:bv-dev-rc1 quick-start/mock-server/mockkcc
+#      docker push ghcr.io/openagrinet/oan-mockkcc:bv-dev-rc1
+#   2. kubectl apply -f mock-kcc.yaml   (the pod waits for the pull secret below)
+#   3. Copy the GHCR pull secret into mock-kcc:
+#      kubectl -n oan-ui get secret ghcr-pull-secret -o yaml \
+#        | sed -e '/^  creationTimestamp:/d' -e '/^  resourceVersion:/d' -e '/^  uid:/d' \
+#              -e 's/^  namespace: oan-ui/  namespace: mock-kcc/' \
+#        | kubectl apply -f -
+#   4. kubectl -n mock-kcc rollout restart deploy/mock-kcc
+#      kubectl -n mock-kcc rollout status deploy/mock-kcc
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mock-kcc
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-kcc
+  namespace: mock-kcc
+  labels:
+    app: mock-kcc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-kcc
+  template:
+    metadata:
+      labels:
+        app: mock-kcc
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: mock
+          image: ghcr.io/openagrinet/oan-mockkcc:bv-dev-rc1
+          args:
+            - -addr=:9105
+            - -key=dev-only-mock-kcc-key-0123456789
+            - -user-id=local-kcc-user
+            - -password=local-kcc-password
+            - -entity-type=KRISHIKA
+            - -otp=123456
+            - -unknown-mobile=9999999999
+            - -expires-in=300
+          ports:
+            - containerPort: 9105
+          readinessProbe:
+            tcpSocket:
+              port: 9105
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-kcc
+  namespace: mock-kcc
+spec:
+  selector:
+    app: mock-kcc
+  ports:
+    - port: 9105
+      targetPort: 9105
