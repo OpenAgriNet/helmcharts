@@ -27,6 +27,44 @@ replaces only its own, so sending one and not the other leaves half the state
 stale. `publish-states.sh MH` handles this: it sends every document for the
 state you name.
 
+## Publishing through a network adapter
+
+A deployment usually puts a **network adapter** in front of discovery rather
+than exposing discovery itself. Three things differ there, and each costs an
+afternoon to rediscover.
+
+**`senderId` and `receiverId` must be the adapter's own participant id** --
+normally its host name. The adapter resolves the sender against its registry,
+and an id it does not hold comes back as a bare `500 NET_INTERNAL_ERROR` with
+nothing naming the sender, so it reads as the service being broken rather than
+as the request being wrong.
+
+```sh
+NETWORK_ID=<adapter-participant-id> \
+SENDER_ID=<adapter-participant-id> \
+RECEIVER_ID=<adapter-participant-id> \
+DISCOVERY_URL=https://<adapter-host> \
+  ./publish-states.sh
+```
+
+**Discover is on a different path, and may be signed.** `/discover` can enforce
+Beckn signature validation and answer `401 AUT_SIGNATURE_MISSING` to an
+unsigned call; the consumer-facing `/consumer/discover` on the same host
+usually does not. Publishing on `/publish` is typically open. If a discover
+401s and a publish does not, that asymmetry is the reason -- use the consumer
+path, or sign the call.
+
+**Check `FULL` is accepted before sending everything.** An adapter may be
+MERGE-only. Publish ONE small state first (`./publish-states.sh GO`) and
+confirm `ACCEPTED`; under MERGE a market the upstream stops listing would stay
+indexed for ever, which is the thing these documents exist to avoid.
+
+Verify afterwards by discovering each state and comparing to the counts in the
+table below. The publish response's `stats.itemCount` is the other half of the
+same check: it is the service's own count of what it indexed, so
+`itemCount` short of the resources sent means a partial landing however
+healthy the `200` looks.
+
 ## What is here
 
 | state | markets | documents |
