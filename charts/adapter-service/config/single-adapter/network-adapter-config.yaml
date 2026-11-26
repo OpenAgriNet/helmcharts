@@ -369,7 +369,7 @@ modules:
                 sessionTokenField: data.farmerID
                 sessionTtl: 15m
                 sessionTtlMargin: 60s
-                sessionBindAt: "message.contract.commitments[].commitmentAttributes.applicant.mobile"
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.mobile"
                 sessionHeader: X-PMFBY-Farmer-Session
                 sessionPrefix: ""
               # PMFBY grievance (v0.2) is OTP-gated too: the farmerID bought on confirm is spent on the filing,
@@ -381,7 +381,7 @@ modules:
                 sessionTokenField: data.farmerID
                 sessionTtl: 1h
                 sessionTtlMargin: 60s
-                sessionBindAt: "message.contract.commitments[].commitmentAttributes.applicantMobile,message.support.channels[].applicantMobile"
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.mobile,message.support.channels[].requestorMobileNo"
                 sessionHeader: X-PMFBY-Farmer-Session
                 sessionPrefix: ""
               pmkisan:
@@ -404,6 +404,10 @@ modules:
                 otpVerifyPath: /ChatbotOTPVerified
                 otpVerifyActions: "support,status"
                 otpVerifyTimeoutMs: "10000"
+                otpVerifyBodyFields: "Types, Values, OTP"
+                otpVerifyIdentityFrom: "enrolmentId=Ben_id, applicant.mobile=Mobile"
+                otpVerifyOtpFrom: challenge.response.value
+                otpVerifyMethodFrom: "challenge.response.method=OTP"
               # The binding's host is the OTP service itself: OTP, the record,
               # then a follow-up read of its blockers.
               "pmkisan|openagrinet:SchemeApplication":
@@ -415,6 +419,10 @@ modules:
                 otpVerifyPath: /ChatbotOTPVerified
                 otpVerifyActions: status
                 otpVerifyTimeoutMs: "10000"
+                otpVerifyBodyFields: "Types, Values, OTP"
+                otpVerifyIdentityFrom: "enrolmentId=Ben_id, applicant.mobile=Mobile"
+                otpVerifyOtpFrom: challenge.response.value
+                otpVerifyMethodFrom: "challenge.response.method=OTP"
                 followUpPath: /ChatbotBeneficiaryStatus
                 followUpField: _beneficiaryStatus
                 followUpActions: status
@@ -486,7 +494,7 @@ modules:
                 sessionTokenField: data.token
                 sessionTtl: 1h
                 sessionTtlMargin: 60s
-                sessionBindAt: "message.contract.commitments[].commitmentAttributes.farmerMobileNumber,message.support.channels[].farmerMobileNumber"
+                sessionBindAt: "message.contract.commitments[].commitmentAttributes.mobile,message.support.channels[].farmerMobileNumber"
                 sessionHeader: X-KHC-Token
                 sessionPrefix: ""
               # SMAM benefit status: a fixed service token in a header named Token.
