@@ -589,7 +589,7 @@ modules:
             cacheTTL: "3600"
             extendedSchema_enabled: "true"
             # SchemeApplication and Grievance v0.2 are not on openagrinet.github.io yet: read those packs from network-specs bv-migration.
-            extendedSchema_contextRewrite: "https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.2/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/schema/SchemeApplication/v0.2/,https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/schema/Grievance/v0.2/"
+            extendedSchema_contextRewrite: "https://openagrinet.github.io/network-specs/schema/SchemeApplication/v0.2/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/schema/SchemeApplication/v0.2/,https://openagrinet.github.io/network-specs/schema/Grievance/v0.2/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/schema/Grievance/v0.2/,https://openagrinet.github.io/network-specs/schema/AgricultureResource/v0.2/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/schema/AgricultureResource/v0.2/,https://openagrinet.github.io/network-specs/schema/AgricultureAdvisory/v0.2/|https://raw.githubusercontent.com/OpenAgriNet/network-specs/refs/heads/bv-migration/schema/AgricultureAdvisory/v0.2/"
             extendedSchema_cacheTTL: "86400"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
