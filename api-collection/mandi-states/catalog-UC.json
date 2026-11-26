@@ -1,0 +1,1599 @@
+{
+  "context": {
+    "action": "catalog/publish",
+    "messageId": "{{messageId}}",
+    "timestamp": "{{timestamp}}",
+    "transactionId": "{{transactionId}}",
+    "version": "2.0.0",
+    "senderId": "{{senderId}}",
+    "receiverId": "{{receiverId}}"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "descriptor": {
+          "code": "MANDI_PRICE_MARKET_UC",
+          "longDesc": "One resource per market. Each carries the Agmarknet codes a select must send, that market's traded commodities, and its point location for proximity discovery.",
+          "name": "Agmarknet mandi markets — Uttarakhand",
+          "shortDesc": "Markets in Uttarakhand, their locations, and what each trades"
+        },
+        "id": "catalog:mandi-price:UC",
+        "isActive": true,
+        "provider": {
+          "descriptor": {
+            "code": "AGMARKNET",
+            "name": "Agmarknet Vistaar",
+            "shortDesc": "Provider of live agricultural market price information."
+          },
+          "id": "agmarknet"
+        },
+        "resources": [
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1075",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bazpur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bazpur APMC mandi prices",
+              "shortDesc": "Mandi prices at Bazpur APMC, Udhamsinghnagar, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:1075",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.1464,
+                    29.1585
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "672",
+                  "areaLevel": "District",
+                  "areaName": "Udhamsinghnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Udhamsinghnagar",
+                "marketCode": "1075",
+                "marketName": "Bazpur APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "12",
+                  "name": "Mustard"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3338",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Bhagwanpur(Naveen Mandi Sthal) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Bhagwanpur(Naveen Mandi Sthal) APMC mandi prices",
+              "shortDesc": "Mandi prices at Bhagwanpur(Naveen Mandi Sthal) APMC, Haridwar, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:3338",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.80804,
+                    29.94437
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "667",
+                  "areaLevel": "District",
+                  "areaName": "Haridwar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Haridwar",
+                "marketCode": "3338",
+                "marketName": "Bhagwanpur(Naveen Mandi Sthal) APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1666",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Chakrata APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Chakrata APMC mandi prices",
+              "shortDesc": "Mandi prices at Chakrata APMC, Dehradoon, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:1666",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "areaCode": "664",
+                  "areaLevel": "District",
+                  "areaName": "Dehradoon",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Dehradoon",
+                "marketCode": "1666",
+                "marketName": "Chakrata APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_303",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Dehradoon APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Dehradoon APMC mandi prices",
+              "shortDesc": "Mandi prices at Dehradoon APMC, Dehradoon, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:303",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.0118,
+                    30.3046
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "664",
+                  "areaLevel": "District",
+                  "areaName": "Dehradoon",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Dehradoon",
+                "marketCode": "303",
+                "marketName": "Dehradoon APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1076",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Gadarpur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Gadarpur APMC mandi prices",
+              "shortDesc": "Mandi prices at Gadarpur APMC, Udhamsinghnagar, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:1076",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.2465,
+                    29.036
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "672",
+                  "areaLevel": "District",
+                  "areaName": "Udhamsinghnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Udhamsinghnagar",
+                "marketCode": "1076",
+                "marketName": "Gadarpur APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1070",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Haldwani APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Haldwani APMC mandi prices",
+              "shortDesc": "Mandi prices at Haldwani APMC, Nanital, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:1070",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.5213,
+                    29.1957
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "668",
+                  "areaLevel": "District",
+                  "areaName": "Nanital",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nanital",
+                "marketCode": "1070",
+                "marketName": "Haldwani APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1071",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Haridwar Union APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Haridwar Union APMC mandi prices",
+              "shortDesc": "Mandi prices at Haridwar Union APMC, Haridwar, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:1071",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.102944,
+                    29.915056
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "667",
+                  "areaLevel": "District",
+                  "areaName": "Haridwar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Haridwar",
+                "marketCode": "1071",
+                "marketName": "Haridwar Union APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1664",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jaspur(UC) APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jaspur(UC) APMC mandi prices",
+              "shortDesc": "Mandi prices at Jaspur(UC) APMC, Udhamsinghnagar, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:1664",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.8377,
+                    29.2887
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "672",
+                  "areaLevel": "District",
+                  "areaName": "Udhamsinghnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Udhamsinghnagar",
+                "marketCode": "1664",
+                "marketName": "Jaspur(UC) APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_319",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kashipur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kashipur APMC mandi prices",
+              "shortDesc": "Mandi prices at Kashipur APMC, Udhamsinghnagar, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:319",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.93,
+                    29.2
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "672",
+                  "areaLevel": "District",
+                  "areaName": "Udhamsinghnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Udhamsinghnagar",
+                "marketCode": "319",
+                "marketName": "Kashipur APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_669",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Khateema APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Khateema APMC mandi prices",
+              "shortDesc": "Mandi prices at Khateema APMC, Udhamsinghnagar, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:669",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.959539,
+                    28.91086
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "672",
+                  "areaLevel": "District",
+                  "areaName": "Udhamsinghnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Udhamsinghnagar",
+                "marketCode": "669",
+                "marketName": "Khateema APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_325",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kicchha APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kicchha APMC mandi prices",
+              "shortDesc": "Mandi prices at Kicchha APMC, Udhamsinghnagar, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:325",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.515707,
+                    28.912001
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "672",
+                  "areaLevel": "District",
+                  "areaName": "Udhamsinghnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Udhamsinghnagar",
+                "marketCode": "325",
+                "marketName": "Kicchha APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1074",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Kotadwara APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Kotadwara APMC mandi prices",
+              "shortDesc": "Mandi prices at Kotadwara APMC, Garhwal (Pauri), Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:1074",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.47995427,
+                    29.74316978
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "665",
+                  "areaLevel": "District",
+                  "areaName": "Garhwal (Pauri)",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Garhwal (Pauri)",
+                "marketCode": "1074",
+                "marketName": "Kotadwara APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "4",
+                  "name": "Maize"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1665",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Lakshar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Lakshar APMC mandi prices",
+              "shortDesc": "Mandi prices at Lakshar APMC, Haridwar, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:1665",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.99,
+                    29.68
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "667",
+                  "areaLevel": "District",
+                  "areaName": "Haridwar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Haridwar",
+                "marketCode": "1665",
+                "marketName": "Lakshar APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1077",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Manglaur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Manglaur APMC mandi prices",
+              "shortDesc": "Mandi prices at Manglaur APMC, Haridwar, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:1077",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.858176,
+                    29.783308
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "667",
+                  "areaLevel": "District",
+                  "areaName": "Haridwar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Haridwar",
+                "marketCode": "1077",
+                "marketName": "Manglaur APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3043",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nanakmatta APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Nanakmatta APMC mandi prices",
+              "shortDesc": "Mandi prices at Nanakmatta APMC, Udhamsinghnagar, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:3043",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.8045309,
+                    28.9398064
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "672",
+                  "areaLevel": "District",
+                  "areaName": "Udhamsinghnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Udhamsinghnagar",
+                "marketCode": "3043",
+                "marketName": "Nanakmatta APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "1",
+                  "name": "Wheat"
+                },
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1072",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Ramnagar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Ramnagar APMC mandi prices",
+              "shortDesc": "Mandi prices at Ramnagar APMC, Nanital, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:1072",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.11,
+                    29.38
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "668",
+                  "areaLevel": "District",
+                  "areaName": "Nanital",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Nanital",
+                "marketCode": "1072",
+                "marketName": "Ramnagar APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "9",
+                  "name": "Green Gram(Moong)(Whole)"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_667",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Rishikesh APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Rishikesh APMC mandi prices",
+              "shortDesc": "Mandi prices at Rishikesh APMC, Dehradoon, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:667",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    78.285932,
+                    30.09552
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "664",
+                  "areaLevel": "District",
+                  "areaName": "Dehradoon",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Dehradoon",
+                "marketCode": "667",
+                "marketName": "Rishikesh APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1073",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Roorkee APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Roorkee APMC mandi prices",
+              "shortDesc": "Mandi prices at Roorkee APMC, Haridwar, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:1073",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.8754471,
+                    29.8529718
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "667",
+                  "areaLevel": "District",
+                  "areaName": "Haridwar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Haridwar",
+                "marketCode": "1073",
+                "marketName": "Roorkee APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_326",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Rudrapur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Rudrapur APMC mandi prices",
+              "shortDesc": "Mandi prices at Rudrapur APMC, Udhamsinghnagar, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:326",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.421873,
+                    28.958636
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "672",
+                  "areaLevel": "District",
+                  "areaName": "Udhamsinghnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Udhamsinghnagar",
+                "marketCode": "326",
+                "marketName": "Rudrapur APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1663",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Sitarganj APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Sitarganj APMC mandi prices",
+              "shortDesc": "Mandi prices at Sitarganj APMC, Udhamsinghnagar, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:1663",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    79.700841,
+                    28.915686
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "672",
+                  "areaLevel": "District",
+                  "areaName": "Udhamsinghnagar",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Udhamsinghnagar",
+                "marketCode": "1663",
+                "marketName": "Sitarganj APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "2",
+                  "name": "Paddy(Common)"
+                },
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1662",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Tanakpur APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Tanakpur APMC mandi prices",
+              "shortDesc": "Mandi prices at Tanakpur APMC, Champawat, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:1662",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    80.099893,
+                    29.073449
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "663",
+                  "areaLevel": "District",
+                  "areaName": "Champawat",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Champawat",
+                "marketCode": "1662",
+                "marketName": "Tanakpur APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_668",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Vikasnagar APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Vikasnagar APMC mandi prices",
+              "shortDesc": "Mandi prices at Vikasnagar APMC, Dehradoon, Uttarakhand"
+            },
+            "id": "resource:mandi-price:market:668",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    77.767173,
+                    30.463803
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "664",
+                  "areaLevel": "District",
+                  "areaName": "Dehradoon",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-UK",
+                  "areaLevel": "State",
+                  "areaName": "Uttarakhand",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "Dehradoon",
+                "marketCode": "668",
+                "marketName": "Vikasnagar APMC",
+                "state": "UC"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:mandi-price:UC",
+        "catalogType": "REGULAR",
+        "schemaTypes": [
+          "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld"
+        ],
+        "updateMode": "FULL",
+        "visibleTo": [
+          "{{networkId}}"
+        ]
+      }
+    ]
+  }
+}

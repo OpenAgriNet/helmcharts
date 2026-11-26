@@ -1,0 +1,371 @@
+{
+  "context": {
+    "action": "catalog/publish",
+    "messageId": "{{messageId}}",
+    "timestamp": "{{timestamp}}",
+    "transactionId": "{{transactionId}}",
+    "version": "2.0.0",
+    "senderId": "{{senderId}}",
+    "receiverId": "{{receiverId}}"
+  },
+  "message": {
+    "catalogs": [
+      {
+        "descriptor": {
+          "code": "MANDI_PRICE_MARKET_MG",
+          "longDesc": "One resource per market. Each carries the Agmarknet codes a select must send, that market's traded commodities, and its point location for proximity discovery.",
+          "name": "Agmarknet mandi markets — Meghalaya",
+          "shortDesc": "Markets in Meghalaya, their locations, and what each trades"
+        },
+        "id": "catalog:mandi-price:MG",
+        "isActive": true,
+        "provider": {
+          "descriptor": {
+            "code": "AGMARKNET",
+            "name": "Agmarknet Vistaar",
+            "shortDesc": "Provider of live agricultural market price information."
+          },
+          "id": "agmarknet"
+        },
+        "resources": [
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_543",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Jowai APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Jowai APMC mandi prices",
+              "shortDesc": "Mandi prices at Jowai APMC, West Jaintia Hills, Meghalaya"
+            },
+            "id": "resource:mandi-price:market:543",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    92.1959,
+                    25.4415
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "395",
+                  "areaLevel": "District",
+                  "areaName": "West Jaintia Hills",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-ML",
+                  "areaLevel": "State",
+                  "areaName": "Meghalaya",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "West Jaintia Hills",
+                "marketCode": "543",
+                "marketName": "Jowai APMC",
+                "state": "MG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "23",
+                  "name": "Onion"
+                },
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1873",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Mawkyrwat APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Mawkyrwat APMC mandi prices",
+              "shortDesc": "Mandi prices at Mawkyrwat APMC, South West Khasi Hills, Meghalaya"
+            },
+            "id": "resource:mandi-price:market:1873",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.461,
+                    25.3677
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "393",
+                  "areaLevel": "District",
+                  "areaName": "South West Khasi Hills",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-ML",
+                  "areaLevel": "State",
+                  "areaName": "Meghalaya",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "South West Khasi Hills",
+                "marketCode": "1873",
+                "marketName": "Mawkyrwat APMC",
+                "state": "MG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1870",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Nongstoin APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Nongstoin APMC mandi prices",
+              "shortDesc": "Mandi prices at Nongstoin APMC, West Khasi Hills, Meghalaya"
+            },
+            "id": "resource:mandi-price:market:1870",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.26425,
+                    25.52175
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "396",
+                  "areaLevel": "District",
+                  "areaName": "West Khasi Hills",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-ML",
+                  "areaLevel": "State",
+                  "areaName": "Meghalaya",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "West Khasi Hills",
+                "marketCode": "1870",
+                "marketName": "Nongstoin APMC",
+                "state": "MG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                },
+                {
+                  "code": "65",
+                  "name": "Tomato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_1872",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Shillong APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Shillong APMC mandi prices",
+              "shortDesc": "Mandi prices at Shillong APMC, East Khasi Hills, Meghalaya"
+            },
+            "id": "resource:mandi-price:market:1872",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    91.8961,
+                    25.566
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "388",
+                  "areaLevel": "District",
+                  "areaName": "East Khasi Hills",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-ML",
+                  "areaLevel": "State",
+                  "areaName": "Meghalaya",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "East Khasi Hills",
+                "marketCode": "1872",
+                "marketName": "Shillong APMC",
+                "state": "MG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          },
+          {
+            "descriptor": {
+              "code": "MANDI_PRICE_MARKET_3159",
+              "longDesc": "Invoke this Resource with a commodity and applicable date to obtain minimum, maximum, and modal prices for Wahiajer APMC. The result uses the same MandiPrice type in Direct information mode.",
+              "name": "Wahiajer APMC mandi prices",
+              "shortDesc": "Mandi prices at Wahiajer APMC, West Jaintia Hills, Meghalaya"
+            },
+            "id": "resource:mandi-price:market:3159",
+            "resourceAttributes": {
+              "@context": "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld",
+              "@type": "openagrinet:MandiPrice",
+              "coverageAreas": [
+                {
+                  "coordinates": [
+                    92.162454,
+                    25.533122
+                  ],
+                  "type": "Point"
+                },
+                {
+                  "areaCode": "395",
+                  "areaLevel": "District",
+                  "areaName": "West Jaintia Hills",
+                  "codeScheme": "AGMARKNET-DISTRICT"
+                },
+                {
+                  "areaCode": "IN-ML",
+                  "areaLevel": "State",
+                  "areaName": "Meghalaya",
+                  "codeScheme": "ISO-3166-2"
+                }
+              ],
+              "informationMode": "OnDemand",
+              "languages": [
+                "en"
+              ],
+              "market": {
+                "district": "West Jaintia Hills",
+                "marketCode": "3159",
+                "marketName": "Wahiajer APMC",
+                "state": "MG"
+              },
+              "source": {
+                "sourceId": "source:agmarknet",
+                "sourceName": "AGMARKNET",
+                "sourceUri": "https://agmarknet.gov.in"
+              },
+              "subjectCategories": [
+                "Market"
+              ],
+              "supportedCommodities": [
+                {
+                  "code": "24",
+                  "name": "Potato"
+                }
+              ],
+              "supportedPriceFields": [
+                "Minimum",
+                "Maximum",
+                "Modal"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "publishDirectives": [
+      {
+        "catalogId": "catalog:mandi-price:MG",
+        "catalogType": "REGULAR",
+        "schemaTypes": [
+          "https://openagrinet.github.io/network-specs/schema/MandiPrice/v0.1/context.jsonld"
+        ],
+        "updateMode": "FULL",
+        "visibleTo": [
+          "{{networkId}}"
+        ]
+      }
+    ]
+  }
+}
