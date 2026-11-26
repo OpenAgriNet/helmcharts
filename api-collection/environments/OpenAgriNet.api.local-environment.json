@@ -72,6 +72,12 @@
       "type": "default",
       "enabled": true,
       "description": "Provider entry point for every catalog/publish. Single mode (default): http://127.0.0.1:9201/publish, NETWORK_ADAPTER_PORT in .env. Multi mode: http://127.0.0.1:9200/publish, PROVIDER_ADAPTER_PORT in .env."
+    },
+    {
+      "key": "discoveryUrl",
+      "value": "http://127.0.0.1:8090",
+      "type": "default",
+      "enabled": true
     }
   ],
   "_postman_variable_scope": "environment",
