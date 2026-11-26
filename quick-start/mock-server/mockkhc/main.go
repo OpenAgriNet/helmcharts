@@ -90,6 +90,10 @@ type filed struct {
 	CurrentStatus     string `json:"currentStatus"`
 	CurrentLevel      string `json:"currentLevel"`
 	CreatedAt         string `json:"createdAt"`
+	// KHC sends both of these as JSON *inside a string*, not as nested objects;
+	// the caller json.loads them a second time. Kept that way on purpose.
+	Address           string `json:"address"`
+	EscalationHistory string `json:"escalationHistory"`
 	Mobile            string `json:"-"`
 }
 
@@ -426,6 +430,8 @@ func (s *server) create(w http.ResponseWriter, r *http.Request) {
 		CurrentStatus:     "Open",
 		CurrentLevel:      "Block",
 		CreatedAt:         time.Now().UTC().Format(time.RFC3339),
+		Address:           encoded(map[string]any{"stateId": asked.StateID, "villageId": asked.VillageID}),
+		EscalationHistory: encoded([]map[string]any{{"level": "Block", "status": "Open", "on": time.Now().UTC().Format(time.RFC3339)}}),
 		Mobile:            asked.FarmerMobileNumber,
 	}
 	s.grievances[number] = record
@@ -544,6 +550,15 @@ func (s *server) verifyStatusOTP(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("verify-otp %s: status read after a challenge", number)
 	ok(w, "", record)
+}
+
+// encoded is the JSON-in-a-string KHC uses for address and escalationHistory.
+func encoded(value any) string {
+	b, err := json.Marshal(value)
+	if err != nil {
+		return ""
+	}
+	return string(b)
 }
 
 func mask(mobile string) string {
