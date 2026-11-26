@@ -13,8 +13,8 @@
 # mobile is a new farmer, who must give name and gender); grievance numbers start BR.
 #
 # Deploy (in order):
-#   1. docker build --platform linux/amd64 -t ghcr.io/openagrinet/oan-mockkhc:bv-dev-rc1 <mockkhc source>
-#      docker push ghcr.io/openagrinet/oan-mockkhc:bv-dev-rc1
+#   1. docker build --platform linux/amd64 -t ghcr.io/openagrinet/oan-mockkhc:bv-dev-rc2 <mockkhc source>
+#      docker push ghcr.io/openagrinet/oan-mockkhc:bv-dev-rc2
 #   2. kubectl apply -f mock-khc.yaml   (the pod waits for the pull secret below)
 #   3. Copy the GHCR pull secret into mock-khc:
 #      kubectl -n oan-ui get secret ghcr-pull-secret -o yaml \
@@ -49,7 +49,7 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: mock
-          image: ghcr.io/openagrinet/oan-mockkhc:bv-dev-rc1
+          image: ghcr.io/openagrinet/oan-mockkhc:bv-dev-rc2
           args:
             - -addr=:9106
             - -auth-header=ApiKey local-khc-key

@@ -10,8 +10,8 @@
 # Test values: OTP 123456; every mobile is a farmer except 9999999999.
 #
 # Deploy (in order):
-#   1. docker build --platform linux/amd64 -t ghcr.io/openagrinet/oan-mockpmfby:bv-dev-rc1 <mockpmfby source>
-#      docker push ghcr.io/openagrinet/oan-mockpmfby:bv-dev-rc1
+#   1. docker build --platform linux/amd64 -t ghcr.io/openagrinet/oan-mockpmfby:bv-dev-rc2 <mockpmfby source>
+#      docker push ghcr.io/openagrinet/oan-mockpmfby:bv-dev-rc2
 #   2. kubectl apply -f mock-pmfby.yaml   (the pod waits for the two Secrets below)
 #   3. Copy the adapter's PMFBY Secret and the GHCR pull secret into mock-pmfby:
 #      kubectl -n network-adapter get secret provider-pmfby -o yaml \
@@ -50,7 +50,7 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: mock
-          image: ghcr.io/openagrinet/oan-mockpmfby:bv-dev-rc1
+          image: ghcr.io/openagrinet/oan-mockpmfby:bv-dev-rc2
           envFrom:
             - secretRef:
                 name: mock-pmfby
