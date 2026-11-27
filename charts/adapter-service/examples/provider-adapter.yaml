@@ -52,3 +52,6 @@ waitFor:
 otel:
   enabled: false
   endpoint: ""
+
+cache:
+  addr: redis-master.redis.svc.cluster.local:6379

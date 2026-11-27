@@ -28,3 +28,6 @@ ingress:
           pathType: Prefix
         - path: /status
           pathType: Exact
+
+cache:
+  addr: redis:6379

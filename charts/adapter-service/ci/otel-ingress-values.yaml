@@ -43,3 +43,6 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
+
+cache:
+  addr: redis:6379
