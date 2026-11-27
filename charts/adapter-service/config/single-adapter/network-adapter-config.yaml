@@ -52,7 +52,7 @@ plugins:
   # Off builds no schedule and never dials, so a cluster that federates with
   # nobody stays quiet. Answering someone else's crawl is unaffected.
   #
-  # No database: dbDsn is only for staticIndexUrls, networks or publishPipelines.
+  # dbDsn is the publish pipelines' run log; federation keeps no record.
   crawler:
     id: catalogcrawler
     config:
@@ -61,6 +61,21 @@ plugins:
       # it pushes, so a mount that checks a signature refuses it.
       discoveryPushUrl: "http://discovery.discovery.svc.cluster.local:8080/publish"
       participantId: "__NETWORK_SUBSCRIBER_ID__"
+      # Scheduled catalog publishing: each registry binding's `publish` pipeline.
+      # The run log DSN comes from the keys Secret via extraSubstitutions (README).
+      dbDsn: "__ADAPTER_CRAWLER_DB_DSN__"
+      receiverId: "discovery.oan.dev"
+      publishPipelines: "true"
+      publishEnabled: "true"
+      # Every 6 hours.
+      catalogIntervalSeconds: "21600"
+      # An emptyDir from extraVolumes (read-only root filesystem), see README.
+      publishCatalogOutputDir: "/tmp/catalogs"
+      # Per-pipeline overrides, by metadata.name. Once a day, OnDemand only;
+      # Agmarknet lags 1-3 weeks, so a relative window, not yesterday.
+      publish.mandi-price.schedule: "0 13 * * *"
+      publish.mandi-price.mode: "onDemand"
+      publish.mandi-price.fromDate: "21 days ago"
 
       federationEnabled: "__FEDERATION_ENABLED__"
       # We sign what we send, with the same key that signs everything else.
