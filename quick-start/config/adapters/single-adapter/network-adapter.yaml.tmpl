@@ -49,8 +49,8 @@ plugins:
       retry_wait_max: 500ms
       maxResponseBytes: 1048576
 
-  # The crawler: a background pass, not something a request reaches.
-  # No dbDsn -- nothing here keeps a record between runs.
+  # The crawler: a background pass, not something a request reaches. Its run
+  # log (when each publish pipeline last ran) is crawler-postgres.
   crawler:
     id: catalogcrawler
     config:
@@ -58,6 +58,26 @@ plugins:
       # Not /network/publish: that one expects a signature the crawl has none of.
       discoveryPushUrl: "__DISCOVERY_PUSH_URL__"
       participantId: "__NETWORK_SUBSCRIBER_ID__"
+      dbDsn: "postgres://crawler:crawler@crawler-postgres:5432/catalogcrawler?sslmode=disable"
+
+      # Scheduled catalog publishing: each registry binding's `publish` pipeline
+      # runs when due and its catalogs go to discoveryPushUrl (README).
+      receiverId: "discovery.oan.dev"
+      publishPipelines: "true"
+      publishEnabled: "true"
+      # Every 6 hours.
+      catalogIntervalSeconds: "21600"
+      publishCatalogOutputDir: "/tmp/catalogs"
+      # Once a day, OnDemand catalogs only (no Direct price catalogs).
+      publish.mandi-price.schedule: "0 13 * * *"
+      publish.mandi-price.mode: "onDemand"
+      # Agmarknet data lags 1-3 weeks: a relative window, not the default (yesterday).
+      publish.mandi-price.fromDate: "21 days ago"
+      # The pipeline's inputs, from .env. Used only when
+      # AGMARKNET_PUBLISH_PIPELINE_URL is set.
+      publish.mandi-price.baseUrl: "__AGMARKNET_BASE_URL__"
+      publish.mandi-price.participantId: "__AGMARKNET_PARTICIPANT_ID__"
+      publish.mandi-price.networkId: "__BECKN_NETWORK_ID__"
 
       # Off means this network never crawls. It still ANSWERS another network's
       # crawl, which is the network module's job and unaffected by this.

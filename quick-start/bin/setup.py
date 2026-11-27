@@ -268,6 +268,19 @@ def post(entity, payload):
             sys.exit(f"setup: the registry refused a write -- HTTP {e.code}: {detail}")
 
 
+def put(entity, osid, payload):
+    # Sunbird RC re-validates the whole record on a PUT, so all of it goes back.
+    req = urllib.request.Request(f"{registry_url()}/api/v1/{entity}/{osid}", method="PUT",
+                                 data=json.dumps(payload).encode(),
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        sys.exit(f"setup: the registry refused an update -- HTTP {e.code}: "
+                 f"{e.read().decode(errors='replace').strip()[:200] or '(empty body)'}")
+
+
 def search(entity, filters):
     req = urllib.request.Request(f"{registry_url()}/api/v1/{entity}/search", method="POST",
                                  data=json.dumps({"filters": filters}).encode(),
@@ -370,6 +383,27 @@ def ensure_actions_binding(participant_id, capability, actions, base_url=None):
     created(post("ProviderSchema", row), binding)
 
 
+def ensure_publish_action(participant_id, capability, url):
+    """Add or repoint the `publish` action the catalog crawler runs on a binding."""
+    binding = f"{participant_id}|{capability}"
+    rows = search("ProviderSchema", {"bindingKey": {"eq": binding}})
+    if not rows:
+        return
+    record = rows[0]
+    actions = record.get("actions", [])
+    if any(a.get("action") == "publish" and a.get("mappings") == url for a in actions):
+        print(f"  {binding} publish: already present")
+        return
+    record["actions"] = [a for a in actions if a.get("action") != "publish"] + [
+        {"action": "publish", "method": "POST", "path": "/publish",
+         "mappings": url, "status": "active"}]
+    params = put("ProviderSchema", record["osid"], record).get("params", {})
+    if params.get("status") != "SUCCESSFUL":
+        sys.exit(f"setup: the registry refused {binding} publish: "
+                 f"{params.get('errmsg', params)}")
+    print(f"  {binding} publish: updated")
+
+
 def schema_url(capability, version):
     """The pack URL for a capability code, derived so the two cannot drift.
     The host is the one catalogs carry in their @context."""
@@ -438,6 +472,10 @@ def register_provider(name):
                    env(f"{provider['prefix']}_PATH", provider["default_path"]),
                    env(f"{provider['prefix']}_MAPPING_URL"),
                    method=provider["method"])
+    # Optional: the pipeline the network adapter's catalog crawler runs (README).
+    pipeline = env(f"{provider['prefix']}_PUBLISH_PIPELINE_URL", "")
+    if pipeline:
+        ensure_publish_action(participant, capability, pipeline)
     ensure_capability_schema(capability, provider["capability_name"], provider["version"])
     print(f"  binding key {participant}|{capability}")
 
@@ -598,6 +636,10 @@ def configure_adapter(identity):
                 # and reach the adapter through its environment.
                 ("__AGMARKNET_TOKEN_URL__", token_url("agmarknet", "AGMARKNET_TOKEN_URL", serving)),
                 ("__VISTAAR_TOKEN_URL__", token_url("vistaar", "VISTAAR_TOKEN_URL", serving)),
+                # The crawler's Agmarknet publish pipeline inputs (README).
+                ("__AGMARKNET_BASE_URL__", token_url("agmarknet", "AGMARKNET_BASE_URL", serving)),
+                ("__AGMARKNET_PARTICIPANT_ID__", env("AGMARKNET_PARTICIPANT_ID", "")),
+                ("__BECKN_NETWORK_ID__", env("BECKN_NETWORK_ID")),
                 # The crawler hands a crawled catalog to /publish, which signs it
                 # and forwards it on. /network/publish expects a signature the
                 # crawl does not carry, and in multi mode /publish is elsewhere.
