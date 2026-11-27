@@ -45,7 +45,7 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: bharat-oan-api
-          image: ghcr.io/openagrinet/bharat-oan-api:bv-migration-rc1 
+          image: ghcr.io/openagrinet/bharat-oan-api:bv-dev-rc2
           # Always: bv-dev-rc2 is re-pushed under the same tag as bv-migration moves; a restart picks it up.
           imagePullPolicy: Always
           ports:
